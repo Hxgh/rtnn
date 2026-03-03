@@ -12,6 +12,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **admin**: NextJS 后台前端 (端口 3100)
 - **app**: NextJS 前台前端 (端口 3200)
 
+## 前端样式栈基线
+
+- `admin/app` 使用 `Tailwind CSS v4`（遵循官方最佳实践）
+
 # 开发规则
 
 涉及 Backend/admin/app 共享的类型、常量、权限改动时，遵循下文《类型同步机制》的执行细则。
