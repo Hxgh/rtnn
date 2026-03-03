@@ -12,6 +12,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **admin**: NextJS 后台前端 (端口 3100)
 - **app**: NextJS 前台前端 (端口 3200)
 
+## Skills 来源（Codex/Claude 统一）
+
+- `.agents/skills/`（Codex）与 `.claude/skills/`（Claude）为同步维护目录
+- 新增或修改 Skill 后，需将改动同步到另一目录
+- 推荐同步命令：`rsync -a --delete .agents/skills/ .claude/skills/`
+- 提交前确认两目录结构与内容一致
+
 ## 前端样式栈基线
 
 - `admin/app` 使用 `Tailwind CSS v4`（遵循官方最佳实践）
