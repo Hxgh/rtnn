@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.swp
+*.swo
+
+# build outputs
+dist/
+build/
+.next/
+out/
+
+# temp files
+*.tmp
+*.temp
+.cache/
+
+# database
+*.db
+*.sqlite
+
+# testing
+coverage/
+.nyc_output/

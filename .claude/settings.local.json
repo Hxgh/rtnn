@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(bash:*)",
+      "Bash(git status)",
+      "Bash(git log)",
+      "Bash(git show)",
+      "Bash(git diff)",
+      "Bash(git add)",
+      "Bash(git checkout)",
+      "Bash(git branch)",
+      "Bash(git fetch)",
+      "Bash(git merge)",
+      "Bash(git rebase)",
+      "Bash(git stash)",
+      "Bash(git tag)",
+      "Bash(git blame)",
+      "Bash(git ls-files)",
+      "Bash(git rev-parse)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(docker:*)",
+      "Bash(psql:*)",
+      "Bash(xargs:*)",
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(lsof:*)",
+      "Bash(adb:*)",
+      "WebFetch(domain:*)",
+      "WebSearch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
+}
