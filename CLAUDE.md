@@ -28,24 +28,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 目录范围与互斥
 
 - `backend/` 禁止套用前端 skill
-- `shadcn-ui-workflow` 适用于 `admin/app`（仅在显式提及 shadcn 时启用）
-- `admin/app` 默认 UI 主栈为 `Tailwind CSS`
-- `shadcn/ui` 属于可选组件层，需按任务显式引入，禁止隐式全量迁移
+- `shadcn-ui-workflow` 适用于 `admin/app`（涉及 UI 组件选型与实现时默认启用）
+- `admin/app` 默认 UI 主栈为 `shadcn/ui + Tailwind CSS`
+- 组件选型优先级：`shadcn/ui` 现成组件 > 基于 shadcn 风格的 Tailwind 自定义样式 > 其他方案
 
 ### 推荐触发顺序
 
-1. 若任务明确涉及 shadcn，再先做 UI 组件设计（`shadcn-ui-workflow`）
+1. 先做组件选型与 UI 设计（`shadcn-ui-workflow`）
 2. 再做组件分层与 API 设计（`vercel-composition-patterns`）
 3. 再做性能优化（`vercel-react-best-practices`）
 4. 最后做 UI/可访问性检查（`web-design-guidelines`）
 
-### 触发关键词（显式）
+### 启用判定原则
 
-- `shadcn-ui-workflow`：`shadcn`、`ui.shadcn.com`、`components.json`、`npx shadcn`、`registry`
+- 是否启用以需求类型判定：凡属于 UI 组件选型与实现任务，默认进入 `shadcn-ui-workflow`
+- 只要 `shadcn/ui` 可以实现，就优先使用
+- 关键词仅用于辅助识别，不是触发前提：`shadcn`、`ui.shadcn.com`、`components.json`、`npx shadcn`、`registry`
 
 ### 前端技能路由补充
 
-- 常规 React/Next 需求（未出现 shadcn 关键词）默认使用：
+- 涉及 `admin/app` 的 UI 组件开发或改造时，默认先检查并优先复用 `shadcn/ui` 现成组件
+- 若 `shadcn/ui` 无对应组件，再使用基于 shadcn 风格约束的 Tailwind 自定义实现
+- 上述优先级按可实现性判定：`shadcn/ui` 可实现则优先使用
+- 非 UI 组件类的常规 React/Next 需求默认使用：
   - `vercel-composition-patterns` + `vercel-react-best-practices`
 - 仅当用户要求 UI 评审、可访问性审查、UX 审计时，追加 `web-design-guidelines`
 - 当前仓库无 React Native / Expo 工程，默认不启用 `vercel-react-native-skills`
