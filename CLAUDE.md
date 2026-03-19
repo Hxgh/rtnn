@@ -6,18 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 请用中文与我交流
 
+## 全局规则来源
+
+- `CLAUDE.md` 是本项目唯一规则来源。
+- `AGENTS.md` 仅作入口提示，不重复维护规则。
+
 # 项目概述
 
 - **backend**: NestJS 后端 API (端口 3000)
 - **admin**: NextJS 后台前端 (端口 3100)
 - **app**: NextJS 前台前端 (端口 3200)
 
-## Skills 来源（Codex/Claude 统一）
+## Skills 维护规则
 
-- `.agents/skills/`（Codex）与 `.claude/skills/`（Claude）为同步维护目录
-- 新增或修改 Skill 后，需将改动同步到另一目录
-- 推荐同步命令：`rsync -a --delete .agents/skills/ .claude/skills/`
-- 提交前确认两目录结构与内容一致
+- 唯一维护路径：`.claude/skills/`
+- Codex 入口路径：`.agents/skills/`（仅用于兼容入口，不直接编辑）
+- 新增或修改 Skill：只改 `.claude/skills/`
 
 ## 前端样式栈基线
 
@@ -29,12 +33,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 前端 Skills 编排（统一入口）
 
-前端任务按以下 skill 组合执行：
+前端任务按需使用以下 skill 组合：
 
-1. `shadcn-ui-workflow`（统一 UI 体系与落地约束）
-2. `vercel-composition-patterns`（React 组件架构与组合模式）
+1. `shadcn-ui-workflow`（统一 UI 体系与落地约束，仅用于 UI 组件任务）
+2. `vercel-composition-patterns`（React 组件架构与组合模式，仅用于相关架构场景）
 3. `vercel-react-best-practices`（React 性能与数据获取）
-4. `web-design-guidelines`（UI/可访问性审查）
+4. `web-design-guidelines`（UI/可访问性审查，仅在评审类任务启用）
 
 ### 目录范围与互斥
 
@@ -43,7 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `admin/app` 默认 UI 主栈为 `shadcn/ui + Tailwind CSS`
 - 组件选型优先级：`shadcn/ui` 现成组件 > 基于 shadcn 风格的 Tailwind 自定义样式 > 其他方案
 
-### 推荐触发顺序
+### 协同顺序（按需）
 
 1. 先做组件选型与 UI 设计（`shadcn-ui-workflow`）
 2. 再做组件分层与 API 设计（`vercel-composition-patterns`）
@@ -61,8 +65,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 涉及 `admin/app` 的 UI 组件开发或改造时，默认先检查并优先复用 `shadcn/ui` 现成组件
 - 若 `shadcn/ui` 无对应组件，再使用基于 shadcn 风格约束的 Tailwind 自定义实现
 - 上述优先级按可实现性判定：`shadcn/ui` 可实现则优先使用
-- 非 UI 组件类的常规 React/Next 需求默认使用：
-  - `vercel-composition-patterns` + `vercel-react-best-practices`
+- React/Next 常规开发默认使用 `vercel-react-best-practices`（组件、页面、数据获取、性能优化）
+- 仅当涉及组件架构设计、可复用组件 API、compound components、context/provider、boolean props 泛滥治理时，启用 `vercel-composition-patterns`
 - 仅当用户要求 UI 评审、可访问性审查、UX 审计时，追加 `web-design-guidelines`
 - 当前仓库无 React Native / Expo 工程，默认不启用 `vercel-react-native-skills`
 

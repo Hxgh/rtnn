@@ -1,1 +1,2 @@
-规则，从CLAUDE.md 深入了解项目规则
+请始终先读取 `CLAUDE.md`。
+`CLAUDE.md` 是本项目唯一规则来源。
