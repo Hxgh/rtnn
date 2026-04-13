@@ -1,0 +1,31 @@
+FROM node:20-alpine AS base
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+RUN corepack enable
+
+WORKDIR /workspace
+
+FROM base AS builder
+
+COPY . .
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build:packages
+RUN pnpm --filter app build
+
+FROM node:20-alpine AS runner
+
+ENV NODE_ENV=production
+ENV PORT=5102
+
+WORKDIR /app
+
+COPY --from=builder /workspace/app/.next/standalone ./
+COPY --from=builder /workspace/app/.next/static ./app/.next/static
+COPY --from=builder /workspace/app/public ./app/public
+
+EXPOSE 5102
+
+CMD ["node", "app/server.js"]

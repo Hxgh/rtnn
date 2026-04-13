@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# rtnn app
 
-## Getting Started
+`app/` 是 `rtnn` 模板工程的 Next.js 前台消费端，负责消费 `backend/` 提供的 customer 向正式 API 与会话能力。
 
-First, run the development server:
+它不是 demo 页面集合，也不维护独立于 backend 的平行接口层。
+
+## 角色定位
+
+- 作为前台用户端消费 `backend`
+- 使用 `@rtnn/api-sdk`、`@rtnn/shared-types`、`@rtnn/config`
+- 承接 customer 会话闭环：登录、刷新、登出、会话自省、修改密码
+- 提供移动端首发骨架：首页、个人页、账户安全页（不含资料编辑）
+
+## 开发命令
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm -C app dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+默认访问地址：`http://localhost:5102`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+常用脚本：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `pnpm -C app dev`
+- `pnpm -C app build`
+- `pnpm -C app start`
+- `pnpm -C app typecheck`
 
-## Learn More
+## 与 Backend 的关系
 
-To learn more about Next.js, take a look at the following resources:
+- customer 正式自省接口为 `auth/customer/me`
+- customer 正式认证接口为 `auth/customer/login|refresh|logout|change-password`
+- app 不再依赖 `system/me` 这类泛化 demo 接口
+- backend 变更接口、权限或 OpenAPI 后，应通过 SDK / shared-types 同步到 app
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 前端基线
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `Next.js App Router`
+- server-first 数据获取
+- 多语言、主题和共享配置基于 `@rtnn/config`
+- `Tailwind CSS v4 + CSS Variables`（不引入 `shadcn/ui`）
+- 视觉方向：中性底色 + 单一强调色 + 移动端单列结构

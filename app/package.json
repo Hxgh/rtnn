@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3200",
+    "dev": "next dev -p 5102",
     "build": "next build",
-    "start": "next start -p 3200",
-    "lint": "eslint"
+    "start": "node ../scripts/run-next-standalone.mjs app 5102",
+    "start:standalone": "PORT=5102 HOSTNAME=0.0.0.0 node .next/standalone/app/server.js",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rtnn/api-sdk": "workspace:*",
+    "@rtnn/config": "workspace:*",
+    "@rtnn/shared-types": "workspace:*",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
