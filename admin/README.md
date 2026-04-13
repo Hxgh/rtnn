@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# rtnn admin
 
-## Getting Started
+`admin/` 是 `rtnn` 模板工程的 Next.js 管理后台消费端，负责消费 `backend/` 提供的正式 API、权限与会话能力。
 
-First, run the development server:
+它不是独立 API 工程，也不维护与 backend 平行的接口定义。
+
+## 角色定位
+
+- 作为后台管理端消费 `backend`
+- 使用 `@rtnn/api-sdk`、`@rtnn/shared-types`、`@rtnn/config`
+- 承接管理员登录、权限控制、用户/角色/客户/审计等后台主线
+
+## 开发命令
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm -C admin dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+默认访问地址：`http://localhost:5101`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+常用脚本：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `pnpm -C admin dev`
+- `pnpm -C admin build`
+- `pnpm -C admin start`
+- `pnpm -C admin typecheck`
 
-## Learn More
+## 与 Backend 的关系
 
-To learn more about Next.js, take a look at the following resources:
+- backend 是唯一契约源
+- admin 不手写平行 DTO、权限常量、会话接口定义
+- backend 变更接口、权限或 OpenAPI 后，应优先同步 SDK / shared-types，而不是在 admin 端绕过契约
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## UI 基线
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `Next.js App Router`
+- `shadcn/ui + Tailwind CSS v4 + CSS Variables`
+- 后台壳层、路由与权限展示遵循仓库内 `CLAUDE.md` 规则

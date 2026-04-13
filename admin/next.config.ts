@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
+  transpilePackages: ["@rtnn/api-sdk", "@rtnn/config", "@rtnn/shared-types"],
 };
 
 export default nextConfig;

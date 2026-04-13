@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { adminRoutes } from "@/src/lib/admin-routes";
 
-export default function EntryPage() {
-  redirect(adminRoutes.dashboard);
+export default async function UserCreatePage() {
+  redirect(adminRoutes.users.list);
 }
