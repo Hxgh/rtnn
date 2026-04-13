@@ -39,12 +39,6 @@ export default defineConfig<"vite">(async (merge) => {
           enable: true,
           config: {}
         },
-        url: {
-          enable: true,
-          config: {
-            limit: 1024
-          }
-        },
         cssModules: {
           enable: false,
           config: {

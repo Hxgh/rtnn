@@ -4,7 +4,7 @@ import type { CustomerLoginBody } from "@rtnn/api-sdk"
 import { getSdkClient } from "../../lib/sdk/client"
 import { authSession } from "../../lib/session/auth"
 import { useState } from "react"
-import "./index.scss"
+import "./index.css"
 
 const initialCredentials = {
   email: "",

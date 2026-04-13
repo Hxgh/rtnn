@@ -21,13 +21,7 @@
 Recommended:
 
 ```bash
-pnpm -C weapp install
-```
-
-From repo root helper script:
-
-```bash
-pnpm weapp:install
+pnpm install
 ```
 
 If your private registry/mirror is unstable, use npmjs directly:
@@ -62,6 +56,8 @@ pnpm weapp:build:h5
 pnpm weapp:typecheck
 ```
 
+默认 H5 本地预览端口：`http://localhost:5103`
+
 ## Template scope
 
 This scaffold provides:
@@ -87,7 +83,7 @@ weapp/
 │   │   ├── login/
 │   │   └── profile/
 │   ├── app.config.ts
-│   ├── app.scss
+│   ├── app.css
 │   └── app.ts
 ├── package.json
 └── project.config.json

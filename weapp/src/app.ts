@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react"
-import "./app.scss"
+import "./app.css"
 
 function App({ children }: PropsWithChildren) {
   return children

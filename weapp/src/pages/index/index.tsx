@@ -1,6 +1,6 @@
 import { Text, View } from "@tarojs/components"
 import Taro from "@tarojs/taro"
-import "./index.scss"
+import "./index.css"
 
 export default function IndexPage() {
   const navigateTo = (url: string) => {

@@ -4,7 +4,7 @@ import type { CustomerMeResult } from "@rtnn/api-sdk"
 import { useState } from "react"
 import { getSdkClient } from "../../lib/sdk/client"
 import { authSession } from "../../lib/session/auth"
-import "./index.scss"
+import "./index.css"
 
 type ProfileState = {
   id: string
