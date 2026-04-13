@@ -51,7 +51,7 @@ export function localizeBackendPayload(
   }
 
   if (Array.isArray(payload)) {
-    return payload.map((item) =>
+    return payload.map((item: unknown) =>
       typeof item === 'string' ? translateMessage(item, locale) : item,
     );
   }
@@ -65,7 +65,7 @@ export function localizeBackendPayload(
   if (typeof nextPayload.message === 'string') {
     nextPayload.message = translateMessage(nextPayload.message, locale);
   } else if (Array.isArray(nextPayload.message)) {
-    nextPayload.message = nextPayload.message.map((item) =>
+    nextPayload.message = nextPayload.message.map((item: unknown) =>
       typeof item === 'string' ? translateMessage(item, locale) : item,
     );
   }

@@ -59,6 +59,37 @@ export interface LoginRequestContext {
 type PrismaExecutor = PrismaService | Prisma.TransactionClient;
 type SessionResponse = AdminSessionResponse | CustomerSessionResponse;
 type MeResponse = AdminMeResponse | CustomerMeResponse;
+const sessionRoleInclude = {
+  role: {
+    include: {
+      permissionLinks: {
+        include: {
+          permission: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.AccountRoleInclude;
+
+type SessionAccountRecord = Prisma.AccountGetPayload<{
+  include: {
+    adminProfile: true;
+    customerProfile: true;
+    roles: {
+      include: typeof sessionRoleInclude;
+    };
+  };
+}>;
+
+const createSessionInclude = (audience: AuthAudience) =>
+  ({
+    adminProfile: true,
+    customerProfile: true,
+    roles: {
+      where: { audience },
+      include: sessionRoleInclude,
+    },
+  }) satisfies Prisma.AccountInclude;
 
 @Injectable()
 export class AuthService {
@@ -134,7 +165,7 @@ export class AuthService {
     }
 
     this.loginRateLimitService.onSuccess(key);
-    const sessionUser = this.toSessionUser(account as any, audience);
+    const sessionUser = this.toSessionUser(account, audience);
     const session = await this.issueTokens(
       this.prisma,
       account.id,
@@ -202,10 +233,7 @@ export class AuthService {
       throw new ForbiddenException('Account is not active');
     }
     this.assertProfileForAudience(storedToken.account, audience);
-    const sessionUser = this.toSessionUser(
-      storedToken.account as any,
-      audience,
-    );
+    const sessionUser = this.toSessionUser(storedToken.account, audience);
 
     const rotated = await this.issueTokens(
       this.prisma,
@@ -267,7 +295,7 @@ export class AuthService {
       throw new NotFoundException('Account not found');
     }
     this.assertProfileForAudience(account, audience);
-    return this.toSessionUser(account as any, audience);
+    return this.toSessionUser(account, audience);
   }
 
   async getMeResponse(
@@ -335,11 +363,13 @@ export class AuthService {
       throw new UnauthorizedException('Old password is invalid');
     }
     if (oldPassword === newPassword) {
-      throw new BadRequestException('New password must differ from current password');
+      throw new BadRequestException(
+        'New password must differ from current password',
+      );
     }
     const passwordHash = await this.passwordService.hash(newPassword);
     const nextCredentialsVersion = account.credentialsVersion + 1;
-    const sessionUser = this.toSessionUser(account as any, audience);
+    const sessionUser = this.toSessionUser(account, audience);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.account.update({
@@ -468,12 +498,12 @@ export class AuthService {
 
     if (sessionUser.audience === 'admin') {
       return {
-        user: sessionUser as AdminSessionUser,
+        user: sessionUser,
         tokens,
       };
     }
     return {
-      user: sessionUser as CustomerSessionUser,
+      user: sessionUser,
       tokens,
     };
   }
@@ -485,85 +515,24 @@ export class AuthService {
     return new Date(Date.now() + seconds * 1000);
   }
 
-  private getSessionInclude(audience: AuthAudience): Prisma.AccountInclude {
-    return {
-      adminProfile: true,
-      customerProfile: true,
-      roles: {
-        where: { audience },
-        include: {
-          role: {
-            include: {
-              permissionLinks: {
-                include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    };
+  private getSessionInclude(audience: AuthAudience) {
+    return createSessionInclude(audience);
   }
 
   private toSessionUser(
-    account: {
-      id: string;
-      email: string;
-      adminProfile?: { name: string } | null;
-      customerProfile?: { name: string } | null;
-      roles: Array<{
-        role: {
-          slug: string;
-          permissionLinks: Array<{ permission: { key: string } }>;
-        };
-      }>;
-    },
+    account: SessionAccountRecord,
     audience: 'admin',
   ): AdminSessionUser;
   private toSessionUser(
-    account: {
-      id: string;
-      email: string;
-      adminProfile?: { name: string } | null;
-      customerProfile?: { name: string } | null;
-      roles: Array<{
-        role: {
-          slug: string;
-          permissionLinks: Array<{ permission: { key: string } }>;
-        };
-      }>;
-    },
+    account: SessionAccountRecord,
     audience: 'customer',
   ): CustomerSessionUser;
   private toSessionUser(
-    account: {
-      id: string;
-      email: string;
-      adminProfile?: { name: string } | null;
-      customerProfile?: { name: string } | null;
-      roles: Array<{
-        role: {
-          slug: string;
-          permissionLinks: Array<{ permission: { key: string } }>;
-        };
-      }>;
-    },
+    account: SessionAccountRecord,
     audience: AuthAudience,
   ): SessionUser;
   private toSessionUser(
-    account: {
-      id: string;
-      email: string;
-      adminProfile?: { name: string } | null;
-      customerProfile?: { name: string } | null;
-      roles: Array<{
-        role: {
-          slug: string;
-          permissionLinks: Array<{ permission: { key: string } }>;
-        };
-      }>;
-    },
+    account: SessionAccountRecord,
     audience: AuthAudience,
   ): SessionUser {
     const permissionSet = new Set<string>();
@@ -590,10 +559,7 @@ export class AuthService {
   }
 
   private assertProfileForAudience(
-    account: {
-      adminProfile?: unknown | null;
-      customerProfile?: { status?: string } | null;
-    },
+    account: Pick<SessionAccountRecord, 'adminProfile' | 'customerProfile'>,
     audience: AuthAudience,
   ): void {
     if (audience === 'admin' && !account.adminProfile) {

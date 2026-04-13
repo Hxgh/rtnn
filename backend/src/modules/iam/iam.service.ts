@@ -394,7 +394,11 @@ export class IamService {
     return this.getRole(roleId);
   }
 
-  async bindUserRoles(actor: AuditActor, userId: string, dto: BindUserRolesDto) {
+  async bindUserRoles(
+    actor: AuditActor,
+    userId: string,
+    dto: BindUserRolesDto,
+  ) {
     const account = await this.prisma.account.findUnique({
       where: { id: userId },
       include: { adminProfile: true },

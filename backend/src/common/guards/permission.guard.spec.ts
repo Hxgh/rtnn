@@ -1,5 +1,5 @@
-import { ForbiddenException } from "@nestjs/common";
-import { PermissionGuard } from "./permission.guard";
+import { ForbiddenException } from '@nestjs/common';
+import { PermissionGuard } from './permission.guard';
 
 function createContext(permissions: string[] = []) {
   return {
@@ -10,12 +10,12 @@ function createContext(permissions: string[] = []) {
         },
       }),
     }),
-    getHandler: () => "handler",
-    getClass: () => "class",
+    getHandler: () => 'handler',
+    getClass: () => 'class',
   } as never;
 }
 
-describe("PermissionGuard", () => {
+describe('PermissionGuard', () => {
   const reflector = {
     getAllAndOverride: jest.fn(),
   };
@@ -27,30 +27,30 @@ describe("PermissionGuard", () => {
     guard = new PermissionGuard(reflector as never);
   });
 
-  it("allows public routes", () => {
+  it('allows public routes', () => {
     reflector.getAllAndOverride.mockReturnValueOnce(true);
 
     expect(guard.canActivate(createContext())).toBe(true);
   });
 
-  it("allows requests with required permissions", () => {
+  it('allows requests with required permissions', () => {
     reflector.getAllAndOverride
       .mockReturnValueOnce(false)
-      .mockReturnValueOnce(["admin:users:view"]);
+      .mockReturnValueOnce(['admin:users:view']);
 
-    expect(guard.canActivate(createContext(["admin:users:view"]))).toBe(true);
+    expect(guard.canActivate(createContext(['admin:users:view']))).toBe(true);
   });
 
-  it("rejects requests without required permissions", () => {
+  it('rejects requests without required permissions', () => {
     reflector.getAllAndOverride
       .mockReturnValueOnce(false)
-      .mockReturnValueOnce(["admin:users:view"]);
+      .mockReturnValueOnce(['admin:users:view']);
 
     expect(() => guard.canActivate(createContext([]))).toThrow(
       new ForbiddenException({
-        code: "PERMISSION_DENIED",
-        message: "Permission denied",
-        requiredPermissions: ["admin:users:view"],
+        code: 'PERMISSION_DENIED',
+        message: 'Permission denied',
+        requiredPermissions: ['admin:users:view'],
       }),
     );
   });

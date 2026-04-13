@@ -15,9 +15,9 @@ export interface PermissionRegistryEntry {
   group: PermissionGroup;
 }
 
-function definePermissionRegistry<T extends Record<string, PermissionRegistryEntry>>(
-  registry: T,
-): T {
+function definePermissionRegistry<
+  T extends Record<string, PermissionRegistryEntry>,
+>(registry: T): T {
   return registry;
 }
 
@@ -29,7 +29,10 @@ function toPermissionMap<T extends Record<string, PermissionRegistryEntry>>(
   registry: T,
 ): PermissionMap<T> {
   return Object.fromEntries(
-    Object.entries(registry).map(([code, definition]) => [code, definition.key]),
+    Object.entries(registry).map(([code, definition]) => [
+      code,
+      definition.key,
+    ]),
   ) as PermissionMap<T>;
 }
 

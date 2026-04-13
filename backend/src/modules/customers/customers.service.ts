@@ -250,7 +250,11 @@ export class CustomersService {
       throw new NotFoundException('Customer not found');
     }
     await this.prisma.$transaction(async (tx) => {
-      await this.updateCustomerPassword(tx, existing.accountId, dto.nextPassword);
+      await this.updateCustomerPassword(
+        tx,
+        existing.accountId,
+        dto.nextPassword,
+      );
       await this.auditWriter.write(
         {
           actor,
@@ -350,7 +354,11 @@ export class CustomersService {
     };
   }
 
-  async updateGroup(actor: AuditActor, id: string, dto: UpdateCustomerGroupDto) {
+  async updateGroup(
+    actor: AuditActor,
+    id: string,
+    dto: UpdateCustomerGroupDto,
+  ) {
     const row = await this.prisma.customerGroup.update({
       where: { id },
       data: {

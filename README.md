@@ -23,26 +23,36 @@
 
 ## 快速开始
 
-先安装整个 workspace 依赖：
+1. 安装整个 workspace 依赖：
 
 ```bash
 pnpm install
 ```
 
-初始化 backend：
+2. 用一条命令初始化本地开发环境：
 
 ```bash
-cp backend/.env.example backend/.env
-pnpm -C backend prisma:generate
-pnpm -C backend prisma:migrate:dev
+pnpm run bootstrap
 ```
 
-按需启动各端：
+这会依次完成：
+
+- 生成 `backend/.env`
+- 生成 `admin/.env.local`
+- 生成 `app/.env.local`
+- 生成 `weapp/.env`
+- 启动本地 PostgreSQL
+- 执行 backend Prisma generate / migrate deploy / seed
+
+3. 启动 Web 主线：
 
 ```bash
-pnpm dev:backend
-pnpm dev:admin
-pnpm dev:app
+pnpm run dev:web
+```
+
+4. 按需单独启动其他端：
+
+```bash
 pnpm dev:weapp
 pnpm dev:weapp:h5
 ```
@@ -52,13 +62,47 @@ pnpm dev:weapp:h5
 - `backend`: `http://localhost:5100`
 - `admin`: `http://localhost:5101`
 - `app`: `http://localhost:5102`
-- `weapp h5`: `http://localhost:5003`
+- `weapp h5`: `http://localhost:5103`
+
+## 本地数据库
+
+仓库提供 `docker-compose.yml` 来启动一个与模板一致的 PostgreSQL 实例，默认以 `postgres` 用户/密码和 `rtnn` 数据库对外暴露 `5432` 端口。推荐在首次开发或重建环境时运行：
+
+```bash
+pnpm run postgres:up
+```
+
+初始化完数据库后，`DATABASE_URL` 可以保持为 `postgresql://postgres:postgres@localhost:5432/rtnn?schema=public`，与 `backend/.env.example` 中的默认值一致。完成开发后可运行：
+
+```bash
+pnpm run postgres:down
+```
+
+如需查看实时日志：
+
+```bash
+pnpm run postgres:logs
+```
+
+如只想生成环境变量文件而不启动数据库，可执行：
+
+```bash
+pnpm run setup:env
+```
+
+`setup:env` 不会覆盖已存在的本地环境文件。
 
 ## 常用命令
 
 ```bash
+pnpm setup:env
+pnpm setup:backend
+pnpm bootstrap
+pnpm dev:web
 pnpm contracts:permissions
 pnpm contracts:sync
+pnpm check:contracts
+pnpm check:backend-release
 pnpm check
 pnpm check:lint
 pnpm check:typecheck

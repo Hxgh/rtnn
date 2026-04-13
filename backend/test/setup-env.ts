@@ -1,19 +1,19 @@
-import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
 
 function readEnvValue(key: string) {
-  const envPath = resolve(__dirname, "../.env");
+  const envPath = resolve(__dirname, '../.env');
   if (!existsSync(envPath)) {
     return undefined;
   }
 
-  const lines = readFileSync(envPath, "utf8").split(/\r?\n/);
+  const lines = readFileSync(envPath, 'utf8').split(/\r?\n/);
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
+    if (!trimmed || trimmed.startsWith('#')) {
       continue;
     }
-    const separatorIndex = trimmed.indexOf("=");
+    const separatorIndex = trimmed.indexOf('=');
     if (separatorIndex < 0) {
       continue;
     }
@@ -27,16 +27,18 @@ function readEnvValue(key: string) {
 }
 
 const defaultDatabaseUrl =
-  "postgresql://postgres:postgres@localhost:5432/rtnn?schema=public";
+  'postgresql://postgres:postgres@localhost:5432/rtnn?schema=public';
 const baseDatabaseUrl =
-  process.env.DATABASE_URL ?? readEnvValue("DATABASE_URL") ?? defaultDatabaseUrl;
-const schema = process.env.TEST_DATABASE_SCHEMA ?? "backend_template_test";
+  process.env.DATABASE_URL ??
+  readEnvValue('DATABASE_URL') ??
+  defaultDatabaseUrl;
+const schema = process.env.TEST_DATABASE_SCHEMA ?? 'backend_template_test';
 const testDatabaseUrl = new URL(baseDatabaseUrl);
 
-process.env.NODE_ENV = "test";
-process.env.PORT = "0";
+process.env.NODE_ENV = 'test';
+process.env.PORT = '0';
 process.env.TEST_BASE_DATABASE_URL = baseDatabaseUrl;
 process.env.TEST_DATABASE_SCHEMA = schema;
 
-testDatabaseUrl.searchParams.set("schema", schema);
+testDatabaseUrl.searchParams.set('schema', schema);
 process.env.DATABASE_URL = testDatabaseUrl.toString();

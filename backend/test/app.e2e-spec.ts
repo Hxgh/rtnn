@@ -1,6 +1,6 @@
-import { BackendTestHarness } from "./support/test-harness";
+import { BackendTestHarness } from './support/test-harness';
 
-describe("Backend e2e", () => {
+describe('Backend e2e', () => {
   const harness = new BackendTestHarness();
 
   beforeAll(async () => {
@@ -15,92 +15,101 @@ describe("Backend e2e", () => {
     await harness.close();
   });
 
-  it("exposes healthz, readyz, and openapi without example/system routes", async () => {
-    await harness.http.get("/healthz").expect(200).expect(({ body }) => {
-      expect(body.status).toBe("ok");
-    });
+  it('exposes healthz, readyz, and openapi without example/system routes', async () => {
+    await harness.http
+      .get('/healthz')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.status).toBe('ok');
+      });
 
-    await harness.http.get("/readyz").expect(200).expect(({ body }) => {
-      expect(body.status).toBe("ready");
-      expect(body.database).toBe("up");
-    });
+    await harness.http
+      .get('/readyz')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.status).toBe('ready');
+        expect(body.database).toBe('up');
+      });
 
-    await harness.http.get("/openapi.json").expect(200).expect(({ body }) => {
-      expect(body.paths["/api/v1/auth/admin/login"]).toBeDefined();
-      expect(body.paths["/api/v1/auth/customer/me"]).toBeDefined();
-      expect(body.paths["/api/v1/system/me"]).toBeUndefined();
-      expect(body.paths["/api/v1/examples"]).toBeUndefined();
-    });
+    await harness.http
+      .get('/openapi.json')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.paths['/api/v1/auth/admin/login']).toBeDefined();
+        expect(body.paths['/api/v1/auth/customer/me']).toBeDefined();
+        expect(body.paths['/api/v1/system/me']).toBeUndefined();
+        expect(body.paths['/api/v1/examples']).toBeUndefined();
+      });
   });
 
-  it("runs the minimal admin login and protected access chain", async () => {
+  it('runs the minimal admin login and protected access chain', async () => {
     const loginResponse = await harness.loginAdmin().expect(200);
     const accessToken = loginResponse.body.tokens.accessToken as string;
 
     await harness.http
-      .get("/api/v1/auth/admin/me")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .get('/api/v1/auth/admin/me')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200)
       .expect(({ body }) => {
-        expect(body.user.audience).toBe("admin");
-        expect(body.user.email).toBe("admin@rtnn.local");
+        expect(body.user.audience).toBe('admin');
+        expect(body.user.email).toBe('admin@rtnn.local');
       });
 
     await harness.http
-      .get("/api/v1/admin/audit-logs")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .get('/api/v1/admin/audit-logs')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
   });
 
-  it("runs the minimal customer login chain", async () => {
+  it('runs the minimal customer login chain', async () => {
     const loginResponse = await harness.loginCustomer().expect(200);
     const accessToken = loginResponse.body.tokens.accessToken as string;
 
     await harness.http
-      .get("/api/v1/auth/customer/me")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .get('/api/v1/auth/customer/me')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200)
       .expect(({ body }) => {
-        expect(body.user.audience).toBe("customer");
-        expect(body.user.email).toBe("customer@rtnn.local");
+        expect(body.user.audience).toBe('customer');
+        expect(body.user.email).toBe('customer@rtnn.local');
       });
   });
 
-  it("returns 403 on protected admin route without permission", async () => {
+  it('returns 403 on protected admin route without permission', async () => {
     const loginResponse = await harness
-      .loginAdmin("limited-admin@rtnn.local", "Admin123!@#")
+      .loginAdmin('limited-admin@rtnn.local', 'Admin123!@#')
       .expect(200);
     const accessToken = loginResponse.body.tokens.accessToken as string;
 
     await harness.http
-      .get("/api/v1/admin/users")
-      .set("Authorization", `Bearer ${accessToken}`)
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(403)
       .expect(({ body }) => {
-        expect(JSON.stringify(body.error)).toContain("PERMISSION_DENIED");
+        expect(JSON.stringify(body.error)).toContain('PERMISSION_DENIED');
       });
   });
 
-  it("validates pagination query boundaries on protected list endpoints", async () => {
+  it('validates pagination query boundaries on protected list endpoints', async () => {
     const loginResponse = await harness.loginAdmin().expect(200);
     const accessToken = loginResponse.body.tokens.accessToken as string;
 
     await harness.http
-      .get("/api/v1/admin/users")
+      .get('/api/v1/admin/users')
       .query({ page: 0 })
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(400)
       .expect(({ body }) => {
-        expect(JSON.stringify(body.error)).toContain("page");
+        expect(JSON.stringify(body.error)).toContain('page');
       });
 
     await harness.http
-      .get("/api/v1/admin/users")
+      .get('/api/v1/admin/users')
       .query({ pageSize: 101 })
-      .set("Authorization", `Bearer ${accessToken}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(400)
       .expect(({ body }) => {
-        expect(JSON.stringify(body.error)).toContain("pageSize");
+        expect(JSON.stringify(body.error)).toContain('pageSize');
       });
   });
 });

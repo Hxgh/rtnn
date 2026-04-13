@@ -2,14 +2,17 @@ import { mkdirSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { PERMISSION_REGISTRY } from '../common/constants/permissions.const';
 
-type PermissionEntry = (typeof PERMISSION_REGISTRY)[keyof typeof PERMISSION_REGISTRY];
+type PermissionEntry =
+  (typeof PERMISSION_REGISTRY)[keyof typeof PERMISSION_REGISTRY];
 
 export function renderPermissionsFile(
   entries: Array<[string, PermissionEntry]>,
   groups: string[],
 ): string {
   const permissionObject = entries
-    .map(([code, definition]) => `  ${code}: ${JSON.stringify(definition.key)},`)
+    .map(
+      ([code, definition]) => `  ${code}: ${JSON.stringify(definition.key)},`,
+    )
     .join('\n');
   const definitionRows = entries
     .map(
@@ -61,7 +64,9 @@ ${defaultKeys}
 
 export function generatePermissionsFile() {
   const entries = Object.entries(PERMISSION_REGISTRY);
-  const groups = [...new Set(entries.map(([, definition]) => definition.group))];
+  const groups = [
+    ...new Set(entries.map(([, definition]) => definition.group)),
+  ];
   const outputPath = resolve(
     process.cwd(),
     '../packages/shared-types/src/permissions.generated.ts',

@@ -19,8 +19,7 @@ export class AuditWriter {
       data: {
         tenantId: input.actor.tenantId ?? undefined,
         actorAccountId: input.actor.accountId,
-        actorAudience:
-          input.actor.type === 'system' ? null : input.actor.type,
+        actorAudience: input.actor.type === 'system' ? null : input.actor.type,
         actorName: input.actor.name,
         action: input.action,
         resource: input.resource.type,

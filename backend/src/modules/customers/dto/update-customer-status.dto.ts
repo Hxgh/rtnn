@@ -6,7 +6,7 @@ const statuses = ['active', 'inactive', 'blocked'] as const;
 
 export class UpdateCustomerStatusDto {
   @ApiProperty({ enum: statuses, example: 'inactive' })
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (value === 'disabled') {
       return 'blocked';
     }
