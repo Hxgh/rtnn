@@ -1,0 +1,446 @@
+import { BackendTestHarness } from "./support/test-harness";
+
+describe("Backend integration", () => {
+  const harness = new BackendTestHarness();
+
+  beforeAll(async () => {
+    await harness.init();
+  });
+
+  beforeEach(async () => {
+    await harness.reset();
+  });
+
+  afterAll(async () => {
+    await harness.close();
+  });
+
+  it("completes admin and customer auth chains", async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+    const adminRefreshToken = adminLogin.body.tokens.refreshToken as string;
+
+    await harness.http
+      .get("/api/v1/auth/admin/me")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.user.roles).toContain("super-admin");
+      });
+
+    const adminRefresh = await harness.http
+      .post("/api/v1/auth/admin/refresh")
+      .send({ refreshToken: adminRefreshToken })
+      .expect(200);
+
+    await harness.http
+      .post("/api/v1/auth/admin/logout")
+      .send({ refreshToken: adminRefresh.body.tokens.refreshToken })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.success).toBe(true);
+      });
+
+    const customerLogin = await harness.loginCustomer().expect(200);
+    const customerAccessToken = customerLogin.body.tokens.accessToken as string;
+
+    await harness.http
+      .get("/api/v1/auth/customer/me")
+      .set("Authorization", `Bearer ${customerAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.user.roles).toContain("customer-default");
+      });
+  });
+
+  it("supports IAM role creation, permission assignment, user binding, and denies unauthorized access", async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+
+    const roleResponse = await harness.http
+      .post("/api/v1/admin/roles")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Ops Viewer",
+        slug: "ops-viewer",
+      })
+      .expect(201);
+
+    await harness.http
+      .patch(`/api/v1/admin/roles/${roleResponse.body.id}/permissions`)
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        permissionKeys: ["admin:users:view"],
+      })
+      .expect(200);
+
+    const userResponse = await harness.http
+      .post("/api/v1/admin/users")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        email: "ops-viewer@rtnn.local",
+        password: "Admin123!@#",
+        name: "Ops Viewer",
+        status: "active",
+      })
+      .expect(201);
+
+    await harness.http
+      .post(`/api/v1/admin/users/${userResponse.body.id}/roles`)
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        roleIds: [roleResponse.body.id],
+      })
+      .expect(201);
+
+    const viewerLogin = await harness
+      .loginAdmin("ops-viewer@rtnn.local", "Admin123!@#")
+      .expect(200);
+
+    await harness.http
+      .get("/api/v1/admin/users")
+      .set("Authorization", `Bearer ${viewerLogin.body.tokens.accessToken}`)
+      .expect(200);
+
+    const limitedAdminLogin = await harness
+      .loginAdmin("limited-admin@rtnn.local", "Admin123!@#")
+      .expect(200);
+
+    await harness.http
+      .get("/api/v1/admin/users")
+      .set("Authorization", `Bearer ${limitedAdminLogin.body.tokens.accessToken}`)
+      .expect(403);
+  });
+
+  it("tracks customer and reference-data writes in audit logs", async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+
+    const groupResponse = await harness.http
+      .post("/api/v1/admin/customer-groups")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "VIP Customers",
+        slug: "vip-customers",
+      })
+      .expect(201);
+
+    const tagResponse = await harness.http
+      .post("/api/v1/admin/customer-tags")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Potential",
+        slug: "potential",
+        color: "#60a5fa",
+      })
+      .expect(201);
+
+    expect(tagResponse.body.color).toBe("#60a5fa");
+
+    const customerResponse = await harness.http
+      .post("/api/v1/admin/customers")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        email: "new-customer@rtnn.local",
+        name: "New Customer",
+        password: "Customer123!@#",
+        phone: "13800138000",
+      })
+      .expect(201);
+
+    await harness.http
+      .patch(`/api/v1/admin/customers/${customerResponse.body.id}`)
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Updated Customer",
+        phone: "13900139000",
+      })
+      .expect(200);
+
+    await harness.http
+      .patch(`/api/v1/admin/customers/${customerResponse.body.id}/status`)
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        status: "inactive",
+      })
+      .expect(200);
+
+    await harness.http
+      .post(`/api/v1/admin/customers/${customerResponse.body.id}/reset-password`)
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        nextPassword: "Customer456!@#",
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body.success).toBe(true);
+        expect(body.temporaryPassword).toBeUndefined();
+      });
+
+    const auditResponse = await harness.http
+      .get("/api/v1/admin/audit-logs")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    const actions = auditResponse.body.data.map((item: { action: string }) => item.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        "admin.customer-group.create",
+        "admin.customer-tag.create",
+        "admin.customer.create",
+        "admin.customer.update",
+        "admin.customer.status.update",
+        "admin.customer.password.reset",
+      ]),
+    );
+
+    const customerCreateLog = auditResponse.body.data.find(
+      (item: { action: string }) => item.action === "admin.customer.create",
+    );
+    expect(customerCreateLog.actorName).toBe("Template Admin");
+    expect(customerCreateLog.resourceType).toBe("customer");
+    expect(customerCreateLog.resourceId).toBe(customerResponse.body.id);
+    expect(groupResponse.body.name).toBe("VIP Customers");
+  });
+
+  it("paginates admin list endpoints with stable meta and filters", async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+
+    const roleResponseA = await harness.http
+      .post("/api/v1/admin/roles")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Pagination Role Alpha",
+        slug: "pagination-role-alpha",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/roles")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Pagination Role Beta",
+        slug: "pagination-role-beta",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/users")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        email: "pagination-user-alpha@rtnn.local",
+        password: "Admin123!@#",
+        name: "Pagination User Alpha",
+        roleIds: [roleResponseA.body.id],
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/users")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        email: "pagination-user-beta@rtnn.local",
+        password: "Admin123!@#",
+        name: "Pagination User Beta",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/customer-groups")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Pagination Group Alpha",
+        slug: "pagination-group-alpha",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/customer-groups")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Pagination Group Beta",
+        slug: "pagination-group-beta",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/customer-tags")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Pagination Tag Alpha",
+        slug: "pagination-tag-alpha",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/customer-tags")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        name: "Pagination Tag Beta",
+        slug: "pagination-tag-beta",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/customers")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        email: "pagination-customer-alpha@rtnn.local",
+        name: "Pagination Customer Alpha",
+        password: "Customer123!@#",
+      })
+      .expect(201);
+
+    await harness.http
+      .post("/api/v1/admin/customers")
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .send({
+        email: "pagination-customer-beta@rtnn.local",
+        name: "Pagination Customer Beta",
+        password: "Customer123!@#",
+      })
+      .expect(201);
+
+    const usersPageOne = await harness.http
+      .get("/api/v1/admin/users")
+      .query({
+        search: "pagination-user",
+        page: 1,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    const usersPageTwo = await harness.http
+      .get("/api/v1/admin/users")
+      .query({
+        search: "pagination-user",
+        page: 2,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    expect(usersPageOne.body.meta).toMatchObject({
+      page: 1,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(usersPageOne.body.data).toHaveLength(1);
+    expect(usersPageTwo.body.meta).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(usersPageTwo.body.data).toHaveLength(1);
+
+    const rolesPageTwo = await harness.http
+      .get("/api/v1/admin/roles")
+      .query({
+        search: "Pagination Role",
+        page: 2,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    expect(rolesPageTwo.body.meta).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(rolesPageTwo.body.data).toHaveLength(1);
+
+    const groupsPageTwo = await harness.http
+      .get("/api/v1/admin/customer-groups")
+      .query({
+        search: "Pagination Group",
+        page: 2,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    expect(groupsPageTwo.body.meta).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(groupsPageTwo.body.data).toHaveLength(1);
+
+    const tagsPageTwo = await harness.http
+      .get("/api/v1/admin/customer-tags")
+      .query({
+        search: "Pagination Tag",
+        page: 2,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    expect(tagsPageTwo.body.meta).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(tagsPageTwo.body.data).toHaveLength(1);
+
+    const customersPageTwo = await harness.http
+      .get("/api/v1/admin/customers")
+      .query({
+        search: "pagination-customer",
+        page: 2,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    expect(customersPageTwo.body.meta).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(customersPageTwo.body.data).toHaveLength(1);
+
+    const auditLogsPageTwo = await harness.http
+      .get("/api/v1/admin/audit-logs")
+      .query({
+        action: "admin.customer.create",
+        page: 2,
+        pageSize: 1,
+      })
+      .set("Authorization", `Bearer ${adminAccessToken}`)
+      .expect(200);
+
+    expect(auditLogsPageTwo.body.meta).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(auditLogsPageTwo.body.data).toHaveLength(1);
+    expect(
+      auditLogsPageTwo.body.data.every(
+        (item: { action: string }) => item.action === "admin.customer.create",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns locale-aware error responses with Content-Language", async () => {
+    await harness.http
+      .get("/api/v1/admin/users")
+      .set("Accept-Language", "zh-CN")
+      .expect("Content-Language", "zh-CN")
+      .expect(401)
+      .expect(({ body }) => {
+        expect(JSON.stringify(body.error)).toContain("缺少 Bearer 令牌");
+      });
+  });
+});

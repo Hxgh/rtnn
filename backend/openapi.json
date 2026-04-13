@@ -1,0 +1,2013 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "HealthController_healthz",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "HealthController_readyz",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard/stats": {
+      "get": {
+        "operationId": "DashboardController_getStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get dashboard stats",
+        "tags": [
+          "admin-dashboard"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/login": {
+      "post": {
+        "operationId": "AuthAdminController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSessionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid login payload"
+          }
+        },
+        "summary": "Admin login",
+        "tags": [
+          "auth-admin"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/refresh": {
+      "post": {
+        "operationId": "AuthAdminController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSessionResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token is invalid"
+          }
+        },
+        "summary": "Admin refresh token",
+        "tags": [
+          "auth-admin"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/logout": {
+      "post": {
+        "operationId": "AuthAdminController_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Admin logout",
+        "tags": [
+          "auth-admin"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/me": {
+      "get": {
+        "operationId": "AuthAdminController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current admin session profile",
+        "tags": [
+          "auth-admin"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/change-password": {
+      "post": {
+        "operationId": "AuthAdminController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change admin password",
+        "tags": [
+          "auth-admin"
+        ]
+      }
+    },
+    "/api/v1/auth/customer/login": {
+      "post": {
+        "operationId": "AuthCustomerController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSessionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid login payload"
+          }
+        },
+        "summary": "Customer login",
+        "tags": [
+          "auth-customer"
+        ]
+      }
+    },
+    "/api/v1/auth/customer/refresh": {
+      "post": {
+        "operationId": "AuthCustomerController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Customer refresh token",
+        "tags": [
+          "auth-customer"
+        ]
+      }
+    },
+    "/api/v1/auth/customer/logout": {
+      "post": {
+        "operationId": "AuthCustomerController_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Customer logout",
+        "tags": [
+          "auth-customer"
+        ]
+      }
+    },
+    "/api/v1/auth/customer/me": {
+      "get": {
+        "operationId": "AuthCustomerController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerMeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current customer session profile",
+        "tags": [
+          "auth-customer"
+        ]
+      }
+    },
+    "/api/v1/auth/customer/change-password": {
+      "post": {
+        "operationId": "AuthCustomerController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerSessionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change customer password",
+        "tags": [
+          "auth-customer"
+        ]
+      }
+    },
+    "/api/v1/admin/audit-logs": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "admin",
+              "type": "string",
+              "enum": [
+                "admin",
+                "customer",
+                "system"
+              ]
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "account.password.change",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List audit logs",
+        "tags": [
+          "admin-audit"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "IamController_listUsers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List admin users",
+        "tags": [
+          "admin-iam"
+        ]
+      },
+      "post": {
+        "operationId": "IamController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAdminUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create admin user",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "get": {
+        "operationId": "IamController_getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get admin user detail",
+        "tags": [
+          "admin-iam"
+        ]
+      },
+      "patch": {
+        "operationId": "IamController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update admin user",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{id}/roles": {
+      "post": {
+        "operationId": "IamController_bindUserRoles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindUserRolesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bind roles to admin user",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/roles": {
+      "get": {
+        "operationId": "IamController_listRoles",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List roles",
+        "tags": [
+          "admin-iam"
+        ]
+      },
+      "post": {
+        "operationId": "IamController_createRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create role",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/roles/{id}": {
+      "get": {
+        "operationId": "IamController_getRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get role detail",
+        "tags": [
+          "admin-iam"
+        ]
+      },
+      "patch": {
+        "operationId": "IamController_updateRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update role",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/roles/{id}/permissions": {
+      "patch": {
+        "operationId": "IamController_assignRolePermissions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRolePermissionsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign role permissions",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/permissions": {
+      "get": {
+        "operationId": "IamController_listPermissions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List permissions",
+        "tags": [
+          "admin-iam"
+        ]
+      }
+    },
+    "/api/v1/admin/customers": {
+      "get": {
+        "operationId": "CustomersController_listCustomers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "active",
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive",
+                "blocked"
+              ]
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "group_01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "tagId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "tag_01",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customers",
+        "tags": [
+          "admin-customers"
+        ]
+      },
+      "post": {
+        "operationId": "CustomersController_createCustomer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create customer",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customers/{id}": {
+      "get": {
+        "operationId": "CustomersController_getCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get customer detail",
+        "tags": [
+          "admin-customers"
+        ]
+      },
+      "patch": {
+        "operationId": "CustomersController_updateCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer profile",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customers/{id}/status": {
+      "patch": {
+        "operationId": "CustomersController_updateCustomerStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer status",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customers/{id}/reset-password": {
+      "post": {
+        "operationId": "CustomersController_resetCustomerPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCustomerPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset customer password",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customer-groups": {
+      "get": {
+        "operationId": "CustomersController_listGroups",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customer groups",
+        "tags": [
+          "admin-customers"
+        ]
+      },
+      "post": {
+        "operationId": "CustomersController_createGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create customer group",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customer-groups/{id}": {
+      "patch": {
+        "operationId": "CustomersController_updateGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer group",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customer-tags": {
+      "get": {
+        "operationId": "CustomersController_listTags",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List customer tags",
+        "tags": [
+          "admin-customers"
+        ]
+      },
+      "post": {
+        "operationId": "CustomersController_createTag",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerTagDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create customer tag",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    },
+    "/api/v1/admin/customer-tags/{id}": {
+      "patch": {
+        "operationId": "CustomersController_updateTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerTagDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update customer tag",
+        "tags": [
+          "admin-customers"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "rtnn backend api",
+    "description": "Template backend kernel for rtnn",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Login email",
+            "example": "admin@rtnn.local"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for login",
+            "minLength": 8,
+            "example": "Admin123!@#"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Optional display name metadata",
+            "example": "Rtnn Admin"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AdminSessionUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "acc_01JABCD123"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@rtnn.local"
+          },
+          "name": {
+            "type": "string",
+            "example": "Rtnn Admin"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "admin"
+            ],
+            "example": "admin",
+            "description": "Session audience"
+          },
+          "roles": {
+            "example": [
+              "super-admin"
+            ],
+            "description": "Current user roles",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissions": {
+            "example": [
+              "admin:access",
+              "admin:users:view"
+            ],
+            "description": "Current user permissions",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "audience",
+          "roles",
+          "permissions"
+        ]
+      },
+      "AuthTokensDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "rt_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "expiresIn": {
+            "type": "number",
+            "example": 900,
+            "description": "Access token expiry in seconds"
+          },
+          "refreshExpiresIn": {
+            "type": "number",
+            "example": 604800,
+            "description": "Refresh token expiry in seconds"
+          },
+          "tokenType": {
+            "type": "string",
+            "example": "Bearer",
+            "enum": [
+              "Bearer"
+            ]
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn",
+          "refreshExpiresIn",
+          "tokenType"
+        ]
+      },
+      "AdminSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminSessionUserDto"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/AuthTokensDto"
+          }
+        },
+        "required": [
+          "user",
+          "tokens"
+        ]
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token to rotate session",
+            "minLength": 20,
+            "example": "rt_eyJhbGciOi..."
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token to revoke",
+            "minLength": 20,
+            "example": "rt_eyJhbGciOi..."
+          }
+        }
+      },
+      "LogoutResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "AdminMeResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AdminSessionUserDto"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 8,
+            "example": "OldPass123!@#"
+          },
+          "nextPassword": {
+            "type": "string",
+            "minLength": 8,
+            "example": "NewPass123!@#"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "nextPassword"
+        ]
+      },
+      "CustomerSessionUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "acc_01JABCD123"
+          },
+          "email": {
+            "type": "string",
+            "example": "customer@rtnn.local"
+          },
+          "name": {
+            "type": "string",
+            "example": "Template Customer"
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "customer"
+            ],
+            "example": "customer",
+            "description": "Session audience"
+          },
+          "roles": {
+            "example": [
+              "customer-default"
+            ],
+            "description": "Current user roles",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissions": {
+            "example": [
+              "customer:self:view",
+              "customer:self:update"
+            ],
+            "description": "Current user permissions",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "audience",
+          "roles",
+          "permissions"
+        ]
+      },
+      "CustomerSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/CustomerSessionUserDto"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/AuthTokensDto"
+          }
+        },
+        "required": [
+          "user",
+          "tokens"
+        ]
+      },
+      "CustomerMeResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/CustomerSessionUserDto"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "CreateAdminUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "ops-admin@rtnn.local"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "Admin123!@#"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "name": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "roleIds": {
+            "example": [
+              "role_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled",
+              "locked"
+            ],
+            "example": "active"
+          },
+          "tenantId": {
+            "type": "string",
+            "example": "default"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "UpdateAdminUserDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "name": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "Admin123!@#"
+          },
+          "roleIds": {
+            "example": [
+              "role_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled",
+              "locked"
+            ],
+            "example": "active"
+          }
+        }
+      },
+      "BindUserRolesDto": {
+        "type": "object",
+        "properties": {
+          "roleSlugs": {
+            "example": [
+              "super-admin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roleIds": {
+            "example": [
+              "role_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CreateRoleDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "ops-manager"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ops Manager"
+          },
+          "description": {
+            "type": "string",
+            "example": "Operations role"
+          },
+          "permissionKeys": {
+            "example": [
+              "admin:dashboard:view"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateRoleDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "ops-manager"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ops Manager"
+          },
+          "description": {
+            "type": "string",
+            "example": "Operations role"
+          },
+          "permissionKeys": {
+            "example": [
+              "admin:dashboard:view"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AssignRolePermissionsDto": {
+        "type": "object",
+        "properties": {
+          "permissionKeys": {
+            "example": [
+              "admin:dashboard:view",
+              "admin:users:view"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "permissionKeys"
+        ]
+      },
+      "CreateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "customer@rtnn.local"
+          },
+          "name": {
+            "type": "string",
+            "example": "Template Customer"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "Customer123!@#"
+          },
+          "phone": {
+            "type": "string",
+            "example": "13800138000"
+          },
+          "tenantId": {
+            "type": "string",
+            "example": "default"
+          }
+        },
+        "required": [
+          "email",
+          "name",
+          "password"
+        ]
+      },
+      "UpdateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "customer@rtnn.local"
+          },
+          "name": {
+            "type": "string",
+            "example": "Template Customer"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "Customer123!@#"
+          },
+          "phone": {
+            "type": "string",
+            "example": "13800138000"
+          },
+          "tenantId": {
+            "type": "string",
+            "example": "default"
+          }
+        }
+      },
+      "UpdateCustomerStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "blocked"
+            ],
+            "example": "inactive"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ResetCustomerPasswordDto": {
+        "type": "object",
+        "properties": {
+          "nextPassword": {
+            "type": "string",
+            "minLength": 8,
+            "example": "Customer123!@#"
+          }
+        },
+        "required": [
+          "nextPassword"
+        ]
+      },
+      "CreateCustomerGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "VIP Customers"
+          },
+          "slug": {
+            "type": "string",
+            "example": "vip-customers"
+          },
+          "description": {
+            "type": "string",
+            "example": "High value customers"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCustomerGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "VIP Customers"
+          },
+          "slug": {
+            "type": "string",
+            "example": "vip-customers"
+          },
+          "description": {
+            "type": "string",
+            "example": "High value customers"
+          }
+        }
+      },
+      "CreateCustomerTagDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Potential"
+          },
+          "slug": {
+            "type": "string",
+            "example": "potential"
+          },
+          "color": {
+            "type": "string",
+            "example": "#60a5fa"
+          },
+          "description": {
+            "type": "string",
+            "example": "Potential customer segment"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCustomerTagDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Potential"
+          },
+          "slug": {
+            "type": "string",
+            "example": "potential"
+          },
+          "color": {
+            "type": "string",
+            "example": "#60a5fa"
+          },
+          "description": {
+            "type": "string",
+            "example": "Potential customer segment"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthAudience {
+  admin
+  customer
+}
+
+enum AccountStatus {
+  active
+  disabled
+  locked
+}
+
+enum CustomerStatus {
+  active
+  inactive
+  blocked
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  credentialsVersion Int           @default(0)
+  status          AccountStatus    @default(active)
+  tenantId        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  lastLoginAt     DateTime?
+  adminProfile    AdminProfile?
+  customerProfile CustomerProfile?
+  roles           AccountRole[]
+  sessions        RefreshSession[]
+  loginEvents     LoginEvent[]
+}
+
+model AdminProfile {
+  id        String   @id @default(cuid())
+  accountId String   @unique
+  tenantId  String?
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model CustomerProfile {
+  id        String         @id @default(cuid())
+  accountId String         @unique
+  tenantId  String?
+  name      String
+  phone     String?
+  status    CustomerStatus @default(active)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  account   Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  groups    CustomerGroupMember[]
+  tags      CustomerTagMember[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  roleLinks   RolePermission[]
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  slug        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  accountLinks AccountRole[]
+  permissionLinks RolePermission[]
+}
+
+model AccountRole {
+  id        String       @id @default(cuid())
+  accountId String
+  roleId    String
+  audience  AuthAudience
+  tenantId  String?
+  createdAt DateTime     @default(now())
+  account   Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  role      Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, roleId, audience])
+  @@index([audience])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model RefreshSession {
+  id          String       @id @default(cuid())
+  accountId   String
+  audience    AuthAudience
+  tokenHash   String       @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  replacedBy  String?
+  tenantId    String?
+  createdAt   DateTime     @default(now())
+  account     Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([expiresAt])
+}
+
+model LoginEvent {
+  id         String       @id @default(cuid())
+  accountId  String?
+  audience   AuthAudience
+  email      String
+  success    Boolean
+  reason     String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime     @default(now())
+  account    Account?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([email, audience])
+  @@index([createdAt])
+}
+
+model CustomerGroup {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     CustomerGroupMember[]
+}
+
+model CustomerTag {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  name        String
+  slug        String   @unique
+  color       String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     CustomerTagMember[]
+}
+
+model CustomerGroupMember {
+  id         String          @id @default(cuid())
+  groupId    String
+  customerId String
+  createdAt  DateTime        @default(now())
+  group      CustomerGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, customerId])
+}
+
+model CustomerTagMember {
+  id         String          @id @default(cuid())
+  tagId      String
+  customerId String
+  createdAt  DateTime        @default(now())
+  tag        CustomerTag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  customer   CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, customerId])
+}
+
+model AuditLog {
+  id            String       @id @default(cuid())
+  tenantId      String?
+  actorAccountId String?
+  actorAudience AuthAudience?
+  actorName     String?
+  action        String
+  resource      String
+  resourceId    String?
+  detail        Json?
+  createdAt     DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([resource, resourceId])
+}

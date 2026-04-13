@@ -1,0 +1,2 @@
+ALTER TABLE "Account"
+ADD COLUMN "credentialsVersion" INTEGER NOT NULL DEFAULT 0;
