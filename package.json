@@ -1,0 +1,37 @@
+{
+  "name": "rtnn",
+  "private": true,
+  "packageManager": "pnpm@10.17.0",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "scripts": {
+    "dev:backend": "pnpm --filter backend start:dev",
+    "dev:admin": "pnpm --filter admin dev",
+    "dev:app": "pnpm --filter app dev",
+    "dev:weapp": "pnpm --filter weapp dev:weapp",
+    "build:packages": "pnpm --filter @rtnn/config build && pnpm --filter @rtnn/shared-types build && pnpm --filter @rtnn/shared-schemas build && pnpm --filter @rtnn/api-sdk build",
+    "build:backend": "pnpm --filter backend build",
+    "build:admin": "pnpm --filter admin build",
+    "build:app": "pnpm --filter app build",
+    "build:weapp": "pnpm --filter weapp build:weapp",
+    "build": "pnpm run build:packages && pnpm run build:backend && pnpm run generate:sdk && pnpm run build:admin && pnpm run build:app && pnpm run build:weapp",
+    "lint": "pnpm --filter @rtnn/config lint && pnpm --filter @rtnn/shared-types lint && pnpm --filter @rtnn/shared-schemas lint && pnpm --filter @rtnn/api-sdk lint && pnpm --filter backend lint && pnpm --filter admin lint && pnpm --filter app lint",
+    "typecheck": "pnpm --filter @rtnn/config typecheck && pnpm --filter @rtnn/shared-types typecheck && pnpm --filter @rtnn/shared-schemas typecheck && pnpm --filter @rtnn/api-sdk typecheck && pnpm --filter backend typecheck && pnpm --filter admin typecheck && pnpm --filter app typecheck && pnpm --filter weapp typecheck",
+    "test": "pnpm --filter backend test --runInBand",
+    "smoke:admin": "node scripts/smoke-admin.mjs",
+    "smoke:admin:ui": "pnpm run build:backend && pnpm run build:admin && pnpm exec playwright test -c playwright.admin.config.ts",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "generate:sdk": "pnpm --filter backend export:openapi && pnpm --filter @rtnn/api-sdk generate && pnpm --filter @rtnn/api-sdk build",
+    "weapp:dev": "pnpm -C weapp dev:weapp",
+    "weapp:build": "pnpm -C weapp build:weapp",
+    "weapp:dev:h5": "pnpm -C weapp dev:h5",
+    "weapp:build:h5": "pnpm -C weapp build:h5",
+    "weapp:typecheck": "pnpm -C weapp typecheck"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.7.3"
+  }
+}

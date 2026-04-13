@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "paths": {
+      "@rtnn/config": ["../config/src/index.ts"],
+      "@rtnn/shared-types": ["../shared-types/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

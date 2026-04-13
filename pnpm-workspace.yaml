@@ -1,0 +1,10 @@
+packages:
+  - backend
+  - admin
+  - app
+  - weapp
+  - packages/*
+
+ignoredBuiltDependencies:
+  - sharp
+  - unrs-resolver
