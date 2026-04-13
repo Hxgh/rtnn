@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AdminPageSizeSelect } from "@/src/components/admin/page-size-select";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { buttonVariants } from "@/src/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
@@ -136,116 +138,78 @@ export function AdminTablePagination({
 
   const prevPage = currentPage - 1;
   const nextPage = currentPage + 1;
-  const pageItems = buildPageItems(currentPage, totalPages);
-  const pageSizeOptions = resolvePageSizeOptions(pageSize);
+  const pageSizeOptions = resolvePageSizeOptions(pageSize).map((option) => ({
+    href: getPageSizeHref(option),
+    label: String(option),
+    value: String(option),
+  }));
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span>
-          {totalItemsLabel}: {total}
-        </span>
-        <span>
-          {currentPage} / {totalPages}
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted-foreground">{itemsPerPageLabel}</span>
-        {pageSizeOptions.map((option) =>
-          option === pageSize ? (
-            <span key={option} className={buttonVariants({ size: "sm" })}>
-              {option}
-            </span>
-          ) : (
-            <Link
-              key={option}
-              href={getPageSizeHref(option)}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              {option}
-            </Link>
-          ),
-        )}
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {prevPage >= 1 ? (
-          <Link
-            href={getPageHref(prevPage)}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            {previousLabel}
-          </Link>
-        ) : null}
-        {pageItems.map((item, index) =>
-          item === "ellipsis" ? (
-            <span
-              key={`ellipsis-${index}`}
-              className="px-2 text-xs text-muted-foreground"
-            >
-              ...
-            </span>
-          ) : item === currentPage ? (
-            <span
-              key={item}
-              aria-current="page"
-              className={buttonVariants({ size: "sm" })}
-            >
-              {item}
-            </span>
-          ) : (
-            <Link
-              key={item}
-              href={getPageHref(item)}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              {item}
-            </Link>
-          ),
-        )}
-        {nextPage <= totalPages ? (
-          <Link
-            href={getPageHref(nextPage)}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            {nextLabel}
-          </Link>
-        ) : null}
+    <div className="flex justify-end">
+      <div className="flex w-full flex-wrap items-center justify-end gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-3">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm">
+          <span className="text-muted-foreground">{totalItemsLabel}</span>
+          <span className="font-medium text-foreground">{total}</span>
+        </div>
+        <div className="hidden h-4 w-px bg-border/70 md:block" />
+        <div className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
+          <span>{itemsPerPageLabel}</span>
+          <AdminPageSizeSelect
+            ariaLabel={itemsPerPageLabel}
+            options={pageSizeOptions}
+            triggerClassName="h-8 w-[78px]"
+            value={String(pageSize)}
+          />
+        </div>
+        <div className="hidden h-4 w-px bg-border/70 md:block" />
+        <div className="flex items-center gap-3 whitespace-nowrap">
+          <span className="min-w-[52px] text-sm text-muted-foreground">
+            {currentPage} / {totalPages}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {prevPage >= 1 ? (
+              <Link
+                href={getPageHref(prevPage)}
+                className={cn(buttonVariants({ size: "sm", variant: "outline" }), "h-8 gap-1.5 px-2.5")}
+              >
+                <ChevronLeft className="size-4" />
+                <span>{previousLabel}</span>
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  "pointer-events-none h-8 gap-1.5 px-2.5 opacity-50",
+                )}
+              >
+                <ChevronLeft className="size-4" />
+                <span>{previousLabel}</span>
+              </span>
+            )}
+            {nextPage <= totalPages ? (
+              <Link
+                href={getPageHref(nextPage)}
+                className={cn(buttonVariants({ size: "sm", variant: "outline" }), "h-8 gap-1.5 px-2.5")}
+              >
+                <span>{nextLabel}</span>
+                <ChevronRight className="size-4" />
+              </Link>
+            ) : (
+              <span
+                aria-disabled="true"
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  "pointer-events-none h-8 gap-1.5 px-2.5 opacity-50",
+                )}
+              >
+                <span>{nextLabel}</span>
+                <ChevronRight className="size-4" />
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-function buildPageItems(
-  currentPage: number,
-  totalPages: number,
-): Array<number | "ellipsis"> {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, "ellipsis", totalPages];
-  }
-
-  if (currentPage >= totalPages - 3) {
-    return [
-      1,
-      "ellipsis",
-      totalPages - 4,
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ];
-  }
-
-  return [
-    1,
-    "ellipsis",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis",
-    totalPages,
-  ];
 }

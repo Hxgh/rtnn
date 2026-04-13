@@ -143,21 +143,21 @@ export default async function RolesPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <form className="flex flex-col gap-2.5 lg:flex-row lg:items-center" method="get">
+        <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
           <input name="pageSize" type="hidden" value={pageSize} />
           <Input
             aria-label={dictionary.common.search}
-            className="h-8 w-full lg:max-w-xs"
+            className="w-full lg:max-w-xs"
             defaultValue={search}
             name="search"
             placeholder={dictionary.common.search}
           />
           <div className="flex items-center gap-2">
-            <Button size="sm" type="submit" variant="outline">
+            <Button type="submit" variant="outline">
               {dictionary.common.search}
             </Button>
             {search ? (
-              <Button asChild size="sm" type="button" variant="ghost">
+              <Button asChild type="button" variant="ghost">
                 <Link href={buildRolesHref(1, "", pageSize)}>{dictionary.common.clearFilters}</Link>
               </Button>
             ) : null}

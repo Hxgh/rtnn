@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FormSelect } from "@/src/components/admin/form-select";
 import {
   AdminTablePagination,
   AdminTablePage,
@@ -8,7 +9,6 @@ import {
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
-import { Select } from "@/src/components/ui/select";
 import { getAdminI18n } from "@/src/i18n/server";
 import { parsePageSize } from "@/src/lib/pagination";
 import { listAuditLogs } from "@/src/lib/api-client";
@@ -206,19 +206,17 @@ export default async function AuditLogsPage({
             name="action"
             placeholder={dictionary.auditLogs.action}
           />
-          <Select
-            aria-label={dictionary.auditLogs.actorType}
-            className="w-full lg:w-48"
+          <FormSelect
+            ariaLabel={dictionary.auditLogs.actorType}
             defaultValue={filters.actorType ?? ""}
+            emptyLabel={dictionary.auditLogs.allActorTypes}
             name="actorType"
-          >
-            <option value="">{dictionary.auditLogs.allActorTypes}</option>
-            {auditActorTypes.map((actorType) => (
-              <option key={actorType} value={actorType}>
-                {getActorTypeLabel(actorType, dictionary)}
-              </option>
-            ))}
-          </Select>
+            options={auditActorTypes.map((actorType) => ({
+              label: getActorTypeLabel(actorType, dictionary),
+              value: actorType,
+            }))}
+            triggerClassName="w-full lg:w-48"
+          />
           <div className="flex items-center gap-2">
             <Button type="submit" variant="outline">
               {dictionary.common.search}

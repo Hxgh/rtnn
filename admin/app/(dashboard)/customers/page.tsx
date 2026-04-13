@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { FormSelect } from "@/src/components/admin/form-select";
 import { CreateCustomerDialog, EditCustomerDialog } from "@/src/components/admin/customers/customer-form-dialogs";
 import {
   AdminTablePagination,
@@ -11,7 +12,6 @@ import { ErrorBlock } from "@/src/components/admin/state-block";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
-import { Select } from "@/src/components/ui/select";
 import { getAdminI18n } from "@/src/i18n/server";
 import { parsePageSize } from "@/src/lib/pagination";
 import {
@@ -144,64 +144,58 @@ function CustomersToolbar({
   tagOptions: Awaited<ReturnType<typeof listCustomerTags>>["data"];
 }) {
   return (
-    <form className="flex flex-col gap-2.5 lg:flex-row lg:items-center" method="get">
+    <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
       <input name="pageSize" type="hidden" value={pageSize} />
       <Input
         aria-label={dictionary.common.search}
-        className="h-8 w-full lg:max-w-xs"
+        className="w-full lg:max-w-xs"
         defaultValue={filters.search ?? ""}
         name="search"
         placeholder={dictionary.common.search}
       />
-      <Select
-        aria-label={dictionary.customers.status}
-        className="h-8 w-full lg:w-40"
+      <FormSelect
+        ariaLabel={dictionary.customers.status}
         defaultValue={filters.status ?? ""}
+        emptyLabel={dictionary.customers.allStatuses}
         name="status"
-      >
-        <option value="">{dictionary.customers.allStatuses}</option>
-        {customerStatuses.map((status) => (
-          <option key={status} value={status}>
-            {getCustomerStatusLabel(status, dictionary)}
-          </option>
-        ))}
-      </Select>
+        options={customerStatuses.map((status) => ({
+          label: getCustomerStatusLabel(status, dictionary),
+          value: status,
+        }))}
+        triggerClassName="w-full lg:w-40"
+      />
       {showGroupFilter ? (
-        <Select
-          aria-label={dictionary.customers.groups}
-          className="h-8 w-full lg:w-48"
+        <FormSelect
+          ariaLabel={dictionary.customers.groups}
           defaultValue={filters.groupId ?? ""}
+          emptyLabel={dictionary.customers.allGroups}
           name="groupId"
-        >
-          <option value="">{dictionary.customers.allGroups}</option>
-          {groupOptions.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name}
-            </option>
-          ))}
-        </Select>
+          options={groupOptions.map((group) => ({
+            label: group.name,
+            value: group.id,
+          }))}
+          triggerClassName="w-full lg:w-48"
+        />
       ) : null}
       {showTagFilter ? (
-        <Select
-          aria-label={dictionary.customers.tags}
-          className="h-8 w-full lg:w-48"
+        <FormSelect
+          ariaLabel={dictionary.customers.tags}
           defaultValue={filters.tagId ?? ""}
+          emptyLabel={dictionary.customers.allTags}
           name="tagId"
-        >
-          <option value="">{dictionary.customers.allTags}</option>
-          {tagOptions.map((tag) => (
-            <option key={tag.id} value={tag.id}>
-              {tag.name}
-            </option>
-          ))}
-        </Select>
+          options={tagOptions.map((tag) => ({
+            label: tag.name,
+            value: tag.id,
+          }))}
+          triggerClassName="w-full lg:w-48"
+        />
       ) : null}
       <div className="flex items-center gap-2">
-        <Button size="sm" type="submit" variant="outline">
+        <Button type="submit" variant="outline">
           {dictionary.common.search}
         </Button>
         {hasActiveFilters(filters) ? (
-          <Button asChild size="sm" type="button" variant="ghost">
+          <Button asChild type="button" variant="ghost">
             <Link href={buildCustomersHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
           </Button>
         ) : null}

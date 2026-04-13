@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { FormSelect } from "@/src/components/admin/form-select";
 import { SelectionCard, SelectionCards } from "@/src/components/admin/selection-cards";
 import { Button } from "@/src/components/ui/button";
 import {
@@ -23,7 +24,6 @@ import {
 } from "@/src/components/ui/dialog";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
-import { Select } from "@/src/components/ui/select";
 import type { AdminDictionary } from "@/src/i18n/dictionaries";
 import type { AdminUserRecord, RoleRecord } from "@/src/lib/api-client";
 import { cn } from "@/src/lib/utils";
@@ -270,10 +270,22 @@ function UserDialogForm({
                 htmlFor="edit-user-status"
                 label={dictionary.users.status}
               >
-                <Select defaultValue={user?.status ?? "active"} id="edit-user-status" name="status">
-                  <option value="active">{dictionary.common.active}</option>
-                  <option value="disabled">{dictionary.common.disabled}</option>
-                </Select>
+                <FormSelect
+                  ariaLabel={dictionary.users.status}
+                  defaultValue={user?.status ?? "active"}
+                  id="edit-user-status"
+                  name="status"
+                  options={[
+                    {
+                      label: dictionary.common.active,
+                      value: "active",
+                    },
+                    {
+                      label: dictionary.common.disabled,
+                      value: "disabled",
+                    },
+                  ]}
+                />
               </FormField>
             )}
           </div>

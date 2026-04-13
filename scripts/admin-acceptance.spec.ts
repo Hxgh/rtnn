@@ -1,4 +1,4 @@
-import { test, expect, type Locator } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 
 const adminEmail = process.env.ADMIN_EMAIL ?? "admin@rtnn.local";
 const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin123!@#";
@@ -12,6 +12,15 @@ async function settleDialog(dialog: Locator) {
     await dialog.getByRole("button", { name: "取消" }).click();
     await expect(dialog).toBeHidden();
   }
+}
+
+async function selectComboboxOption(
+  page: Page,
+  combobox: Locator,
+  optionName: string,
+) {
+  await combobox.click();
+  await page.getByRole("option", { name: optionName }).click();
 }
 
 test("admin 首发边界界面验收", async ({ page }) => {
@@ -111,7 +120,7 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await page.getByRole("button", { name: "更新" }).click();
   await expect(userDialog).toBeVisible();
   await userDialog.locator("#edit-user-name").fill(updatedUserName);
-  await userDialog.locator("#edit-user-status").selectOption("disabled");
+  await selectComboboxOption(page, userDialog.locator("#edit-user-status"), "禁用");
   await userDialog.getByRole("button", { name: "更新" }).click();
   await settleDialog(userDialog);
   await page.reload();
@@ -123,8 +132,8 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await page.getByRole("link", { name: "客户管理" }).click();
   await page.waitForURL("**/customers");
   await expect(page.getByRole("heading", { name: "客户管理" })).toBeVisible();
-  await expect(page.locator('select[name="groupId"]')).toBeVisible();
-  await expect(page.locator('select[name="tagId"]')).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "客户分组" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "客户标签" })).toBeVisible();
   await page.getByRole("button", { name: "新建客户" }).click();
 
   const customerDialog = page.getByRole("dialog");
@@ -158,7 +167,11 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await page.waitForURL("**/audit-logs");
   await expect(page.getByRole("heading", { name: "审计日志" })).toBeVisible();
   await page.locator('input[name="action"]').fill("admin.customer.create");
-  await page.locator('select[name="actorType"]').selectOption("admin");
+  await selectComboboxOption(
+    page,
+    page.getByRole("combobox", { name: "操作者类型" }),
+    "管理员",
+  );
   await page.getByRole("button", { name: "搜索" }).click();
   await expect(page.locator("tbody tr").first()).toContainText("admin.customer.create");
   await expect(page.locator("tbody tr").first()).toContainText("管理员");
