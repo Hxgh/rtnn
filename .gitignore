@@ -42,6 +42,7 @@ out/
 *.tmp
 *.temp
 .cache/
+*.tsbuildinfo
 
 # database
 *.db
