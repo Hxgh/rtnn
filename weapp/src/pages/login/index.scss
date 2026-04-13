@@ -1,0 +1,32 @@
+.login-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.login-page__hero {
+  padding: 30px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-page__title {
+  font-size: 38px;
+  font-weight: 700;
+  color: #083f39;
+}
+
+.login-page__desc {
+  font-size: 26px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.login-page__input {
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  font-size: 16px;
+}

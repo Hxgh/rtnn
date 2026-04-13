@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": [
+      "node",
+      "@tarojs/taro"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@rtnn/shared-types": [
+        "../packages/shared-types/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "config"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "miniprogramRoot": "dist",
+  "projectname": "weapp",
+  "appid": "touristappid",
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "postcss": true,
+    "urlCheck": false
+  },
+  "compileType": "miniprogram"
+}

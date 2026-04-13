@@ -1,0 +1,39 @@
+{
+  "name": "weapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Taro + React weapp template app",
+  "scripts": {
+    "dev:weapp": "taro build --type weapp --watch",
+    "build:weapp": "taro build --type weapp",
+    "dev:h5": "taro build --type h5 --watch -p 5003",
+    "build:h5": "taro build --type h5",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rtnn/api-sdk": "workspace:*",
+    "@rtnn/shared-types": "workspace:*",
+    "@tarojs/components": "4.1.11",
+    "@tarojs/react": "4.1.11",
+    "@tarojs/runtime": "4.1.11",
+    "@tarojs/shared": "4.1.11",
+    "@tarojs/taro": "4.1.11",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@babel/preset-react": "^7.27.1",
+    "@tarojs/cli": "4.1.11",
+    "@tarojs/plugin-framework-react": "4.1.11",
+    "@tarojs/plugin-platform-h5": "4.1.11",
+    "@tarojs/plugin-platform-weapp": "4.1.11",
+    "@tarojs/vite-runner": "4.1.11",
+    "@types/node": "^20.17.30",
+    "@types/react": "^18.3.21",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "babel-preset-taro": "4.1.11",
+    "typescript": "^5.6.3",
+    "vite": "^4.5.5"
+  }
+}
