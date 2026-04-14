@@ -1,4 +1,4 @@
-# RTNN 模板交付手册
+# 模板交付手册
 
 本手册服务于模板执行者，而不是开发记录。
 
@@ -49,6 +49,22 @@ pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
 
 根级 `.env` 是模板初始化参数唯一来源；修改后需重新执行 `pnpm run setup:env -- --force` 以刷新各端环境文件。
 
+### 1.2.1 重写源码级模板身份
+
+若还需要把 workspace package scope、静态 import、`pnpm --filter` 等源码级身份从当前默认值改成派生模板身份，执行：
+
+```bash
+pnpm run template:rewrite-source -- --dry-run
+pnpm run template:rewrite-source -- --project-id=acme --package-scope=acme --brand-name=ACME
+```
+
+约束如下：
+
+- `--package-scope` 不传时，默认回退到 `projectId`
+- 脚本不改 generated 产物与 `pnpm-lock.yaml`
+- 执行后需要重新 `pnpm install`
+- 若 backend 契约包名发生变化，再执行 `pnpm run contracts:permissions` 与 `pnpm run contracts:sync`
+
 ### 1.3 启动数据库
 
 ```bash
@@ -59,7 +75,7 @@ pnpm run postgres:up
 
 - host: `localhost`
 - port: `5432`
-- database: `rtnn`
+- database: `rtnn`（当前默认初始化值）
 - user/password: `postgres/postgres`
 
 以上值默认来自根级 `.env`。

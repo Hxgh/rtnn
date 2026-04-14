@@ -1,4 +1,4 @@
-# RTNN 模板初始化工程化计划
+# 模板初始化工程化计划
 
 ## 目标
 
@@ -20,10 +20,10 @@
 - PR CI / release 前验证中纳入初始化链路校验。
 - 初始化相关硬编码点的分层归类与后续收敛计划。
 
-本阶段明确不纳入：
+本阶段第一波明确不纳入：
 
 - 全仓品牌替换自动化。
-- package namespace 重命名。
+- package namespace 重命名的一次性源码改写。
 - 镜像名、deploy event、应用名的一键改写。
 - Docker / deploy 仓库整体重构。
 
@@ -80,7 +80,16 @@
 - 根级 `.env` 作为模板初始化参数唯一来源。
 - `setup:env` 负责把模板参数渲染到 `backend / admin / app / weapp` 各端环境文件。
 - `packages/config` 作为模板身份、cookie key、默认账号、展示名与发布标识的唯一共享来源。
-- smoke / acceptance / release workflow 不再手写 `rtnn` 相关身份常量。
+- smoke / acceptance / release workflow 不再手写默认模板身份常量（当前默认值为 `rtnn`）。
+
+## 后续第三波补充
+
+在第一波、第二波完成后，源码级身份重写已作为后续第三波补齐：
+
+- 新增 `pnpm run template:rewrite-source`
+- 用于改写根 `package.json` 项目名、workspace package scope、静态 import、`pnpm --filter` 与跨端 alias
+- 默认读取根级 `.env` 的 `projectId / brandName`，`packageScope` 未传时回退到 `projectId`
+- generated 产物与 `pnpm-lock.yaml` 不纳入自动改写，由执行者在改写后重新安装依赖并刷新契约产物
 
 ## 第一优先级任务
 
