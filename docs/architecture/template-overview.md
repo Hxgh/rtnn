@@ -43,3 +43,8 @@
 
 - 生产部署链路统一走 GHCR + 独立部署仓库
 - backend 发布前固定执行权限生成、OpenAPI 导出、typecheck 与 backend 核心测试
+
+## 交付文档
+
+- 交付闭环计划：`docs/architecture/template-delivery-closure-plan.md`
+- 执行手册：`docs/architecture/template-delivery-runbook.md`

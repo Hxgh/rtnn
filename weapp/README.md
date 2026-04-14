@@ -60,12 +60,12 @@ pnpm weapp:typecheck
 
 ## Template scope
 
-This scaffold provides:
+Current first-release template scope:
 
-- Home page
-- Login guide page
-- Profile page
-- Session storage adapter skeleton
+- Customer home page
+- Customer login page
+- Customer profile page
+- Session restore / logout basic flow
 - Weapp transport + `@rtnn/api-sdk` integration entrypoint
 
 ## Project structure
@@ -97,3 +97,19 @@ weapp/
 - Auth state helper: `src/lib/session/auth.ts`
 
 The current implementation uses `@rtnn/api-sdk` as the request foundation and lets backend failures surface as error messages, with no mock login/session fallbacks.
+
+## Acceptance baseline
+
+At minimum, verify:
+
+- open H5 and reach the home page
+- login succeeds with the template customer account
+- profile page shows the authenticated customer
+- logout returns to the login page
+
+Commands:
+
+```bash
+pnpm weapp:typecheck
+pnpm weapp:build:h5
+```

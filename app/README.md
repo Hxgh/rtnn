@@ -26,6 +26,7 @@ pnpm -C app dev
 - `pnpm -C app build`
 - `pnpm -C app start`
 - `pnpm -C app typecheck`
+- `pnpm run smoke:app:ui`
 
 ## 与 Backend 的关系
 
@@ -41,3 +42,19 @@ pnpm -C app dev
 - 多语言、主题和共享配置基于 `@rtnn/config`
 - `Tailwind CSS v4 + CSS Variables`（不引入 `shadcn/ui`）
 - 视觉方向：中性底色 + 单一强调色 + 移动端单列结构
+
+## 验收主线
+
+最小正式闭环验收覆盖：
+
+- 登录
+- 首页
+- 我的页
+- 账户安全页
+- 退出登录
+
+统一入口：
+
+```bash
+pnpm run smoke:app:ui
+```
