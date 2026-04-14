@@ -22,6 +22,7 @@
 - `docs/architecture/template-overview.md`: 模板整体架构说明
 - `docs/architecture/template-delivery-closure-plan.md`: 模板交付闭环计划
 - `docs/architecture/template-delivery-runbook.md`: 初始化、联调、验收、回归手册
+- `docs/architecture/template-release-engineering-plan.md`: 模板发布工程化计划
 
 ## 快速开始
 
@@ -105,6 +106,7 @@ pnpm contracts:permissions
 pnpm contracts:sync
 pnpm check:contracts
 pnpm check:backend-release
+pnpm check:release-candidate
 pnpm smoke:admin:ui
 pnpm smoke:app:ui
 pnpm weapp:typecheck
@@ -121,8 +123,9 @@ pnpm smoke:admin
 其中：
 
 - `pnpm check:backend-release` 是后端正式发布 gate
+- `pnpm check:release-candidate` 是模板发布候选 gate，串联契约漂移、backend 正式 gate 与消费端交付回归
 - `pnpm check:template-delivery` 是消费端聚合回归入口，覆盖 `admin` UI 验收、`app` UI 验收、`weapp` 类型校验与 H5 构建
-- 做完整模板回归时，先跑 `pnpm check:backend-release`，再跑 `pnpm check:template-delivery`
+- 做完整模板回归时，优先直接跑 `pnpm check:release-candidate`
 
 ## 文档入口
 
@@ -133,6 +136,7 @@ pnpm smoke:admin
 - `docs/architecture/template-overview.md`
 - `docs/architecture/template-delivery-closure-plan.md`
 - `docs/architecture/template-delivery-runbook.md`
+- `docs/architecture/template-release-engineering-plan.md`
 
 ## 协作约束
 

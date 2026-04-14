@@ -34,6 +34,7 @@
     "check:typecheck": "pnpm run typecheck",
     "check:contracts": "node scripts/check-contract-drift.mjs",
     "check:backend-release": "pnpm -C backend check:release",
+    "check:release-candidate": "pnpm run check:contracts && pnpm run check:backend-release && pnpm run check:template-delivery",
     "check:test": "pnpm run test",
     "check:build": "pnpm run build",
     "check": "pnpm run check:lint && pnpm run check:typecheck && pnpm run check:contracts && pnpm run check:backend-release && pnpm run check:build",

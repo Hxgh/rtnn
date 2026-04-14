@@ -13,7 +13,7 @@ jobs:
   quality:
     name: Lint Typecheck Test Build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16-alpine
@@ -48,17 +48,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup local env files
+        run: pnpm run setup:env
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Lint
         run: pnpm run lint
 
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Contract drift
-        run: pnpm run check:contracts
-
-      - name: Backend release check
-        run: pnpm run check:backend-release
+      - name: Release candidate gate
+        run: pnpm run check:release-candidate
 
       - name: Build
         run: pnpm run build
