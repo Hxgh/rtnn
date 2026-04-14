@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { TEMPLATE_DISPLAY, TEMPLATE_IDENTITY } from "@rtnn/config";
+import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { PreferencesProvider } from "@/components/providers/preferences-provider";
 import { getServerPreferencesFromRequest } from "@/lib/i18n/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: `${TEMPLATE_IDENTITY.projectId} app`,
+  title: TEMPLATE_DISPLAY.appZh,
   description: TEMPLATE_DISPLAY.appZh,
   icons: {
     icon: "/brand/brand-mark.svg",

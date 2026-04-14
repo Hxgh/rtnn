@@ -23,8 +23,8 @@ const loginButtonText = either("登录", "Sign in");
 const emailLabel = either("邮箱", "Email");
 const passwordLabel = either("密码", "Password");
 
-const sessionHeading = either("当前会话", "Current session");
-const meTitle = either("个人", "Me");
+const sessionHeading = either("当前会话", "Current session", "账户摘要", "Account summary");
+const meTitle = either("个人", "我的", "Me");
 const accountTitle = either("账户安全", "Account Security");
 const changePasswordButton = either("保存新密码", "Save new password");
 const currentPasswordLabel = either("当前密码", "Current password");

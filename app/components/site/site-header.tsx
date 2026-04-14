@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TEMPLATE_IDENTITY } from "@rtnn/config";
+import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { BrandLogoMark } from "@/components/brand/brand-logo";
 import { usePreferences } from "@/components/providers/preferences-provider";
 
@@ -49,8 +49,8 @@ export function SiteHeader() {
         <div className="flex min-w-0 items-center gap-3">
           <BrandLogoMark className="size-8" />
           <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              {`${TEMPLATE_IDENTITY.projectId} app`}
+            <p className="truncate text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              {TEMPLATE_DISPLAY.brand}
             </p>
             <p className="truncate text-sm font-semibold text-foreground">{currentTitle}</p>
           </div>

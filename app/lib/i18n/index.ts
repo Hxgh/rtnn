@@ -47,6 +47,7 @@ export type AppMessages = {
     title: string;
     description: string;
     quickActions: string;
+    accountSummary: string;
     sessionTitle: string;
     signedIn: string;
     signedOut: string;
@@ -113,7 +114,7 @@ const zhCN: AppMessages = {
   common: {
     nav: {
       home: "首页",
-      me: "个人",
+      me: "我的",
       login: "登录",
     },
     actions: {
@@ -140,19 +141,19 @@ const zhCN: AppMessages = {
     },
   },
   home: {
-    badge: "customer app",
-    title: "移动端前台",
-    description: "聚焦 customer 会话、账户安全与个人信息查看的首发闭环。",
-    quickActions: "快捷入口",
+    badge: "账户首页",
+    title: "欢迎回来",
+    description: "查看当前账户状态、常用入口和个人设置。",
+    quickActions: "常用入口",
+    accountSummary: "账户摘要",
     sessionTitle: "当前会话",
     signedIn: "已登录",
     signedOut: "未登录",
-    signedOutHint: "先登录 customer 账号，再进入个人页与账户安全页面。",
+    signedOutHint: "登录后即可访问首页、我的页和账户安全能力。",
   },
   login: {
     title: "登录",
-    description:
-      "使用 backend 正式 customer 登录接口建立会话，并由 cookie 驱动 me/refresh/logout。",
+    description: "使用模板内置客户账号登录，验证正式会话链路。",
     email: "邮箱",
     password: "密码",
     submit: "登录",
@@ -161,8 +162,8 @@ const zhCN: AppMessages = {
     expired: "会话已过期，请重新登录。",
   },
   profile: {
-    title: "个人页",
-    description: "集中查看账户信息、账户安全与应用偏好。",
+    title: "我的",
+    description: "集中管理账户信息、密码安全与应用偏好。",
     currentUser: "当前登录用户",
     signOut: "退出登录",
     accountOverview: "账户概览",
@@ -170,7 +171,7 @@ const zhCN: AppMessages = {
   },
   security: {
     title: "账户安全",
-    description: "修改登录密码，并在成功后更新当前会话。",
+    description: "修改登录密码，并在成功后刷新当前设备会话。",
     formTitle: "修改密码",
     currentPassword: "当前密码",
     nextPassword: "新密码",
@@ -238,19 +239,19 @@ const enUS: AppMessages = {
     },
   },
   home: {
-    badge: "customer app",
-    title: "Mobile Frontend",
-    description: "First-release shell focused on customer session, account security, and profile view.",
+    badge: "Account Home",
+    title: "Welcome back",
+    description: "Review account status, common destinations, and personal settings.",
     quickActions: "Quick actions",
+    accountSummary: "Account summary",
     sessionTitle: "Current session",
     signedIn: "Signed in",
     signedOut: "Signed out",
-    signedOutHint: "Sign in first, then access profile and account security pages.",
+    signedOutHint: "Sign in to access the home, profile, and account security flows.",
   },
   login: {
     title: "Sign in",
-    description:
-      "Use backend customer auth endpoints to build a real session with me/refresh/logout.",
+    description: "Use the built-in customer account to verify the real session flow.",
     email: "Email",
     password: "Password",
     submit: "Sign in",
@@ -260,7 +261,7 @@ const enUS: AppMessages = {
   },
   profile: {
     title: "Profile",
-    description: "Review account details, password security, and app preferences.",
+    description: "Manage account details, password security, and app preferences in one place.",
     currentUser: "Current signed-in user",
     signOut: "Sign out",
     accountOverview: "Account overview",
@@ -268,7 +269,7 @@ const enUS: AppMessages = {
   },
   security: {
     title: "Account Security",
-    description: "Change the password and refresh the current session after success.",
+    description: "Change the password and refresh the current device session after success.",
     formTitle: "Change password",
     currentPassword: "Current password",
     nextPassword: "New password",
