@@ -31,6 +31,7 @@ import type {
   UpdateAdminUserInput,
   UpdateCustomerGroupInput,
   UpdateCustomerInput,
+  UpdateCustomerStatusInput,
   UpdateCustomerTagInput,
   UpdateRoleInput,
 } from "@rtnn/shared-types";
@@ -126,6 +127,10 @@ type CustomersListOperation = Operation<"/api/v1/admin/customers", "get">;
 type CustomersCreateOperation = Operation<"/api/v1/admin/customers", "post">;
 type CustomersGetOperation = Operation<"/api/v1/admin/customers/{id}", "get">;
 type CustomersUpdateOperation = Operation<"/api/v1/admin/customers/{id}", "patch">;
+type CustomersUpdateStatusOperation = Operation<
+  "/api/v1/admin/customers/{id}/status",
+  "patch"
+>;
 type CustomersResetPasswordOperation = Operation<
   "/api/v1/admin/customers/{id}/reset-password",
   "post"
@@ -327,6 +332,14 @@ export type CustomersUpdateBody = PreferOpenApi<
 >;
 export type CustomersUpdateResult = PreferOpenApi<
   ResponseBodyOf<CustomersUpdateOperation>,
+  CustomerDetail
+>;
+export type CustomersUpdateStatusBody = PreferOpenApi<
+  RequestBodyOf<CustomersUpdateStatusOperation>,
+  UpdateCustomerStatusInput
+>;
+export type CustomersUpdateStatusResult = PreferOpenApi<
+  ResponseBodyOf<CustomersUpdateStatusOperation>,
   CustomerDetail
 >;
 export type CustomersResetPasswordBody = PreferOpenApi<

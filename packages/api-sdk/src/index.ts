@@ -51,6 +51,8 @@ export type {
   CustomersResetPasswordBody,
   CustomersResetPasswordResult,
   CustomersUpdateBody,
+  CustomersUpdateStatusBody,
+  CustomersUpdateStatusResult,
   CustomersUpdateResult,
   CustomerTagPathParams,
   CustomerTagsCreateBody,

@@ -44,6 +44,11 @@ test("admin 首发边界界面验收", async ({ page }) => {
   const customerName = `验收客户${suffix}`;
   const updatedCustomerName = `验收客户已更新${suffix}`;
   const customerEmail = `acceptance-customer-${suffix}@${testEmailDomain}`;
+  const groupName = `验收分组${suffix}`;
+  const updatedGroupName = `验收分组已更新${suffix}`;
+  const tagName = `验收标签${suffix}`;
+  const updatedTagName = `验收标签已更新${suffix}`;
+  const resetCustomerPasswordValue = `CustomerReset-${suffix}!`;
 
   await page.goto("/login");
   await expect(page).toHaveTitle(new RegExp(templateDisplay.adminAppZh));
@@ -75,7 +80,7 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await roleDialog.locator("#create-role-description").fill(roleDescription);
   await roleDialog.getByRole("checkbox", { name: /View Users/ }).click();
   await roleDialog.getByRole("checkbox", { name: /View Dashboard/ }).click();
-  await roleDialog.getByRole("button", { name: "创建" }).click();
+  await roleDialog.getByRole("button", { name: /^创建$/ }).click();
   await settleDialog(roleDialog);
   await page.reload();
 
@@ -84,11 +89,11 @@ test("admin 首发边界界面验收", async ({ page }) => {
   const roleRow = page.locator("tbody tr", { hasText: roleName }).first();
   await expect(roleRow).toContainText(roleName);
 
-  await roleRow.getByRole("button", { name: "更新" }).click();
+  await roleRow.getByRole("button", { name: /^更新$/ }).click();
   await expect(roleDialog).toBeVisible();
   await roleDialog.locator("#edit-role-description").fill(updatedRoleDescription);
   await roleDialog.getByRole("checkbox", { name: /View Customers/ }).click();
-  await roleDialog.getByRole("button", { name: "更新" }).click();
+  await roleDialog.getByRole("button", { name: /^更新$/ }).click();
   await settleDialog(roleDialog);
   await page.reload();
 
@@ -111,7 +116,7 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await userDialog.locator("#create-user-email").fill(userEmail);
   await userDialog.locator("#create-user-password").fill(adminPassword);
   await userDialog.getByRole("checkbox", { name: new RegExp(roleName) }).click();
-  await userDialog.getByRole("button", { name: "创建" }).click();
+  await userDialog.getByRole("button", { name: /^创建$/ }).click();
   await settleDialog(userDialog);
   await page.reload();
 
@@ -127,11 +132,11 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await expect(page.getByText(userEmail).first()).toBeVisible();
   await expect(page.getByText(roleName, { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "更新" }).click();
+  await page.getByRole("button", { name: /^更新$/ }).click();
   await expect(userDialog).toBeVisible();
   await userDialog.locator("#edit-user-name").fill(updatedUserName);
   await selectComboboxOption(page, userDialog.locator("#edit-user-status"), "禁用");
-  await userDialog.getByRole("button", { name: "更新" }).click();
+  await userDialog.getByRole("button", { name: /^更新$/ }).click();
   await settleDialog(userDialog);
   await page.reload();
   await expect(
@@ -142,6 +147,45 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await page.getByRole("link", { name: "客户管理" }).click();
   await page.waitForURL("**/customers");
   await expect(page.getByRole("heading", { name: "客户管理" })).toBeVisible();
+  await page.getByRole("button", { name: "管理分组" }).click();
+
+  const groupDialog = page.getByRole("dialog");
+  await expect(groupDialog).toBeVisible();
+  await expect(groupDialog.getByRole("heading", { name: "客户分组" })).toBeVisible();
+  await groupDialog.locator("#customer-group-name").fill(groupName);
+  await groupDialog.locator("#customer-group-description").fill(`自动化验收分组 ${suffix}`);
+  await groupDialog.getByRole("button", { name: /^创建$/ }).click();
+  await settleDialog(groupDialog);
+  await page.reload();
+
+  await page.getByRole("button", { name: "管理分组" }).click();
+  await expect(groupDialog).toBeVisible();
+  await groupDialog.getByRole("button", { name: new RegExp(groupName) }).click();
+  await groupDialog.locator("#customer-group-name").fill(updatedGroupName);
+  await groupDialog.getByRole("button", { name: /^更新$/ }).click();
+  await settleDialog(groupDialog);
+  await page.reload();
+
+  await page.getByRole("button", { name: "管理标签" }).click();
+
+  const tagDialog = page.getByRole("dialog");
+  await expect(tagDialog).toBeVisible();
+  await expect(tagDialog.getByRole("heading", { name: "客户标签" })).toBeVisible();
+  await tagDialog.locator("#customer-tag-name").fill(tagName);
+  await tagDialog.locator("#customer-tag-color").fill("#111111");
+  await tagDialog.getByRole("button", { name: /^创建$/ }).click();
+  await settleDialog(tagDialog);
+  await page.reload();
+
+  await page.getByRole("button", { name: "管理标签" }).click();
+  await expect(tagDialog).toBeVisible();
+  await tagDialog.getByRole("button", { name: new RegExp(tagName) }).click();
+  await tagDialog.locator("#customer-tag-name").fill(updatedTagName);
+  await tagDialog.locator("#customer-tag-color").fill("#222222");
+  await tagDialog.getByRole("button", { name: /^更新$/ }).click();
+  await settleDialog(tagDialog);
+  await page.reload();
+
   await expect(page.getByRole("combobox", { name: "客户分组" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "客户标签" })).toBeVisible();
   await page.getByRole("button", { name: "新建客户" }).click();
@@ -152,7 +196,7 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await customerDialog.locator("#create-customer-phone").fill("13800138000");
   await customerDialog.locator("#create-customer-email").fill(customerEmail);
   await customerDialog.locator("#create-customer-password").fill(customerPassword);
-  await customerDialog.getByRole("button", { name: "创建" }).click();
+  await customerDialog.getByRole("button", { name: /^创建$/ }).click();
   await settleDialog(customerDialog);
   await page.reload();
 
@@ -162,28 +206,54 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await expect(customerRow).toContainText(customerName);
   await expect(customerRow).toContainText("13800138000");
 
-  await customerRow.getByRole("button", { name: "更新" }).click();
+  await customerRow.getByRole("button", { name: /^更新$/ }).click();
   await expect(customerDialog).toBeVisible();
   await customerDialog.locator("#edit-customer-name").fill(updatedCustomerName);
   await customerDialog.locator("#edit-customer-phone").fill("13900139000");
-  await customerDialog.getByRole("button", { name: "更新" }).click();
+  await customerDialog.getByRole("button", { name: /^更新$/ }).click();
   await settleDialog(customerDialog);
   await page.reload();
   await expect(customerRow).toContainText(updatedCustomerName);
   await expect(customerRow).toContainText("13900139000");
+  await customerRow.getByRole("button", { name: "更新状态" }).click();
+
+  const customerStatusDialog = page.getByRole("dialog");
+  await expect(customerStatusDialog).toBeVisible();
+  await selectComboboxOption(
+    page,
+    customerStatusDialog.locator("#edit-customer-status"),
+    "封禁",
+  );
+  await customerStatusDialog.getByRole("button", { name: /^更新$/ }).click();
+  await settleDialog(customerStatusDialog);
+  await page.reload();
+  await expect(customerRow).toContainText("封禁");
+
+  await customerRow.getByRole("button", { name: /^重置密码$/ }).click();
+  const resetPasswordDialog = page.getByRole("dialog");
+  await expect(resetPasswordDialog).toBeVisible();
+  await resetPasswordDialog
+    .locator("#customer-reset-password-next")
+    .fill(resetCustomerPasswordValue);
+  await resetPasswordDialog
+    .locator("#customer-reset-password-confirm")
+    .fill(resetCustomerPasswordValue);
+  await resetPasswordDialog.getByRole("button", { name: /^重置密码$/ }).click();
+  await settleDialog(resetPasswordDialog);
+  await page.reload();
   await page.screenshot({ path: "test-results/admin-customers.png", fullPage: true });
 
   await page.getByRole("link", { name: "审计日志" }).click();
   await page.waitForURL("**/audit-logs");
   await expect(page.getByRole("heading", { name: "审计日志" })).toBeVisible();
-  await page.locator('input[name="action"]').fill("admin.customer.create");
+  await page.locator('input[name="action"]').fill("admin.customer.password.reset");
   await selectComboboxOption(
     page,
     page.getByRole("combobox", { name: "操作者类型" }),
     "管理员",
   );
   await page.getByRole("button", { name: "搜索" }).click();
-  await expect(page.locator("tbody tr").first()).toContainText("admin.customer.create");
+  await expect(page.locator("tbody tr").first()).toContainText("admin.customer.password.reset");
   await expect(page.locator("tbody tr").first()).toContainText("管理员");
 
   await page.getByRole("button", { name: new RegExp(adminDisplayName) }).click();

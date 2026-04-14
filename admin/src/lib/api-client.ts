@@ -6,12 +6,18 @@ import {
   type AdminUsersListQuery,
   type AdminUsersUpdateBody,
   type AuditLogsListQuery,
+  type CustomerGroupsCreateBody,
+  type CustomerGroupsUpdateBody,
+  type CustomersResetPasswordBody,
   type CustomersCreateBody,
   type CustomersListQuery,
   type CustomersUpdateBody,
+  type CustomersUpdateStatusBody,
   type RolesCreateBody,
   type RolesListQuery,
   type RolesUpdateBody,
+  type CustomerTagsCreateBody,
+  type CustomerTagsUpdateBody,
 } from "@rtnn/api-sdk";
 import { ENV_KEYS, PORTS } from "@rtnn/config";
 import { cookies, headers } from "next/headers";
@@ -228,6 +234,24 @@ export async function updateCustomer(
   return client.admin.customers.update(id, payload) as Promise<CustomerDetailRecord>;
 }
 
+export async function updateCustomerStatus(
+  accessToken: string,
+  id: string,
+  payload: CustomersUpdateStatusBody,
+): Promise<CustomerDetailRecord> {
+  const client = createClient(accessToken);
+  return client.admin.customers.updateStatus(id, payload) as Promise<CustomerDetailRecord>;
+}
+
+export async function resetCustomerPassword(
+  accessToken: string,
+  id: string,
+  payload: CustomersResetPasswordBody,
+): Promise<{ success: true }> {
+  const client = createClient(accessToken);
+  return client.admin.customers.resetPassword(id, payload) as Promise<{ success: true }>;
+}
+
 export async function listCustomerGroups(
   accessToken: string,
   query?: LookupListQuery,
@@ -236,12 +260,46 @@ export async function listCustomerGroups(
   return client.admin.customerGroups.list(query) as Promise<PaginatedResult<CustomerGroupRecord>>;
 }
 
+export async function createCustomerGroup(
+  accessToken: string,
+  payload: CustomerGroupsCreateBody,
+): Promise<CustomerGroupRecord> {
+  const client = createClient(accessToken);
+  return client.admin.customerGroups.create(payload) as Promise<CustomerGroupRecord>;
+}
+
+export async function updateCustomerGroup(
+  accessToken: string,
+  id: string,
+  payload: CustomerGroupsUpdateBody,
+): Promise<CustomerGroupRecord> {
+  const client = createClient(accessToken);
+  return client.admin.customerGroups.update(id, payload) as Promise<CustomerGroupRecord>;
+}
+
 export async function listCustomerTags(
   accessToken: string,
   query?: LookupListQuery,
 ): Promise<PaginatedResult<CustomerTagRecord>> {
   const client = createClient(accessToken);
   return client.admin.customerTags.list(query) as Promise<PaginatedResult<CustomerTagRecord>>;
+}
+
+export async function createCustomerTag(
+  accessToken: string,
+  payload: CustomerTagsCreateBody,
+): Promise<CustomerTagRecord> {
+  const client = createClient(accessToken);
+  return client.admin.customerTags.create(payload) as Promise<CustomerTagRecord>;
+}
+
+export async function updateCustomerTag(
+  accessToken: string,
+  id: string,
+  payload: CustomerTagsUpdateBody,
+): Promise<CustomerTagRecord> {
+  const client = createClient(accessToken);
+  return client.admin.customerTags.update(id, payload) as Promise<CustomerTagRecord>;
 }
 
 export async function changeAdminPassword(

@@ -4,6 +4,10 @@ import { TEMPLATE_DISPLAY } from "@rtnn/config";
 type CommonDictionary = {
   appName: string;
   console: string;
+  name: string;
+  description: string;
+  slug: string;
+  color: string;
   locale: string;
   theme: string;
   cancel: string;
@@ -108,17 +112,32 @@ type CustomersDictionary = {
   title: string;
   newCustomer: string;
   editCustomer: string;
+  manageGroups: string;
+  manageTags: string;
+  newGroup: string;
+  editGroup: string;
+  newTag: string;
+  editTag: string;
+  changeStatus: string;
+  resetPassword: string;
   name: string;
   email: string;
   password: string;
+  nextPassword: string;
+  confirmPassword: string;
   phone: string;
   groups: string;
   tags: string;
   status: string;
+  statusHelp: string;
+  passwordHelp: string;
   lastLoginAt: string;
   allStatuses: string;
   allGroups: string;
   allTags: string;
+  groupsEmpty: string;
+  tagsEmpty: string;
+  linkedCustomers: string;
   empty: string;
 };
 
@@ -201,6 +220,10 @@ const zhCN: AdminDictionary = {
   common: {
     appName: TEMPLATE_DISPLAY.adminAppZh,
     console: "控制台",
+    name: "名称",
+    description: "描述",
+    slug: "Slug",
+    color: "颜色",
     locale: "语言",
     theme: "主题",
     cancel: "取消",
@@ -273,17 +296,32 @@ const zhCN: AdminDictionary = {
     title: "客户管理",
     newCustomer: "新建客户",
     editCustomer: "编辑客户",
+    manageGroups: "管理分组",
+    manageTags: "管理标签",
+    newGroup: "新建分组",
+    editGroup: "编辑分组",
+    newTag: "新建标签",
+    editTag: "编辑标签",
+    changeStatus: "更新状态",
+    resetPassword: "重置密码",
     name: "姓名",
     email: "邮箱",
     password: "初始密码",
+    nextPassword: "新密码",
+    confirmPassword: "确认密码",
     phone: "手机号",
     groups: "客户分组",
     tags: "客户标签",
     status: "状态",
+    statusHelp: "调整客户状态以控制登录与访问。",
+    passwordHelp: "为客户设置新的登录密码，旧会话会立即失效。",
     lastLoginAt: "最后登录",
     allStatuses: "全部状态",
     allGroups: "全部分组",
     allTags: "全部标签",
+    groupsEmpty: "暂无客户分组",
+    tagsEmpty: "暂无客户标签",
+    linkedCustomers: "关联客户",
     empty: "暂无客户数据",
   },
   users: {
@@ -375,6 +413,10 @@ const enUS: AdminDictionary = {
   common: {
     appName: TEMPLATE_DISPLAY.adminAppEn,
     console: "Console",
+    name: "Name",
+    description: "Description",
+    slug: "Slug",
+    color: "Color",
     locale: "Locale",
     theme: "Theme",
     cancel: "Cancel",
@@ -447,17 +489,32 @@ const enUS: AdminDictionary = {
     title: "Customer Management",
     newCustomer: "Create customer",
     editCustomer: "Edit customer",
+    manageGroups: "Manage groups",
+    manageTags: "Manage tags",
+    newGroup: "Create group",
+    editGroup: "Edit group",
+    newTag: "Create tag",
+    editTag: "Edit tag",
+    changeStatus: "Update status",
+    resetPassword: "Reset password",
     name: "Name",
     email: "Email",
     password: "Initial password",
+    nextPassword: "New password",
+    confirmPassword: "Confirm password",
     phone: "Phone",
     groups: "Groups",
     tags: "Tags",
     status: "Status",
+    statusHelp: "Update the customer status to control sign-in access.",
+    passwordHelp: "Set a new customer password and revoke existing sessions immediately.",
     lastLoginAt: "Last login",
     allStatuses: "All statuses",
     allGroups: "All groups",
     allTags: "All tags",
+    groupsEmpty: "No customer groups yet.",
+    tagsEmpty: "No customer tags yet.",
+    linkedCustomers: "Linked customers",
     empty: "No customers yet.",
   },
   users: {

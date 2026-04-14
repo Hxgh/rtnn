@@ -323,6 +323,10 @@ export interface UpdateCustomerInput {
   phone?: string;
 }
 
+export interface UpdateCustomerStatusInput {
+  status: CustomerStatus;
+}
+
 export interface ResetCustomerPasswordInput {
   nextPassword: string;
 }

@@ -3,6 +3,12 @@ import { redirect } from "next/navigation";
 import { FormSelect } from "@/src/components/admin/form-select";
 import { CreateCustomerDialog, EditCustomerDialog } from "@/src/components/admin/customers/customer-form-dialogs";
 import {
+  CustomerStatusDialog,
+  ManageCustomerGroupsDialog,
+  ManageCustomerTagsDialog,
+  ResetCustomerPasswordDialog,
+} from "@/src/components/admin/customers/customer-management-dialogs";
+import {
   AdminTablePagination,
   AdminTablePage,
   AdminTableRowActions,
@@ -216,33 +222,36 @@ export default async function CustomersPage({
   const canCreateCustomer = hasPermission(me, "admin:customers:create");
   const canUpdateCustomer = hasPermission(me, "admin:customers:update");
   const canViewGroupOptions = hasPermission(me, "admin:customer-groups:view");
+  const canManageGroups = hasPermission(me, "admin:customer-groups:manage");
   const canViewTagOptions = hasPermission(me, "admin:customer-tags:view");
+  const canManageTags = hasPermission(me, "admin:customer-tags:manage");
   const params = searchParams ? await searchParams : undefined;
   const filters = normalizeFilters(params);
   const page = parsePositiveInt(params?.page, 1);
   const pageSize = parsePageSize(params?.pageSize, defaultCustomersPageSize);
 
   let result: Awaited<ReturnType<typeof listCustomers>> | null = null;
+  let groupsResult: Awaited<ReturnType<typeof listCustomerGroups>> | null = null;
+  let tagsResult: Awaited<ReturnType<typeof listCustomerTags>> | null = null;
   let pageError: unknown = null;
 
   try {
-    result = await listCustomers(accessToken, {
-      page,
-      pageSize,
-      ...filters,
-    });
+    [result, groupsResult, tagsResult] = await Promise.all([
+      listCustomers(accessToken, {
+        page,
+        pageSize,
+        ...filters,
+      }),
+      canViewGroupOptions
+        ? listCustomerGroups(accessToken, { page: 1, pageSize: 100 }).catch(() => null)
+        : Promise.resolve(null),
+      canViewTagOptions
+        ? listCustomerTags(accessToken, { page: 1, pageSize: 100 }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
   } catch (error) {
     pageError = error;
   }
-
-  const [groupsResult, tagsResult] = await Promise.all([
-    canViewGroupOptions
-      ? listCustomerGroups(accessToken, { page: 1, pageSize: 100 }).catch(() => null)
-      : Promise.resolve(null),
-    canViewTagOptions
-      ? listCustomerTags(accessToken, { page: 1, pageSize: 100 }).catch(() => null)
-      : Promise.resolve(null),
-  ]);
 
   if (pageError || !result) {
     return (
@@ -314,15 +323,39 @@ export default async function CustomersPage({
       cell: (item) => (
         <AdminTableRowActions>
           <EditCustomerDialog dictionary={dictionary} customer={item} />
+          <CustomerStatusDialog customer={item} dictionary={dictionary} />
+          <ResetCustomerPasswordDialog customerId={item.id} dictionary={dictionary} />
         </AdminTableRowActions>
       ),
     });
   }
 
+  const pageActions = groupsResult || tagsResult || canCreateCustomer
+    ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          {groupsResult ? (
+            <ManageCustomerGroupsDialog
+              canManage={canManageGroups}
+              dictionary={dictionary}
+              groups={groupsResult.data}
+            />
+          ) : null}
+          {tagsResult ? (
+            <ManageCustomerTagsDialog
+              canManage={canManageTags}
+              dictionary={dictionary}
+              tags={tagsResult.data}
+            />
+          ) : null}
+          {canCreateCustomer ? <CreateCustomerDialog dictionary={dictionary} /> : null}
+        </div>
+      )
+    : null;
+
   return (
     <AdminTablePage
       title={dictionary.customers.title}
-      actions={canCreateCustomer ? <CreateCustomerDialog dictionary={dictionary} /> : null}
+      actions={pageActions}
       columns={columns}
       data={result.data}
       emptyText={dictionary.customers.empty}

@@ -44,6 +44,8 @@ import type {
   CustomersResetPasswordBody,
   CustomersResetPasswordResult,
   CustomersUpdateBody,
+  CustomersUpdateStatusBody,
+  CustomersUpdateStatusResult,
   CustomersUpdateResult,
   CustomerTagPathParams,
   CustomerTagsCreateBody,
@@ -121,6 +123,10 @@ export interface ApiClient {
         id: CustomerPathParams["id"],
         body: CustomersUpdateBody,
       ): Promise<CustomersUpdateResult>;
+      updateStatus(
+        id: CustomerPathParams["id"],
+        body: CustomersUpdateStatusBody,
+      ): Promise<CustomersUpdateStatusResult>;
       resetPassword(
         id: CustomerPathParams["id"],
         body: CustomersResetPasswordBody,
@@ -303,6 +309,15 @@ export const createApiClient = (transport: ApiTransport): ApiClient => ({
         transport.request<CustomersUpdateResult, CustomersUpdateBody>({
           method: "PATCH",
           path: byIdPath("/api/v1/admin/customers/{id}", id),
+          body,
+        }),
+      updateStatus: (id, body) =>
+        transport.request<
+          CustomersUpdateStatusResult,
+          CustomersUpdateStatusBody
+        >({
+          method: "PATCH",
+          path: byIdPath("/api/v1/admin/customers/{id}/status", id),
           body,
         }),
       resetPassword: (id, body) =>
