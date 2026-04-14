@@ -57,6 +57,7 @@ export default async function MePage() {
             href="/account"
             title={messages.security.title}
             description={messages.security.description}
+            dataTestId="me-account-link"
             icon={
               <svg
                 aria-hidden="true"

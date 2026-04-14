@@ -9,27 +9,47 @@ type ApiError = Error & {
   status?: number;
 };
 
-export async function readSession(): Promise<AppSession | null> {
+async function getMeSession(accessToken?: string): Promise<AppSession> {
+  const client = await createServerApiClient(
+    accessToken ? { accessToken } : undefined,
+  );
+  const me = (await client.auth.customer.me()) as CustomerMeResponse;
+  return mapMeResponseToSession(me);
+}
+
+async function hasRefreshToken() {
+  const cookieStore = await cookies();
+  return Boolean(cookieStore.get(REFRESH_TOKEN_COOKIE)?.value);
+}
+
+function buildRefreshHref(redirectTo: string) {
+  return `/api/session/refresh?redirectTo=${encodeURIComponent(redirectTo)}`;
+}
+
+export async function readSession(options?: {
+  redirectTo?: string;
+}): Promise<AppSession | null> {
   try {
-    const client = await createServerApiClient();
-    const me = (await client.auth.customer.me()) as CustomerMeResponse;
-    return mapMeResponseToSession(me);
-  } catch {
+    return await getMeSession();
+  } catch (error) {
+    const status = (error as ApiError).status;
+    if (status === 401 && options?.redirectTo && (await hasRefreshToken())) {
+      redirect(buildRefreshHref(options.redirectTo));
+    }
     return null;
   }
 }
 
 export async function requireSession(redirectTo = "/me"): Promise<AppSession> {
   try {
-    const client = await createServerApiClient();
-    const me = (await client.auth.customer.me()) as CustomerMeResponse;
-    return mapMeResponseToSession(me);
+    return await getMeSession();
   } catch (error) {
-    const cookieStore = await cookies();
-    const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
     const status = (error as ApiError).status;
-    if (status === 401 && refreshToken) {
-      redirect(`/api/session/refresh?redirectTo=${encodeURIComponent(redirectTo)}`);
+    if (status === 403) {
+      redirect("/403");
+    }
+    if (status === 401 && (await hasRefreshToken())) {
+      redirect(buildRefreshHref(redirectTo));
     }
   }
 

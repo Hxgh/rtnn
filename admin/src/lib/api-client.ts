@@ -13,7 +13,7 @@ import {
   type RolesListQuery,
   type RolesUpdateBody,
 } from "@rtnn/api-sdk";
-import { PORTS } from "@rtnn/config";
+import { ENV_KEYS, PORTS } from "@rtnn/config";
 import { cookies, headers } from "next/headers";
 import type {
   AdminLoginRequest,
@@ -50,7 +50,9 @@ export type CustomerTagRecord = CustomerTagSummary;
 
 function getBaseUrl() {
   const envBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
+    process.env[ENV_KEYS.backendInternalBaseUrl] ??
+    process.env[ENV_KEYS.backendBaseUrl] ??
+    process.env[ENV_KEYS.backendPublicUrl];
   return envBase ?? `http://localhost:${PORTS.backend}`;
 }
 

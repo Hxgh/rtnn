@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "rtnn app",
-  description: "rtnn 前台模板工程",
+  description: "RTNN 客户端",
   icons: {
     icon: "/brand/rtnn-mark.svg",
     shortcut: "/brand/rtnn-mark.svg",

@@ -12,7 +12,7 @@ import { ActionRowLink, DetailRow } from "@/components/site/action-row";
 
 export default async function HomePage() {
   const { messages } = await getServerI18n();
-  const session = await readSession();
+  const session = await readSession({ redirectTo: "/" });
 
   if (!session) {
     return (
@@ -79,6 +79,7 @@ export default async function HomePage() {
               href="/me"
               title={messages.common.nav.me}
               description={messages.profile.description}
+              dataTestId="home-me-link"
               icon={
                 <svg
                   aria-hidden="true"

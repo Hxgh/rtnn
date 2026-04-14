@@ -8,6 +8,7 @@ export function ActionRowLink(props: {
   icon?: React.ReactNode;
   trailing?: React.ReactNode;
   className?: string;
+  dataTestId?: string;
 }) {
   return (
     <Link
@@ -16,6 +17,7 @@ export function ActionRowLink(props: {
         "flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-secondary/55",
         props.className,
       )}
+      data-testid={props.dataTestId}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {props.icon ? (

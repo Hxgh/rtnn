@@ -21,7 +21,7 @@ export default async function LoginPage({
 }: {
   searchParams?: Promise<{ error?: string; redirectTo?: string }>;
 }) {
-  const session = await readSession();
+  const session = await readSession({ redirectTo: "/login" });
   if (session) {
     redirect("/");
   }

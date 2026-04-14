@@ -1,28 +1,28 @@
 import { defineConfig } from "@playwright/test";
 
-const backendPort = Number(process.env.ADMIN_ACCEPTANCE_BACKEND_PORT ?? "5110");
-const adminPort = Number(process.env.ADMIN_ACCEPTANCE_PORT ?? "5111");
+const backendPort = Number(process.env.APP_ACCEPTANCE_BACKEND_PORT ?? "5110");
+const appPort = Number(process.env.APP_ACCEPTANCE_PORT ?? "5120");
 const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
-const adminBaseUrl = `http://127.0.0.1:${adminPort}`;
+const appBaseUrl = `http://localhost:${appPort}`;
 
 export default defineConfig({
   testDir: "./scripts",
-  testMatch: "admin-acceptance.spec.ts",
+  testMatch: "app-acceptance.spec.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,
   reporter: "list",
-  outputDir: "test-results/playwright",
+  outputDir: "test-results/playwright-app",
   use: {
-    baseURL: process.env.ADMIN_BASE_URL ?? adminBaseUrl,
+    baseURL: process.env.APP_BASE_URL ?? appBaseUrl,
     headless: true,
     locale: "zh-CN",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "off",
     viewport: {
-      width: 1440,
-      height: 960,
+      width: 430,
+      height: 932,
     },
     extraHTTPHeaders: {
       "accept-language": "zh-CN",
@@ -39,16 +39,16 @@ export default defineConfig({
       },
     },
     {
-      command: "pnpm -C admin start",
-      url: `${adminBaseUrl}/login`,
+      command: "pnpm -C app start",
+      url: `${appBaseUrl}/login`,
       reuseExistingServer: true,
       timeout: 60_000,
       env: {
-        PORT: String(adminPort),
+        PORT: String(appPort),
         HOSTNAME: "127.0.0.1",
         NEXT_PUBLIC_API_BASE_URL: backendBaseUrl,
-        NEXT_PUBLIC_BACKEND_URL: backendBaseUrl,
         BACKEND_INTERNAL_BASE_URL: backendBaseUrl,
+        APP_ACCEPTANCE_API_BASE_URL: backendBaseUrl,
       },
     },
   ],
