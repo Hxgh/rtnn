@@ -60,6 +60,25 @@ pnpm run bootstrap
 
 适用于首次启动或重建本地环境。
 
+### 1.6 初始化自动校验
+
+若需要确认模板初始化链路本身可用，可执行：
+
+```bash
+pnpm run check:template-bootstrap
+```
+
+该命令固定验证：
+
+- `setup:env`
+- `setup:backend`
+- backend build 与启动
+- `GET /healthz`
+- `GET /readyz`
+- `GET /openapi.json`
+
+执行前需确保 `5100` 端口没有被其他本地进程占用。
+
 ## 2. 联调
 
 ### 2.1 Web 主线
@@ -102,6 +121,14 @@ pnpm run dev:weapp:h5
 - `backend/.env` 中 `DATABASE_URL` 是否有效
 - migrate/seed 是否已跑过
 
+### 2.4 初始化速查
+
+至少确认以下配置与环境一致：
+
+- `backend/.env` 中 `PORT`、`DATABASE_URL`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`
+- `admin/.env.local`、`app/.env.local`、`weapp/.env` 中的 backend base URL
+- `docker-compose.yml` 的 PostgreSQL 数据库名、端口与 `DATABASE_URL`
+
 ## 3. 契约同步
 
 涉及 `backend` 接口、权限、共享类型变更时，先执行：
@@ -125,7 +152,19 @@ pnpm run check:contracts
 
 ## 4. 验收
 
-### 4.1 后端正式 gate
+### 4.1 初始化 gate
+
+```bash
+pnpm run check:template-bootstrap
+```
+
+覆盖：
+
+- 环境文件生成
+- backend 数据库初始化
+- backend 公开基线存活性检查
+
+### 4.2 后端正式 gate
 
 ```bash
 pnpm run check:backend-release
@@ -140,7 +179,7 @@ pnpm run check:backend-release
 - integration
 - e2e
 
-### 4.2 Admin UI 验收
+### 4.3 Admin UI 验收
 
 ```bash
 pnpm run smoke:admin:ui
@@ -156,7 +195,7 @@ pnpm run smoke:admin:ui
 - 审计日志
 - 个人中心
 
-### 4.3 App 最小闭环验收
+### 4.4 App 最小闭环验收
 
 ```bash
 pnpm run smoke:app:ui
@@ -170,7 +209,7 @@ pnpm run smoke:app:ui
 - 账户安全页
 - 退出登录
 
-### 4.4 Weapp 验收
+### 4.5 Weapp 验收
 
 自动化基础：
 
@@ -186,7 +225,7 @@ pnpm -C weapp build:h5
 - 我的页能显示真实账户信息
 - 退出登录后能回到未登录状态
 
-### 4.5 模板交付聚合回归
+### 4.6 模板交付聚合回归
 
 若要重跑消费端交付闭环，可直接执行：
 
@@ -207,13 +246,14 @@ pnpm run check:template-delivery
 
 推荐严格按以下顺序执行：
 
-1. `pnpm run check:contracts`
-2. `pnpm run check:backend-release`
-3. `pnpm run smoke:admin:ui`
-4. `pnpm run smoke:app:ui`
-5. `pnpm -C weapp typecheck`
-6. `pnpm -C weapp build:h5`
-7. `weapp` 手工验收
+1. `pnpm run check:template-bootstrap`
+2. `pnpm run check:contracts`
+3. `pnpm run check:backend-release`
+4. `pnpm run smoke:admin:ui`
+5. `pnpm run smoke:app:ui`
+6. `pnpm -C weapp typecheck`
+7. `pnpm -C weapp build:h5`
+8. `weapp` 手工验收
 
 若只需要复跑消费端闭环，可执行：
 

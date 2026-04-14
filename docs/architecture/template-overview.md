@@ -49,3 +49,4 @@
 - 交付闭环计划：`docs/architecture/template-delivery-closure-plan.md`
 - 执行手册：`docs/architecture/template-delivery-runbook.md`
 - 发布工程化计划：`docs/architecture/template-release-engineering-plan.md`
+- 初始化工程化计划：`docs/architecture/template-initialization-engineering-plan.md`

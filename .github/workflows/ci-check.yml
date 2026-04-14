@@ -48,8 +48,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup local env files
-        run: pnpm run setup:env
+      - name: Template bootstrap gate
+        run: pnpm run check:template-bootstrap
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
