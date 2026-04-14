@@ -1,10 +1,10 @@
 import type * as React from "react";
 import { TEMPLATE_DISPLAY } from "@rtnn/config";
-import { cn } from "@/lib/utils";
+import { cn } from "@/src/lib/utils";
 
-type RtnnLogoMarkProps = React.SVGProps<SVGSVGElement>;
+type BrandLogoMarkProps = React.SVGProps<SVGSVGElement>;
 
-export function RtnnLogoMark({ className, ...props }: RtnnLogoMarkProps) {
+export function BrandLogoMark({ className, ...props }: BrandLogoMarkProps) {
   return (
     <svg
       viewBox="0 0 64 64"
@@ -39,7 +39,7 @@ export function RtnnLogoMark({ className, ...props }: RtnnLogoMarkProps) {
   );
 }
 
-export function RtnnLogoLockup({
+export function BrandLogoLockup({
   className,
   showMark = true,
   title = TEMPLATE_DISPLAY.brand,
@@ -52,7 +52,7 @@ export function RtnnLogoLockup({
 }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      {showMark ? <RtnnLogoMark /> : null}
+      {showMark ? <BrandLogoMark /> : null}
       <div className="grid min-w-0 text-left leading-none">
         <span className="truncate text-[13px] font-semibold tracking-[0.22em] text-foreground uppercase">
           {title}

@@ -1,13 +1,13 @@
-# rtnn admin
+# Admin 管理后台模板消费端
 
-`admin/` 是 `rtnn` 模板工程的 Next.js 管理后台消费端，负责消费 `backend/` 提供的正式 API、权限与会话能力。
+`admin/` 是当前模板仓库的 Next.js 管理后台消费端，负责消费 `backend/` 提供的正式 API、权限与会话能力。
 
 它不是独立 API 工程，也不维护与 backend 平行的接口定义。
 
 ## 角色定位
 
 - 作为后台管理端消费 `backend`
-- 使用 `@rtnn/api-sdk`、`@rtnn/shared-types`、`@rtnn/config`
+- 当前默认使用 `@rtnn/api-sdk`、`@rtnn/shared-types`、`@rtnn/config`
 - 承接管理员登录、权限控制、用户/角色/客户/审计等后台主线
 
 ## 开发命令
@@ -31,6 +31,7 @@ pnpm -C admin dev
 - backend 是唯一契约源
 - admin 不手写平行 DTO、权限常量、会话接口定义
 - backend 变更接口、权限或 OpenAPI 后，应优先同步 SDK / shared-types，而不是在 admin 端绕过契约
+- 若需要切换默认 workspace package scope，使用根命令 `pnpm run template:rewrite-source`
 
 ## UI 基线
 

@@ -1,6 +1,6 @@
-# rtnn
+# 全栈模板 Monorepo
 
-`rtnn` 是一个面向正式交付的全栈模板 monorepo。
+当前仓库是一套面向正式交付的全栈模板 monorepo，默认 `projectId` 为 `rtnn`。
 
 它的主线很明确：
 
@@ -71,13 +71,13 @@ pnpm dev:weapp:h5
 
 ## 本地数据库
 
-仓库提供 `docker-compose.yml` 来启动一个与模板一致的 PostgreSQL 实例，默认参数来自根级 `.env`。首次执行 `pnpm run setup:env` 或 `pnpm run bootstrap` 后，会先生成该文件。默认情况下，数据库以 `postgres` 用户/密码和 `rtnn` 数据库对外暴露 `5432` 端口。推荐在首次开发或重建环境时运行：
+仓库提供 `docker-compose.yml` 来启动一个与模板一致的 PostgreSQL 实例，默认参数来自根级 `.env`。首次执行 `pnpm run setup:env` 或 `pnpm run bootstrap` 后，会先生成该文件。当前仓库默认以 `postgres` 用户/密码和 `rtnn` 数据库对外暴露 `5432` 端口。推荐在首次开发或重建环境时运行：
 
 ```bash
 pnpm run postgres:up
 ```
 
-初始化完数据库后，`DATABASE_URL` 可以保持为 `postgresql://postgres:postgres@localhost:5432/rtnn?schema=public`，与 `backend/.env.example` 中的默认值一致。完成开发后可运行：
+初始化完数据库后，`DATABASE_URL` 可以保持为 `postgresql://postgres:postgres@localhost:5432/rtnn?schema=public`，与 `backend/.env.example` 中的当前默认值一致。完成开发后可运行：
 
 ```bash
 pnpm run postgres:down
@@ -116,10 +116,33 @@ pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
 
 根级 `.env` 是模板初始化参数唯一来源；后续如需继续调整，可直接编辑根级 `.env` 后重新执行 `pnpm run setup:env -- --force`。
 
+若需要把源码级身份一并改成派生模板的正式名字，再执行：
+
+```bash
+pnpm run template:rewrite-source -- --dry-run
+pnpm run template:rewrite-source -- --project-id=acme --package-scope=acme --brand-name=ACME
+```
+
+这条脚本会统一改写：
+
+- 根 `package.json` 的项目名
+- workspace 包的 `@rtnn/*` scope
+- 各端 `package.json` 依赖、`pnpm --filter`、静态 import
+- Next.js / Taro 的静态 alias 与 transpile 配置
+
+若未显式传入 `--package-scope`，默认回退到 `projectId`。执行完成后，继续运行：
+
+```bash
+pnpm install
+pnpm run contracts:permissions
+pnpm run contracts:sync
+```
+
 ## 常用命令
 
 ```bash
 pnpm setup:env
+pnpm template:rewrite-source
 pnpm setup:backend
 pnpm bootstrap
 pnpm dev:web

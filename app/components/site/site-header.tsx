@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TEMPLATE_IDENTITY } from "@rtnn/config";
-import { RtnnLogoMark } from "@/components/brand/rtnn-logo";
+import { BrandLogoMark } from "@/components/brand/brand-logo";
 import { usePreferences } from "@/components/providers/preferences-provider";
 
 export function SiteHeader() {
@@ -47,7 +47,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-20 border-b border-border/70 bg-background/96 backdrop-blur">
       <div className="mx-auto flex w-full max-w-[28rem] items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
         <div className="flex min-w-0 items-center gap-3">
-          <RtnnLogoMark className="size-8" />
+          <BrandLogoMark className="size-8" />
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
               {`${TEMPLATE_IDENTITY.projectId} app`}

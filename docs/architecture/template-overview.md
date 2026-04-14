@@ -1,6 +1,6 @@
-# rtnn Template Overview
+# Template Overview
 
-`rtnn` 是一个顶层并列式 monorepo 模板，不再采用 demo 工程的松散组织方式。
+当前仓库是一个顶层并列式 monorepo 模板，默认 `projectId` 为 `rtnn`，不再采用 demo 工程的松散组织方式。
 
 ## 顶层结构
 
@@ -18,7 +18,7 @@
 - 顶层使用 `pnpm workspace`
 - `backend` 是 API、权限模型、OpenAPI、shared-types、shared-schemas 与 SDK 的唯一契约源
 - `admin`、`app`、`weapp` 都是 backend 的消费者，不各自维护平行接口定义
-- Web 端默认采用 server-first 方式，通过 `@rtnn/api-sdk` 调用 backend
+- Web 端默认采用 server-first 方式，通过当前默认 scope 的 `@rtnn/api-sdk` 调用 backend
 - `weapp` 共享契约层，但保留独立 UI 与 transport adapter
 
 ## Backend 首发边界

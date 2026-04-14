@@ -1,6 +1,6 @@
-# rtnn backend
+# Backend 模板后端内核
 
-`backend/` 是 `rtnn` 模板工程的正式 NestJS 后端内核，不是 demo，也不是 Next.js 的一部分。
+`backend/` 是当前模板仓库的正式 NestJS 后端内核，不是 demo，也不是 Next.js 的一部分。
 
 它负责作为 `admin`、`app`、`weapp` 的唯一后端契约源，统一输出权限、OpenAPI、shared-types、shared-schemas 与 SDK 上游能力。
 

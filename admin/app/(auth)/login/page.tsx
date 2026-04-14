@@ -1,6 +1,6 @@
 import { loginAction } from "@/app/(auth)/login/actions";
 import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from "@rtnn/config";
-import { RtnnLogoLockup, RtnnLogoMark } from "@/src/components/brand/rtnn-logo";
+import { BrandLogoLockup, BrandLogoMark } from "@/src/components/brand/brand-logo";
 import { LoginHeroCanvas } from "@/src/components/auth/login-hero-canvas";
 import { LoginForm } from "@/src/components/auth/login-form";
 import { PreferenceControls } from "@/src/components/admin/preference-controls";
@@ -20,7 +20,7 @@ export default async function LoginPage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col px-4 py-6">
       <div className="flex items-center justify-between gap-4">
-        <RtnnLogoLockup subtitle={dictionary.auth.brand} title={TEMPLATE_DISPLAY.brand} />
+        <BrandLogoLockup subtitle={dictionary.auth.brand} title={TEMPLATE_DISPLAY.brand} />
         <PreferenceControls dictionary={dictionary.common} />
       </div>
 
@@ -50,7 +50,7 @@ export default async function LoginPage() {
           <Card className="animate-fade-up w-full max-w-sm border-border/50 bg-card/88 shadow-xl backdrop-blur-xl">
             <CardHeader className="gap-2">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                <RtnnLogoMark className="size-5" />
+                <BrandLogoMark className="size-5" />
                 <span>{dictionary.auth.brand}</span>
               </div>
               <CardTitle className="text-xl">{dictionary.auth.signIn}</CardTitle>

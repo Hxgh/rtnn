@@ -10,9 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: dictionary.common.appName,
     description: dictionary.auth.description,
     icons: {
-      icon: "/brand/rtnn-mark.svg",
-      shortcut: "/brand/rtnn-mark.svg",
-      apple: "/brand/rtnn-mark.svg",
+      icon: "/brand/brand-mark.svg",
+      shortcut: "/brand/brand-mark.svg",
+      apple: "/brand/brand-mark.svg",
     },
   };
 }

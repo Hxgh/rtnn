@@ -2,7 +2,7 @@ import { loginAction } from "./actions";
 import { TEMPLATE_DEFAULTS } from "@rtnn/config";
 import Link from "next/link";
 import { BottomActionBar } from "@/components/site/bottom-action-bar";
-import { RtnnLogoLockup } from "@/components/brand/rtnn-logo";
+import { BrandLogoLockup } from "@/components/brand/brand-logo";
 import { PageShell, PageTitle } from "@/components/site/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -49,7 +49,7 @@ export default async function LoginPage({
           {messages.common.actions.backHome}
         </Link>
         <div className="space-y-4">
-          <RtnnLogoLockup subtitle={messages.home.badge} />
+          <BrandLogoLockup subtitle={messages.home.badge} />
           <PageTitle
             title={messages.login.title}
             description={messages.login.description}

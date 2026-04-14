@@ -4,7 +4,7 @@ import type * as React from "react";
 import Link from "next/link";
 import type { AuthUser } from "@rtnn/shared-types";
 import { TEMPLATE_DISPLAY } from "@rtnn/config";
-import { RtnnLogoMark } from "@/src/components/brand/rtnn-logo";
+import { BrandLogoMark } from "@/src/components/brand/brand-logo";
 import { NavMain } from "@/src/components/admin/shell/nav-main";
 import { NavUser } from "@/src/components/admin/shell/nav-user";
 import {
@@ -50,7 +50,7 @@ export function AppSidebar({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Link href={adminRoutes.dashboard}>
-                <RtnnLogoMark className="size-8" />
+                <BrandLogoMark className="size-8" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{TEMPLATE_DISPLAY.brand}</span>
                   <span className="truncate text-xs text-sidebar-foreground/70">

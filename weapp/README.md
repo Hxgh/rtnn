@@ -1,6 +1,6 @@
-# weapp
+# Weapp 小程序模板消费端
 
-`weapp` is the Taro + React mini-program template app in `rtnn`.
+`weapp/` 是当前模板仓库的 Taro + React 小程序消费端。
 
 ## Stack
 
@@ -66,7 +66,7 @@ Current first-release template scope:
 - Customer login page
 - Customer profile page
 - Session restore / logout basic flow
-- Weapp transport + `@rtnn/api-sdk` integration entrypoint
+- Weapp transport + current default `@rtnn/api-sdk` integration entrypoint
 
 ## Project structure
 
@@ -96,7 +96,7 @@ weapp/
 - Session adapter: `src/lib/session/storage.ts`
 - Auth state helper: `src/lib/session/auth.ts`
 
-The current implementation uses `@rtnn/api-sdk` as the request foundation and lets backend failures surface as error messages, with no mock login/session fallbacks.
+The current implementation uses the default `@rtnn/api-sdk` package as the request foundation and lets backend failures surface as error messages, with no mock login/session fallbacks.
 
 ## Acceptance baseline
 

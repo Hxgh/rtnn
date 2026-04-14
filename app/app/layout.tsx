@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: `${TEMPLATE_IDENTITY.projectId} app`,
   description: TEMPLATE_DISPLAY.appZh,
   icons: {
-    icon: "/brand/rtnn-mark.svg",
-    shortcut: "/brand/rtnn-mark.svg",
-    apple: "/brand/rtnn-mark.svg",
+    icon: "/brand/brand-mark.svg",
+    shortcut: "/brand/brand-mark.svg",
+    apple: "/brand/brand-mark.svg",
   },
 };
 
