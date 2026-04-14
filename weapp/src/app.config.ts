@@ -1,3 +1,5 @@
+import { TEMPLATE_DISPLAY } from "@rtnn/config"
+
 export default defineAppConfig({
   pages: [
     "pages/index/index",
@@ -21,7 +23,7 @@ export default defineAppConfig({
     ]
   },
   window: {
-    navigationBarTitleText: "RTNN",
+    navigationBarTitleText: TEMPLATE_DISPLAY.brand,
     navigationBarBackgroundColor: "#ffffff",
     navigationBarTextStyle: "black",
     backgroundTextStyle: "light"

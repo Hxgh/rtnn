@@ -1,5 +1,6 @@
 import Taro from "@tarojs/taro"
 import type { UserRole } from "@rtnn/shared-types"
+import { WEAPP_STORAGE_KEYS } from "@rtnn/config"
 
 type SessionSnapshot = {
   accessToken?: string
@@ -10,12 +11,12 @@ type SessionSnapshot = {
   role?: UserRole
 }
 
-const ACCESS_TOKEN_KEY = "rtnn:session:access-token"
-const REFRESH_TOKEN_KEY = "rtnn:session:refresh-token"
-const USER_ID_KEY = "rtnn:session:user-id"
-const EMAIL_KEY = "rtnn:session:email"
-const NAME_KEY = "rtnn:session:name"
-const ROLE_KEY = "rtnn:session:role"
+const ACCESS_TOKEN_KEY = WEAPP_STORAGE_KEYS.accessToken
+const REFRESH_TOKEN_KEY = WEAPP_STORAGE_KEYS.refreshToken
+const USER_ID_KEY = WEAPP_STORAGE_KEYS.userId
+const EMAIL_KEY = WEAPP_STORAGE_KEYS.email
+const NAME_KEY = WEAPP_STORAGE_KEYS.name
+const ROLE_KEY = WEAPP_STORAGE_KEYS.role
 
 const getValue = (key: string) => {
   try {

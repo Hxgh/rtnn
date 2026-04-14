@@ -15,6 +15,7 @@
 本阶段正式纳入：
 
 - 模板初始化 gate。
+- 根级模板初始化参数源与 `setup:env` 参数入口。
 - 初始化手册与速查清单。
 - PR CI / release 前验证中纳入初始化链路校验。
 - 初始化相关硬编码点的分层归类与后续收敛计划。
@@ -74,18 +75,26 @@
 - 镜像名与 deploy payload 中的应用标识
 - 默认账号与自动化脚本输入
 
+第二波落地约束固定为：
+
+- 根级 `.env` 作为模板初始化参数唯一来源。
+- `setup:env` 负责把模板参数渲染到 `backend / admin / app / weapp` 各端环境文件。
+- `packages/config` 作为模板身份、cookie key、默认账号、展示名与发布标识的唯一共享来源。
+- smoke / acceptance / release workflow 不再手写 `rtnn` 相关身份常量。
+
 ## 第一优先级任务
 
 本轮直接实施：
 
-1. 新增 `check:template-bootstrap`
-2. 升级 `ci-check.yml`
-3. 升级 `release-images.yml`
+1. 新增根级 `.env` 初始化参数源
+2. 重构 `setup:env` 渲染链路与参数入口
+3. 收敛共享模板身份常量与发布身份常量
 4. 补初始化速查与手册入口
 
 ## 验收标准
 
 - 根级存在可重复执行的初始化 gate。
+- 根级存在明确的模板初始化参数源，且能驱动各端环境文件生成。
 - PR CI 与 release 前验证都覆盖初始化 gate。
 - README 与 runbook 能明确给出初始化命令与最小检查清单。
 - 初始化链路和发布链路职责清晰，不把品牌替换问题与首个 gate 混为一体。

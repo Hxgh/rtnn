@@ -20,12 +20,34 @@ pnpm run setup:env
 
 该命令会按需生成：
 
+- 根级 `.env`
 - `backend/.env`
 - `admin/.env.local`
 - `app/.env.local`
 - `weapp/.env`
 
 若目标文件已存在，则不会覆盖。
+
+若需要在初始化时直接改模板身份，可执行：
+
+```bash
+pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
+```
+
+常用参数包括：
+
+- `--project-id`
+- `--brand-name`
+- `--database-name`
+- `--backend-port`
+- `--admin-port`
+- `--app-port`
+- `--weapp-port`
+- `--image-prefix`
+- `--deploy-application`
+- `--deploy-event-type`
+
+根级 `.env` 是模板初始化参数唯一来源；修改后需重新执行 `pnpm run setup:env -- --force` 以刷新各端环境文件。
 
 ### 1.3 启动数据库
 
@@ -39,6 +61,8 @@ pnpm run postgres:up
 - port: `5432`
 - database: `rtnn`
 - user/password: `postgres/postgres`
+
+以上值默认来自根级 `.env`。
 
 ### 1.4 初始化后端
 
@@ -125,6 +149,7 @@ pnpm run dev:weapp:h5
 
 至少确认以下配置与环境一致：
 
+- 根级 `.env` 中的 `TEMPLATE_PROJECT_ID`、`TEMPLATE_DATABASE_NAME`、`TEMPLATE_COOKIE_PREFIX`
 - `backend/.env` 中 `PORT`、`DATABASE_URL`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`
 - `admin/.env.local`、`app/.env.local`、`weapp/.env` 中的 backend base URL
 - `docker-compose.yml` 的 PostgreSQL 数据库名、端口与 `DATABASE_URL`

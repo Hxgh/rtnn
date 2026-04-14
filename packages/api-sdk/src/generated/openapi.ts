@@ -522,7 +522,7 @@ export interface components {
             password: string;
             /**
              * @description Optional display name metadata
-             * @example Rtnn Admin
+             * @example RTNN Admin
              */
             displayName?: string;
         };
@@ -531,7 +531,7 @@ export interface components {
             id: string;
             /** @example admin@rtnn.local */
             email: string;
-            /** @example Rtnn Admin */
+            /** @example RTNN Admin */
             name: string;
             /**
              * @description Session audience
@@ -644,7 +644,7 @@ export interface components {
             user: components["schemas"]["CustomerSessionUserDto"];
         };
         CreateAdminUserDto: {
-            /** @example ops-admin@rtnn.local */
+            /** @example admin@rtnn.local */
             email: string;
             /** @example Admin123!@# */
             password: string;

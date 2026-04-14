@@ -1,22 +1,26 @@
 services:
   db:
-    container_name: rtnn-postgres-dev
+    container_name: ${TEMPLATE_PROJECT_ID:-rtnn}-postgres-dev
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: rtnn
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${TEMPLATE_DATABASE_NAME:-rtnn}
+      POSTGRES_USER: ${TEMPLATE_DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${TEMPLATE_DATABASE_PASSWORD:-postgres}
     ports:
-      - '5432:5432'
+      - '${TEMPLATE_DATABASE_PORT:-5432}:5432'
     volumes:
-      - rtnn-postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d rtnn']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${TEMPLATE_DATABASE_USER:-postgres} -d ${TEMPLATE_DATABASE_NAME:-rtnn}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
-  rtnn-postgres-data:
-    name: rtnn-postgres-data
+  postgres-data:
+    name: ${TEMPLATE_PROJECT_ID:-rtnn}-postgres-data

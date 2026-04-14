@@ -1,8 +1,118 @@
+declare const process: {
+  env: Record<string, string | undefined>;
+};
+
+const RUNTIME_ENV = {
+  NEXT_PUBLIC_TEMPLATE_PROJECT_ID: process.env.NEXT_PUBLIC_TEMPLATE_PROJECT_ID,
+  TARO_APP_TEMPLATE_PROJECT_ID: process.env.TARO_APP_TEMPLATE_PROJECT_ID,
+  TEMPLATE_PROJECT_ID: process.env.TEMPLATE_PROJECT_ID,
+  NEXT_PUBLIC_TEMPLATE_BRAND_NAME: process.env.NEXT_PUBLIC_TEMPLATE_BRAND_NAME,
+  TARO_APP_TEMPLATE_BRAND_NAME: process.env.TARO_APP_TEMPLATE_BRAND_NAME,
+  TEMPLATE_BRAND_NAME: process.env.TEMPLATE_BRAND_NAME,
+  NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX: process.env.NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX,
+  TARO_APP_TEMPLATE_COOKIE_PREFIX: process.env.TARO_APP_TEMPLATE_COOKIE_PREFIX,
+  TEMPLATE_COOKIE_PREFIX: process.env.TEMPLATE_COOKIE_PREFIX,
+  TEMPLATE_IMAGE_NAME_PREFIX: process.env.TEMPLATE_IMAGE_NAME_PREFIX,
+  TEMPLATE_DEPLOY_APPLICATION: process.env.TEMPLATE_DEPLOY_APPLICATION,
+  TEMPLATE_DEPLOY_EVENT_TYPE: process.env.TEMPLATE_DEPLOY_EVENT_TYPE,
+  TEMPLATE_ADMIN_EMAIL: process.env.TEMPLATE_ADMIN_EMAIL,
+  TARO_APP_TEMPLATE_ADMIN_EMAIL: process.env.TARO_APP_TEMPLATE_ADMIN_EMAIL,
+  NEXT_PUBLIC_TEMPLATE_ADMIN_EMAIL: process.env.NEXT_PUBLIC_TEMPLATE_ADMIN_EMAIL,
+  TEMPLATE_ADMIN_PASSWORD: process.env.TEMPLATE_ADMIN_PASSWORD,
+  TARO_APP_TEMPLATE_ADMIN_PASSWORD: process.env.TARO_APP_TEMPLATE_ADMIN_PASSWORD,
+  NEXT_PUBLIC_TEMPLATE_ADMIN_PASSWORD: process.env.NEXT_PUBLIC_TEMPLATE_ADMIN_PASSWORD,
+  TEMPLATE_ADMIN_DISPLAY_NAME: process.env.TEMPLATE_ADMIN_DISPLAY_NAME,
+  NEXT_PUBLIC_TEMPLATE_ADMIN_DISPLAY_NAME: process.env.NEXT_PUBLIC_TEMPLATE_ADMIN_DISPLAY_NAME,
+  TEMPLATE_CUSTOMER_EMAIL: process.env.TEMPLATE_CUSTOMER_EMAIL,
+  TARO_APP_TEMPLATE_CUSTOMER_EMAIL: process.env.TARO_APP_TEMPLATE_CUSTOMER_EMAIL,
+  NEXT_PUBLIC_TEMPLATE_CUSTOMER_EMAIL: process.env.NEXT_PUBLIC_TEMPLATE_CUSTOMER_EMAIL,
+  TEMPLATE_CUSTOMER_PASSWORD: process.env.TEMPLATE_CUSTOMER_PASSWORD,
+  TARO_APP_TEMPLATE_CUSTOMER_PASSWORD: process.env.TARO_APP_TEMPLATE_CUSTOMER_PASSWORD,
+  NEXT_PUBLIC_TEMPLATE_CUSTOMER_PASSWORD: process.env.NEXT_PUBLIC_TEMPLATE_CUSTOMER_PASSWORD,
+  TEMPLATE_CUSTOMER_DISPLAY_NAME: process.env.TEMPLATE_CUSTOMER_DISPLAY_NAME,
+  NEXT_PUBLIC_TEMPLATE_CUSTOMER_DISPLAY_NAME:
+    process.env.NEXT_PUBLIC_TEMPLATE_CUSTOMER_DISPLAY_NAME,
+  TEMPLATE_BACKEND_PORT: process.env.TEMPLATE_BACKEND_PORT,
+  TEMPLATE_ADMIN_PORT: process.env.TEMPLATE_ADMIN_PORT,
+  TEMPLATE_APP_PORT: process.env.TEMPLATE_APP_PORT,
+  TEMPLATE_WEAPP_H5_PORT: process.env.TEMPLATE_WEAPP_H5_PORT,
+  TEMPLATE_JWT_ISSUER: process.env.TEMPLATE_JWT_ISSUER,
+  TEMPLATE_JWT_AUDIENCE: process.env.TEMPLATE_JWT_AUDIENCE,
+} as const;
+
+function readEnv(keys: Array<keyof typeof RUNTIME_ENV>, fallback: string): string {
+  for (const key of keys) {
+    const value = RUNTIME_ENV[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return fallback;
+}
+
+const templateProjectId = readEnv(
+  ["NEXT_PUBLIC_TEMPLATE_PROJECT_ID", "TARO_APP_TEMPLATE_PROJECT_ID", "TEMPLATE_PROJECT_ID"],
+  "rtnn",
+);
+const templateBrandName = readEnv(
+  ["NEXT_PUBLIC_TEMPLATE_BRAND_NAME", "TARO_APP_TEMPLATE_BRAND_NAME", "TEMPLATE_BRAND_NAME"],
+  "RTNN",
+);
+const templateCookiePrefix = readEnv(
+  ["NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX", "TARO_APP_TEMPLATE_COOKIE_PREFIX", "TEMPLATE_COOKIE_PREFIX"],
+  templateProjectId,
+);
+const templateImageNamePrefix = readEnv(
+  ["TEMPLATE_IMAGE_NAME_PREFIX"],
+  templateProjectId,
+);
+const templateDeployApplication = readEnv(
+  ["TEMPLATE_DEPLOY_APPLICATION"],
+  templateProjectId,
+);
+const templateDeployEventType = readEnv(
+  ["TEMPLATE_DEPLOY_EVENT_TYPE"],
+  `promote-${templateProjectId}`,
+);
+const templateAdminEmail = readEnv(
+  ["TEMPLATE_ADMIN_EMAIL", "TARO_APP_TEMPLATE_ADMIN_EMAIL", "NEXT_PUBLIC_TEMPLATE_ADMIN_EMAIL"],
+  `admin@${templateProjectId}.local`,
+);
+const templateAdminPassword = readEnv(
+  ["TEMPLATE_ADMIN_PASSWORD", "TARO_APP_TEMPLATE_ADMIN_PASSWORD", "NEXT_PUBLIC_TEMPLATE_ADMIN_PASSWORD"],
+  "Admin123!@#",
+);
+const templateAdminDisplayName = readEnv(
+  ["TEMPLATE_ADMIN_DISPLAY_NAME", "NEXT_PUBLIC_TEMPLATE_ADMIN_DISPLAY_NAME"],
+  "Template Admin",
+);
+const templateCustomerEmail = readEnv(
+  [
+    "TEMPLATE_CUSTOMER_EMAIL",
+    "TARO_APP_TEMPLATE_CUSTOMER_EMAIL",
+    "NEXT_PUBLIC_TEMPLATE_CUSTOMER_EMAIL",
+  ],
+  `customer@${templateProjectId}.local`,
+);
+const templateCustomerPassword = readEnv(
+  [
+    "TEMPLATE_CUSTOMER_PASSWORD",
+    "TARO_APP_TEMPLATE_CUSTOMER_PASSWORD",
+    "NEXT_PUBLIC_TEMPLATE_CUSTOMER_PASSWORD",
+  ],
+  "Customer123!@#",
+);
+const templateCustomerDisplayName = readEnv(
+  ["TEMPLATE_CUSTOMER_DISPLAY_NAME", "NEXT_PUBLIC_TEMPLATE_CUSTOMER_DISPLAY_NAME"],
+  "Template Customer",
+);
+
 export const PORTS = {
-  backend: 5100,
-  admin: 5101,
-  app: 5102,
-  weappH5: 5103,
+  backend: Number(readEnv(["TEMPLATE_BACKEND_PORT"], "5100")),
+  admin: Number(readEnv(["TEMPLATE_ADMIN_PORT"], "5101")),
+  app: Number(readEnv(["TEMPLATE_APP_PORT"], "5102")),
+  weappH5: Number(readEnv(["TEMPLATE_WEAPP_H5_PORT"], "5103")),
 } as const;
 
 export const APP_IDS = {
@@ -40,6 +150,12 @@ export const ENV_KEYS = {
   backendBaseUrl: "NEXT_PUBLIC_API_BASE_URL",
   backendPublicUrl: "NEXT_PUBLIC_BACKEND_URL",
   backendInternalBaseUrl: "BACKEND_INTERNAL_BASE_URL",
+  templateProjectId: "TEMPLATE_PROJECT_ID",
+  templateBrandName: "TEMPLATE_BRAND_NAME",
+  templateCookiePrefix: "TEMPLATE_COOKIE_PREFIX",
+  templateImageNamePrefix: "TEMPLATE_IMAGE_NAME_PREFIX",
+  templateDeployApplication: "TEMPLATE_DEPLOY_APPLICATION",
+  templateDeployEventType: "TEMPLATE_DEPLOY_EVENT_TYPE",
   jwtSecret: "JWT_SECRET",
   jwtRefreshSecret: "JWT_REFRESH_SECRET",
   databaseUrl: "DATABASE_URL",
@@ -57,25 +173,63 @@ export const THEME_MODES = ["light", "dark", "system"] as const;
 export const DEFAULT_THEME_MODE = "system";
 export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
+export const TEMPLATE_IDENTITY = {
+  projectId: templateProjectId,
+  brandName: templateBrandName,
+  cookiePrefix: templateCookiePrefix,
+  imageNamePrefix: templateImageNamePrefix,
+  deployApplication: templateDeployApplication,
+  deployEventType: templateDeployEventType,
+} as const;
+
+export const TEMPLATE_DISPLAY = {
+  brand: templateBrandName,
+  adminAppZh: `${templateBrandName} 管理后台`,
+  adminAppEn: `${templateBrandName} Admin`,
+  appZh: `${templateBrandName} 客户端`,
+  appEn: `${templateBrandName} App`,
+} as const;
+
 export const UI_COOKIE_KEYS = {
-  adminLocale: "rtnn_admin_locale",
-  adminTheme: "rtnn_admin_theme",
-  appLocale: "rtnn_app_locale",
-  appTheme: "rtnn_app_theme",
-  weappLocale: "rtnn_weapp_locale",
-  weappTheme: "rtnn_weapp_theme",
+  adminLocale: `${templateCookiePrefix}_admin_locale`,
+  adminTheme: `${templateCookiePrefix}_admin_theme`,
+  appLocale: `${templateCookiePrefix}_app_locale`,
+  appTheme: `${templateCookiePrefix}_app_theme`,
+  weappLocale: `${templateCookiePrefix}_weapp_locale`,
+  weappTheme: `${templateCookiePrefix}_weapp_theme`,
+} as const;
+
+export const SESSION_COOKIE_KEYS = {
+  adminAccessToken: `${templateCookiePrefix}_admin_access_token`,
+  adminRefreshToken: `${templateCookiePrefix}_admin_refresh_token`,
+  customerAccessToken: `${templateCookiePrefix}_access_token`,
+  customerRefreshToken: `${templateCookiePrefix}_refresh_token`,
+} as const;
+
+export const WEAPP_STORAGE_KEYS = {
+  accessToken: `${templateCookiePrefix}:session:access-token`,
+  refreshToken: `${templateCookiePrefix}:session:refresh-token`,
+  userId: `${templateCookiePrefix}:session:user-id`,
+  email: `${templateCookiePrefix}:session:email`,
+  name: `${templateCookiePrefix}:session:name`,
+  role: `${templateCookiePrefix}:session:role`,
+} as const;
+
+export const JWT_DEFAULTS = {
+  issuer: readEnv(["TEMPLATE_JWT_ISSUER"], `${templateProjectId}-backend`),
+  audience: readEnv(["TEMPLATE_JWT_AUDIENCE"], `${templateProjectId}-clients`),
 } as const;
 
 export const TEMPLATE_DEFAULTS = {
   admin: {
-    email: "admin@rtnn.local",
-    password: "Admin123!@#",
-    displayName: "Template Admin",
+    email: templateAdminEmail,
+    password: templateAdminPassword,
+    displayName: templateAdminDisplayName,
   },
   customer: {
-    email: "customer@rtnn.local",
-    password: "Customer123!@#",
-    displayName: "Template Customer",
+    email: templateCustomerEmail,
+    password: templateCustomerPassword,
+    displayName: templateCustomerDisplayName,
   },
 } as const;
 

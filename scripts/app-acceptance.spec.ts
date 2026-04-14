@@ -1,18 +1,20 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { TEMPLATE_DEFAULTS } from "@rtnn/config";
+import { resolveTemplateEnv, getTemplateCookieKeys } from "./lib/template-env.mjs";
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const either = (...values: string[]) =>
   new RegExp(`^(?:${values.map(escapeRegExp).join("|")})$`);
 
+const templateEnv = resolveTemplateEnv(process.cwd());
+const cookieKeys = getTemplateCookieKeys(templateEnv);
 const customerEmail =
-  process.env.APP_ACCEPTANCE_CUSTOMER_EMAIL ?? TEMPLATE_DEFAULTS.customer.email;
+  process.env.APP_ACCEPTANCE_CUSTOMER_EMAIL ?? templateEnv.TEMPLATE_CUSTOMER_EMAIL;
 const customerPassword =
-  process.env.APP_ACCEPTANCE_CUSTOMER_PASSWORD ?? TEMPLATE_DEFAULTS.customer.password;
+  process.env.APP_ACCEPTANCE_CUSTOMER_PASSWORD ?? templateEnv.TEMPLATE_CUSTOMER_PASSWORD;
 const adminEmail =
-  process.env.ADMIN_EMAIL ?? TEMPLATE_DEFAULTS.admin.email;
+  process.env.ADMIN_EMAIL ?? templateEnv.TEMPLATE_ADMIN_EMAIL;
 const adminPassword =
-  process.env.ADMIN_PASSWORD ?? TEMPLATE_DEFAULTS.admin.password;
+  process.env.ADMIN_PASSWORD ?? templateEnv.TEMPLATE_ADMIN_PASSWORD;
 const backendBaseUrl =
   process.env.APP_ACCEPTANCE_API_BASE_URL ?? "http://127.0.0.1:5110";
 
@@ -31,7 +33,7 @@ const confirmPasswordLabel = either("确认新密码", "Confirm new password");
 const logoutButton = either("退出登录", "Sign out");
 const forbiddenTitle = either("无权限访问", "Access denied");
 
-const refreshTokenCookieName = "rtnn_refresh_token";
+const refreshTokenCookieName = cookieKeys.customerRefreshToken;
 
 test.describe.configure({ mode: "serial" });
 

@@ -1,7 +1,17 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import {
+  getTemplateDisplayNames,
+  resolveTemplateEnv,
+} from "./lib/template-env.mjs";
 
-const adminEmail = process.env.ADMIN_EMAIL ?? "admin@rtnn.local";
-const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin123!@#";
+const templateEnv = resolveTemplateEnv(process.cwd());
+const templateDisplay = getTemplateDisplayNames(templateEnv);
+const adminEmail = process.env.ADMIN_EMAIL ?? templateEnv.TEMPLATE_ADMIN_EMAIL;
+const adminPassword =
+  process.env.ADMIN_PASSWORD ?? templateEnv.TEMPLATE_ADMIN_PASSWORD;
+const adminDisplayName = templateEnv.TEMPLATE_ADMIN_DISPLAY_NAME;
+const customerPassword = templateEnv.TEMPLATE_CUSTOMER_PASSWORD;
+const testEmailDomain = `${templateEnv.TEMPLATE_PROJECT_ID}.local`;
 
 test.describe.configure({ mode: "serial" });
 
@@ -30,14 +40,14 @@ test("admin 首发边界界面验收", async ({ page }) => {
   const updatedRoleDescription = `自动化验收角色已更新 ${suffix}`;
   const userName = `验收用户${suffix}`;
   const updatedUserName = `验收用户已更新${suffix}`;
-  const userEmail = `acceptance-user-${suffix}@rtnn.local`;
+  const userEmail = `acceptance-user-${suffix}@${testEmailDomain}`;
   const customerName = `验收客户${suffix}`;
   const updatedCustomerName = `验收客户已更新${suffix}`;
-  const customerEmail = `acceptance-customer-${suffix}@rtnn.local`;
+  const customerEmail = `acceptance-customer-${suffix}@${testEmailDomain}`;
 
   await page.goto("/login");
-  await expect(page).toHaveTitle(/RTNN 管理后台/);
-  await expect(page.getByText("RTNN 管理后台").first()).toBeVisible();
+  await expect(page).toHaveTitle(new RegExp(templateDisplay.adminAppZh));
+  await expect(page.getByText(templateDisplay.adminAppZh).first()).toBeVisible();
   await expect(page.getByText("使用管理员账号登录控制台。")).toBeVisible();
 
   await page.locator("#email").fill(adminEmail);
@@ -141,7 +151,7 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await customerDialog.locator("#create-customer-name").fill(customerName);
   await customerDialog.locator("#create-customer-phone").fill("13800138000");
   await customerDialog.locator("#create-customer-email").fill(customerEmail);
-  await customerDialog.locator("#create-customer-password").fill("Customer123!@#");
+  await customerDialog.locator("#create-customer-password").fill(customerPassword);
   await customerDialog.getByRole("button", { name: "创建" }).click();
   await settleDialog(customerDialog);
   await page.reload();
@@ -176,7 +186,7 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await expect(page.locator("tbody tr").first()).toContainText("admin.customer.create");
   await expect(page.locator("tbody tr").first()).toContainText("管理员");
 
-  await page.getByRole("button", { name: /Template Admin/ }).click();
+  await page.getByRole("button", { name: new RegExp(adminDisplayName) }).click();
   await page.getByRole("menuitem", { name: "个人信息" }).click();
   await page.waitForURL("**/account");
   await expect(page.getByRole("heading", { name: "个人中心" })).toBeVisible();
@@ -193,8 +203,8 @@ test("admin 首发边界界面验收", async ({ page }) => {
   await expect(passwordDialog).toBeHidden();
   await page.screenshot({ path: "test-results/admin-account.png", fullPage: true });
 
-  await page.getByRole("button", { name: /Template Admin/ }).click();
+  await page.getByRole("button", { name: new RegExp(adminDisplayName) }).click();
   await page.getByRole("menuitem", { name: "退出登录" }).click();
   await page.waitForURL("**/login");
-  await expect(page.getByText("RTNN 管理后台").first()).toBeVisible();
+  await expect(page.getByText(templateDisplay.adminAppZh).first()).toBeVisible();
 });

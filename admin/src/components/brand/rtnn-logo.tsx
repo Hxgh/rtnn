@@ -1,4 +1,5 @@
 import type * as React from "react";
+import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { cn } from "@/src/lib/utils";
 
 type RtnnLogoMarkProps = React.SVGProps<SVGSVGElement>;
@@ -41,7 +42,7 @@ export function RtnnLogoMark({ className, ...props }: RtnnLogoMarkProps) {
 export function RtnnLogoLockup({
   className,
   showMark = true,
-  title = "RTNN",
+  title = TEMPLATE_DISPLAY.brand,
   subtitle,
 }: {
   className?: string;

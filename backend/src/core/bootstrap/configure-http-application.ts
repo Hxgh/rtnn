@@ -11,6 +11,7 @@ import {
   type LocaleRequest,
 } from '../../common/i18n/request-locale';
 import { HttpLoggingInterceptor } from '../../common/interceptors/http-logging.interceptor';
+import { TEMPLATE_DISPLAY, TEMPLATE_IDENTITY } from '@rtnn/config';
 import { AppConfigService } from '../config/app-config.service';
 import { AppLogger } from '../logger/app-logger.service';
 
@@ -34,8 +35,8 @@ export interface ConfigureHttpApplicationOptions {
 
 export function buildSwaggerConfig() {
   return new DocumentBuilder()
-    .setTitle('rtnn backend api')
-    .setDescription('Template backend kernel for rtnn')
+    .setTitle(`${TEMPLATE_IDENTITY.projectId} backend api`)
+    .setDescription(`Template backend kernel for ${TEMPLATE_DISPLAY.brand}`)
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();

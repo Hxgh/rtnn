@@ -6,6 +6,7 @@ import type {
   SessionTokens,
   UserSession,
 } from "@rtnn/shared-types";
+import { SESSION_COOKIE_KEYS } from "@rtnn/config";
 import {
   getMe,
   loginAdmin,
@@ -15,8 +16,8 @@ import {
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorStatus } from "@/src/lib/errors";
 
-const ACCESS_TOKEN_KEY = "rtnn_admin_access_token";
-const REFRESH_TOKEN_KEY = "rtnn_admin_refresh_token";
+const ACCESS_TOKEN_KEY = SESSION_COOKIE_KEYS.adminAccessToken;
+const REFRESH_TOKEN_KEY = SESSION_COOKIE_KEYS.adminRefreshToken;
 
 const secureCookie = process.env.NODE_ENV === "production";
 

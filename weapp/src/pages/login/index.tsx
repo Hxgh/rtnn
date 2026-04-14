@@ -1,22 +1,18 @@
 import { Input, Text, View } from "@tarojs/components"
 import Taro, { useDidShow } from "@tarojs/taro"
 import type { CustomerLoginBody } from "@rtnn/api-sdk"
+import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from "@rtnn/config"
 import { getSdkClient } from "../../lib/sdk/client"
 import { authSession } from "../../lib/session/auth"
 import { useState } from "react"
 import "./index.css"
 
-const TEMPLATE_CUSTOMER = {
-  email: "customer@rtnn.local",
-  password: "Customer123!@#"
-}
-
 const initialCredentials: {
   email: string
   password: string
 } = {
-  email: TEMPLATE_CUSTOMER.email,
-  password: TEMPLATE_CUSTOMER.password
+  email: TEMPLATE_DEFAULTS.customer.email,
+  password: TEMPLATE_DEFAULTS.customer.password
 }
 
 export default function LoginPage() {
@@ -77,7 +73,7 @@ export default function LoginPage() {
         <Text className="page-kicker">customer auth</Text>
         <Text className="page-title">登录</Text>
         <Text className="page-desc">
-          使用后端正式 customer 登录接口建立会话，并进入首页主线。
+          使用 {TEMPLATE_DISPLAY.brand} 的正式 customer 登录接口建立会话，并进入首页主线。
         </Text>
       </View>
 

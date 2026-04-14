@@ -1,7 +1,19 @@
-const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:5100";
-const adminBaseUrl = process.env.ADMIN_BASE_URL ?? "http://localhost:5101";
-const adminEmail = process.env.ADMIN_EMAIL ?? "admin@rtnn.local";
-const adminPassword = process.env.ADMIN_PASSWORD ?? "Admin123!@#";
+import {
+  getTemplateCookieKeys,
+  getTemplateDisplayNames,
+  resolveTemplateEnv,
+} from "./lib/template-env.mjs";
+
+const templateEnv = resolveTemplateEnv(process.cwd());
+const cookieKeys = getTemplateCookieKeys(templateEnv);
+const templateDisplay = getTemplateDisplayNames(templateEnv);
+const apiBaseUrl =
+  process.env.API_BASE_URL ?? `http://localhost:${templateEnv.TEMPLATE_BACKEND_PORT}`;
+const adminBaseUrl =
+  process.env.ADMIN_BASE_URL ?? `http://localhost:${templateEnv.TEMPLATE_ADMIN_PORT}`;
+const adminEmail = process.env.ADMIN_EMAIL ?? templateEnv.TEMPLATE_ADMIN_EMAIL;
+const adminPassword =
+  process.env.ADMIN_PASSWORD ?? templateEnv.TEMPLATE_ADMIN_PASSWORD;
 const localeHeader = "zh-CN";
 
 function assert(condition, message) {
@@ -109,7 +121,7 @@ async function main() {
   const authHeaders = createHeaders({
     authorization: `Bearer ${accessToken}`,
   });
-  const cookie = `rtnn_admin_access_token=${accessToken}; rtnn_admin_refresh_token=${refreshToken}`;
+  const cookie = `${cookieKeys.adminAccessToken}=${accessToken}; ${cookieKeys.adminRefreshToken}=${refreshToken}`;
 
   const [
     adminMe,
@@ -164,7 +176,10 @@ async function main() {
   assert(Array.isArray(users.data), "管理员列表 data 非数组");
   const adminUser = users.data.find((item) => item.email === adminEmail);
   assert(adminUser, "管理员列表中找不到 seed 管理员");
-  assert(adminUser.name === "Template Admin", "seed 管理员名称不正确");
+  assert(
+    adminUser.name === templateEnv.TEMPLATE_ADMIN_DISPLAY_NAME,
+    "seed 管理员名称不正确",
+  );
   console.log("[smoke] users API 通过");
 
   assert(Array.isArray(roles.data), "角色列表 data 非数组");
@@ -192,9 +207,14 @@ async function main() {
   console.log("[smoke] permissions API 通过");
 
   assert(Array.isArray(customers.data), "客户列表 data 非数组");
-  const seedCustomer = customers.data.find((item) => item.email === "customer@rtnn.local");
+  const seedCustomer = customers.data.find(
+    (item) => item.email === templateEnv.TEMPLATE_CUSTOMER_EMAIL,
+  );
   assert(seedCustomer, "客户列表中找不到 seed 客户");
-  assert(seedCustomer.name === "Template Customer", "seed 客户名称不正确");
+  assert(
+    seedCustomer.name === templateEnv.TEMPLATE_CUSTOMER_DISPLAY_NAME,
+    "seed 客户名称不正确",
+  );
   console.log("[smoke] customers API 通过");
 
   assert(Array.isArray(customerGroups.data), "客户分组列表 data 非数组");
@@ -252,7 +272,7 @@ async function main() {
     {
       label: "admin 登录页",
       path: "/login",
-      includes: ["RTNN 管理后台", "继续", "使用管理员账号登录控制台。"],
+      includes: [templateDisplay.adminAppZh, "继续", "使用管理员账号登录控制台。"],
       headers: createHeaders(),
     },
     {
@@ -264,19 +284,35 @@ async function main() {
     {
       label: "admin 客户页",
       path: "/customers",
-      includes: ["客户管理", "客户分组", "客户标签", "customer@rtnn.local", "Template Customer"],
+      includes: [
+        "客户管理",
+        "客户分组",
+        "客户标签",
+        templateEnv.TEMPLATE_CUSTOMER_EMAIL,
+        templateEnv.TEMPLATE_CUSTOMER_DISPLAY_NAME,
+      ],
       headers: createHeaders({ cookie }),
     },
     {
       label: "admin 用户页",
       path: "/users",
-      includes: ["用户管理", adminEmail, "Template Admin", "super-admin"],
+      includes: [
+        "用户管理",
+        adminEmail,
+        templateEnv.TEMPLATE_ADMIN_DISPLAY_NAME,
+        "super-admin",
+      ],
       headers: createHeaders({ cookie }),
     },
     {
       label: "admin 用户详情页",
       path: `/users/${adminUser.id}`,
-      includes: ["用户详情", adminEmail, "Template Admin", "super-admin"],
+      includes: [
+        "用户详情",
+        adminEmail,
+        templateEnv.TEMPLATE_ADMIN_DISPLAY_NAME,
+        "super-admin",
+      ],
       headers: createHeaders({ cookie }),
     },
     {
@@ -300,7 +336,12 @@ async function main() {
     {
       label: "admin 个人中心页",
       path: "/account",
-      includes: ["个人中心", adminEmail, "Template Admin", "修改密码"],
+      includes: [
+        "个人中心",
+        adminEmail,
+        templateEnv.TEMPLATE_ADMIN_DISPLAY_NAME,
+        "修改密码",
+      ],
       headers: createHeaders({ cookie }),
     },
   ];

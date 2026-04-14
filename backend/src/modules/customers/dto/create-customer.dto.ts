@@ -1,12 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { TEMPLATE_DEFAULTS } from '@rtnn/config';
 
 export class CreateCustomerDto {
-  @ApiProperty({ example: 'customer@rtnn.local' })
+  @ApiProperty({ example: TEMPLATE_DEFAULTS.customer.email })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'Template Customer' })
+  @ApiProperty({ example: TEMPLATE_DEFAULTS.customer.displayName })
   @IsString()
   @MinLength(2)
   name: string;

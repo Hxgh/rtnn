@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 const apiBaseUrlOverride = process.env.API_BASE_URL;
 const localeHeader = "zh-CN";
 const envFiles = [
+  ".env",
   "backend/.env",
   "admin/.env.local",
   "app/.env.local",

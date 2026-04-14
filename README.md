@@ -41,6 +41,7 @@ pnpm run bootstrap
 
 这会依次完成：
 
+- 生成根级 `.env`
 - 生成 `backend/.env`
 - 生成 `admin/.env.local`
 - 生成 `app/.env.local`
@@ -70,7 +71,7 @@ pnpm dev:weapp:h5
 
 ## 本地数据库
 
-仓库提供 `docker-compose.yml` 来启动一个与模板一致的 PostgreSQL 实例，默认以 `postgres` 用户/密码和 `rtnn` 数据库对外暴露 `5432` 端口。推荐在首次开发或重建环境时运行：
+仓库提供 `docker-compose.yml` 来启动一个与模板一致的 PostgreSQL 实例，默认参数来自根级 `.env`。首次执行 `pnpm run setup:env` 或 `pnpm run bootstrap` 后，会先生成该文件。默认情况下，数据库以 `postgres` 用户/密码和 `rtnn` 数据库对外暴露 `5432` 端口。推荐在首次开发或重建环境时运行：
 
 ```bash
 pnpm run postgres:up
@@ -94,7 +95,26 @@ pnpm run postgres:logs
 pnpm run setup:env
 ```
 
-`setup:env` 不会覆盖已存在的本地环境文件。
+默认情况下，`setup:env` 不会覆盖已存在的本地环境文件。若需要在初始化时直接改模板身份，可使用：
+
+```bash
+pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
+```
+
+当前正式支持的高频参数包括：
+
+- `--project-id`
+- `--brand-name`
+- `--database-name`
+- `--backend-port`
+- `--admin-port`
+- `--app-port`
+- `--weapp-port`
+- `--image-prefix`
+- `--deploy-application`
+- `--deploy-event-type`
+
+根级 `.env` 是模板初始化参数唯一来源；后续如需继续调整，可直接编辑根级 `.env` 后重新执行 `pnpm run setup:env -- --force`。
 
 ## 常用命令
 
@@ -132,6 +152,7 @@ pnpm smoke:admin
 
 ## 初始化速查
 
+- 根级 `.env` 是模板项目名、品牌名、数据库名、cookie 前缀、镜像前缀和默认账号的唯一初始化参数源
 - `backend/.env` 至少确认 `PORT`、`DATABASE_URL`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`
 - `admin/.env.local`、`app/.env.local`、`weapp/.env` 至少确认 backend base URL
 - `docker-compose.yml` 中的 PostgreSQL 数据库名、端口与 `DATABASE_URL` 必须一致

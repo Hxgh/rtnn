@@ -1,5 +1,5 @@
 import { loginAction } from "@/app/(auth)/login/actions";
-import { TEMPLATE_DEFAULTS } from "@rtnn/config";
+import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from "@rtnn/config";
 import { RtnnLogoLockup, RtnnLogoMark } from "@/src/components/brand/rtnn-logo";
 import { LoginHeroCanvas } from "@/src/components/auth/login-hero-canvas";
 import { LoginForm } from "@/src/components/auth/login-form";
@@ -20,7 +20,7 @@ export default async function LoginPage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col px-4 py-6">
       <div className="flex items-center justify-between gap-4">
-        <RtnnLogoLockup subtitle={dictionary.auth.brand} title="RTNN" />
+        <RtnnLogoLockup subtitle={dictionary.auth.brand} title={TEMPLATE_DISPLAY.brand} />
         <PreferenceControls dictionary={dictionary.common} />
       </div>
 

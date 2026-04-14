@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TEMPLATE_IDENTITY } from "@rtnn/config";
 import { RtnnLogoMark } from "@/components/brand/rtnn-logo";
 import { usePreferences } from "@/components/providers/preferences-provider";
 
@@ -49,7 +50,7 @@ export function SiteHeader() {
           <RtnnLogoMark className="size-8" />
           <div className="min-w-0">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              rtnn app
+              {`${TEMPLATE_IDENTITY.projectId} app`}
             </p>
             <p className="truncate text-sm font-semibold text-foreground">{currentTitle}</p>
           </div>

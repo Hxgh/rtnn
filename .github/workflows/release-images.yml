@@ -7,6 +7,17 @@ on:
     tags:
       - "v*"
 
+env:
+  TEMPLATE_PROJECT_ID: ${{ vars.TEMPLATE_PROJECT_ID }}
+  TEMPLATE_BRAND_NAME: ${{ vars.TEMPLATE_BRAND_NAME }}
+  TEMPLATE_COOKIE_PREFIX: ${{ vars.TEMPLATE_COOKIE_PREFIX }}
+  TEMPLATE_DATABASE_NAME: ${{ vars.TEMPLATE_DATABASE_NAME }}
+  TEMPLATE_DATABASE_USER: ${{ vars.TEMPLATE_DATABASE_USER }}
+  TEMPLATE_DATABASE_PASSWORD: ${{ secrets.TEMPLATE_DATABASE_PASSWORD }}
+  TEMPLATE_IMAGE_NAME_PREFIX: ${{ vars.TEMPLATE_IMAGE_NAME_PREFIX }}
+  TEMPLATE_DEPLOY_APPLICATION: ${{ vars.TEMPLATE_DEPLOY_APPLICATION }}
+  TEMPLATE_DEPLOY_EVENT_TYPE: ${{ vars.TEMPLATE_DEPLOY_EVENT_TYPE }}
+
 permissions:
   contents: read
   packages: write
@@ -24,13 +35,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: rtnn
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ${{ env.TEMPLATE_DATABASE_NAME != '' && env.TEMPLATE_DATABASE_NAME || 'rtnn' }}
+          POSTGRES_USER: ${{ env.TEMPLATE_DATABASE_USER != '' && env.TEMPLATE_DATABASE_USER || 'postgres' }}
+          POSTGRES_PASSWORD: ${{ env.TEMPLATE_DATABASE_PASSWORD != '' && env.TEMPLATE_DATABASE_PASSWORD || 'postgres' }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d rtnn"
+          --health-cmd "pg_isready -U ${{ env.TEMPLATE_DATABASE_USER != '' && env.TEMPLATE_DATABASE_USER || 'postgres' }} -d ${{ env.TEMPLATE_DATABASE_NAME != '' && env.TEMPLATE_DATABASE_NAME || 'rtnn' }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -93,7 +104,9 @@ jobs:
         id: vars
         shell: bash
         run: |
-          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/rtnn-${{ matrix.service }}"
+          PROJECT_ID="${TEMPLATE_PROJECT_ID:-rtnn}"
+          IMAGE_NAME_PREFIX="${TEMPLATE_IMAGE_NAME_PREFIX:-$PROJECT_ID}"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME_PREFIX}-${{ matrix.service }}"
           SHORT_SHA="${GITHUB_SHA::12}"
 
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
@@ -142,6 +155,9 @@ jobs:
         env:
           DEPLOY_EVENT_TYPE: ${{ secrets.DEPLOY_REPOSITORY_EVENT_TYPE }}
         run: |
+          PROJECT_ID="${TEMPLATE_PROJECT_ID:-rtnn}"
+          IMAGE_NAME_PREFIX="${TEMPLATE_IMAGE_NAME_PREFIX:-$PROJECT_ID}"
+          DEPLOY_APPLICATION_NAME="${TEMPLATE_DEPLOY_APPLICATION:-$PROJECT_ID}"
           SHORT_SHA="${GITHUB_SHA::12}"
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF_NAME}"
@@ -151,16 +167,17 @@ jobs:
             DEPLOY_ENVIRONMENT="staging"
           fi
 
-          EVENT_TYPE="${DEPLOY_EVENT_TYPE:-promote-rtnn}"
+          EVENT_TYPE="${DEPLOY_EVENT_TYPE:-${TEMPLATE_DEPLOY_EVENT_TYPE:-promote-${PROJECT_ID}}}"
           IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
 
           {
             echo "event_type=${EVENT_TYPE}"
             echo "version=${VERSION}"
             echo "deploy_environment=${DEPLOY_ENVIRONMENT}"
-            echo "backend_image=${IMAGE_PREFIX}/rtnn-backend:${VERSION}"
-            echo "admin_image=${IMAGE_PREFIX}/rtnn-admin:${VERSION}"
-            echo "app_image=${IMAGE_PREFIX}/rtnn-app:${VERSION}"
+            echo "deploy_application=${DEPLOY_APPLICATION_NAME}"
+            echo "backend_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-backend:${VERSION}"
+            echo "admin_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-admin:${VERSION}"
+            echo "app_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-app:${VERSION}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Dispatch deploy event
@@ -170,6 +187,7 @@ jobs:
           EVENT_TYPE: ${{ steps.payload.outputs.event_type }}
           VERSION: ${{ steps.payload.outputs.version }}
           DEPLOY_ENVIRONMENT: ${{ steps.payload.outputs.deploy_environment }}
+          DEPLOY_APPLICATION: ${{ steps.payload.outputs.deploy_application }}
           BACKEND_IMAGE: ${{ steps.payload.outputs.backend_image }}
           ADMIN_IMAGE: ${{ steps.payload.outputs.admin_image }}
           APP_IMAGE: ${{ steps.payload.outputs.app_image }}
@@ -183,7 +201,7 @@ jobs:
           {
             \"event_type\": \"${EVENT_TYPE}\",
             \"client_payload\": {
-              \"application\": \"rtnn\",
+              \"application\": \"${DEPLOY_APPLICATION}\",
               \"environment\": \"${DEPLOY_ENVIRONMENT}\",
               \"version\": \"${VERSION}\",
               \"sha\": \"${GITHUB_SHA}\",

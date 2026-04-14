@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import type { SessionTokens } from "@rtnn/shared-types";
+import { SESSION_COOKIE_KEYS } from "@rtnn/config";
 
-export const ACCESS_TOKEN_COOKIE = "rtnn_access_token";
-export const REFRESH_TOKEN_COOKIE = "rtnn_refresh_token";
+export const ACCESS_TOKEN_COOKIE = SESSION_COOKIE_KEYS.customerAccessToken;
+export const REFRESH_TOKEN_COOKIE = SESSION_COOKIE_KEYS.customerRefreshToken;
 
 const defaultCookieOptions = {
   httpOnly: true,

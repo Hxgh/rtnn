@@ -1,4 +1,5 @@
 import type { AdminLocale } from "@/src/lib/preferences";
+import { TEMPLATE_DISPLAY } from "@rtnn/config";
 
 type CommonDictionary = {
   appName: string;
@@ -198,7 +199,7 @@ export type AdminDictionary = {
 
 const zhCN: AdminDictionary = {
   common: {
-    appName: "RTNN 管理后台",
+    appName: TEMPLATE_DISPLAY.adminAppZh,
     console: "控制台",
     locale: "语言",
     theme: "主题",
@@ -248,7 +249,7 @@ const zhCN: AdminDictionary = {
     account: "个人中心",
   },
   auth: {
-    brand: "RTNN 管理后台",
+    brand: TEMPLATE_DISPLAY.adminAppZh,
     heading: "管理员登录",
     description: "使用管理员账号登录控制台。",
     signIn: "登录",
@@ -372,7 +373,7 @@ const zhCN: AdminDictionary = {
 
 const enUS: AdminDictionary = {
   common: {
-    appName: "RTNN Admin",
+    appName: TEMPLATE_DISPLAY.adminAppEn,
     console: "Console",
     locale: "Locale",
     theme: "Theme",
@@ -422,7 +423,7 @@ const enUS: AdminDictionary = {
     account: "Account",
   },
   auth: {
-    brand: "RTNN Admin",
+    brand: TEMPLATE_DISPLAY.adminAppEn,
     heading: "Admin sign in",
     description: "Sign in with your admin account to access the console.",
     signIn: "Sign in",

@@ -1366,7 +1366,7 @@
   },
   "info": {
     "title": "rtnn backend api",
-    "description": "Template backend kernel for rtnn",
+    "description": "Template backend kernel for RTNN",
     "version": "1.0.0",
     "contact": {}
   },
@@ -1398,7 +1398,7 @@
           "displayName": {
             "type": "string",
             "description": "Optional display name metadata",
-            "example": "Rtnn Admin"
+            "example": "RTNN Admin"
           }
         },
         "required": [
@@ -1419,7 +1419,7 @@
           },
           "name": {
             "type": "string",
-            "example": "Rtnn Admin"
+            "example": "RTNN Admin"
           },
           "audience": {
             "type": "string",
@@ -1664,7 +1664,7 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "ops-admin@rtnn.local"
+            "example": "admin@rtnn.local"
           },
           "password": {
             "type": "string",
