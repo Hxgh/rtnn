@@ -45,12 +45,14 @@ export const sessionStorageAdapter = {
     }
   },
   write(snapshot: SessionSnapshot) {
-    setValue(ACCESS_TOKEN_KEY, snapshot.accessToken)
-    setValue(REFRESH_TOKEN_KEY, snapshot.refreshToken)
-    setValue(USER_ID_KEY, snapshot.userId)
-    setValue(EMAIL_KEY, snapshot.email)
-    setValue(NAME_KEY, snapshot.name)
-    setValue(ROLE_KEY, snapshot.role)
+    const existing = sessionStorageAdapter.read()
+    const merged: SessionSnapshot = { ...existing, ...snapshot }
+    setValue(ACCESS_TOKEN_KEY, merged.accessToken)
+    setValue(REFRESH_TOKEN_KEY, merged.refreshToken)
+    setValue(USER_ID_KEY, merged.userId)
+    setValue(EMAIL_KEY, merged.email)
+    setValue(NAME_KEY, merged.name)
+    setValue(ROLE_KEY, merged.role)
   },
   clear() {
     Taro.removeStorageSync(ACCESS_TOKEN_KEY)

@@ -292,6 +292,9 @@ importers:
       '@rtnn/api-sdk':
         specifier: workspace:*
         version: link:../packages/api-sdk
+      '@rtnn/config':
+        specifier: workspace:*
+        version: link:../packages/config
       '@rtnn/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types

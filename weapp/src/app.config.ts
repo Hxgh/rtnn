@@ -5,8 +5,8 @@ export default defineAppConfig({
     "pages/profile/index"
   ],
   tabBar: {
-    color: "#6b7280",
-    selectedColor: "#0f766e",
+    color: "#737373",
+    selectedColor: "#111111",
     backgroundColor: "#ffffff",
     borderStyle: "black",
     list: [
@@ -21,7 +21,7 @@ export default defineAppConfig({
     ]
   },
   window: {
-    navigationBarTitleText: "rtnn weapp",
+    navigationBarTitleText: "RTNN",
     navigationBarBackgroundColor: "#ffffff",
     navigationBarTextStyle: "black",
     backgroundTextStyle: "light"

@@ -1,24 +1,54 @@
 import { Input, Text, View } from "@tarojs/components"
-import Taro from "@tarojs/taro"
+import Taro, { useDidShow } from "@tarojs/taro"
 import type { CustomerLoginBody } from "@rtnn/api-sdk"
 import { getSdkClient } from "../../lib/sdk/client"
 import { authSession } from "../../lib/session/auth"
 import { useState } from "react"
 import "./index.css"
 
-const initialCredentials = {
-  email: "",
-  password: ""
+const TEMPLATE_CUSTOMER = {
+  email: "customer@rtnn.local",
+  password: "Customer123!@#"
+}
+
+const initialCredentials: {
+  email: string
+  password: string
+} = {
+  email: TEMPLATE_CUSTOMER.email,
+  password: TEMPLATE_CUSTOMER.password
 }
 
 export default function LoginPage() {
   const [credentials, setCredentials] = useState(initialCredentials)
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+
+  useDidShow(() => {
+    authSession
+      .restoreSession()
+      .then((session) => {
+        if (session) {
+          Taro.switchTab({ url: "/pages/index/index" })
+        }
+      })
+      .catch(() => {
+        setErrorMessage("当前会话暂不可用，请稍后重试。")
+      })
+  })
 
   const handleLogin = async () => {
-    if (!credentials.email || !credentials.password) {
-      Taro.showToast({ title: "请输入邮箱和密码", icon: "none" })
+    if (submitting) {
       return
     }
+
+    if (!credentials.email || !credentials.password) {
+      setErrorMessage("请输入邮箱和密码。")
+      return
+    }
+
+    setSubmitting(true)
+    setErrorMessage("")
 
     const client = getSdkClient()
     const payload: CustomerLoginBody = {
@@ -29,41 +59,75 @@ export default function LoginPage() {
     try {
       const session = await client.auth.customer.login(payload)
       authSession.applySession(session)
-      Taro.showToast({ title: "登录成功", icon: "success" })
-      Taro.switchTab({ url: "/pages/profile/index" })
-    } catch (error) {
-      console.error("customer login failed", error)
-      Taro.showToast({ title: "登录失败，请稍后再试", icon: "none" })
+      const restored = await authSession.restoreSession()
+      if (!restored) {
+        throw new Error("session restore failed")
+      }
+      Taro.switchTab({ url: "/pages/index/index" })
+    } catch {
+      setErrorMessage("登录失败，请确认账号密码或稍后重试。")
+    } finally {
+      setSubmitting(false)
     }
   }
 
   return (
-    <View className="safe-page login-page">
-      <View className="card login-page__hero">
-        <Text className="login-page__title">登录引导</Text>
-        <Text className="login-page__desc">
-          当前是模板骨架。已接入 @rtnn/api-sdk，后台接口失败时只会提示错误。
+    <View className="safe-page page-stack">
+      <View className="page-header">
+        <Text className="page-kicker">customer auth</Text>
+        <Text className="page-title">登录</Text>
+        <Text className="page-desc">
+          使用后端正式 customer 登录接口建立会话，并进入首页主线。
         </Text>
       </View>
-      <Input
-        className="login-page__input"
-        value={credentials.email}
-        placeholder="邮箱"
-        onInput={(event) =>
-          setCredentials((prev) => ({ ...prev, email: event.detail.value ?? "" }))
-        }
-      />
-      <Input
-        className="login-page__input"
-        value={credentials.password}
-        placeholder="密码"
-        password
-        onInput={(event) =>
-          setCredentials((prev) => ({ ...prev, password: event.detail.value ?? "" }))
-        }
-      />
-      <View className="button-primary" onClick={handleLogin}>
-        登录
+
+      <View className="card card-section login-page__form">
+        <View className="login-page__credentials">
+          <View className="stack-sm">
+            <Text className="field-label">邮箱</Text>
+            <Input
+              className="field-input"
+              value={credentials.email}
+              placeholder="请输入邮箱"
+              onInput={(event) =>
+                setCredentials((prev) => ({ ...prev, email: event.detail.value ?? "" }))
+              }
+            />
+          </View>
+          <View className="stack-sm">
+            <Text className="field-label">密码</Text>
+            <Input
+              className="field-input"
+              value={credentials.password}
+              placeholder="请输入密码"
+              password
+              onInput={(event) =>
+                setCredentials((prev) => ({ ...prev, password: event.detail.value ?? "" }))
+              }
+            />
+          </View>
+        </View>
+
+        {errorMessage ? (
+          <View className="message-box message-box--error">{errorMessage}</View>
+        ) : (
+          <Text className="helper-text">登录后将进入首页，并同步当前账户状态。</Text>
+        )}
+
+        <View className="action-group">
+          <View
+            className={submitting ? "button-primary button-primary--disabled" : "button-primary"}
+            onClick={handleLogin}
+          >
+            {submitting ? "登录中..." : "登录"}
+          </View>
+          <View
+            className="button-ghost"
+            onClick={() => Taro.switchTab({ url: "/pages/index/index" })}
+          >
+            返回首页
+          </View>
+        </View>
       </View>
     </View>
   )

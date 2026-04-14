@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "登录引导"
+  navigationBarTitleText: "登录"
 })

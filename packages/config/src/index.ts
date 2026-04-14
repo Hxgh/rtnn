@@ -62,6 +62,8 @@ export const UI_COOKIE_KEYS = {
   adminTheme: "rtnn_admin_theme",
   appLocale: "rtnn_app_locale",
   appTheme: "rtnn_app_theme",
+  weappLocale: "rtnn_weapp_locale",
+  weappTheme: "rtnn_weapp_theme",
 } as const;
 
 export const TEMPLATE_DEFAULTS = {

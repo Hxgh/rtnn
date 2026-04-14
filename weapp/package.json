@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@rtnn/api-sdk": "workspace:*",
+    "@rtnn/config": "workspace:*",
     "@rtnn/shared-types": "workspace:*",
     "@tarojs/components": "4.1.11",
     "@tarojs/react": "4.1.11",

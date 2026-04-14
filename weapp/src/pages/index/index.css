@@ -1,32 +1,60 @@
-.index-page__hero {
-  padding: 32px 28px;
+.index-page__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.index-page__status-copy {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
 }
 
-.index-page__title {
-  font-size: 42px;
-  font-weight: 700;
-  color: #073a35;
-}
-
-.index-page__desc {
-  font-size: 28px;
-  line-height: 1.6;
-  color: #4b5563;
-}
-
-.index-page__panel {
-  margin-top: 24px;
-  padding: 28px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.index-page__panel-title {
-  font-size: 26px;
-  color: #0b4f49;
+.index-page__status-title {
+  font-size: 16px;
   font-weight: 600;
+  color: #111111;
+}
+
+.index-page__status-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #525252;
+}
+
+.index-page__quick-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ededed;
+}
+
+.index-page__quick-link:first-child {
+  padding-top: 0;
+}
+
+.index-page__quick-link:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.index-page__quick-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+}
+
+.index-page__quick-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #737373;
+}
+
+.index-page__chevron {
+  font-size: 18px;
+  color: #a3a3a3;
 }
