@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { randomUUID, scryptSync } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { TEMPLATE_DEFAULTS } from '@rtnn/config';

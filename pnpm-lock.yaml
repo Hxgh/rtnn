@@ -175,6 +175,9 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.4
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
       joi:
         specifier: ^17.13.3
         version: 17.13.3

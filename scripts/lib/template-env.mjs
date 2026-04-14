@@ -77,6 +77,7 @@ const DEFAULT_TEMPLATE_ENV = {
 };
 
 const TEMPLATE_PLACEHOLDER_PATTERN = /\{\{([A-Z0-9_]+)\}\}/g;
+const SAFE_ENV_VALUE_PATTERN = /^[^\s"'#\\]+$/;
 
 function normalizeRecord(input) {
   const output = {};
@@ -95,6 +96,43 @@ function normalizeRecord(input) {
   }
 
   return output;
+}
+
+function parseQuotedEnvValue(rawValue) {
+  if (
+    rawValue.length >= 2 &&
+    ((rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+      (rawValue.startsWith("'") && rawValue.endsWith("'")))
+  ) {
+    const body = rawValue.slice(1, -1);
+
+    if (rawValue.startsWith('"')) {
+      return body
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\r")
+        .replace(/\\t/g, "\t")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\");
+    }
+
+    return body;
+  }
+
+  return rawValue;
+}
+
+function serializeEnvValue(rawValue) {
+  const value = String(rawValue ?? "");
+
+  if (!value) {
+    return '""';
+  }
+
+  if (SAFE_ENV_VALUE_PATTERN.test(value)) {
+    return value;
+  }
+
+  return JSON.stringify(value);
 }
 
 function deriveTemplateEnv(values) {
@@ -145,7 +183,7 @@ export function parseEnvContent(content) {
     }
 
     const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
+    const value = parseQuotedEnvValue(line.slice(separatorIndex + 1).trim());
     payload[key] = value;
   }
 
@@ -180,7 +218,19 @@ function applyProjectIdCascade(base, overrides) {
 
   const previous = deriveTemplateEnv(base);
   const next = { ...base, ...overrides };
-  const derivedNext = deriveTemplateEnv(next);
+  const nextProjectId = overrides.TEMPLATE_PROJECT_ID;
+
+  const cascadedValues = {
+    TEMPLATE_COOKIE_PREFIX: nextProjectId,
+    TEMPLATE_DATABASE_NAME: nextProjectId,
+    TEMPLATE_IMAGE_NAME_PREFIX: nextProjectId,
+    TEMPLATE_DEPLOY_APPLICATION: nextProjectId,
+    TEMPLATE_DEPLOY_EVENT_TYPE: `promote-${nextProjectId}`,
+    TEMPLATE_ADMIN_EMAIL: `admin@${nextProjectId}.local`,
+    TEMPLATE_CUSTOMER_EMAIL: `customer@${nextProjectId}.local`,
+    TEMPLATE_JWT_ISSUER: `${nextProjectId}-backend`,
+    TEMPLATE_JWT_AUDIENCE: `${nextProjectId}-clients`,
+  };
 
   for (const key of DERIVED_KEYS) {
     if (Object.hasOwn(overrides, key)) {
@@ -191,12 +241,12 @@ function applyProjectIdCascade(base, overrides) {
     const defaultValue = DEFAULT_TEMPLATE_ENV[key];
 
     if (!currentValue || currentValue === defaultValue) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
     if (key === "TEMPLATE_COOKIE_PREFIX" && currentValue === previous.TEMPLATE_PROJECT_ID) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -204,7 +254,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_DATABASE_NAME" &&
       currentValue === previous.TEMPLATE_PROJECT_ID
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -212,7 +262,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_IMAGE_NAME_PREFIX" &&
       currentValue === previous.TEMPLATE_PROJECT_ID
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -220,7 +270,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_DEPLOY_APPLICATION" &&
       currentValue === previous.TEMPLATE_PROJECT_ID
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -228,7 +278,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_DEPLOY_EVENT_TYPE" &&
       currentValue === `promote-${previous.TEMPLATE_PROJECT_ID}`
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -236,7 +286,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_ADMIN_EMAIL" &&
       currentValue === `admin@${previous.TEMPLATE_PROJECT_ID}.local`
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -244,7 +294,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_CUSTOMER_EMAIL" &&
       currentValue === `customer@${previous.TEMPLATE_PROJECT_ID}.local`
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -252,7 +302,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_JWT_ISSUER" &&
       currentValue === `${previous.TEMPLATE_PROJECT_ID}-backend`
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
       continue;
     }
 
@@ -260,7 +310,7 @@ function applyProjectIdCascade(base, overrides) {
       key === "TEMPLATE_JWT_AUDIENCE" &&
       currentValue === `${previous.TEMPLATE_PROJECT_ID}-clients`
     ) {
-      next[key] = derivedNext[key];
+      next[key] = cascadedValues[key];
     }
   }
 
@@ -292,7 +342,7 @@ export function renderTemplate(content, templateEnv) {
 
 export function serializeTemplateEnv(templateEnv) {
   const resolved = deriveTemplateEnv(templateEnv);
-  return `${TEMPLATE_ENV_KEYS.map((key) => `${key}=${resolved[key] ?? ""}`).join("\n")}\n`;
+  return `${TEMPLATE_ENV_KEYS.map((key) => `${key}=${serializeEnvValue(resolved[key])}`).join("\n")}\n`;
 }
 
 export function writeTemplateEnvFile(filePath, templateEnv) {

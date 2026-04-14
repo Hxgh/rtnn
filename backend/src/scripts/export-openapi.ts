@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { NestFactory } from '@nestjs/core';

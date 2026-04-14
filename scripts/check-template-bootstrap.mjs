@@ -1,8 +1,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import net from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
+import { readEnvFile } from "./lib/template-env.mjs";
 
 const apiBaseUrlOverride = process.env.API_BASE_URL;
 const localeHeader = "zh-CN";
@@ -72,34 +73,11 @@ async function expectJson(url, label) {
   return payload;
 }
 
-function parseEnvFile(filePath) {
-  const payload = {};
-  const content = readFileSync(filePath, "utf8");
-
-  for (const rawLine of content.split("\n")) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
-    }
-
-    const separatorIndex = line.indexOf("=");
-    if (separatorIndex === -1) {
-      continue;
-    }
-
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    payload[key] = value;
-  }
-
-  return payload;
-}
-
 function createBootstrapEnv() {
   const backendEnvFile = existsSync("backend/.env")
     ? "backend/.env"
     : "backend/.env.example";
-  const backendEnv = parseEnvFile(backendEnvFile);
+  const backendEnv = readEnvFile(backendEnvFile);
   const databaseUrl = process.env.DATABASE_URL ?? backendEnv.DATABASE_URL;
 
   assert(databaseUrl, `无法从 ${backendEnvFile} 解析 DATABASE_URL`);
@@ -168,6 +146,13 @@ async function stopServer(server) {
 }
 
 async function main() {
+  run("pnpm", ["run", "setup:env"], "生成环境文件");
+  run("pnpm", ["run", "postgres:up"], "启动 PostgreSQL");
+
+  for (const file of envFiles) {
+    assert(existsSync(file), `缺少环境文件 ${file}`);
+  }
+
   const bootstrapEnv = createBootstrapEnv();
   const apiBaseUrl =
     apiBaseUrlOverride ?? `http://127.0.0.1:${bootstrapEnv.PORT}`;
@@ -180,12 +165,6 @@ async function main() {
     `模板初始化校验需要独占 ${hostname}:${port}，请先关闭已有进程`,
   );
 
-  run("pnpm", ["run", "setup:env"], "生成环境文件");
-
-  for (const file of envFiles) {
-    assert(existsSync(file), `缺少环境文件 ${file}`);
-  }
-
   const schemaName = new URL(bootstrapEnv.DATABASE_URL).searchParams.get("schema");
   console.log(`[bootstrap-check] 使用临时 Prisma schema=${schemaName}`);
 
@@ -195,10 +174,11 @@ async function main() {
   run("pnpm", ["run", "build:backend"], "构建 backend");
 
   console.log("[bootstrap-check] 启动 backend");
-  const server = spawn("pnpm", ["-C", "backend", "start:prod"], {
+  const server = spawn("node", ["dist/main"], {
     stdio: "inherit",
     shell: false,
     env: bootstrapEnv,
+    cwd: "backend",
   });
 
   try {

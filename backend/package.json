@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "0.1.0",
   "description": "rtnn backend template kernel",
-  "author": "rtnn",
+  "author": "RTNN",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -29,13 +29,10 @@
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "generate:enums": "prisma generate",
-    "generate:permissions": "ts-node src/scripts/generate-permissions.ts",
-    "openapi:export": "ts-node src/scripts/export-openapi.ts",
+    "generate:permissions": "ts-node -r tsconfig-paths/register src/scripts/generate-permissions.ts",
+    "openapi:export": "ts-node -r tsconfig-paths/register src/scripts/export-openapi.ts",
     "export:openapi": "pnpm run openapi:export",
     "check:release": "pnpm run generate:permissions && pnpm run export:openapi && pnpm run typecheck && pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e"
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@rtnn/config": "workspace:*",
@@ -50,6 +47,7 @@
     "@prisma/client": "^6.6.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dotenv": "^16.6.1",
     "joi": "^17.13.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
