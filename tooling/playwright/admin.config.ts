@@ -6,13 +6,13 @@ const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
 const adminBaseUrl = `http://127.0.0.1:${adminPort}`;
 
 export default defineConfig({
-  testDir: "./scripts",
+  testDir: "../../tests/acceptance",
   testMatch: "admin-acceptance.spec.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,
   reporter: "list",
-  outputDir: "test-results/playwright",
+  outputDir: "../../.artifacts/playwright/admin",
   use: {
     baseURL: process.env.ADMIN_BASE_URL ?? adminBaseUrl,
     headless: true,
@@ -30,7 +30,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm -C backend start:prod",
+      command: "pnpm --filter backend start:prod",
       url: `${backendBaseUrl}/healthz`,
       reuseExistingServer: true,
       timeout: 60_000,
@@ -39,7 +39,7 @@ export default defineConfig({
       },
     },
     {
-      command: "pnpm -C admin start",
+      command: "pnpm --filter admin start",
       url: `${adminBaseUrl}/login`,
       reuseExistingServer: true,
       timeout: 60_000,

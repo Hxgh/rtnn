@@ -28,13 +28,12 @@ const SKIP_DIRECTORY_NAMES = new Set([
 ]);
 
 const TEXT_SCAN_ROOTS = [
-  "admin",
-  "app",
-  "backend",
+  "apps",
   "docs",
   "packages",
   "scripts",
-  "weapp",
+  "tests",
+  "tooling",
 ];
 
 const ROOT_TEXT_FILES = ["README.md"];
@@ -215,7 +214,7 @@ function collectTextFiles(relativeDir, output = []) {
     }
 
     if (
-      relativePath === "backend/openapi.json" ||
+      relativePath === "apps/backend/openapi.json" ||
       relativePath === "packages/api-sdk/src/generated/openapi.ts"
     ) {
       continue;
@@ -295,7 +294,7 @@ function main() {
   );
 
   updatePackageJson(
-    "backend/package.json",
+    "apps/backend/package.json",
     (payload) => ({
       ...payload,
       description: `${projectId} backend template kernel`,
@@ -307,9 +306,9 @@ function main() {
   );
 
   for (const relativePath of [
-    "admin/package.json",
-    "app/package.json",
-    "weapp/package.json",
+    "apps/admin/package.json",
+    "apps/app/package.json",
+    "apps/weapp/package.json",
     "packages/api-sdk/package.json",
     "packages/config/package.json",
     "packages/shared-schemas/package.json",

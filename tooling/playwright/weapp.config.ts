@@ -6,13 +6,13 @@ const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
 const weappBaseUrl = `http://127.0.0.1:${weappPort}`;
 
 export default defineConfig({
-  testDir: "./scripts",
+  testDir: "../../tests/acceptance",
   testMatch: "weapp-h5-acceptance.spec.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,
   reporter: "list",
-  outputDir: "test-results/playwright-weapp",
+  outputDir: "../../.artifacts/playwright/weapp",
   use: {
     baseURL: process.env.WEAPP_BASE_URL ?? weappBaseUrl,
     browserName: "chromium",
@@ -32,7 +32,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm -C backend start:prod",
+      command: "pnpm --filter backend start:prod",
       url: `${backendBaseUrl}/healthz`,
       reuseExistingServer: true,
       timeout: 60_000,
@@ -41,7 +41,7 @@ export default defineConfig({
       },
     },
     {
-      command: `pnpm -C weapp exec taro build --type h5 --watch -p ${weappPort}`,
+      command: `pnpm --filter weapp exec taro build --type h5 --watch -p ${weappPort}`,
       url: weappBaseUrl,
       reuseExistingServer: true,
       timeout: 120_000,

@@ -6,13 +6,13 @@ const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
 const appBaseUrl = `http://localhost:${appPort}`;
 
 export default defineConfig({
-  testDir: "./scripts",
+  testDir: "../../tests/acceptance",
   testMatch: "app-acceptance.spec.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,
   reporter: "list",
-  outputDir: "test-results/playwright-app",
+  outputDir: "../../.artifacts/playwright/app",
   use: {
     baseURL: process.env.APP_BASE_URL ?? appBaseUrl,
     headless: true,
@@ -30,7 +30,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm -C backend start:prod",
+      command: "pnpm --filter backend start:prod",
       url: `${backendBaseUrl}/healthz`,
       reuseExistingServer: true,
       timeout: 60_000,
@@ -39,7 +39,7 @@ export default defineConfig({
       },
     },
     {
-      command: "pnpm -C app start",
+      command: "pnpm --filter app start",
       url: `${appBaseUrl}/login`,
       reuseExistingServer: true,
       timeout: 60_000,

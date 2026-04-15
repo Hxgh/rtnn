@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
-    "generate": "openapi-typescript ../../backend/openapi.json -o src/generated/openapi.ts",
+    "generate": "openapi-typescript ../../apps/backend/openapi.json -o src/generated/openapi.ts",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   }

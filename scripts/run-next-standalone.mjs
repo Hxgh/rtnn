@@ -3,27 +3,34 @@ import { cpSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const [, , projectName, defaultPort] = process.argv;
+const [, , projectDir, defaultPort] = process.argv;
 
-if (!projectName || !defaultPort) {
+if (!projectDir || !defaultPort) {
   console.error(
-    "Usage: node scripts/run-next-standalone.mjs <project-name> <default-port>",
+    "Usage: node scripts/run-next-standalone.mjs <project-dir> <default-port>",
   );
   process.exit(1);
 }
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, "..");
-const projectRoot = path.join(workspaceRoot, projectName);
-const standaloneRoot = path.join(projectRoot, ".next", "standalone", projectName);
-const serverEntry = path.join(standaloneRoot, "server.js");
+const projectRoot = path.join(workspaceRoot, projectDir);
+const projectName = path.basename(projectDir);
+const serverCandidates = [
+  path.join(projectRoot, ".next", "standalone", projectDir, "server.js"),
+  path.join(projectRoot, ".next", "standalone", projectName, "server.js"),
+  path.join(projectRoot, ".next", "standalone", "server.js"),
+];
+const serverEntry = serverCandidates.find((candidate) => existsSync(candidate));
 
-if (!existsSync(serverEntry)) {
+if (!serverEntry) {
   console.error(
-    `Missing standalone server for ${projectName}. Run "pnpm -C ${projectName} build" first.`,
+    `Missing standalone server for ${projectDir}. Run "pnpm -C ${projectDir} build" first.`,
   );
   process.exit(1);
 }
+
+const appBundleRoot = path.dirname(serverEntry);
 
 const syncDirectory = (sourceDir, targetDir) => {
   if (!existsSync(sourceDir)) {
@@ -36,9 +43,9 @@ const syncDirectory = (sourceDir, targetDir) => {
 
 syncDirectory(
   path.join(projectRoot, ".next", "static"),
-  path.join(standaloneRoot, ".next", "static"),
+  path.join(appBundleRoot, ".next", "static"),
 );
-syncDirectory(path.join(projectRoot, "public"), path.join(standaloneRoot, "public"));
+syncDirectory(path.join(projectRoot, "public"), path.join(appBundleRoot, "public"));
 
 const child = spawn(process.execPath, [serverEntry], {
   cwd: workspaceRoot,

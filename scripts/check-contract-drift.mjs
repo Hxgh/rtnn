@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 
 const contractFiles = [
-  'backend/openapi.json',
+  'apps/backend/openapi.json',
   'packages/api-sdk/src/generated/openapi.ts',
   'packages/shared-types/src/permissions.generated.ts',
 ]
@@ -14,6 +14,23 @@ function isGitWorktree() {
   })
 
   return result.status === 0
+}
+
+function isTrackedInGit(file) {
+  const result = spawnSync('git', ['ls-files', '--error-unmatch', file], {
+    stdio: 'ignore',
+  })
+
+  return result.status === 0
+}
+
+function hasGitDiff(file, staged = false) {
+  const args = staged
+    ? ['diff', '--cached', '--exit-code', '--', file]
+    : ['diff', '--exit-code', '--', file]
+  const result = spawnSync('git', args, { stdio: 'ignore' })
+
+  return result.status !== 0
 }
 
 function snapshotContractFiles() {
@@ -53,7 +70,9 @@ function run(command, args) {
   }
 }
 
-const useGitDiff = isGitWorktree()
+const useGitDiff =
+  isGitWorktree() &&
+  contractFiles.every((file) => isTrackedInGit(file) && !hasGitDiff(file) && !hasGitDiff(file, true))
 const beforeSnapshot = useGitDiff ? null : snapshotContractFiles()
 
 const commands = [
@@ -79,19 +98,6 @@ if (useGitDiff) {
     }
   }
 
-  if (
-    contractFiles.some((file) => {
-      const result = spawnSync('git', ['ls-files', '--error-unmatch', file], {
-        stdio: 'ignore',
-      })
-      return result.status !== 0
-    })
-  ) {
-    console.error(
-      '\n契约文件缺失，请确认生成链路已完整执行并已纳入版本控制。\n',
-    )
-    process.exit(1)
-  }
 } else {
   const afterSnapshot = snapshotContractFiles()
   if (hasSnapshotDrift(beforeSnapshot, afterSnapshot)) {

@@ -1,8 +1,5 @@
 packages:
-  - backend
-  - admin
-  - app
-  - weapp
+  - apps/*
   - packages/*
 
 ignoredBuiltDependencies:

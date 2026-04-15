@@ -11,7 +11,7 @@ FROM base AS builder
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 RUN pnpm run build:packages
 RUN pnpm --filter admin build
 
@@ -22,10 +22,10 @@ ENV PORT=5101
 
 WORKDIR /app
 
-COPY --from=builder /workspace/admin/.next/standalone ./
-COPY --from=builder /workspace/admin/.next/static ./admin/.next/static
-COPY --from=builder /workspace/admin/public ./admin/public
+COPY --from=builder /workspace/apps/admin/.next/standalone ./
+COPY --from=builder /workspace/apps/admin/.next/static ./apps/admin/.next/static
+COPY --from=builder /workspace/apps/admin/public ./apps/admin/public
 
 EXPOSE 5101
 
-CMD ["node", "admin/server.js"]
+CMD ["node", "apps/admin/server.js"]

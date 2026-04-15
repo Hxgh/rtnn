@@ -15,13 +15,13 @@
     "baseUrl": ".",
     "paths": {
       "@rtnn/api-sdk": [
-        "../packages/api-sdk/src/index.ts"
+        "../../packages/api-sdk/src/index.ts"
       ],
       "@rtnn/config": [
-        "../packages/config/src/index.ts"
+        "../../packages/config/src/index.ts"
       ],
       "@rtnn/shared-types": [
-        "../packages/shared-types/src/index.ts"
+        "../../packages/shared-types/src/index.ts"
       ]
     }
   },

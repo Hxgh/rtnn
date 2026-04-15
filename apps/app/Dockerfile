@@ -11,7 +11,7 @@ FROM base AS builder
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 RUN pnpm run build:packages
 RUN pnpm --filter app build
 
@@ -22,10 +22,10 @@ ENV PORT=5102
 
 WORKDIR /app
 
-COPY --from=builder /workspace/app/.next/standalone ./
-COPY --from=builder /workspace/app/.next/static ./app/.next/static
-COPY --from=builder /workspace/app/public ./app/public
+COPY --from=builder /workspace/apps/app/.next/standalone ./
+COPY --from=builder /workspace/apps/app/.next/static ./apps/app/.next/static
+COPY --from=builder /workspace/apps/app/public ./apps/app/public
 
 EXPOSE 5102
 
-CMD ["node", "app/server.js"]
+CMD ["node", "apps/app/server.js"]

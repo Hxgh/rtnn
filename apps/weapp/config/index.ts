@@ -16,11 +16,11 @@ export default defineConfig<"vite">(async (merge) => {
     sourceRoot: "src",
     outputRoot: "dist",
     alias: {
-      "@rtnn/api-sdk": path.resolve(__dirname, "../../packages/api-sdk/src"),
-      "@rtnn/config": path.resolve(__dirname, "../../packages/config/src"),
+      "@rtnn/api-sdk": path.resolve(__dirname, "../../../packages/api-sdk/src"),
+      "@rtnn/config": path.resolve(__dirname, "../../../packages/config/src"),
       "@rtnn/shared-types": path.resolve(
         __dirname,
-        "../../packages/shared-types/src"
+        "../../../packages/shared-types/src"
       )
     },
     plugins: [],
