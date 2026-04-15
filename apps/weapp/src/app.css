@@ -11,8 +11,10 @@ page {
   --text-primary: #111111;
   --text-secondary: #525252;
   --text-muted: #737373;
+  --text-on-strong: #ffffff;
   --danger: #b91c1c;
   --danger-soft: #fef2f2;
+  --danger-border: #fecaca;
 }
 
 html,
@@ -195,13 +197,13 @@ page {
   background-color: var(--surface-soft);
   padding: 4px 10px;
   font-size: 12px;
-  color: #404040;
+  color: var(--text-secondary);
 }
 
 .inline-status--success {
   border-color: var(--surface-strong);
   background-color: var(--surface-strong);
-  color: #ffffff;
+  color: var(--text-on-strong);
 }
 
 .list {
@@ -218,7 +220,7 @@ page {
   flex-direction: column;
   gap: 4px;
   padding: 12px 0;
-  border-bottom: 1px solid #ededed;
+  border-bottom: 1px solid var(--border);
 }
 
 .list-row:first-child {
@@ -256,7 +258,7 @@ page {
 }
 
 .row-link + .row-link {
-  border-top: 1px solid #ededed;
+  border-top: 1px solid var(--border);
 }
 
 .row-link__copy {
@@ -280,7 +282,7 @@ page {
 
 .row-link__chevron {
   font-size: 18px;
-  color: #a3a3a3;
+  color: var(--text-muted);
 }
 
 .card-title {
@@ -319,7 +321,7 @@ page {
   height: 52px;
   border-radius: 16px;
   background-color: var(--surface-strong);
-  color: #ffffff;
+  color: var(--text-on-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -364,7 +366,7 @@ page {
 }
 
 .field-input::placeholder {
-  color: #a3a3a3;
+  color: var(--text-muted);
 }
 
 .helper-text {
@@ -380,11 +382,11 @@ page {
   background-color: var(--surface-soft);
   font-size: 13px;
   line-height: 1.5;
-  color: #404040;
+  color: var(--text-secondary);
 }
 
 .message-box--error {
-  border-color: #fecaca;
+  border-color: var(--danger-border);
   background-color: var(--danger-soft);
   color: var(--danger);
 }
@@ -419,7 +421,7 @@ page {
 
 .weapp-button--primary {
   background-color: var(--surface-strong);
-  color: #ffffff;
+  color: var(--text-on-strong);
 }
 
 .weapp-button--primary.weapp-button--disabled {
@@ -427,14 +429,14 @@ page {
 }
 
 .weapp-button--ghost {
-  border: 1px solid #d4d4d4;
-  background-color: #ffffff;
-  color: #111111;
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface-soft);
+  color: var(--text-primary);
 }
 
 .weapp-button--danger {
-  border: 1px solid #fecaca;
-  background-color: #ffffff;
+  border: 1px solid var(--danger-border);
+  background-color: var(--surface-soft);
   color: var(--danger);
 }
 
@@ -477,8 +479,10 @@ page {
     --text-primary: #fafafa;
     --text-secondary: #d4d4d8;
     --text-muted: #a1a1aa;
+    --text-on-strong: #111111;
     --danger: #f87171;
     --danger-soft: rgba(127, 29, 29, 0.35);
+    --danger-border: rgba(248, 113, 113, 0.4);
   }
 
   .card {
@@ -487,17 +491,6 @@ page {
 
   .row-link__chevron {
     color: #71717a;
-  }
-
-  .weapp-button--primary,
-  .inline-status--success,
-  .profile-avatar {
-    color: #111111;
-  }
-
-  .weapp-button--ghost,
-  .weapp-button--danger {
-    background-color: var(--surface);
   }
 
   .weui-tabbar__icon {
