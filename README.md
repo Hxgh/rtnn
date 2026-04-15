@@ -154,6 +154,7 @@ pnpm check:template-bootstrap
 pnpm check:release-candidate
 pnpm smoke:admin:ui
 pnpm smoke:app:ui
+pnpm smoke:weapp:h5
 pnpm weapp:typecheck
 pnpm weapp:build:h5
 pnpm check:template-delivery
@@ -170,7 +171,7 @@ pnpm smoke:admin
 - `pnpm check:backend-release` 是后端正式发布 gate
 - `pnpm check:template-bootstrap` 是模板初始化 gate，验证环境文件生成、数据库初始化与 backend 公开基线
 - `pnpm check:release-candidate` 是模板发布候选 gate，串联契约漂移、backend 正式 gate 与消费端交付回归
-- `pnpm check:template-delivery` 是消费端聚合回归入口，覆盖 `admin` UI 验收、`app` UI 验收、`weapp` 类型校验与 H5 构建
+- `pnpm check:template-delivery` 是消费端聚合回归入口，覆盖 `admin` UI 验收、`app` UI 验收、`weapp` H5 自动化验收与 H5 构建
 - 做完整模板工程回归时，先跑 `pnpm check:template-bootstrap`，再跑 `pnpm check:release-candidate`
 
 ## 初始化速查

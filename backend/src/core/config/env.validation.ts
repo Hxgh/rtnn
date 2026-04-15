@@ -3,10 +3,14 @@ import { JWT_DEFAULTS, PORTS, TEMPLATE_IDENTITY } from '@rtnn/config';
 
 export type NodeEnv = 'development' | 'test' | 'production';
 
+export const DEFAULT_CORS_ORIGINS = [PORTS.admin, PORTS.app, PORTS.weappH5]
+  .flatMap((port) => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
+
 export interface AppEnv {
   NODE_ENV: NodeEnv;
   PORT: number;
   DATABASE_URL: string;
+  CORS_ORIGINS: string[];
   LOGIN_RATE_LIMIT_WINDOW_SEC: number;
   LOGIN_RATE_LIMIT_MAX_ATTEMPTS: number;
   JWT_ISSUER: string;
@@ -15,6 +19,27 @@ export interface AppEnv {
   JWT_REFRESH_SECRET: string;
   JWT_ACCESS_EXPIRES_IN: string;
   JWT_REFRESH_EXPIRES_IN: string;
+}
+
+export function normalizeCorsOrigins(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((origin) => String(origin).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+
+  return [...DEFAULT_CORS_ORIGINS];
 }
 
 const envSchema = Joi.object<AppEnv>({
@@ -27,6 +52,10 @@ const envSchema = Joi.object<AppEnv>({
     .default(
       `postgresql://postgres:postgres@localhost:5432/${TEMPLATE_IDENTITY.projectId}?schema=public`,
     ),
+  CORS_ORIGINS: Joi.array()
+    .items(Joi.string().uri({ scheme: ['http', 'https'] }))
+    .min(1)
+    .default(DEFAULT_CORS_ORIGINS),
   LOGIN_RATE_LIMIT_WINDOW_SEC: Joi.number().integer().min(30).default(300),
   LOGIN_RATE_LIMIT_MAX_ATTEMPTS: Joi.number().integer().min(3).default(10),
   JWT_ISSUER: Joi.string().min(3).default(JWT_DEFAULTS.issuer),
@@ -42,11 +71,17 @@ const envSchema = Joi.object<AppEnv>({
 });
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
-  const validationResult = envSchema.validate(config, {
-    abortEarly: false,
-    allowUnknown: true,
-    convert: true,
-  });
+  const validationResult = envSchema.validate(
+    {
+      ...config,
+      CORS_ORIGINS: normalizeCorsOrigins(config.CORS_ORIGINS),
+    },
+    {
+      abortEarly: false,
+      allowUnknown: true,
+      convert: true,
+    },
+  );
   const error = validationResult.error;
   const value = validationResult.value as AppEnv;
 

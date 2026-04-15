@@ -64,6 +64,27 @@ export function configureHttpApplication(
     app.enableShutdownHooks();
   }
 
+  app.enableCors({
+    origin(origin, callback) {
+      if (!origin || appConfig.corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`), false);
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Accept-Language',
+      'accept-language',
+    ],
+    exposedHeaders: ['Content-Language'],
+    optionsSuccessStatus: 204,
+  });
+
   app.setGlobalPrefix(API_GLOBAL_PREFIX, {
     exclude: [...GLOBAL_PREFIX_EXCLUSIONS],
   });

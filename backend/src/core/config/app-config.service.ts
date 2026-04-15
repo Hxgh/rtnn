@@ -18,6 +18,10 @@ export class AppConfigService {
     return this.configService.get('DATABASE_URL', { infer: true });
   }
 
+  get corsOrigins(): string[] {
+    return this.configService.get('CORS_ORIGINS', { infer: true });
+  }
+
   get loginRateLimitWindowSec(): number {
     return this.configService.get('LOGIN_RATE_LIMIT_WINDOW_SEC', {
       infer: true,

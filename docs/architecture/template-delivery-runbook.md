@@ -252,14 +252,27 @@ pnpm run smoke:app:ui
 
 ### 4.5 Weapp 验收
 
-自动化基础：
+自动化验收：
 
 ```bash
-pnpm -C weapp typecheck
+pnpm run smoke:weapp:h5
+```
+
+覆盖：
+
+- H5 首页识别登录/未登录状态
+- customer 登录
+- 首页会话恢复
+- 我的页信息展示
+- 退出登录
+
+补充构建校验：
+
+```bash
 pnpm -C weapp build:h5
 ```
 
-手工验收至少覆盖：
+若需要补做小程序壳层手工验收，至少覆盖：
 
 - 打开首页能识别登录/未登录状态
 - 登录成功后能进入正式主页面
@@ -278,7 +291,7 @@ pnpm run check:template-delivery
 
 - `pnpm run smoke:admin:ui`
 - `pnpm run smoke:app:ui`
-- `pnpm -C weapp typecheck`
+- `pnpm run smoke:weapp:h5`
 - `pnpm -C weapp build:h5`
 
 该命令不替代 `pnpm run check:backend-release`；完整模板回归仍应先跑后端正式 gate，再跑该聚合脚本。
@@ -292,7 +305,7 @@ pnpm run check:template-delivery
 3. `pnpm run check:backend-release`
 4. `pnpm run smoke:admin:ui`
 5. `pnpm run smoke:app:ui`
-6. `pnpm -C weapp typecheck`
+6. `pnpm run smoke:weapp:h5`
 7. `pnpm -C weapp build:h5`
 8. `weapp` 手工验收
 

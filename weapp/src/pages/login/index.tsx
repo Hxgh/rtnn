@@ -1,7 +1,8 @@
 import { Input, Text, View } from "@tarojs/components"
-import Taro, { useDidShow } from "@tarojs/taro"
+import { useDidShow } from "@tarojs/taro"
 import type { CustomerLoginBody } from "@rtnn/api-sdk"
 import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from "@rtnn/config"
+import { goToHome } from "../../lib/navigation"
 import { getSdkClient } from "../../lib/sdk/client"
 import { authSession } from "../../lib/session/auth"
 import { useState } from "react"
@@ -25,7 +26,7 @@ export default function LoginPage() {
       .restoreSession()
       .then((session) => {
         if (session) {
-          Taro.switchTab({ url: "/pages/index/index" })
+          goToHome()
         }
       })
       .catch(() => {
@@ -59,7 +60,7 @@ export default function LoginPage() {
       if (!restored) {
         throw new Error("session restore failed")
       }
-      Taro.switchTab({ url: "/pages/index/index" })
+      goToHome()
     } catch {
       setErrorMessage("登录失败，请确认账号密码或稍后重试。")
     } finally {
@@ -68,21 +69,25 @@ export default function LoginPage() {
   }
 
   return (
-    <View className="safe-page page-stack">
+    <View className="safe-page safe-page--auth page-stack">
       <View className="page-header">
-        <Text className="page-kicker">customer auth</Text>
+        <Text className="page-brand">{TEMPLATE_DISPLAY.brand}</Text>
         <Text className="page-title">登录</Text>
-        <Text className="page-desc">
-          使用 {TEMPLATE_DISPLAY.brand} 的正式 customer 登录接口建立会话，并进入首页主线。
-        </Text>
+        <Text className="page-desc">登录后可访问首页与我的页，并同步当前设备会话。</Text>
       </View>
 
       <View className="card card-section login-page__form">
+        <View className="login-page__intro stack-sm">
+          <Text className="login-page__intro-title">欢迎回来</Text>
+          <Text className="helper-text">输入邮箱和密码后即可进入正式前台。</Text>
+        </View>
+
         <View className="login-page__credentials">
           <View className="stack-sm">
             <Text className="field-label">邮箱</Text>
             <Input
               className="field-input"
+              data-testid="login-email-input"
               value={credentials.email}
               placeholder="请输入邮箱"
               onInput={(event) =>
@@ -94,6 +99,7 @@ export default function LoginPage() {
             <Text className="field-label">密码</Text>
             <Input
               className="field-input"
+              data-testid="login-password-input"
               value={credentials.password}
               placeholder="请输入密码"
               password
@@ -107,19 +113,27 @@ export default function LoginPage() {
         {errorMessage ? (
           <View className="message-box message-box--error">{errorMessage}</View>
         ) : (
-          <Text className="helper-text">登录后将进入首页，并同步当前账户状态。</Text>
+          <Text className="helper-text">输入完成后即可建立当前设备会话。</Text>
         )}
 
-        <View className="action-group">
+        <View className="weapp-action-group">
           <View
-            className={submitting ? "button-primary button-primary--disabled" : "button-primary"}
+            data-testid="login-submit-action"
+            className={
+              submitting
+                ? "weapp-button weapp-button--primary weapp-button--disabled"
+                : "weapp-button weapp-button--primary"
+            }
             onClick={handleLogin}
           >
             {submitting ? "登录中..." : "登录"}
           </View>
           <View
-            className="button-ghost"
-            onClick={() => Taro.switchTab({ url: "/pages/index/index" })}
+            data-testid="login-home-action"
+            className="weapp-button weapp-button--ghost"
+            onClick={() => {
+              void goToHome()
+            }}
           >
             返回首页
           </View>

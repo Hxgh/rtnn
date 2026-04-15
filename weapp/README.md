@@ -64,7 +64,7 @@ Current first-release template scope:
 
 - Customer home page
 - Customer login page
-- Customer profile page
+- Customer me page
 - Session restore / logout basic flow
 - Weapp transport + current default `@rtnn/api-sdk` integration entrypoint
 
@@ -104,12 +104,13 @@ At minimum, verify:
 
 - open H5 and reach the home page
 - login succeeds with the template customer account
-- profile page shows the authenticated customer
+- session reload still restores the authenticated state
+- me page shows the authenticated customer
 - logout returns to the login page
 
 Commands:
 
 ```bash
-pnpm weapp:typecheck
+pnpm smoke:weapp:h5
 pnpm weapp:build:h5
 ```

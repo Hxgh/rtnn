@@ -14,10 +14,14 @@ export default defineAppConfig({
     list: [
       {
         pagePath: "pages/index/index",
+        iconPath: "assets/tabbar/home.png",
+        selectedIconPath: "assets/tabbar/home-active.png",
         text: "首页"
       },
       {
         pagePath: "pages/profile/index",
+        iconPath: "assets/tabbar/me.png",
+        selectedIconPath: "assets/tabbar/me-active.png",
         text: "我的"
       }
     ]
@@ -26,6 +30,7 @@ export default defineAppConfig({
     navigationBarTitleText: TEMPLATE_DISPLAY.brand,
     navigationBarBackgroundColor: "#ffffff",
     navigationBarTextStyle: "black",
-    backgroundTextStyle: "light"
+    backgroundTextStyle: "light",
+    backgroundColor: "#f5f5f5"
   }
 })

@@ -75,6 +75,15 @@ describe('Backend e2e', () => {
       });
   });
 
+  it('allows cors preflight from configured template consumers', async () => {
+    await harness.http
+      .options('/api/v1/auth/customer/login')
+      .set('Origin', 'http://127.0.0.1:5103')
+      .set('Access-Control-Request-Method', 'POST')
+      .expect(204)
+      .expect('Access-Control-Allow-Origin', 'http://127.0.0.1:5103');
+  });
+
   it('returns 403 on protected admin route without permission', async () => {
     const loginResponse = await harness
       .loginAdmin('limited-admin@rtnn.local', 'Admin123!@#')
