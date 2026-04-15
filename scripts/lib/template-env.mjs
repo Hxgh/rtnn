@@ -34,6 +34,72 @@ export const TEMPLATE_ENV_KEYS = [
   "TEMPLATE_JWT_REFRESH_EXPIRES_IN",
 ];
 
+const TEMPLATE_ENV_SECTIONS = [
+  {
+    title: "模板身份参数",
+    description: "派生模板时优先修改这一组。",
+    keys: [
+      "TEMPLATE_PROJECT_ID",
+      "TEMPLATE_BRAND_NAME",
+      "TEMPLATE_COOKIE_PREFIX",
+    ],
+  },
+  {
+    title: "本地数据库参数",
+    description: "用于本地 PostgreSQL 与 Prisma 运行时拼接。",
+    keys: [
+      "TEMPLATE_DATABASE_HOST",
+      "TEMPLATE_DATABASE_PORT",
+      "TEMPLATE_DATABASE_NAME",
+      "TEMPLATE_DATABASE_USER",
+      "TEMPLATE_DATABASE_PASSWORD",
+    ],
+  },
+  {
+    title: "本地端口参数",
+    description: "各消费端与 backend 的默认开发端口。",
+    keys: [
+      "TEMPLATE_BACKEND_PORT",
+      "TEMPLATE_ADMIN_PORT",
+      "TEMPLATE_APP_PORT",
+      "TEMPLATE_WEAPP_H5_PORT",
+    ],
+  },
+  {
+    title: "交付标识参数",
+    description: "用于镜像命名、部署应用名和事件名。",
+    keys: [
+      "TEMPLATE_IMAGE_NAME_PREFIX",
+      "TEMPLATE_DEPLOY_APPLICATION",
+      "TEMPLATE_DEPLOY_EVENT_TYPE",
+    ],
+  },
+  {
+    title: "默认验证账号",
+    description: "仅用于本地模板验证，派生项目应尽快替换。",
+    keys: [
+      "TEMPLATE_ADMIN_EMAIL",
+      "TEMPLATE_ADMIN_PASSWORD",
+      "TEMPLATE_ADMIN_DISPLAY_NAME",
+      "TEMPLATE_CUSTOMER_EMAIL",
+      "TEMPLATE_CUSTOMER_PASSWORD",
+      "TEMPLATE_CUSTOMER_DISPLAY_NAME",
+    ],
+  },
+  {
+    title: "JWT 与安全参数",
+    description: "正式部署前必须替换 secrets。",
+    keys: [
+      "TEMPLATE_JWT_ISSUER",
+      "TEMPLATE_JWT_AUDIENCE",
+      "TEMPLATE_JWT_ACCESS_SECRET",
+      "TEMPLATE_JWT_REFRESH_SECRET",
+      "TEMPLATE_JWT_ACCESS_EXPIRES_IN",
+      "TEMPLATE_JWT_REFRESH_EXPIRES_IN",
+    ],
+  },
+];
+
 const DERIVED_KEYS = [
   "TEMPLATE_COOKIE_PREFIX",
   "TEMPLATE_DATABASE_NAME",
@@ -342,7 +408,24 @@ export function renderTemplate(content, templateEnv) {
 
 export function serializeTemplateEnv(templateEnv) {
   const resolved = deriveTemplateEnv(templateEnv);
-  return `${TEMPLATE_ENV_KEYS.map((key) => `${key}=${serializeEnvValue(resolved[key])}`).join("\n")}\n`;
+  const lines = [];
+
+  for (const section of TEMPLATE_ENV_SECTIONS) {
+    if (lines.length > 0) {
+      lines.push("");
+    }
+
+    lines.push(`# ${section.title}`);
+    if (section.description) {
+      lines.push(`# ${section.description}`);
+    }
+
+    for (const key of section.keys) {
+      lines.push(`${key}=${serializeEnvValue(resolved[key])}`);
+    }
+  }
+
+  return `${lines.join("\n")}\n`;
 }
 
 export function writeTemplateEnvFile(filePath, templateEnv) {

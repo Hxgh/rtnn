@@ -7,7 +7,7 @@ import {
   TEMPLATE_ENV_FILE,
   getBackendRuntimeEnv,
   resolveTemplateEnv,
-} from "./lib/template-env.mjs";
+} from "../lib/template-env.mjs";
 
 const apiBaseUrlOverride = process.env.API_BASE_URL;
 const localeHeader = "zh-CN";

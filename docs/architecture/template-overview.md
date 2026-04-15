@@ -1,5 +1,7 @@
 # Template Overview
 
+本文档面向模板维护者，描述模板工程本身的结构和长期边界。若你是模板使用者，请先看 `docs/README.md` 与 `docs/template/*`。
+
 当前仓库是一个顶层并列式 monorepo 模板，默认 `projectId` 为 `rtnn`，不再采用 demo 工程的松散组织方式。
 
 ## 顶层结构

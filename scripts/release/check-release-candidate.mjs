@@ -4,7 +4,7 @@ import {
   TEMPLATE_ENV_FILE,
   getBackendRuntimeEnv,
   resolveTemplateEnv,
-} from "./lib/template-env.mjs";
+} from "../lib/template-env.mjs";
 
 function assert(condition, message) {
   if (!condition) {

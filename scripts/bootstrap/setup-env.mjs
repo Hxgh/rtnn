@@ -5,7 +5,7 @@ import {
   TEMPLATE_ENV_FILE,
   resolveTemplateEnv,
   writeTemplateEnvFile,
-} from "./lib/template-env.mjs";
+} from "../lib/template-env.mjs";
 
 const rootDir = process.cwd();
 const obsoleteEnvFiles = [
@@ -67,20 +67,23 @@ function parseArgs(argv) {
 function ensureRootTemplateEnv(templateEnv, force) {
   const rootEnvPath = path.join(rootDir, TEMPLATE_ENV_FILE);
   const rootEnvExamplePath = path.join(rootDir, TEMPLATE_ENV_EXAMPLE_FILE);
-  const shouldWrite = force || !existsSync(rootEnvPath);
+  const hasRootEnv = existsSync(rootEnvPath);
+  const hasRootEnvExample = existsSync(rootEnvExamplePath);
+  const shouldWriteEnv = force || !hasRootEnv;
+  const shouldWriteExample = force || !hasRootEnvExample;
 
-  if (!existsSync(rootEnvExamplePath)) {
+  if (shouldWriteExample) {
     writeTemplateEnvFile(rootEnvExamplePath, templateEnv);
-    console.log(`create ${TEMPLATE_ENV_EXAMPLE_FILE}`);
+    console.log(`${hasRootEnvExample ? "update" : "create"} ${TEMPLATE_ENV_EXAMPLE_FILE}`);
   }
 
-  if (!shouldWrite) {
+  if (!shouldWriteEnv) {
     console.log(`skip ${TEMPLATE_ENV_FILE} (already exists)`);
     return;
   }
 
   writeTemplateEnvFile(rootEnvPath, templateEnv);
-  console.log(`create ${TEMPLATE_ENV_FILE}`);
+  console.log(`${hasRootEnv ? "update" : "create"} ${TEMPLATE_ENV_FILE}`);
 }
 
 function cleanupObsoleteEnvFiles() {

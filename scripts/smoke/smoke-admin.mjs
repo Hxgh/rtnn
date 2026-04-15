@@ -2,7 +2,7 @@ import {
   getTemplateCookieKeys,
   getTemplateDisplayNames,
   resolveTemplateEnv,
-} from "./lib/template-env.mjs";
+} from "../lib/template-env.mjs";
 
 const templateEnv = resolveTemplateEnv(process.cwd());
 const cookieKeys = getTemplateCookieKeys(templateEnv);

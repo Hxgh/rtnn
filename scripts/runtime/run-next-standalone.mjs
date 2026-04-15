@@ -7,13 +7,13 @@ const [, , projectDir, defaultPort] = process.argv;
 
 if (!projectDir || !defaultPort) {
   console.error(
-    "Usage: node scripts/run-next-standalone.mjs <project-dir> <default-port>",
+    "Usage: node scripts/runtime/run-next-standalone.mjs <project-dir> <default-port>",
   );
   process.exit(1);
 }
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = path.resolve(scriptDir, "..");
+const workspaceRoot = path.resolve(scriptDir, "../..");
 const projectRoot = path.join(workspaceRoot, projectDir);
 const projectName = path.basename(projectDir);
 const serverCandidates = [

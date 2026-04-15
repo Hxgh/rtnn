@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { readEnvFile, resolveTemplateEnv, TEMPLATE_ENV_FILE } from "./lib/template-env.mjs";
+import { readEnvFile, resolveTemplateEnv, TEMPLATE_ENV_FILE } from "../lib/template-env.mjs";
 
 const rootDir = process.cwd();
 
@@ -97,7 +97,7 @@ function parseArgs(argv) {
 
 function printHelp() {
   console.log(`用法:
-  node scripts/rewrite-template-source.mjs [options]
+  node scripts/template/rewrite-template-source.mjs [options]
 
 选项:
   --project-id <value>     指定根 package name，默认读取根级 .env 的 TEMPLATE_PROJECT_ID
@@ -280,7 +280,7 @@ function main() {
             rewriteScopeInText(value, currentScope, targetScope),
           ]),
         ),
-        "template:rewrite-source": "node scripts/rewrite-template-source.mjs",
+        "template:rewrite-source": "node scripts/template/rewrite-template-source.mjs",
       };
 
       return {

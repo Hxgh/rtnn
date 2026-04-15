@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ../../scripts/run-target-command.mjs app pnpm run dev:raw",
+    "dev": "node ../../scripts/runtime/run-target-command.mjs app pnpm run dev:raw",
     "dev:raw": "next dev -p 5102",
-    "build": "node ../../scripts/run-target-command.mjs app pnpm run build:raw",
+    "build": "node ../../scripts/runtime/run-target-command.mjs app pnpm run build:raw",
     "build:raw": "next build",
     "start": "pnpm run start:standalone",
-    "start:standalone": "node ../../scripts/run-target-command.mjs app pnpm run start:standalone:raw",
-    "start:standalone:raw": "node ../../scripts/run-next-standalone.mjs apps/app 5102",
+    "start:standalone": "node ../../scripts/runtime/run-target-command.mjs app pnpm run start:standalone:raw",
+    "start:standalone:raw": "node ../../scripts/runtime/run-next-standalone.mjs apps/app 5102",
     "lint": "eslint",
-    "typecheck": "node ../../scripts/run-target-command.mjs app pnpm run typecheck:raw",
+    "typecheck": "node ../../scripts/runtime/run-target-command.mjs app pnpm run typecheck:raw",
     "typecheck:raw": "tsc --noEmit"
   },
   "dependencies": {

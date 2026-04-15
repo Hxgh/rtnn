@@ -7,19 +7,19 @@ import {
   getBackendRuntimeEnv,
   getWeappRuntimeEnv,
   resolveTemplateEnv,
-} from "./lib/template-env.mjs";
+} from "../lib/template-env.mjs";
 
 const [, , target, command, ...args] = process.argv;
 
 if (!target || !command) {
   console.error(
-    "Usage: node scripts/run-target-command.mjs <backend|admin|app|weapp> <command> [...args]",
+    "Usage: node scripts/runtime/run-target-command.mjs <backend|admin|app|weapp> <command> [...args]",
   );
   process.exit(1);
 }
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = path.resolve(scriptDir, "..");
+const workspaceRoot = path.resolve(scriptDir, "../..");
 const templateEnv = resolveTemplateEnv(workspaceRoot);
 
 const targetConfig = {
