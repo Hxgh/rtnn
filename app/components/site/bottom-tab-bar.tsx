@@ -66,30 +66,38 @@ export function BottomTabBar() {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-background/98 backdrop-blur">
-      <div className="mx-auto grid w-full max-w-[28rem] grid-cols-2 px-6 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 px-3 text-[11px] font-medium transition-colors",
-                tab.active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-              aria-current={tab.active ? "page" : undefined}
-            >
-              <span className="relative flex h-6 items-center justify-center">
-                {tab.active ? (
-                  <span className="absolute -top-1 h-0.5 w-4 rounded-full bg-foreground" />
-                ) : null}
-                <Icon />
-              </span>
-              <span>{tab.label}</span>
-            </Link>
-          );
-        })}
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
+      <div className="mx-auto w-full max-w-[28rem] px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="pointer-events-auto rounded-[1.4rem] border border-border/80 bg-background/95 px-3 py-2 shadow-[0_-14px_40px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
+          <div className="grid grid-cols-2 gap-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={cn(
+                    "flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1rem] px-3 text-[11px] font-medium transition-colors",
+                    tab.active
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
+                  )}
+                  aria-current={tab.active ? "page" : undefined}
+                >
+                  <span
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-full transition-colors",
+                      tab.active && "bg-secondary text-foreground",
+                    )}
+                  >
+                    <Icon />
+                  </span>
+                  <span>{tab.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </nav>
   );

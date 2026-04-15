@@ -9,8 +9,8 @@ export function PageShell(props: {
   return (
     <main
       className={cn(
-        "mx-auto w-full max-w-[28rem] px-4 pt-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]",
-        withBottomInset && "pb-[calc(6.5rem+env(safe-area-inset-bottom))]",
+        "mx-auto w-full max-w-[28rem] px-4 pt-5 pb-[calc(1.75rem+env(safe-area-inset-bottom))]",
+        withBottomInset && "pb-[calc(8.25rem+env(safe-area-inset-bottom))]",
         className,
       )}
     >
@@ -26,11 +26,13 @@ export function PageTitle(props: {
 }) {
   return (
     <header className={cn("space-y-2", props.className)}>
-      <h1 className="text-[1.75rem] font-semibold tracking-tight text-foreground">
+      <h1 className="text-balance text-[1.75rem] font-semibold tracking-tight text-foreground">
         {props.title}
       </h1>
       {props.description ? (
-        <p className="text-sm leading-6 text-muted-foreground">{props.description}</p>
+        <p className="max-w-[24rem] text-sm leading-6 text-muted-foreground">
+          {props.description}
+        </p>
       ) : null}
     </header>
   );
