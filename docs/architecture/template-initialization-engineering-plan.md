@@ -89,7 +89,7 @@
 - 新增 `pnpm run template:rewrite-source`
 - 用于改写根 `package.json` 项目名、workspace package scope、静态 import、`pnpm --filter` 与跨端 alias
 - 默认读取根级 `.env` 的 `projectId / brandName`，`packageScope` 未传时回退到 `projectId`
-- generated 产物与 `pnpm-lock.yaml` 不纳入自动改写，由执行者在改写后重新安装依赖并刷新契约产物
+- generated 产物与本地依赖安装产物不纳入自动改写，由执行者在改写后重新安装依赖并刷新契约产物
 
 ## 第一优先级任务
 

@@ -1,6 +1,6 @@
 # Backend 模板后端内核
 
-`backend/` 是当前模板仓库的正式 NestJS 后端内核，不是 demo，也不是 Next.js 的一部分。
+`apps/backend/` 是当前模板仓库的正式 NestJS 后端内核，不是 demo，也不是 Next.js 的一部分。
 
 它负责作为 `admin`、`app`、`weapp` 的唯一后端契约源，统一输出权限、OpenAPI、shared-types、shared-schemas 与 SDK 上游能力。
 
@@ -49,26 +49,28 @@
 
 ```bash
 pnpm install
-cp backend/.env.example backend/.env
-pnpm -C backend prisma:generate
-pnpm -C backend prisma:migrate:dev
-pnpm -C backend start:dev
+pnpm run setup:env
+pnpm -C apps/backend prisma:generate
+pnpm -C apps/backend prisma:migrate:dev
+pnpm -C apps/backend start:dev
 ```
+
+`apps/backend` 不再维护独立 `.env` 文件，所有运行时变量都从仓库根级 `.env` 派生。
 
 ## 测试与发布校验
 
 测试分层：
 
-- `pnpm -C backend test:unit`
-- `pnpm -C backend test:integration`
-- `pnpm -C backend test:e2e`
+- `pnpm -C apps/backend test:unit`
+- `pnpm -C apps/backend test:integration`
+- `pnpm -C apps/backend test:e2e`
 
 发布前固定校验：
 
-- `pnpm -C backend generate:permissions`
-- `pnpm -C backend export:openapi`
-- `pnpm -C backend typecheck`
-- `pnpm -C backend check:release`
+- `pnpm -C apps/backend generate:permissions`
+- `pnpm -C apps/backend export:openapi`
+- `pnpm -C apps/backend typecheck`
+- `pnpm -C apps/backend check:release`
 
 `integration/e2e` 测试基于独立 PostgreSQL schema 运行。测试 harness 会在启动时重建测试 schema，并通过 `prisma db push` 同步当前 schema。
 
@@ -79,14 +81,14 @@ pnpm -C backend start:dev
 
 ## 常用脚本
 
-- `pnpm -C backend start:dev`
-- `pnpm -C backend build`
-- `pnpm -C backend typecheck`
-- `pnpm -C backend test`
-- `pnpm -C backend test:unit`
-- `pnpm -C backend test:integration`
-- `pnpm -C backend test:e2e`
-- `pnpm -C backend export:openapi`
-- `pnpm -C backend generate:permissions`
-- `pnpm -C backend check:release`
-- `pnpm -C backend prisma:migrate:dev`
+- `pnpm -C apps/backend start:dev`
+- `pnpm -C apps/backend build`
+- `pnpm -C apps/backend typecheck`
+- `pnpm -C apps/backend test`
+- `pnpm -C apps/backend test:unit`
+- `pnpm -C apps/backend test:integration`
+- `pnpm -C apps/backend test:e2e`
+- `pnpm -C apps/backend export:openapi`
+- `pnpm -C apps/backend generate:permissions`
+- `pnpm -C apps/backend check:release`
+- `pnpm -C apps/backend prisma:migrate:dev`

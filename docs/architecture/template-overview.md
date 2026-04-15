@@ -4,10 +4,10 @@
 
 ## 顶层结构
 
-- `backend/`: NestJS 正式后端内核
-- `admin/`: Next.js 管理后台消费端
-- `app/`: Next.js 前台消费端
-- `weapp/`: Taro + React 小程序消费端
+- `apps/backend/`: NestJS 正式后端内核
+- `apps/admin/`: Next.js 管理后台消费端
+- `apps/app/`: Next.js 前台消费端
+- `apps/weapp/`: Taro + React 小程序消费端
 - `packages/config`: 端口、环境、design tokens 等公共常量
 - `packages/shared-types`: 跨端共享类型
 - `packages/shared-schemas`: 跨端运行时 schema
@@ -16,6 +16,7 @@
 ## 主线约束
 
 - 顶层使用 `pnpm workspace`
+- 根级 `.env` 是唯一模板环境来源，各端运行时环境按目标脚本动态派生
 - `backend` 是 API、权限模型、OpenAPI、shared-types、shared-schemas 与 SDK 的唯一契约源
 - `admin`、`app`、`weapp` 都是 backend 的消费者，不各自维护平行接口定义
 - Web 端默认采用 server-first 方式，通过当前默认 scope 的 `@rtnn/api-sdk` 调用 backend

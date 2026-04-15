@@ -1,21 +1,22 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import {
   TEMPLATE_ENV_EXAMPLE_FILE,
   TEMPLATE_ENV_FILE,
-  renderTemplate,
   resolveTemplateEnv,
   writeTemplateEnvFile,
 } from "./lib/template-env.mjs";
 
 const rootDir = process.cwd();
-
-const files = [
-  [".env.example", ".env"],
-  ["backend/.env.example", "backend/.env"],
-  ["admin/.env.example", "admin/.env.local"],
-  ["app/.env.example", "app/.env.local"],
-  ["weapp/.env.example", "weapp/.env"],
+const obsoleteEnvFiles = [
+  "apps/backend/.env",
+  "apps/backend/.env.example",
+  "apps/admin/.env.local",
+  "apps/admin/.env.example",
+  "apps/app/.env.local",
+  "apps/app/.env.example",
+  "apps/weapp/.env",
+  "apps/weapp/.env.example",
 ];
 
 function parseArgs(argv) {
@@ -82,23 +83,16 @@ function ensureRootTemplateEnv(templateEnv, force) {
   console.log(`create ${TEMPLATE_ENV_FILE}`);
 }
 
-function renderManagedEnv(sourceRelative, targetRelative, templateEnv, force) {
-  const source = path.join(rootDir, sourceRelative);
-  const target = path.join(rootDir, targetRelative);
-  const existedBefore = existsSync(target);
+function cleanupObsoleteEnvFiles() {
+  for (const relativePath of obsoleteEnvFiles) {
+    const filePath = path.join(rootDir, relativePath);
+    if (!existsSync(filePath)) {
+      continue;
+    }
 
-  if (sourceRelative === ".env.example") {
-    return;
+    rmSync(filePath);
+    console.log(`remove ${relativePath}`);
   }
-
-  if (!force && existedBefore) {
-    console.log(`skip ${targetRelative} (already exists)`);
-    return;
-  }
-
-  const rendered = renderTemplate(readFileSync(source, "utf8"), templateEnv);
-  writeFileSync(target, rendered);
-  console.log(`${existedBefore ? "update" : "create"} ${targetRelative}`);
 }
 
 function main() {
@@ -108,15 +102,7 @@ function main() {
     options.force || Object.keys(options.overrides).length > 0;
 
   ensureRootTemplateEnv(templateEnv, shouldRewriteManagedFiles);
-
-  for (const [sourceRelative, targetRelative] of files) {
-    renderManagedEnv(
-      sourceRelative,
-      targetRelative,
-      templateEnv,
-      shouldRewriteManagedFiles,
-    );
-  }
+  cleanupObsoleteEnvFiles();
 }
 
 main();

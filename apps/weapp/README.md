@@ -1,6 +1,6 @@
 # Weapp 小程序模板消费端
 
-`weapp/` 是当前模板仓库的 Taro + React 小程序消费端。
+`apps/weapp/` 是当前模板仓库的 Taro + React 小程序消费端。
 
 ## Stack
 
@@ -22,12 +22,13 @@ Recommended:
 
 ```bash
 pnpm install
+pnpm run setup:env
 ```
 
 If your private registry/mirror is unstable, use npmjs directly:
 
 ```bash
-CI=true pnpm -C weapp install --no-frozen-lockfile --registry=https://registry.npmjs.org --store-dir /tmp/pnpm-store
+CI=true pnpm -C apps/weapp install --no-frozen-lockfile --registry=https://registry.npmjs.org --store-dir /tmp/pnpm-store
 ```
 
 ## Run
@@ -41,11 +42,13 @@ pnpm weapp:dev
 From app directory:
 
 ```bash
-pnpm -C weapp dev:weapp
+pnpm -C apps/weapp dev:weapp
 ```
 
-Build output is generated under `weapp/dist`.
-Import `weapp/dist` into WeChat DevTools.
+`apps/weapp` 不再维护独立 `.env`，运行时变量由根级 `.env` 在脚本启动时自动注入。
+
+Build output is generated under `apps/weapp/dist`.
+Import `apps/weapp/dist` into WeChat DevTools.
 
 ## Other scripts
 
@@ -71,7 +74,7 @@ Current first-release template scope:
 ## Project structure
 
 ```text
-weapp/
+apps/weapp/
 ├── config/
 ├── src/
 │   ├── lib/

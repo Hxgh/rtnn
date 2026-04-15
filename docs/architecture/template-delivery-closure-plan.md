@@ -126,8 +126,8 @@
 - `pnpm run check:backend-release`
 - `pnpm run smoke:admin:ui`
 - `app` 最小闭环验收脚本
-- `pnpm -C weapp typecheck`
-- `pnpm -C weapp build:h5`
+- `pnpm --filter weapp typecheck`
+- `pnpm --filter weapp build:h5`
 - `pnpm run check:template-delivery`
 
 其中：

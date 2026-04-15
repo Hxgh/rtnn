@@ -4,11 +4,16 @@
   "private": true,
   "description": "Taro + React weapp template app",
   "scripts": {
-    "dev:weapp": "taro build --type weapp --watch",
-    "build:weapp": "taro build --type weapp",
-    "dev:h5": "taro build --type h5 --watch -p 5103",
-    "build:h5": "taro build --type h5",
-    "typecheck": "tsc --noEmit"
+    "dev:weapp": "node ../../scripts/run-target-command.mjs weapp pnpm run dev:weapp:raw",
+    "dev:weapp:raw": "taro build --type weapp --watch",
+    "build:weapp": "node ../../scripts/run-target-command.mjs weapp pnpm run build:weapp:raw",
+    "build:weapp:raw": "taro build --type weapp",
+    "dev:h5": "node ../../scripts/run-target-command.mjs weapp pnpm run dev:h5:raw",
+    "dev:h5:raw": "taro build --type h5 --watch -p 5103",
+    "build:h5": "node ../../scripts/run-target-command.mjs weapp pnpm run build:h5:raw",
+    "build:h5:raw": "taro build --type h5",
+    "typecheck": "node ../../scripts/run-target-command.mjs weapp pnpm run typecheck:raw",
+    "typecheck:raw": "tsc --noEmit"
   },
   "dependencies": {
     "@rtnn/api-sdk": "workspace:*",

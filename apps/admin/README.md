@@ -1,6 +1,6 @@
 # Admin 管理后台模板消费端
 
-`admin/` 是当前模板仓库的 Next.js 管理后台消费端，负责消费 `backend/` 提供的正式 API、权限与会话能力。
+`apps/admin/` 是当前模板仓库的 Next.js 管理后台消费端，负责消费 `apps/backend/` 提供的正式 API、权限与会话能力。
 
 它不是独立 API 工程，也不维护与 backend 平行的接口定义。
 
@@ -14,17 +14,20 @@
 
 ```bash
 pnpm install
-pnpm -C admin dev
+pnpm run setup:env
+pnpm -C apps/admin dev
 ```
 
 默认访问地址：`http://localhost:5101`
 
+`apps/admin` 不再维护 `.env.local`，运行时变量由根级 `.env` 在脚本启动时自动注入。
+
 常用脚本：
 
-- `pnpm -C admin dev`
-- `pnpm -C admin build`
-- `pnpm -C admin start`
-- `pnpm -C admin typecheck`
+- `pnpm -C apps/admin dev`
+- `pnpm -C apps/admin build`
+- `pnpm -C apps/admin start`
+- `pnpm -C apps/admin typecheck`
 
 ## 与 Backend 的关系
 

@@ -11,19 +11,35 @@
 
 ## Workspace 结构
 
-- `backend/`: NestJS 模板后端内核
-- `admin/`: Next.js 管理后台
-- `app/`: Next.js 移动端前台
-- `weapp/`: Taro + React 小程序端
+- `apps/backend/`: NestJS 模板后端内核
+- `apps/admin/`: Next.js 管理后台
+- `apps/app/`: Next.js 移动端前台
+- `apps/weapp/`: Taro + React 小程序端
 - `packages/config`: 共享配置与基础常量
 - `packages/shared-types`: 跨端共享类型
 - `packages/shared-schemas`: 跨端运行时 schema
 - `packages/api-sdk`: 基于 backend OpenAPI 生成的 SDK
+- `scripts/`: 仓库级工程脚本
+- `tests/acceptance/`: 仓库级交付验收用例
+- `tooling/playwright/`: 仓库级 Playwright 配置
 - `docs/architecture/template-overview.md`: 模板整体架构说明
 - `docs/architecture/template-delivery-closure-plan.md`: 模板交付闭环计划
 - `docs/architecture/template-delivery-runbook.md`: 初始化、联调、验收、回归手册
 - `docs/architecture/template-release-engineering-plan.md`: 模板发布工程化计划
 - `docs/architecture/template-initialization-engineering-plan.md`: 模板初始化工程化计划
+
+## 根目录准入
+
+- 根目录只保留 workspace 基座、统一入口和顶层产品目录
+- 各可部署端统一收敛在 `apps/`，共享包统一收敛在 `packages/`
+- 仓库级自动化测试配置统一放在 `tooling/`，测试用例统一放在 `tests/`
+- 运行产物统一落到隐藏目录，避免把根目录变成实现细节和临时文件的堆放区
+
+## 依赖策略
+
+- 仓库保留 `pnpm-workspace.yaml` 作为 monorepo 结构声明
+- 仓库采用 latest-first 依赖策略，不提交 `pnpm-lock.yaml`
+- CI 与本地安装默认按各 package manifest 解析当前兼容版本，而不是依赖仓库内锁文件
 
 ## 快速开始
 
@@ -42,10 +58,7 @@ pnpm run bootstrap
 这会依次完成：
 
 - 生成根级 `.env`
-- 生成 `backend/.env`
-- 生成 `admin/.env.local`
-- 生成 `app/.env.local`
-- 生成 `weapp/.env`
+- 清理 `apps/*` 下历史遗留 env 文件
 - 启动本地 PostgreSQL
 - 执行 backend Prisma generate / migrate deploy / seed
 
@@ -77,7 +90,7 @@ pnpm dev:weapp:h5
 pnpm run postgres:up
 ```
 
-初始化完数据库后，`DATABASE_URL` 可以保持为 `postgresql://postgres:postgres@localhost:5432/rtnn?schema=public`，与 `backend/.env.example` 中的当前默认值一致。完成开发后可运行：
+初始化完数据库后，backend 的实际 `DATABASE_URL` 会由根级 `.env` 派生，默认等价于 `postgresql://postgres:postgres@localhost:5432/rtnn?schema=public`。完成开发后可运行：
 
 ```bash
 pnpm run postgres:down
@@ -114,7 +127,7 @@ pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
 - `--deploy-application`
 - `--deploy-event-type`
 
-根级 `.env` 是模板初始化参数唯一来源；后续如需继续调整，可直接编辑根级 `.env` 后重新执行 `pnpm run setup:env -- --force`。
+根级 `.env` 是模板初始化参数唯一来源；后续如需继续调整，可直接编辑根级 `.env` 后重新执行 `pnpm run setup:env -- --force`。`admin/app/weapp/backend` 的运行时环境由各自脚本在启动时自动派生注入，不再维护 `apps/*/.env*`。
 
 若需要把源码级身份一并改成派生模板的正式名字，再执行：
 
@@ -177,17 +190,16 @@ pnpm smoke:admin
 ## 初始化速查
 
 - 根级 `.env` 是模板项目名、品牌名、数据库名、cookie 前缀、镜像前缀和默认账号的唯一初始化参数源
-- `backend/.env` 至少确认 `PORT`、`DATABASE_URL`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`
-- `admin/.env.local`、`app/.env.local`、`weapp/.env` 至少确认 backend base URL
-- `docker-compose.yml` 中的 PostgreSQL 数据库名、端口与 `DATABASE_URL` 必须一致
+- backend/admin/app/weapp 的运行时变量都由根级 `.env` 派生，不再单独维护端内 env 文件
+- `docker-compose.yml` 中的 PostgreSQL 数据库名、端口应与根级 `.env` 中的模板数据库参数一致
 - 初始化后至少确认 `http://localhost:5100/healthz`、`http://localhost:5100/readyz`、`http://localhost:5100/openapi.json`
 
 ## 文档入口
 
-- `backend/README.md`
-- `admin/README.md`
-- `app/README.md`
-- `weapp/README.md`
+- `apps/backend/README.md`
+- `apps/admin/README.md`
+- `apps/app/README.md`
+- `apps/weapp/README.md`
 - `docs/architecture/template-overview.md`
 - `docs/architecture/template-delivery-closure-plan.md`
 - `docs/architecture/template-delivery-runbook.md`

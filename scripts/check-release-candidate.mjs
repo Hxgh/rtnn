@@ -1,14 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readEnvFile } from "./lib/template-env.mjs";
-
-const envFiles = [
-  ".env",
-  "backend/.env",
-  "admin/.env.local",
-  "app/.env.local",
-  "weapp/.env",
-];
+import {
+  TEMPLATE_ENV_FILE,
+  getBackendRuntimeEnv,
+  resolveTemplateEnv,
+} from "./lib/template-env.mjs";
 
 function assert(condition, message) {
   if (!condition) {
@@ -30,13 +26,12 @@ function run(command, args, label, options = {}) {
 }
 
 function createReleaseCheckEnv() {
-  const backendEnvFile = existsSync("backend/.env")
-    ? "backend/.env"
-    : "backend/.env.example";
-  const backendEnv = readEnvFile(backendEnvFile);
+  const templateEnv = resolveTemplateEnv(process.cwd());
+  const backendEnv = getBackendRuntimeEnv(templateEnv);
+  const { NODE_ENV: _ignoredNodeEnv, ...sharedReleaseEnv } = backendEnv;
   const databaseUrl = process.env.DATABASE_URL ?? backendEnv.DATABASE_URL;
 
-  assert(databaseUrl, `无法从 ${backendEnvFile} 解析 DATABASE_URL`);
+  assert(databaseUrl, `无法从 ${TEMPLATE_ENV_FILE} 或当前进程解析 DATABASE_URL`);
 
   const releaseSchema =
     process.env.RELEASE_DATABASE_SCHEMA ??
@@ -45,22 +40,13 @@ function createReleaseCheckEnv() {
   prismaUrl.searchParams.set("schema", releaseSchema);
 
   return {
+    ...sharedReleaseEnv,
     ...process.env,
     PORT: process.env.PORT ?? backendEnv.PORT ?? "5100",
     DATABASE_URL: prismaUrl.toString(),
     TEST_BASE_DATABASE_URL: prismaUrl.toString(),
     TEST_DATABASE_SCHEMA:
       process.env.TEST_DATABASE_SCHEMA ?? `${releaseSchema}_test`,
-    JWT_ISSUER: process.env.JWT_ISSUER ?? backendEnv.JWT_ISSUER,
-    JWT_AUDIENCE: process.env.JWT_AUDIENCE ?? backendEnv.JWT_AUDIENCE,
-    JWT_ACCESS_SECRET:
-      process.env.JWT_ACCESS_SECRET ?? backendEnv.JWT_ACCESS_SECRET,
-    JWT_REFRESH_SECRET:
-      process.env.JWT_REFRESH_SECRET ?? backendEnv.JWT_REFRESH_SECRET,
-    JWT_ACCESS_EXPIRES_IN:
-      process.env.JWT_ACCESS_EXPIRES_IN ?? backendEnv.JWT_ACCESS_EXPIRES_IN,
-    JWT_REFRESH_EXPIRES_IN:
-      process.env.JWT_REFRESH_EXPIRES_IN ?? backendEnv.JWT_REFRESH_EXPIRES_IN,
   };
 }
 
@@ -68,9 +54,7 @@ function main() {
   run("pnpm", ["run", "setup:env"], "生成环境文件");
   run("pnpm", ["run", "postgres:up"], "启动 PostgreSQL");
 
-  for (const file of envFiles) {
-    assert(existsSync(file), `缺少环境文件 ${file}`);
-  }
+  assert(existsSync(TEMPLATE_ENV_FILE), `缺少环境文件 ${TEMPLATE_ENV_FILE}`);
 
   const releaseEnv = createReleaseCheckEnv();
   const releaseUrl = new URL(releaseEnv.DATABASE_URL);

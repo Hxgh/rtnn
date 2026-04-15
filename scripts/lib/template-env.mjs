@@ -373,3 +373,89 @@ export function getTemplateDisplayNames(templateEnv) {
     appEn: `${brand} App`,
   };
 }
+
+function pickTemplateEnvValues(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+
+  return Object.fromEntries(
+    TEMPLATE_ENV_KEYS.map((key) => [key, resolved[key]]),
+  );
+}
+
+function buildDatabaseUrl(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+  const username = encodeURIComponent(resolved.TEMPLATE_DATABASE_USER);
+  const password = encodeURIComponent(resolved.TEMPLATE_DATABASE_PASSWORD);
+
+  return `postgresql://${username}:${password}@${resolved.TEMPLATE_DATABASE_HOST}:${resolved.TEMPLATE_DATABASE_PORT}/${resolved.TEMPLATE_DATABASE_NAME}?schema=public`;
+}
+
+export function getBackendRuntimeEnv(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+
+  return {
+    NODE_ENV: "development",
+    PORT: resolved.TEMPLATE_BACKEND_PORT,
+    DATABASE_URL: buildDatabaseUrl(resolved),
+    LOGIN_RATE_LIMIT_WINDOW_SEC: "300",
+    LOGIN_RATE_LIMIT_MAX_ATTEMPTS: "10",
+    JWT_ISSUER: resolved.TEMPLATE_JWT_ISSUER,
+    JWT_AUDIENCE: resolved.TEMPLATE_JWT_AUDIENCE,
+    JWT_ACCESS_SECRET: resolved.TEMPLATE_JWT_ACCESS_SECRET,
+    JWT_REFRESH_SECRET: resolved.TEMPLATE_JWT_REFRESH_SECRET,
+    JWT_ACCESS_EXPIRES_IN: resolved.TEMPLATE_JWT_ACCESS_EXPIRES_IN,
+    JWT_REFRESH_EXPIRES_IN: resolved.TEMPLATE_JWT_REFRESH_EXPIRES_IN,
+    ...pickTemplateEnvValues(resolved),
+  };
+}
+
+export function getAdminRuntimeEnv(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+  const backendBaseUrl = `http://localhost:${resolved.TEMPLATE_BACKEND_PORT}`;
+
+  return {
+    NEXT_PUBLIC_API_BASE_URL: backendBaseUrl,
+    NEXT_PUBLIC_BACKEND_URL: backendBaseUrl,
+    BACKEND_INTERNAL_BASE_URL: backendBaseUrl,
+    NEXT_PUBLIC_TEMPLATE_PROJECT_ID: resolved.TEMPLATE_PROJECT_ID,
+    NEXT_PUBLIC_TEMPLATE_BRAND_NAME: resolved.TEMPLATE_BRAND_NAME,
+    NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX: resolved.TEMPLATE_COOKIE_PREFIX,
+    TEMPLATE_ADMIN_EMAIL: resolved.TEMPLATE_ADMIN_EMAIL,
+    TEMPLATE_ADMIN_PASSWORD: resolved.TEMPLATE_ADMIN_PASSWORD,
+    TEMPLATE_ADMIN_DISPLAY_NAME: resolved.TEMPLATE_ADMIN_DISPLAY_NAME,
+    ...pickTemplateEnvValues(resolved),
+  };
+}
+
+export function getAppRuntimeEnv(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+  const backendBaseUrl = `http://localhost:${resolved.TEMPLATE_BACKEND_PORT}`;
+
+  return {
+    NEXT_PUBLIC_API_BASE_URL: backendBaseUrl,
+    BACKEND_INTERNAL_BASE_URL: backendBaseUrl,
+    NEXT_PUBLIC_APP_NAME: resolved.TEMPLATE_PROJECT_ID,
+    NEXT_PUBLIC_TEMPLATE_PROJECT_ID: resolved.TEMPLATE_PROJECT_ID,
+    NEXT_PUBLIC_TEMPLATE_BRAND_NAME: resolved.TEMPLATE_BRAND_NAME,
+    NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX: resolved.TEMPLATE_COOKIE_PREFIX,
+    TEMPLATE_CUSTOMER_EMAIL: resolved.TEMPLATE_CUSTOMER_EMAIL,
+    TEMPLATE_CUSTOMER_PASSWORD: resolved.TEMPLATE_CUSTOMER_PASSWORD,
+    TEMPLATE_CUSTOMER_DISPLAY_NAME: resolved.TEMPLATE_CUSTOMER_DISPLAY_NAME,
+    ...pickTemplateEnvValues(resolved),
+  };
+}
+
+export function getWeappRuntimeEnv(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+  const backendBaseUrl = `http://127.0.0.1:${resolved.TEMPLATE_BACKEND_PORT}`;
+
+  return {
+    TARO_APP_API_BASE_URL: backendBaseUrl,
+    TARO_APP_TEMPLATE_PROJECT_ID: resolved.TEMPLATE_PROJECT_ID,
+    TARO_APP_TEMPLATE_BRAND_NAME: resolved.TEMPLATE_BRAND_NAME,
+    TARO_APP_TEMPLATE_COOKIE_PREFIX: resolved.TEMPLATE_COOKIE_PREFIX,
+    TARO_APP_TEMPLATE_CUSTOMER_EMAIL: resolved.TEMPLATE_CUSTOMER_EMAIL,
+    TARO_APP_TEMPLATE_CUSTOMER_PASSWORD: resolved.TEMPLATE_CUSTOMER_PASSWORD,
+    ...pickTemplateEnvValues(resolved),
+  };
+}

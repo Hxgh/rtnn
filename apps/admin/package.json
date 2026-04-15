@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 5101",
-    "build": "next build",
-    "start": "node ../scripts/run-next-standalone.mjs admin 5101",
-    "start:standalone": "PORT=5101 HOSTNAME=0.0.0.0 node .next/standalone/admin/server.js",
+    "dev": "node ../../scripts/run-target-command.mjs admin pnpm run dev:raw",
+    "dev:raw": "next dev -p 5101",
+    "build": "node ../../scripts/run-target-command.mjs admin pnpm run build:raw",
+    "build:raw": "next build",
+    "start": "pnpm run start:standalone",
+    "start:standalone": "node ../../scripts/run-target-command.mjs admin pnpm run start:standalone:raw",
+    "start:standalone:raw": "node ../../scripts/run-next-standalone.mjs apps/admin 5101",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit -p tsconfig.typecheck.json"
+    "typecheck": "node ../../scripts/run-target-command.mjs admin pnpm run typecheck:raw",
+    "typecheck:raw": "next typegen && tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

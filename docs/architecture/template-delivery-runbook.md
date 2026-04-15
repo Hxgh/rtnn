@@ -21,12 +21,9 @@ pnpm run setup:env
 该命令会按需生成：
 
 - 根级 `.env`
-- `backend/.env`
-- `admin/.env.local`
-- `app/.env.local`
-- `weapp/.env`
+- 并清理 `apps/*` 下历史遗留 env 文件
 
-若目标文件已存在，则不会覆盖。
+若根级 `.env` 已存在，则默认不会覆盖。
 
 若需要在初始化时直接改模板身份，可执行：
 
@@ -47,7 +44,7 @@ pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
 - `--deploy-application`
 - `--deploy-event-type`
 
-根级 `.env` 是模板初始化参数唯一来源；修改后需重新执行 `pnpm run setup:env -- --force` 以刷新各端环境文件。
+根级 `.env` 是模板初始化参数唯一来源；修改后需重新执行 `pnpm run setup:env -- --force`。各端运行时环境由脚本启动时自动派生注入，不再维护 `apps/*/.env*`。
 
 ### 1.2.1 重写源码级模板身份
 
@@ -61,7 +58,7 @@ pnpm run template:rewrite-source -- --project-id=acme --package-scope=acme --bra
 约束如下：
 
 - `--package-scope` 不传时，默认回退到 `projectId`
-- 脚本不改 generated 产物与 `pnpm-lock.yaml`
+- 脚本不改 generated 产物与本地依赖安装产物
 - 执行后需要重新 `pnpm install`
 - 若 backend 契约包名发生变化，再执行 `pnpm run contracts:permissions` 与 `pnpm run contracts:sync`
 
@@ -158,7 +155,7 @@ pnpm run dev:weapp:h5
 若 `readyz` 未返回数据库可用状态，先检查：
 
 - `docker compose` 是否已启动
-- `backend/.env` 中 `DATABASE_URL` 是否有效
+- 根级 `.env` 中数据库参数是否有效
 - migrate/seed 是否已跑过
 
 ### 2.4 初始化速查
@@ -166,9 +163,9 @@ pnpm run dev:weapp:h5
 至少确认以下配置与环境一致：
 
 - 根级 `.env` 中的 `TEMPLATE_PROJECT_ID`、`TEMPLATE_DATABASE_NAME`、`TEMPLATE_COOKIE_PREFIX`
-- `backend/.env` 中 `PORT`、`DATABASE_URL`、`JWT_ACCESS_SECRET`、`JWT_REFRESH_SECRET`
-- `admin/.env.local`、`app/.env.local`、`weapp/.env` 中的 backend base URL
-- `docker-compose.yml` 的 PostgreSQL 数据库名、端口与 `DATABASE_URL`
+- 根级 `.env` 中的 `TEMPLATE_BACKEND_PORT`、`TEMPLATE_ADMIN_PORT`、`TEMPLATE_APP_PORT`、`TEMPLATE_WEAPP_H5_PORT`
+- 根级 `.env` 中的 JWT 与数据库参数
+- `docker-compose.yml` 的 PostgreSQL 数据库名、端口与根级 `.env` 中的模板数据库参数
 
 ## 3. 契约同步
 
@@ -181,7 +178,7 @@ pnpm run contracts:sync
 
 核心生成物包括：
 
-- `backend/openapi.json`
+- `apps/backend/openapi.json`
 - `packages/api-sdk/src/generated/openapi.ts`
 - `packages/shared-types/src/permissions.generated.ts`
 
@@ -269,7 +266,7 @@ pnpm run smoke:weapp:h5
 补充构建校验：
 
 ```bash
-pnpm -C weapp build:h5
+pnpm --filter weapp build:h5
 ```
 
 若需要补做小程序壳层手工验收，至少覆盖：
@@ -292,7 +289,7 @@ pnpm run check:template-delivery
 - `pnpm run smoke:admin:ui`
 - `pnpm run smoke:app:ui`
 - `pnpm run smoke:weapp:h5`
-- `pnpm -C weapp build:h5`
+- `pnpm --filter weapp build:h5`
 
 该命令不替代 `pnpm run check:backend-release`；完整模板回归仍应先跑后端正式 gate，再跑该聚合脚本。
 
@@ -306,7 +303,7 @@ pnpm run check:template-delivery
 4. `pnpm run smoke:admin:ui`
 5. `pnpm run smoke:app:ui`
 6. `pnpm run smoke:weapp:h5`
-7. `pnpm -C weapp build:h5`
+7. `pnpm --filter weapp build:h5`
 8. `weapp` 手工验收
 
 若只需要复跑消费端闭环，可执行：
@@ -338,13 +335,13 @@ pnpm run check:template-delivery
 优先检查：
 
 - `backend` seed 数据是否已准备
-- 环境变量中的 backend base URL 是否正确
+- 根级 `.env` 中的 backend 端口与派生运行时 base URL 是否正确
 - locale/cookie 是否被错误覆盖
 
 ### 6.4 Weapp H5 无法联调
 
 优先检查：
 
-- `weapp/.env` 中 `TARO_APP_API_BASE_URL`
+- 根级 `.env` 中的 backend 端口配置
 - `pnpm run dev:weapp:h5` 是否启动在 `5103`
 - `backend` 是否允许当前主机地址访问

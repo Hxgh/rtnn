@@ -1,6 +1,6 @@
 # App 前台模板消费端
 
-`app/` 是当前模板仓库的 Next.js 前台消费端，负责消费 `backend/` 提供的 customer 向正式 API 与会话能力。
+`apps/app/` 是当前模板仓库的 Next.js 前台消费端，负责消费 `apps/backend/` 提供的 customer 向正式 API 与会话能力。
 
 它不是 demo 页面集合，也不维护独立于 backend 的平行接口层。
 
@@ -15,17 +15,20 @@
 
 ```bash
 pnpm install
-pnpm -C app dev
+pnpm run setup:env
+pnpm -C apps/app dev
 ```
 
 默认访问地址：`http://localhost:5102`
 
+`apps/app` 不再维护 `.env.local`，运行时变量由根级 `.env` 在脚本启动时自动注入。
+
 常用脚本：
 
-- `pnpm -C app dev`
-- `pnpm -C app build`
-- `pnpm -C app start`
-- `pnpm -C app typecheck`
+- `pnpm -C apps/app dev`
+- `pnpm -C apps/app build`
+- `pnpm -C apps/app start`
+- `pnpm -C apps/app typecheck`
 - `pnpm run smoke:app:ui`
 
 ## 与 Backend 的关系

@@ -1,27 +1,30 @@
-# dependencies
+# workspace dependencies
 node_modules/
+.pnpm-store/
 
+# lock files not tracked
+pnpm-lock.yaml
 package-lock.json
 yarn.lock
 bun.lockb
 
-# env files
+# local environment
 .env
 .env.local
 .env.*.local
 
-# logs
+# logs and runtime files
 *.log
+*.pid
+*.pid.lock
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS
+# OS and editor files
 .DS_Store
 Thumbs.db
-
-# IDE
 .idea/
 .vscode/*
 !.vscode/settings.json
@@ -29,28 +32,34 @@ Thumbs.db
 !.vscode/launch.json
 *.swp
 *.swo
+*.orig
 
-# build outputs
+# local build outputs and caches
 dist/
 build/
 .next/
 out/
-**/dist/
-**/.swc/
-
-# temp files
+.swc/
+.turbo/
+.vercel/
+.cache/
+.temp/
+.taro/
+.eslintcache
 *.tmp
 *.temp
-.cache/
 *.tsbuildinfo
+next-env.d.ts
+*.pem
 
-# database
+# local data
 *.db
 *.sqlite
 
-# testing
+# test and QA artifacts
 coverage/
 .nyc_output/
 playwright-report/
 test-results/
 .playwright/
+/.artifacts/
