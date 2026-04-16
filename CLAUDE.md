@@ -73,7 +73,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 前端任务按需使用以下 skill 组合：
 
-1. `shadcn-ui-workflow`（统一 UI 体系与落地约束，仅用于 UI 组件任务）
+1. `admin-shadcn-workflow`（统一 admin 后台 UI 体系与落地约束，仅用于后台 UI 组件任务）
 2. `vercel-composition-patterns`（React 组件架构与组合模式，仅用于相关架构场景）
 3. `vercel-react-best-practices`（React 性能与数据获取）
 4. `web-design-guidelines`（UI/可访问性审查，仅在评审类任务启用）
@@ -81,19 +81,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 目录范围与互斥
 
 - `backend/` 禁止套用前端 skill
-- `shadcn-ui-workflow` 仅适用于 `admin/`，涉及后台 UI 组件选型与实现时默认启用
+- `admin-shadcn-workflow` 仅适用于 `admin/`，涉及后台 UI 组件选型与实现时默认启用
 - `admin` 与 `app` 的 UI 落地规则分开定义：后台看《Admin 前端规则》，移动端前台看《App 前端规则》
 
 ### 协同顺序（按需）
 
-1. 先做组件选型与 UI 设计（`shadcn-ui-workflow`）
+1. 先做组件选型与 UI 设计（`admin-shadcn-workflow`）
 2. 再做组件分层与 API 设计（`vercel-composition-patterns`）
 3. 再做性能优化（`vercel-react-best-practices`）
 4. 最后做 UI/可访问性检查（`web-design-guidelines`）
 
 ### 启用判定原则
 
-- 是否启用以需求类型判定：凡属于 `admin` UI 组件选型与实现任务，默认进入 `shadcn-ui-workflow`
+- 是否启用以需求类型判定：凡属于 `admin` UI 组件选型与实现任务，默认进入 `admin-shadcn-workflow`
 - `shadcn/ui` 当前是 `admin` 专属，不默认用于 `app`
 - 关键词仅用于辅助识别，不是触发前提：`shadcn`、`ui.shadcn.com`、`components.json`、`npx shadcn`、`registry`
 
