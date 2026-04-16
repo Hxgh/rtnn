@@ -25,6 +25,18 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@rtnn/api-sdk": [
+        "../../packages/api-sdk/src/index.ts"
+      ],
+      "@rtnn/config": [
+        "../../packages/config/src/index.ts"
+      ],
+      "@rtnn/shared-schemas": [
+        "../../packages/shared-schemas/src/index.ts"
+      ],
+      "@rtnn/shared-types": [
+        "../../packages/shared-types/src/index.ts"
       ]
     }
   },
