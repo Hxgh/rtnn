@@ -46,6 +46,7 @@
 
 - 生产部署链路统一走 GHCR + 独立部署仓库
 - backend 发布前固定执行权限生成、OpenAPI 导出、typecheck 与 backend 核心测试
+- 模板仓库只定义部署边界与部署契约，不直接承载正式环境编排
 
 ## 交付文档
 
@@ -53,3 +54,6 @@
 - 执行手册：`docs/architecture/template-delivery-runbook.md`
 - 发布工程化计划：`docs/architecture/template-release-engineering-plan.md`
 - 初始化工程化计划：`docs/architecture/template-initialization-engineering-plan.md`
+- 部署边界：`docs/architecture/template-deployment-boundary.md`
+- 部署契约：`docs/architecture/template-deployment-contract.md`
+- 部署仓库方案：`docs/architecture/template-deployment-repository-plan.md`

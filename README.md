@@ -123,6 +123,7 @@ pnpm run check
 - 模板使用者先看：[文档入口](./docs/README.md)
 - 模板快速开始：[快速开始](./docs/template/getting-started.md)
 - 模板最小承诺：[最小承诺](./docs/template/minimum-commitment.md)
+- 部署边界与契约：[部署工程文档组](./docs/architecture/template-deployment-boundary.md)
 - backend 说明：[backend README](./apps/backend/README.md)
 - admin 说明：[admin README](./apps/admin/README.md)
 - app 说明：[app README](./apps/app/README.md)

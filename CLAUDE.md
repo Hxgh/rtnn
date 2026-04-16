@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件用于定义 AI agent 在本仓库中的工作方式、职责边界与工程规则。
 
 # 基本
 
