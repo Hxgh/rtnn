@@ -6,15 +6,15 @@
 
 如果你的目标是派生、启动和消费这个模板，优先阅读：
 
-- [docs/template/getting-started.md](/Users/hugh/workspace/github/rtnn/docs/template/getting-started.md)
-- [docs/template/minimum-commitment.md](/Users/hugh/workspace/github/rtnn/docs/template/minimum-commitment.md)
+- [快速开始](./template/getting-started.md)
+- [模板最小承诺](./template/minimum-commitment.md)
 
 ## 模板维护者
 
 如果你的目标是继续收敛模板工程本身、补充交付流程或维护发布链路，阅读：
 
-- [docs/architecture/template-overview.md](/Users/hugh/workspace/github/rtnn/docs/architecture/template-overview.md)
-- [docs/architecture/template-delivery-closure-plan.md](/Users/hugh/workspace/github/rtnn/docs/architecture/template-delivery-closure-plan.md)
-- [docs/architecture/template-delivery-runbook.md](/Users/hugh/workspace/github/rtnn/docs/architecture/template-delivery-runbook.md)
-- [docs/architecture/template-release-engineering-plan.md](/Users/hugh/workspace/github/rtnn/docs/architecture/template-release-engineering-plan.md)
-- [docs/architecture/template-initialization-engineering-plan.md](/Users/hugh/workspace/github/rtnn/docs/architecture/template-initialization-engineering-plan.md)
+- [模板总体架构](./architecture/template-overview.md)
+- [模板交付闭环计划](./architecture/template-delivery-closure-plan.md)
+- [模板交付执行手册](./architecture/template-delivery-runbook.md)
+- [模板发布工程化计划](./architecture/template-release-engineering-plan.md)
+- [模板初始化工程化计划](./architecture/template-initialization-engineering-plan.md)

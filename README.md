@@ -30,7 +30,7 @@ RTNN 是一套面向 AI 协作交付的全栈模板 monorepo。它不是 demo �
 - 仓库级 lockfile 提交策略
 - 没有明确消费面的“展示型能力”
 
-更完整的边界说明见 [docs/template/minimum-commitment.md](/Users/hugh/workspace/github/rtnn/docs/template/minimum-commitment.md)。
+更完整的边界说明见 [模板最小承诺](./docs/template/minimum-commitment.md)。
 
 ## 快速开始
 
@@ -120,13 +120,13 @@ pnpm run check
 
 ## 文档入口
 
-- 模板使用者先看：[docs/README.md](/Users/hugh/workspace/github/rtnn/docs/README.md)
-- 模板快速开始：[docs/template/getting-started.md](/Users/hugh/workspace/github/rtnn/docs/template/getting-started.md)
-- 模板最小承诺：[docs/template/minimum-commitment.md](/Users/hugh/workspace/github/rtnn/docs/template/minimum-commitment.md)
-- backend 说明：[apps/backend/README.md](/Users/hugh/workspace/github/rtnn/apps/backend/README.md)
-- admin 说明：[apps/admin/README.md](/Users/hugh/workspace/github/rtnn/apps/admin/README.md)
-- app 说明：[apps/app/README.md](/Users/hugh/workspace/github/rtnn/apps/app/README.md)
-- weapp 说明：[apps/weapp/README.md](/Users/hugh/workspace/github/rtnn/apps/weapp/README.md)
+- 模板使用者先看：[文档入口](./docs/README.md)
+- 模板快速开始：[快速开始](./docs/template/getting-started.md)
+- 模板最小承诺：[最小承诺](./docs/template/minimum-commitment.md)
+- backend 说明：[backend README](./apps/backend/README.md)
+- admin 说明：[admin README](./apps/admin/README.md)
+- app 说明：[app README](./apps/app/README.md)
+- weapp 说明：[weapp README](./apps/weapp/README.md)
 
 ## 协作约束
 

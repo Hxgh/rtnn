@@ -36,7 +36,7 @@ CI=true pnpm -C apps/weapp install --no-frozen-lockfile --registry=https://regis
 From repo root:
 
 ```bash
-pnpm weapp:dev
+pnpm run weapp:dev
 ```
 
 From app directory:
@@ -53,10 +53,10 @@ Import `apps/weapp/dist` into WeChat DevTools.
 ## Other scripts
 
 ```bash
-pnpm weapp:build
-pnpm weapp:dev:h5
-pnpm weapp:build:h5
-pnpm weapp:typecheck
+pnpm run weapp:build
+pnpm run weapp:dev:h5
+pnpm run weapp:build:h5
+pnpm run weapp:typecheck
 ```
 
 默认 H5 本地预览端口：`http://localhost:5103`
@@ -114,6 +114,6 @@ At minimum, verify:
 Commands:
 
 ```bash
-pnpm smoke:weapp:h5
-pnpm weapp:build:h5
+pnpm run smoke:weapp:h5
+pnpm run weapp:build:h5
 ```
