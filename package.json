@@ -18,7 +18,7 @@
     "bootstrap": "pnpm run setup:env && pnpm run postgres:up && pnpm run setup:backend",
     "postgres:down": "docker compose down",
     "postgres:logs": "docker compose logs -f db",
-    "postgres:up": "docker compose up -d --wait db",
+    "postgres:up": "node scripts/bootstrap/ensure-postgres-ready.mjs",
     "build:packages": "pnpm --filter @rtnn/config build && pnpm --filter @rtnn/shared-types build && pnpm --filter @rtnn/shared-schemas build && pnpm --filter @rtnn/api-sdk build",
     "build:backend:deps": "pnpm --filter @rtnn/config build && pnpm --filter @rtnn/shared-types build && pnpm --filter @rtnn/shared-schemas build",
     "prepare:backend": "pnpm run build:backend:deps && pnpm --filter backend prisma:generate",
