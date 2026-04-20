@@ -1,4 +1,7 @@
 import { BackendTestHarness } from './support/test-harness';
+import { PERMISSION_SEEDS } from '../src/common/constants/permissions.const';
+import { PasswordService } from '../src/modules/auth/password.service';
+import { bootstrapTemplateAccess } from '../src/support/bootstrap-template-access';
 
 describe('Backend integration', () => {
   const harness = new BackendTestHarness();
@@ -208,6 +211,35 @@ describe('Backend integration', () => {
     expect(customerCreateLog.resourceType).toBe('customer');
     expect(customerCreateLog.resourceId).toBe(customerResponse.body.id);
     expect(groupResponse.body.name).toBe('VIP Customers');
+  });
+
+  it('keeps template access bootstrap idempotent', async () => {
+    const passwordService = new PasswordService();
+
+    await bootstrapTemplateAccess({
+      prisma: harness.prismaClient,
+      passwordService,
+    });
+    await bootstrapTemplateAccess({
+      prisma: harness.prismaClient,
+      passwordService,
+    });
+
+    const [tenantCount, roleCount, permissionCount, accountCount] =
+      await Promise.all([
+        harness.prismaClient.tenant.count(),
+        harness.prismaClient.role.count(),
+        harness.prismaClient.permission.count(),
+        harness.prismaClient.account.count(),
+      ]);
+
+    expect(tenantCount).toBe(1);
+    expect(roleCount).toBe(2);
+    expect(permissionCount).toBe(PERMISSION_SEEDS.length);
+    expect(accountCount).toBe(3);
+
+    await harness.loginAdmin().expect(200);
+    await harness.loginCustomer().expect(200);
   });
 
   it('paginates admin list endpoints with stable meta and filters', async () => {

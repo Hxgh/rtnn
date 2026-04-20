@@ -40,6 +40,7 @@
     "prisma:migrate:deploy:raw": "prisma migrate deploy",
     "prisma:seed": "node ../../scripts/runtime/run-target-command.mjs backend pnpm run prisma:seed:raw",
     "prisma:seed:raw": "prisma db seed",
+    "bootstrap:template-access:raw": "node dist/scripts/bootstrap-template-access.js",
     "prisma:studio": "node ../../scripts/runtime/run-target-command.mjs backend pnpm run prisma:studio:raw",
     "prisma:studio:raw": "prisma studio",
     "generate:enums": "prisma generate",

@@ -12,8 +12,8 @@ import {
   configureHttpApplication,
   type ConfigureHttpApplicationOptions,
 } from '../../src/core/bootstrap/configure-http-application';
-import { PERMISSION_SEEDS } from '../../src/common/constants/permissions.const';
 import { PasswordService } from '../../src/modules/auth/password.service';
+import { bootstrapTemplateAccess } from '../../src/support/bootstrap-template-access';
 
 const BACKEND_ROOT = resolve(__dirname, '../..');
 
@@ -114,72 +114,15 @@ async function truncateAllTables(prisma: PrismaClient) {
 
 async function seedBaseData(prisma: PrismaClient) {
   const passwordService = new PasswordService();
-  const defaultTenant = await prisma.tenant.create({
-    data: {
-      name: 'Default Tenant',
-      slug: 'default',
-    },
-  });
-
-  await prisma.permission.createMany({
-    data: PERMISSION_SEEDS,
-  });
-
-  const permissions = await prisma.permission.findMany({
-    orderBy: {
-      key: 'asc',
-    },
-  });
-  const permissionMap = new Map(permissions.map((item) => [item.key, item]));
-
-  const superAdminRole = await prisma.role.create({
-    data: {
-      slug: 'super-admin',
-      name: 'Super Admin',
-      description: 'Template super admin role',
-      tenantId: defaultTenant.id,
-    },
-  });
-  const customerRole = await prisma.role.create({
-    data: {
-      slug: 'customer-default',
-      name: 'Customer Default',
-      description: 'Template customer role',
-      tenantId: defaultTenant.id,
-    },
-  });
-
-  await prisma.rolePermission.createMany({
-    data: permissions.map((permission) => ({
-      roleId: superAdminRole.id,
-      permissionId: permission.id,
-    })),
-  });
-
-  const customerPermissions = [
-    permissionMap.get('customer:self:view'),
-    permissionMap.get('customer:self:update'),
-  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
-  await prisma.rolePermission.createMany({
-    data: customerPermissions.map((permission) => ({
-      roleId: customerRole.id,
-      permissionId: permission.id,
-    })),
-  });
-
-  const adminAccount = await prisma.account.create({
-    data: {
-      email: TEST_FIXTURES.admin.email,
-      passwordHash: await passwordService.hash(TEST_FIXTURES.admin.password),
-      status: 'active',
-      tenantId: defaultTenant.id,
-      adminProfile: {
-        create: {
-          name: TEST_FIXTURES.admin.displayName,
-          tenantId: defaultTenant.id,
-        },
-      },
-    },
+  const {
+    defaultTenant,
+    adminAccount,
+    customerAccount,
+  } = await bootstrapTemplateAccess({
+    prisma,
+    passwordService,
+    adminFixture: TEST_FIXTURES.admin,
+    customerFixture: TEST_FIXTURES.customer,
   });
 
   const limitedAdminAccount = await prisma.account.create({
@@ -196,40 +139,6 @@ async function seedBaseData(prisma: PrismaClient) {
           tenantId: defaultTenant.id,
         },
       },
-    },
-  });
-
-  const customerAccount = await prisma.account.create({
-    data: {
-      email: TEST_FIXTURES.customer.email,
-      passwordHash: await passwordService.hash(TEST_FIXTURES.customer.password),
-      status: 'active',
-      tenantId: defaultTenant.id,
-      customerProfile: {
-        create: {
-          name: TEST_FIXTURES.customer.displayName,
-          tenantId: defaultTenant.id,
-          status: 'active',
-        },
-      },
-    },
-  });
-
-  await prisma.accountRole.create({
-    data: {
-      accountId: adminAccount.id,
-      roleId: superAdminRole.id,
-      audience: 'admin',
-      tenantId: defaultTenant.id,
-    },
-  });
-
-  await prisma.accountRole.create({
-    data: {
-      accountId: customerAccount.id,
-      roleId: customerRole.id,
-      audience: 'customer',
-      tenantId: defaultTenant.id,
     },
   });
 
