@@ -19,6 +19,7 @@ FROM node:20-alpine AS runner
 
 ENV NODE_ENV=production
 ENV PORT=5101
+ENV HOSTNAME=0.0.0.0
 
 WORKDIR /app
 
