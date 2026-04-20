@@ -11,9 +11,9 @@ env:
   TEMPLATE_PROJECT_ID: ${{ vars.TEMPLATE_PROJECT_ID }}
   TEMPLATE_BRAND_NAME: ${{ vars.TEMPLATE_BRAND_NAME }}
   TEMPLATE_COOKIE_PREFIX: ${{ vars.TEMPLATE_COOKIE_PREFIX }}
-  TEMPLATE_DATABASE_NAME: ${{ vars.TEMPLATE_DATABASE_NAME }}
-  TEMPLATE_DATABASE_USER: ${{ vars.TEMPLATE_DATABASE_USER }}
-  TEMPLATE_DATABASE_PASSWORD: ${{ secrets.TEMPLATE_DATABASE_PASSWORD }}
+  TEMPLATE_DATABASE_NAME: rtnn
+  TEMPLATE_DATABASE_USER: postgres
+  TEMPLATE_DATABASE_PASSWORD: postgres
   TEMPLATE_IMAGE_NAME_PREFIX: ${{ vars.TEMPLATE_IMAGE_NAME_PREFIX }}
   TEMPLATE_DEPLOY_APPLICATION: ${{ vars.TEMPLATE_DEPLOY_APPLICATION }}
   TEMPLATE_DEPLOY_EVENT_TYPE: ${{ vars.TEMPLATE_DEPLOY_EVENT_TYPE }}
@@ -35,13 +35,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: ${{ env.TEMPLATE_DATABASE_NAME != '' && env.TEMPLATE_DATABASE_NAME || 'rtnn' }}
-          POSTGRES_USER: ${{ env.TEMPLATE_DATABASE_USER != '' && env.TEMPLATE_DATABASE_USER || 'postgres' }}
-          POSTGRES_PASSWORD: ${{ env.TEMPLATE_DATABASE_PASSWORD != '' && env.TEMPLATE_DATABASE_PASSWORD || 'postgres' }}
+          POSTGRES_DB: rtnn
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ${{ env.TEMPLATE_DATABASE_USER != '' && env.TEMPLATE_DATABASE_USER || 'postgres' }} -d ${{ env.TEMPLATE_DATABASE_NAME != '' && env.TEMPLATE_DATABASE_NAME || 'rtnn' }}"
+          --health-cmd "pg_isready -U postgres -d rtnn"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
