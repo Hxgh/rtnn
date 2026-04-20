@@ -21,3 +21,5 @@
 - [模板部署边界](./architecture/template-deployment-boundary.md)
 - [模板部署契约](./architecture/template-deployment-contract.md)
 - [模板部署仓库首发方案](./architecture/template-deployment-repository-plan.md)
+- [模板实例仓库模型](./architecture/template-instance-repository-model.md)
+- [模板服务器契约与配置分层模型](./architecture/template-server-contract-configuration-model.md)

@@ -61,6 +61,16 @@ pnpm run weapp:typecheck
 
 默认 H5 本地预览端口：`http://localhost:5103`
 
+## Docker / Deploy
+
+`apps/weapp/` 现在提供了 H5 部署镜像入口，用于把小程序消费端的 H5 投影作为正式验收面部署出去。
+
+- 镜像构建文件：`apps/weapp/Dockerfile`
+- 容器默认端口：`5103`
+- 运行时 API 地址：`TARO_APP_API_BASE_URL`
+
+生产容器启动时会生成 `/runtime-config.js`，因此 `TARO_APP_API_BASE_URL` 可以在运行时注入，而不需要为不同环境重新构建镜像。
+
 ## Template scope
 
 Current first-release template scope:

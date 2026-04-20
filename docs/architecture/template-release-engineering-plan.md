@@ -65,7 +65,7 @@ PR workflow 需要补齐：
 这样 PR 阶段才能真正验证：
 
 - backend 契约与测试没坏
-- admin / app 闭环没坏
+- admin / app / weapp(H5) 闭环没坏
 - weapp 类型和 H5 构建没坏
 
 ### 三、Release 前置 gate
@@ -74,7 +74,7 @@ PR workflow 需要补齐：
 
 约束固定为：
 
-- 不允许绕过 gate 直接推送 `backend / admin / app` 镜像。
+- 不允许绕过 gate 直接推送 `backend / admin / app / weapp(H5)` 镜像。
 - 发布 workflow 与 PR workflow 使用同一套正式校验入口，避免语义漂移。
 
 ## 第一优先级任务

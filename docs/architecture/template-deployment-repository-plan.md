@@ -31,7 +31,7 @@
 
 - 镜像仓库：GHCR
 - 编排方式：Docker Compose
-- 发布粒度：`backend / admin / app`
+- 发布粒度：`backend / admin / app / weapp(H5)`
 - 环境层次：`staging / production` 为首发必需；`dev` 只保留扩展位
 
 这样做的原因：
@@ -151,14 +151,14 @@ rtnn-deploy/
 3. 执行 backend 数据库迁移。
 4. 更新 backend。
 5. 等待 backend `/readyz` 通过。
-6. 更新 `admin / app`。
+6. 更新 `admin / app / weapp(H5)`。
 7. 执行环境 smoke check。
 8. 记录发布结果与回滚点。
 
 约束固定为：
 
 - 数据库迁移优先于新版本 backend 流量切换。
-- `admin / app` 不应先于 backend 契约版本更新。
+- `admin / app / weapp(H5)` 不应先于 backend 契约版本更新。
 - 若 backend 探活失败，部署流程必须中止，不继续推进前端服务。
 
 ## 7. 回滚策略建议
@@ -203,20 +203,20 @@ rtnn-deploy/
 
 ## 9. weapp 的后续处理建议
 
-`weapp` 当前不进入首发部署仓库主线。
+`weapp` 当前已经以 H5 投影站点形式进入首发部署仓库主线。
 
-后续若需要推进：
+后续仍要分清两条线：
 
-- H5 版本：可追加静态站点产物上传与 CDN 发布流程。
-- 小程序版本：可追加上传包构建与平台发布流程。
+- H5 版本：继续作为正式部署面，可后续再升级为 CDN 或对象存储分发。
+- 小程序版本：单独建设上传包构建、审核、发布与平台凭据管理流程。
 
-但这两条都应在模板仓库先定义正式产物契约后，再接入独立部署仓库。
+也就是说，本轮收口的是 `weapp H5`，不是把小程序平台发布混进当前部署主线。
 
 ## 10. 当前阶段完成标准
 
 当独立部署仓库开始实施时，达到以下标准即可视为首发合格：
 
-- 能消费模板仓库已通过 gate 的 `backend / admin / app` 镜像。
+- 能消费模板仓库已通过 gate 的 `backend / admin / app / weapp(H5)` 镜像。
 - 能为 `staging / production` 注入正式环境变量。
 - 能执行 backend 迁移、服务更新、backend 探活与基础 smoke check。
 - 能按镜像 tag 做回滚。

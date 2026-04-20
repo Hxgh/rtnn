@@ -92,6 +92,7 @@ jobs:
           - backend
           - admin
           - app
+          - weapp
 
     steps:
       - name: Checkout
@@ -153,10 +154,24 @@ jobs:
     name: Notify Deploy Repository
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_URL != '' && secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN != '' }}
 
     steps:
+      - name: Detect deploy dispatch config
+        id: dispatch
+        shell: bash
+        env:
+          DISPATCH_URL: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_URL }}
+          DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
+        run: |
+          if [[ -z "${DISPATCH_URL}" || -z "${DISPATCH_TOKEN}" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "${GITHUB_OUTPUT}"
+
       - name: Resolve release payload
+        if: ${{ steps.dispatch.outputs.enabled == 'true' }}
         id: payload
         shell: bash
         env:
@@ -185,9 +200,11 @@ jobs:
             echo "backend_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-backend:${VERSION}"
             echo "admin_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-admin:${VERSION}"
             echo "app_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-app:${VERSION}"
+            echo "weapp_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-weapp:${VERSION}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Dispatch deploy event
+        if: ${{ steps.dispatch.outputs.enabled == 'true' }}
         env:
           DISPATCH_URL: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_URL }}
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
@@ -198,6 +215,7 @@ jobs:
           BACKEND_IMAGE: ${{ steps.payload.outputs.backend_image }}
           ADMIN_IMAGE: ${{ steps.payload.outputs.admin_image }}
           APP_IMAGE: ${{ steps.payload.outputs.app_image }}
+          WEAPP_IMAGE: ${{ steps.payload.outputs.weapp_image }}
         run: |
           curl --fail --show-error --silent \
             -X POST "${DISPATCH_URL}" \
@@ -215,7 +233,8 @@ jobs:
               \"images\": {
                 \"backend\": \"${BACKEND_IMAGE}\",
                 \"admin\": \"${ADMIN_IMAGE}\",
-                \"app\": \"${APP_IMAGE}\"
+                \"app\": \"${APP_IMAGE}\",
+                \"weapp\": \"${WEAPP_IMAGE}\"
               }
             }
           }

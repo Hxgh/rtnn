@@ -47,6 +47,8 @@
 - 生产部署链路统一走 GHCR + 独立部署仓库
 - backend 发布前固定执行权限生成、OpenAPI 导出、typecheck 与 backend 核心测试
 - 模板仓库只定义部署边界与部署契约，不直接承载正式环境编排
+- 首个真实实例建议通过 `rtnn-demo` 承接非敏感实例契约，而不是把实例规则继续塞回模板仓库
+- 真实环境 secrets 默认继续由 GitHub Environment secrets 或服务器本地受限文件管理
 
 ## 交付文档
 
@@ -57,3 +59,5 @@
 - 部署边界：`docs/architecture/template-deployment-boundary.md`
 - 部署契约：`docs/architecture/template-deployment-contract.md`
 - 部署仓库方案：`docs/architecture/template-deployment-repository-plan.md`
+- 实例仓库模型：`docs/architecture/template-instance-repository-model.md`
+- 服务器契约分层：`docs/architecture/template-server-contract-configuration-model.md`
