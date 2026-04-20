@@ -90,6 +90,28 @@ pnpm run contracts:sync
 
 这不是疏漏，而是模板层的明确取舍：模板仓库优先保持升级弹性，业务仓库再决定是否收紧安装确定性。
 
+## 仓库关系与发布模型
+
+当前主线固定为三仓协作：
+
+- `rtnn`
+  - 模板源码与后端契约事实源
+- `rtnn-deploy`
+  - 独立部署引擎，负责 `testing / production` 发布与回滚
+- `rtnn-demo`
+  - 实例级非敏感映射与真实验收目录
+
+当前环境模型固定为：
+
+- `main -> testing` 自动发布
+- `production` 在 `rtnn-deploy` 手动提升
+
+更完整说明见：
+
+- [仓库关系与触发拓扑](./docs/architecture/template-repository-topology.md)
+- [部署仓库方案](./docs/architecture/template-deployment-repository-plan.md)
+- [实例与服务器方案](./docs/architecture/template-instance-repository-model.md)
+
 ## 验收入口
 
 常用验收命令：
@@ -123,6 +145,7 @@ pnpm run check
 - 模板使用者先看：[文档入口](./docs/README.md)
 - 模板快速开始：[快速开始](./docs/template/getting-started.md)
 - 模板最小承诺：[最小承诺](./docs/template/minimum-commitment.md)
+- 仓库关系与触发拓扑：[仓库拓扑](./docs/architecture/template-repository-topology.md)
 - 部署边界与契约：[部署工程文档组](./docs/architecture/template-deployment-boundary.md)
 - 实例仓库与服务器契约：[实例与服务器方案](./docs/architecture/template-instance-repository-model.md)
 - backend 说明：[backend README](./apps/backend/README.md)

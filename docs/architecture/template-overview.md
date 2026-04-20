@@ -45,6 +45,8 @@
 ## 部署基线
 
 - 生产部署链路统一走 GHCR + 独立部署仓库
+- 环境模型固定为 `testing + production`
+- 触发模型固定为：`main -> testing` 自动发布，`production` 在 `rtnn-deploy` 手动提升
 - backend 发布前固定执行权限生成、OpenAPI 导出、typecheck 与 backend 核心测试
 - 模板仓库只定义部署边界与部署契约，不直接承载正式环境编排
 - 首个真实实例建议通过 `rtnn-demo` 承接非敏感实例契约，而不是把实例规则继续塞回模板仓库
@@ -58,6 +60,7 @@
 - 初始化工程化计划：`docs/architecture/template-initialization-engineering-plan.md`
 - 部署边界：`docs/architecture/template-deployment-boundary.md`
 - 部署契约：`docs/architecture/template-deployment-contract.md`
+- 仓库关系与触发拓扑：`docs/architecture/template-repository-topology.md`
 - 部署仓库方案：`docs/architecture/template-deployment-repository-plan.md`
 - 实例仓库模型：`docs/architecture/template-instance-repository-model.md`
 - 服务器契约分层：`docs/architecture/template-server-contract-configuration-model.md`

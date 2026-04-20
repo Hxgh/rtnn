@@ -145,7 +145,7 @@
 
 部署仓库约束：
 
-- `staging / production` 不应依赖这些默认验证账号变量。
+- `testing / production` 不应依赖这些默认验证账号变量。
 - 如环境需要演示账号，必须在部署仓库内明确声明为环境特例，而不是把模板默认值当成正式能力。
 
 ## 3. 健康检查契约
@@ -217,20 +217,20 @@
 
 - `main` 分支发布：
   - 版本 tag：`main-<sha12>`
-  - 通道 tag：`staging-latest`
+  - 通道 tag：`testing-latest`
 - `v*` tag 发布：
   - 版本 tag：`v*`
-  - 通道 tag：`prod-latest`
+  - 通道 tag：`production-latest`
 
 部署仓库约束：
 
 - 优先消费明确版本 tag，例如 `main-abc123def456` 或 `v1.2.3`。
-- `staging-latest` / `prod-latest` 只作为通道别名，不应成为唯一可追溯版本记录。
+- `testing-latest` / `production-latest` 只作为通道别名，不应成为唯一可追溯版本记录。
 - 部署仓库不得自行拼出另一套镜像名规则。
 
 ## 7. Deploy 事件契约
 
-当前模板仓库在镜像发布后会向部署仓库发送 deploy 事件，payload 语义固定包含：
+当前模板仓库在镜像发布后只会向部署仓库自动发送 `testing` deploy 事件，payload 语义固定包含：
 
 - `application`
 - `environment`
@@ -245,6 +245,7 @@
 
 - 应直接消费这些字段。
 - 若需要补充环境特有字段，应在部署仓库内部扩展，不反向要求模板仓库混入环境专属信息。
+- `production` 不由模板仓库自动 dispatch，而是在部署仓库中手动选择明确版本后发布。
 
 ## 8. 后续扩展规则
 

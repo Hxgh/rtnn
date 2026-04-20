@@ -131,7 +131,7 @@
 - `runner`
 - `paths`
 
-### 4.1 当前阶段推荐的 `staging` 结构
+### 4.1 当前阶段推荐的 `testing` 结构
 
 首发建议固定为：
 
@@ -145,7 +145,7 @@
 
 ```yaml
 version: v1
-environment: staging
+environment: testing
 
 host_model: single-host
 placement: shared-host-isolated-stack

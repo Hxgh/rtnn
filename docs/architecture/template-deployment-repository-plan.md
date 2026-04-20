@@ -1,223 +1,129 @@
 # 模板部署仓库首发方案
 
-本文档给出独立部署仓库的首发规划，目标是让 `rtnn` 模板工程与后续部署工程顺利衔接，而不是继续把环境编排塞回模板仓库。
-
-建议仓库名：
-
-- `rtnn-deploy`
-
-若后续派生模板，命名跟随 `projectId` 调整，例如：
-
-- `acme-deploy`
+本文档给出 `rtnn-deploy` 的正式首发模型。目标不是把“某台服务器的运维记录”塞进仓库，而是把部署引擎、环境边界和触发关系固定下来。
 
 ## 1. 首发目标
 
-独立部署仓库首发只解决三件事：
+独立部署仓库首发只解决四件事：
 
 1. 接收模板仓库已通过 gate 的镜像版本。
-2. 用一套明确目录组织管理环境编排与 secrets 注入。
-3. 提供可重复执行的发布、回滚与 smoke 检查入口。
-
-本阶段明确不做：
-
-- Kubernetes / Helm / Terraform 全量接入。
-- Preview 环境泛滥。
-- 监控、告警、日志平台的完整平台化。
-- weapp 小程序发布平台集成。
+2. 管理 `testing / production` 两套远程环境。
+3. 提供可重复执行的 deploy / rollback / smoke 入口。
+4. 保持开源可见部分脱敏，不承接真实实例 secrets。
 
 ## 2. 技术基线
 
-首发建议固定为：
+首发基线固定为：
 
 - 镜像仓库：GHCR
 - 编排方式：Docker Compose
-- 发布粒度：`backend / admin / app / weapp(H5)`
-- 环境层次：`staging / production` 为首发必需；`dev` 只保留扩展位
+- 部署粒度：`backend / admin / app / weapp(H5)`
+- 环境层次：`testing / production`
+- 触发模型：
+  - `testing`：模板仓库 `main` push 后自动 dispatch
+  - `production`：部署仓库手动提升
 
-这样做的原因：
+原因固定为：
 
-- 当前模板仓库已经稳定产出 Compose 友好的容器镜像。
-- 首发阶段最重要的是边界清晰、流程可回归，不是把平台复杂度一次性拉满。
-- 本地开发的 `docker-compose.yml` 已经留在模板仓库，独立部署仓库无需重复承接“本地开发”职责。
+- `testing` 负责持续验证模板主线，不应再靠人工抄版本。
+- `production` 必须基于明确版本手动确认，避免模板仓库自动把生产环境推走。
+- `local` 继续由 `rtnn` 自己负责，不在部署仓库平行再造一套。
 
 ## 3. 推荐目录结构
-
-建议首发目录结构如下：
 
 ```text
 rtnn-deploy/
 ├── README.md
 ├── docs/
 │   ├── environments.md
+│   ├── integration-checklist.md
 │   ├── release-runbook.md
 │   └── rollback-runbook.md
 ├── compose/
 │   ├── compose.base.yml
-│   ├── compose.staging.yml
+│   ├── compose.testing.yml
 │   └── compose.production.yml
 ├── env/
-│   ├── staging.env.example
+│   ├── testing.env.example
 │   ├── production.env.example
-│   └── shared.env.schema
+│   ├── shared.env.schema
+│   └── runtime/
 ├── scripts/
-│   ├── release/
-│   │   ├── promote.sh
-│   │   └── rollback.sh
-│   └── ops/
-│       ├── run-migrate.sh
-│       └── smoke-check.sh
+│   ├── ci/
+│   ├── lib/
+│   ├── ops/
+│   └── release/
 └── .github/workflows/
-    ├── deploy-staging.yml
-    └── deploy-production.yml
+    ├── deploy-testing.yml
+    ├── deploy-production.yml
+    ├── rollback-testing.yml
+    └── rollback-production.yml
 ```
 
-目录职责固定为：
+## 4. 环境模型
 
-- `compose/`：只放环境编排，不放契约定义。
-- `env/`：只放环境变量样板和字段说明，不提交真实 secrets。
-- `scripts/release/`：只承载发布与回滚入口。
-- `scripts/ops/`：只承载迁移、探活、诊断等运维辅助动作。
-- `docs/`：只写环境与发布 runbook，不复制模板仓库的应用说明。
+### 4.1 `testing`
 
-## 4. 环境分层建议
+`testing` 是模板主线的自动验证环境：
 
-### 4.1 local
+- 消费 `main-<sha12>` 镜像版本。
+- 由 `rtnn` 的 `release-images` 自动 dispatch 触发。
+- 默认用于联调、回归、验收与模板链路真实性验证。
 
-`local` 继续由模板仓库负责：
+### 4.2 `production`
+
+`production` 是正式环境：
+
+- 消费明确版本，例如 `v1.0.0`。
+- 只在 `rtnn-deploy` 仓库中手动执行发布。
+- 部署前固定执行迁移、探活、回滚点记录。
+
+### 4.3 `local`
+
+`local` 不属于 `rtnn-deploy`：
 
 - 根级 `.env`
 - 根级 `docker-compose.yml`
 - `bootstrap`
 - `dev:web`
 
-不建议把本地开发再平行复制一套到部署仓库。
+这些都继续留在模板仓库 `rtnn`。
 
-### 4.2 staging
+## 5. 开源边界
 
-`staging` 是部署仓库首发必需环境：
+`rtnn-deploy` 可以开源，但必须满足以下边界：
 
-- 消费 `main-<sha12>` 或明确的 staging 版本。
-- 允许自动部署或较轻量审批。
-- 用于联调、回归、验收与候选版本验证。
+- 允许进入仓库：
+  - compose overlay
+  - deploy/rollback/smoke 脚本
+  - env example
+  - 文档、workflow、校验脚本
+- 不允许进入仓库：
+  - 真实 runtime env
+  - 真实域名与服务器路径实值
+  - 数据库密码、JWT secrets、dispatch token
+  - 某个实例专属的说明、截图和维护备忘
 
-### 4.3 production
+实例级非敏感映射应放在 `rtnn-demo` 这类本地或私有实例目录，而不是硬塞进 `rtnn` 或 `rtnn-deploy`。
 
-`production` 是部署仓库首发必需环境：
+## 6. 与模板仓库的协作方式
 
-- 消费 `v*` 正式版本。
-- 保留人工审批。
-- 部署前固定执行迁移、探活与回滚点记录。
+协作关系固定为：
 
-### 4.4 dev
+1. `rtnn` 通过发布前 gate。
+2. `rtnn` 构建并推送镜像到 GHCR。
+3. 若是 `main` push，则自动 dispatch 到 `rtnn-deploy/testing`。
+4. 若是 `v*` tag，则只产出 production 候选镜像。
+5. 生产发布由 `rtnn-deploy` 手动执行 `deploy-production`。
 
-`dev` 只保留扩展位：
+## 7. 完成标准
 
-- 若未来存在共享远程开发环境，再在部署仓库增加。
-- 当前不建议为“看起来完整”而先造一个空壳 `dev` 环境。
+当 `rtnn-deploy` 达到以下标准，即可认为模板部署工程首发合格：
 
-## 5. 环境变量组织原则
-
-部署仓库中的环境变量组织应遵循：
-
-- 变量名来自模板仓库定义的部署契约。
-- 环境文件只管理值，不重命名 key。
-- secrets 不提交到仓库。
-- `env/*.example` 只给字段参考和必填说明。
-
-建议按三层组织：
-
-1. 共享身份层：
-   - `TEMPLATE_PROJECT_ID`
-   - `TEMPLATE_BRAND_NAME`
-   - `TEMPLATE_COOKIE_PREFIX`
-   - `TEMPLATE_IMAGE_NAME_PREFIX`
-   - `TEMPLATE_DEPLOY_APPLICATION`
-2. backend 安全层：
-   - `DATABASE_URL`
-   - `JWT_ACCESS_SECRET`
-   - `JWT_REFRESH_SECRET`
-   - `CORS_ORIGINS`
-3. web 地址层：
-   - `NEXT_PUBLIC_API_BASE_URL`
-   - `NEXT_PUBLIC_BACKEND_URL`
-   - `BACKEND_INTERNAL_BASE_URL`
-
-## 6. 发布顺序建议
-
-独立部署仓库的发布顺序建议固定为：
-
-1. 解析待发布版本与镜像 tag。
-2. 拉取目标镜像。
-3. 执行 backend 数据库迁移。
-4. 更新 backend。
-5. 等待 backend `/readyz` 通过。
-6. 更新 `admin / app / weapp(H5)`。
-7. 执行环境 smoke check。
-8. 记录发布结果与回滚点。
-
-约束固定为：
-
-- 数据库迁移优先于新版本 backend 流量切换。
-- `admin / app / weapp(H5)` 不应先于 backend 契约版本更新。
-- 若 backend 探活失败，部署流程必须中止，不继续推进前端服务。
-
-## 7. 回滚策略建议
-
-首发回滚策略保持简单：
-
-- 回滚单位：镜像 tag
-- 回滚入口：`scripts/release/rollback.sh`
-- 回滚前提：数据库迁移必须保持向前兼容，或由部署仓库显式定义不可回滚版本策略
-
-建议部署仓库至少记录：
-
-- 上一成功版本 tag
-- 上一成功发布时间
-- 对应 commit sha
-- 是否执行过 schema migration
-
-## 8. 与模板仓库的协作方式
-
-推荐使用两种方式之一：
-
-### 8.1 repository dispatch
-
-由模板仓库 `release-images` workflow 在镜像推送后，向部署仓库发送 dispatch 事件。
-
-优点：
-
-- 版本来源单一。
-- 不需要部署仓库自己轮询镜像仓库。
-- 便于串联自动部署与审批流。
-
-### 8.2 手动选择版本
-
-部署仓库也可以提供手动输入镜像版本 tag 的工作流。
-
-适合场景：
-
-- 需要回滚到任意历史版本。
-- staging 想重复验证旧候选版本。
-
-无论哪种方式，都应遵循模板仓库中已定义的镜像命名与版本语义。
-
-## 9. weapp 的后续处理建议
-
-`weapp` 当前已经以 H5 投影站点形式进入首发部署仓库主线。
-
-后续仍要分清两条线：
-
-- H5 版本：继续作为正式部署面，可后续再升级为 CDN 或对象存储分发。
-- 小程序版本：单独建设上传包构建、审核、发布与平台凭据管理流程。
-
-也就是说，本轮收口的是 `weapp H5`，不是把小程序平台发布混进当前部署主线。
-
-## 10. 当前阶段完成标准
-
-当独立部署仓库开始实施时，达到以下标准即可视为首发合格：
-
-- 能消费模板仓库已通过 gate 的 `backend / admin / app / weapp(H5)` 镜像。
-- 能为 `staging / production` 注入正式环境变量。
+- 可以消费 `backend / admin / app / weapp(H5)` 正式镜像。
+- `testing` 自动发布链路清晰且可验证。
+- `production` 手动提升入口固定且可回归。
+- 仓库公开内容不含真实实例 secrets。
 - 能执行 backend 迁移、服务更新、backend 探活与基础 smoke check。
 - 能按镜像 tag 做回滚。
 - 不在部署仓库内重新定义接口、权限、OpenAPI、环境变量名或健康检查路径。

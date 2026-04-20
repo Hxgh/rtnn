@@ -12,7 +12,7 @@
 
 如果继续把模板工程和部署工程混在一起，会同时出现三个问题：
 
-1. 模板仓库会被环境差异污染，逐渐长出 `staging/prod` 特化配置、运维脚本和私有化约束。
+1. 模板仓库会被环境差异污染，逐渐长出 `testing/production` 以外的实例特化配置、运维脚本和私有化约束。
 2. 部署仓库会反向复制接口、环境变量、健康检查和镜像命名规则，形成平行事实源。
 3. 派生模板时，执行者会分不清哪些资产属于“可复用模板”，哪些资产属于“某个环境的私有运维实现”。
 
@@ -39,7 +39,7 @@
 
 模板仓库不负责：
 
-- `staging / production` 环境编排文件。
+- `testing / production` 环境编排文件。
 - 生产域名、TLS、Ingress、反向代理、WAF、CDN。
 - 环境级 secrets、秘钥轮换、证书与账户权限治理。
 - 回滚历史、环境清单、运维审批流、值班与监控平台配置。
@@ -54,6 +54,7 @@
 - 数据库迁移执行顺序、发布顺序与回滚入口。
 - 环境级 smoke check、发布记录与运维 runbook。
 - 接收模板仓库的镜像版本或 repository dispatch 事件，并据此执行部署。
+- 对 `testing` 自动部署和 `production` 手动提升进行落实。
 
 部署仓库不负责：
 
@@ -82,7 +83,7 @@
 
 以下内容即使后续补齐，也不应回流到模板仓库主线：
 
-- `compose.prod.yml`、`compose.staging.yml` 这类环境专属编排文件。
+- `compose.testing.yml`、`compose.production.yml` 这类环境专属编排文件。
 - Nginx/Caddy/Traefik 生产代理配置。
 - 环境域名、证书、Webhook 地址、仓库 dispatch 地址实值。
 - 环境专属的数据库备份、恢复、回滚脚本。
@@ -95,8 +96,9 @@
 
 1. 模板仓库通过正式 gate，产出可发布候选。
 2. 模板仓库构建并推送 `backend / admin / app / weapp(H5)` 镜像到 GHCR。
-3. 模板仓库通过 dispatch 事件或版本约定，把镜像版本交给部署仓库。
-4. 部署仓库完成环境变量注入、迁移、部署、探活与回滚管理。
+3. `main` 分支通过 dispatch 事件把 testing 版本交给部署仓库。
+4. `v*` tag 只产出 production 候选镜像，由部署仓库手动提升。
+5. 部署仓库完成环境变量注入、迁移、部署、探活与回滚管理。
 
 ## 与现有文档的关系
 
@@ -104,4 +106,5 @@
 - 模板交付执行手册：[`template-delivery-runbook.md`](./template-delivery-runbook.md)
 - 模板发布工程化计划：[`template-release-engineering-plan.md`](./template-release-engineering-plan.md)
 - 部署契约定义：[`template-deployment-contract.md`](./template-deployment-contract.md)
+- 仓库关系与触发拓扑：[`template-repository-topology.md`](./template-repository-topology.md)
 - 部署仓库首发方案：[`template-deployment-repository-plan.md`](./template-deployment-repository-plan.md)

@@ -119,12 +119,12 @@ jobs:
 
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF_NAME}"
-            CHANNEL="prod-latest"
-            DEPLOY_ENVIRONMENT="production"
+            CHANNEL="production-latest"
+            DEPLOY_ENVIRONMENT=""
           else
             VERSION="main-${SHORT_SHA}"
-            CHANNEL="staging-latest"
-            DEPLOY_ENVIRONMENT="staging"
+            CHANNEL="testing-latest"
+            DEPLOY_ENVIRONMENT="testing"
           fi
 
           {
@@ -181,12 +181,12 @@ jobs:
           IMAGE_NAME_PREFIX="${TEMPLATE_IMAGE_NAME_PREFIX:-$PROJECT_ID}"
           DEPLOY_APPLICATION_NAME="${TEMPLATE_DEPLOY_APPLICATION:-$PROJECT_ID}"
           SHORT_SHA="${GITHUB_SHA::12}"
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF_NAME}"
-            DEPLOY_ENVIRONMENT="production"
-          else
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             VERSION="main-${SHORT_SHA}"
-            DEPLOY_ENVIRONMENT="staging"
+            DEPLOY_ENVIRONMENT="testing"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+            DEPLOY_ENVIRONMENT=""
           fi
 
           EVENT_TYPE="${DEPLOY_EVENT_TYPE:-${TEMPLATE_DEPLOY_EVENT_TYPE:-promote-${PROJECT_ID}}}"
@@ -204,7 +204,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Dispatch deploy event
-        if: ${{ steps.dispatch.outputs.enabled == 'true' }}
+        if: ${{ steps.dispatch.outputs.enabled == 'true' && steps.payload.outputs.deploy_environment != '' }}
         env:
           DISPATCH_URL: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_URL }}
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
