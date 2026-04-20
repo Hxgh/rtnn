@@ -25,14 +25,16 @@ ENV PORT=5100
 
 COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/backend/package.json apps/backend/package.json
+COPY apps/backend/prisma apps/backend/prisma
+COPY apps/backend/prisma.config.ts apps/backend/prisma.config.ts
 COPY packages/config/package.json packages/config/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/shared-schemas/package.json packages/shared-schemas/package.json
 
 RUN pnpm install --filter backend... --prod --no-frozen-lockfile
+RUN pnpm --dir apps/backend run prisma:generate
 
 COPY --from=builder /workspace/apps/backend/dist ./apps/backend/dist
-COPY --from=builder /workspace/apps/backend/prisma ./apps/backend/prisma
 COPY --from=builder /workspace/packages/config/dist ./packages/config/dist
 COPY --from=builder /workspace/packages/shared-types/dist ./packages/shared-types/dist
 COPY --from=builder /workspace/packages/shared-schemas/dist ./packages/shared-schemas/dist
