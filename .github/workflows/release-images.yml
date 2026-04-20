@@ -217,26 +217,36 @@ jobs:
           APP_IMAGE: ${{ steps.payload.outputs.app_image }}
           WEAPP_IMAGE: ${{ steps.payload.outputs.weapp_image }}
         run: |
+          payload="$(jq -n \
+            --arg event_type "${EVENT_TYPE}" \
+            --arg application "${DEPLOY_APPLICATION}" \
+            --arg environment "${DEPLOY_ENVIRONMENT}" \
+            --arg version "${VERSION}" \
+            --arg sha "${GITHUB_SHA}" \
+            --arg backend "${BACKEND_IMAGE}" \
+            --arg admin "${ADMIN_IMAGE}" \
+            --arg app "${APP_IMAGE}" \
+            --arg weapp "${WEAPP_IMAGE}" \
+            '{
+              event_type: $event_type,
+              client_payload: {
+                application: $application,
+                environment: $environment,
+                version: $version,
+                sha: $sha,
+                images: {
+                  backend: $backend,
+                  admin: $admin,
+                  app: $app,
+                  weapp: $weapp
+                }
+              }
+            }'
+          )"
+
           curl --fail --show-error --silent \
             -X POST "${DISPATCH_URL}" \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            -d "$(cat <<JSON
-          {
-            \"event_type\": \"${EVENT_TYPE}\",
-            \"client_payload\": {
-              \"application\": \"${DEPLOY_APPLICATION}\",
-              \"environment\": \"${DEPLOY_ENVIRONMENT}\",
-              \"version\": \"${VERSION}\",
-              \"sha\": \"${GITHUB_SHA}\",
-              \"images\": {
-                \"backend\": \"${BACKEND_IMAGE}\",
-                \"admin\": \"${ADMIN_IMAGE}\",
-                \"app\": \"${APP_IMAGE}\",
-                \"weapp\": \"${WEAPP_IMAGE}\"
-              }
-            }
-          }
-          JSON
-          )"
+            -d "${payload}"
