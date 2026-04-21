@@ -1,7 +1,7 @@
 import { Input, Text, View } from "@tarojs/components"
 import { useDidShow } from "@tarojs/taro"
 import type { CustomerLoginBody } from "@rtnn/api-sdk"
-import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from "@rtnn/config"
+import { TEMPLATE_DISPLAY } from "@rtnn/config"
 import { goToHome } from "../../lib/navigation"
 import { getSdkClient } from "../../lib/sdk/client"
 import { authSession } from "../../lib/session/auth"
@@ -12,8 +12,8 @@ const initialCredentials: {
   email: string
   password: string
 } = {
-  email: TEMPLATE_DEFAULTS.customer.email,
-  password: TEMPLATE_DEFAULTS.customer.password
+  email: "",
+  password: ""
 }
 
 export default function LoginPage() {

@@ -1,7 +1,6 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from '@rtnn/config';
 
 const trimStringValue = (value: unknown): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -9,7 +8,7 @@ const trimStringValue = (value: unknown): unknown =>
 export class LoginDto {
   @ApiProperty({
     description: 'Login email',
-    example: TEMPLATE_DEFAULTS.admin.email,
+    example: 'admin@example.com',
   })
   @Transform(({ value }: TransformFnParams): unknown => trimStringValue(value))
   @IsEmail()
@@ -18,7 +17,7 @@ export class LoginDto {
   @ApiProperty({
     description: 'Password for login',
     minLength: 8,
-    example: 'Admin123!@#',
+    example: 'StrongPass123!',
   })
   @IsString()
   @MinLength(8)
@@ -26,7 +25,7 @@ export class LoginDto {
 
   @ApiPropertyOptional({
     description: 'Optional display name metadata',
-    example: TEMPLATE_DISPLAY.adminAppEn,
+    example: 'RTNN Admin',
   })
   @IsOptional()
   @Transform(({ value }: TransformFnParams): unknown => trimStringValue(value))

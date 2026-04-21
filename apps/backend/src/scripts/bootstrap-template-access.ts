@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { TEMPLATE_DEFAULTS } from '@rtnn/config';
+import { TEMPLATE_ACCESS_DEFAULTS } from '@rtnn/config/template-access';
 import { PasswordService } from '../modules/auth/password.service';
 import { bootstrapTemplateAccess } from '../support/bootstrap-template-access';
 
@@ -24,8 +24,8 @@ async function main() {
         {
           tenant: result.defaultTenant.slug,
           permissionCount: result.permissions.length,
-          admin: skipAdmin ? null : TEMPLATE_DEFAULTS.admin.email,
-          customer: skipCustomer ? null : TEMPLATE_DEFAULTS.customer.email,
+          admin: skipAdmin ? null : TEMPLATE_ACCESS_DEFAULTS.admin.email,
+          customer: skipCustomer ? null : TEMPLATE_ACCESS_DEFAULTS.customer.email,
         },
         null,
         2,

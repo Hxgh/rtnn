@@ -1,4 +1,4 @@
-import { TEMPLATE_DEFAULTS } from '@rtnn/config';
+import { TEMPLATE_ACCESS_DEFAULTS } from '@rtnn/config/template-access';
 import { PrismaClient } from '@prisma/client';
 import { PERMISSION_SEEDS } from '../common/constants/permissions.const';
 import { PasswordService } from '../modules/auth/password.service';
@@ -21,8 +21,8 @@ type BootstrapTemplateAccessOptions = {
 export async function bootstrapTemplateAccess({
   prisma,
   passwordService,
-  adminFixture = TEMPLATE_DEFAULTS.admin,
-  customerFixture = TEMPLATE_DEFAULTS.customer,
+  adminFixture = TEMPLATE_ACCESS_DEFAULTS.admin,
+  customerFixture = TEMPLATE_ACCESS_DEFAULTS.customer,
   skipAdmin = false,
   skipCustomer = false,
 }: BootstrapTemplateAccessOptions) {

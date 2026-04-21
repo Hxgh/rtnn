@@ -1,5 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TEMPLATE_DEFAULTS } from '@rtnn/config';
 import {
   IsArray,
   IsEmail,
@@ -12,11 +11,11 @@ import {
 const adminUserStatuses = ['active', 'disabled', 'locked'] as const;
 
 export class CreateAdminUserDto {
-  @ApiProperty({ example: TEMPLATE_DEFAULTS.admin.email })
+  @ApiProperty({ example: 'ops-admin@example.com' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ minLength: 8, example: 'Admin123!@#' })
+  @ApiProperty({ minLength: 8, example: 'StrongPass123!' })
   @IsString()
   @MinLength(8)
   password: string;

@@ -27,16 +27,12 @@ function SubmitButton({
 export function LoginForm({
   action,
   dictionary,
-  defaultEmail,
-  defaultPassword,
 }: {
   action: (
     state: LoginFormState,
     formData: FormData,
   ) => Promise<LoginFormState>;
   dictionary: Pick<AdminDictionary, "auth" | "common">;
-  defaultEmail: string;
-  defaultPassword: string;
 }) {
   const [state, formAction] = useActionState(action, {
     ok: false,
@@ -56,7 +52,6 @@ export function LoginForm({
         <Label htmlFor="email">{dictionary.auth.email}</Label>
         <Input
           autoComplete="username"
-          defaultValue={defaultEmail}
           id="email"
           name="email"
           placeholder={dictionary.auth.emailPlaceholder}
@@ -68,7 +63,6 @@ export function LoginForm({
         <Label htmlFor="password">{dictionary.auth.password}</Label>
         <Input
           autoComplete="current-password"
-          defaultValue={defaultPassword}
           id="password"
           name="password"
           placeholder={dictionary.auth.passwordPlaceholder}

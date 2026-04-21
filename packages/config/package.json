@@ -11,10 +11,15 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./template-access": {
+      "types": "./dist/template-access.d.ts",
+      "import": "./dist/template-access.js",
+      "require": "./dist/template-access.cjs"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "build": "tsup src/index.ts src/template-access.ts --format esm,cjs --dts --clean",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   }

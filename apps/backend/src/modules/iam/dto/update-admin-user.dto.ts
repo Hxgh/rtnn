@@ -20,7 +20,7 @@ export class UpdateAdminUserDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ minLength: 8, example: 'Admin123!@#' })
+  @ApiPropertyOptional({ minLength: 8, example: 'StrongPass123!' })
   @IsOptional()
   @IsString()
   @MinLength(8)

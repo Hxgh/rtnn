@@ -1,5 +1,4 @@
 import { loginAction } from "./actions";
-import { TEMPLATE_DEFAULTS } from "@rtnn/config";
 import Link from "next/link";
 import { BottomActionBar } from "@/components/site/bottom-action-bar";
 import { BrandLogoLockup } from "@/components/brand/brand-logo";
@@ -29,7 +28,6 @@ export default async function LoginPage({
   const { messages } = await getServerI18n();
   const params = searchParams ? await searchParams : undefined;
   const redirectTo = params?.redirectTo?.startsWith("/") ? params.redirectTo : "/";
-  const defaultCustomer = TEMPLATE_DEFAULTS.customer;
   const errorMessage =
     params?.error === "invalid"
       ? messages.login.invalid
@@ -69,7 +67,6 @@ export default async function LoginPage({
                 name="email"
                 required
                 autoComplete="username"
-                defaultValue={defaultCustomer.email}
               />
             </div>
             <div className="space-y-2">
@@ -80,7 +77,6 @@ export default async function LoginPage({
                 name="password"
                 required
                 autoComplete="current-password"
-                defaultValue={defaultCustomer.password}
               />
             </div>
             {errorMessage ? (

@@ -1,14 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from '@rtnn/config';
 
 export class AdminSessionUserDto {
   @ApiProperty({ example: 'acc_01JABCD123' })
   id: string;
 
-  @ApiProperty({ example: TEMPLATE_DEFAULTS.admin.email })
+  @ApiProperty({ example: 'admin@example.com' })
   email: string;
 
-  @ApiProperty({ example: TEMPLATE_DISPLAY.adminAppEn })
+  @ApiProperty({ example: 'Operations Admin' })
   name: string;
 
   @ApiProperty({

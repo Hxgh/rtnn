@@ -1,5 +1,5 @@
 import { loginAction } from "@/app/(auth)/login/actions";
-import { TEMPLATE_DEFAULTS, TEMPLATE_DISPLAY } from "@rtnn/config";
+import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { BrandLogoLockup, BrandLogoMark } from "@/src/components/brand/brand-logo";
 import { LoginHeroCanvas } from "@/src/components/auth/login-hero-canvas";
 import { LoginForm } from "@/src/components/auth/login-form";
@@ -15,7 +15,6 @@ import { getAdminI18n } from "@/src/i18n/server";
 
 export default async function LoginPage() {
   const { dictionary } = await getAdminI18n();
-  const defaultAdmin = TEMPLATE_DEFAULTS.admin;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col px-4 py-6">
@@ -60,8 +59,6 @@ export default async function LoginPage() {
               <LoginForm
                 action={loginAction}
                 dictionary={{ auth: dictionary.auth, common: dictionary.common }}
-                defaultEmail={defaultAdmin.email}
-                defaultPassword={defaultAdmin.password}
               />
             </CardContent>
           </Card>

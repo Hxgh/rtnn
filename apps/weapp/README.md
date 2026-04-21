@@ -116,7 +116,7 @@ The current implementation uses the default `@rtnn/api-sdk` package as the reque
 At minimum, verify:
 
 - open H5 and reach the home page
-- login succeeds with the template customer account
+- login succeeds with the configured acceptance customer account
 - session reload still restores the authenticated state
 - me page shows the authenticated customer
 - logout returns to the login page
