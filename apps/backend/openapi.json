@@ -1387,13 +1387,13 @@
           "email": {
             "type": "string",
             "description": "Login email",
-            "example": "admin@rtnn.local"
+            "example": "admin@example.com"
           },
           "password": {
             "type": "string",
             "description": "Password for login",
             "minLength": 8,
-            "example": "Admin123!@#"
+            "example": "StrongPass123!"
           },
           "displayName": {
             "type": "string",
@@ -1415,11 +1415,11 @@
           },
           "email": {
             "type": "string",
-            "example": "admin@rtnn.local"
+            "example": "admin@example.com"
           },
           "name": {
             "type": "string",
-            "example": "RTNN Admin"
+            "example": "Operations Admin"
           },
           "audience": {
             "type": "string",
@@ -1588,7 +1588,7 @@
           },
           "email": {
             "type": "string",
-            "example": "customer@rtnn.local"
+            "example": "customer@example.com"
           },
           "name": {
             "type": "string",
@@ -1664,12 +1664,12 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "admin@rtnn.local"
+            "example": "ops-admin@example.com"
           },
           "password": {
             "type": "string",
             "minLength": 8,
-            "example": "Admin123!@#"
+            "example": "StrongPass123!"
           },
           "displayName": {
             "type": "string",
@@ -1721,7 +1721,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "example": "Admin123!@#"
+            "example": "StrongPass123!"
           },
           "roleIds": {
             "example": [
@@ -1844,7 +1844,7 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "customer@rtnn.local"
+            "example": "customer@example.com"
           },
           "name": {
             "type": "string",
@@ -1853,7 +1853,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "example": "Customer123!@#"
+            "example": "StrongPass123!"
           },
           "phone": {
             "type": "string",
@@ -1875,7 +1875,7 @@
         "properties": {
           "email": {
             "type": "string",
-            "example": "customer@rtnn.local"
+            "example": "customer@example.com"
           },
           "name": {
             "type": "string",
@@ -1884,7 +1884,7 @@
           "password": {
             "type": "string",
             "minLength": 8,
-            "example": "Customer123!@#"
+            "example": "StrongPass123!"
           },
           "phone": {
             "type": "string",
@@ -1919,7 +1919,7 @@
           "nextPassword": {
             "type": "string",
             "minLength": 8,
-            "example": "Customer123!@#"
+            "example": "StrongPass123!"
           }
         },
         "required": [

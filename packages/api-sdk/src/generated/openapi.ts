@@ -512,12 +512,12 @@ export interface components {
         LoginDto: {
             /**
              * @description Login email
-             * @example admin@rtnn.local
+             * @example admin@example.com
              */
             email: string;
             /**
              * @description Password for login
-             * @example Admin123!@#
+             * @example StrongPass123!
              */
             password: string;
             /**
@@ -529,9 +529,9 @@ export interface components {
         AdminSessionUserDto: {
             /** @example acc_01JABCD123 */
             id: string;
-            /** @example admin@rtnn.local */
+            /** @example admin@example.com */
             email: string;
-            /** @example RTNN Admin */
+            /** @example Operations Admin */
             name: string;
             /**
              * @description Session audience
@@ -610,7 +610,7 @@ export interface components {
         CustomerSessionUserDto: {
             /** @example acc_01JABCD123 */
             id: string;
-            /** @example customer@rtnn.local */
+            /** @example customer@example.com */
             email: string;
             /** @example Template Customer */
             name: string;
@@ -644,9 +644,9 @@ export interface components {
             user: components["schemas"]["CustomerSessionUserDto"];
         };
         CreateAdminUserDto: {
-            /** @example admin@rtnn.local */
+            /** @example ops-admin@example.com */
             email: string;
-            /** @example Admin123!@# */
+            /** @example StrongPass123! */
             password: string;
             /** @example Operations Admin */
             displayName?: string;
@@ -671,7 +671,7 @@ export interface components {
             displayName?: string;
             /** @example Operations Admin */
             name?: string;
-            /** @example Admin123!@# */
+            /** @example StrongPass123! */
             password?: string;
             /**
              * @example [
@@ -737,11 +737,11 @@ export interface components {
             permissionKeys: string[];
         };
         CreateCustomerDto: {
-            /** @example customer@rtnn.local */
+            /** @example customer@example.com */
             email: string;
             /** @example Template Customer */
             name: string;
-            /** @example Customer123!@# */
+            /** @example StrongPass123! */
             password: string;
             /** @example 13800138000 */
             phone?: string;
@@ -749,11 +749,11 @@ export interface components {
             tenantId?: string;
         };
         UpdateCustomerDto: {
-            /** @example customer@rtnn.local */
+            /** @example customer@example.com */
             email?: string;
             /** @example Template Customer */
             name?: string;
-            /** @example Customer123!@# */
+            /** @example StrongPass123! */
             password?: string;
             /** @example 13800138000 */
             phone?: string;
@@ -768,7 +768,7 @@ export interface components {
             status: "active" | "inactive" | "blocked";
         };
         ResetCustomerPasswordDto: {
-            /** @example Customer123!@# */
+            /** @example StrongPass123! */
             nextPassword: string;
         };
         CreateCustomerGroupDto: {
