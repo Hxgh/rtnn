@@ -47,6 +47,12 @@
 - 人工记忆 PG/Redis 如何复用
 - 人工维护 Nginx 路由分发
 
+同机双环境并存时还必须满足一个额外前提：
+
+- 接入共享 ingress network 的 runtime 服务别名必须带环境维度
+- 不能让 `testing` 与 `production` 共同暴露同名 alias
+- 否则反向代理会出现 testing / production 串线
+
 ## 2. 配置分层
 
 推荐固定为三层配置：
@@ -160,7 +166,8 @@
     "sharedInfra": {
       "network": {
         "mode": "shared-existing",
-        "name": "<shared-docker-network>"
+        "name": "<shared-docker-network>",
+        "ingressAliasMode": "environment-scoped"
       },
       "postgres": {
         "mode": "shared-existing",
@@ -187,6 +194,17 @@
   }
 }
 ```
+
+若实例采用共享 network + 单机双环境模型，首发建议把 runtime alias 固定为：
+
+- `<project-id>-testing-backend`
+- `<project-id>-testing-admin`
+- `<project-id>-testing-app`
+- `<project-id>-testing-weapp`
+- `<project-id>-production-backend`
+- `<project-id>-production-admin`
+- `<project-id>-production-app`
+- `<project-id>-production-weapp`
 
 ## 5. 当前部署形态的容器角色
 

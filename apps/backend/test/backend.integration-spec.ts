@@ -3,6 +3,25 @@ import { PERMISSION_SEEDS } from '../src/common/constants/permissions.const';
 import { PasswordService } from '../src/modules/auth/password.service';
 import { bootstrapTemplateAccess } from '../src/support/bootstrap-template-access';
 
+async function truncateAllTablesForTest(harness: BackendTestHarness) {
+  const schema = process.env.TEST_DATABASE_SCHEMA ?? 'backend_template_test';
+  const tables = await harness.prismaClient.$queryRawUnsafe<
+    Array<{ tablename: string }>
+  >(`SELECT tablename FROM pg_tables WHERE schemaname = '${schema}'`);
+
+  if (tables.length === 0) {
+    return;
+  }
+
+  const quotedTables = tables
+    .map(({ tablename }) => `"${schema}"."${tablename}"`)
+    .join(', ');
+
+  await harness.prismaClient.$executeRawUnsafe(
+    `TRUNCATE TABLE ${quotedTables} RESTART IDENTITY CASCADE`,
+  );
+}
+
 describe('Backend integration', () => {
   const harness = new BackendTestHarness();
 
@@ -240,6 +259,40 @@ describe('Backend integration', () => {
 
     await harness.loginAdmin().expect(200);
     await harness.loginCustomer().expect(200);
+  });
+
+  it('supports admin-only template bootstrap without creating customer accounts', async () => {
+    await truncateAllTablesForTest(harness);
+    const passwordService = new PasswordService();
+
+    await bootstrapTemplateAccess({
+      prisma: harness.prismaClient,
+      passwordService,
+      adminFixture: {
+        email: 'production-admin@rtnn.local',
+        password: 'Admin123!@#',
+        displayName: 'Production Admin',
+      },
+      skipCustomer: true,
+    });
+
+    const [tenantCount, roleCount, permissionCount, accountCount] =
+      await Promise.all([
+        harness.prismaClient.tenant.count(),
+        harness.prismaClient.role.count(),
+        harness.prismaClient.permission.count(),
+        harness.prismaClient.account.count(),
+      ]);
+
+    expect(tenantCount).toBe(1);
+    expect(roleCount).toBe(2);
+    expect(permissionCount).toBe(PERMISSION_SEEDS.length);
+    expect(accountCount).toBe(1);
+
+    await harness
+      .loginAdmin('production-admin@rtnn.local', 'Admin123!@#')
+      .expect(200);
+    await harness.loginCustomer().expect(401);
   });
 
   it('paginates admin list endpoints with stable meta and filters', async () => {

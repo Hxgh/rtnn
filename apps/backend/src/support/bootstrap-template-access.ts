@@ -14,6 +14,8 @@ type BootstrapTemplateAccessOptions = {
   passwordService: PasswordService;
   adminFixture?: TemplateAccessFixture;
   customerFixture?: TemplateAccessFixture;
+  skipAdmin?: boolean;
+  skipCustomer?: boolean;
 };
 
 export async function bootstrapTemplateAccess({
@@ -21,6 +23,8 @@ export async function bootstrapTemplateAccess({
   passwordService,
   adminFixture = TEMPLATE_DEFAULTS.admin,
   customerFixture = TEMPLATE_DEFAULTS.customer,
+  skipAdmin = false,
+  skipCustomer = false,
 }: BootstrapTemplateAccessOptions) {
   const defaultTenant = await prisma.tenant.upsert({
     where: { slug: 'default' },
@@ -114,82 +118,90 @@ export async function bootstrapTemplateAccess({
     });
   }
 
-  const adminAccount = await prisma.account.upsert({
-    where: { email: adminFixture.email },
-    update: {
-      status: 'active',
-      tenantId: defaultTenant.id,
-      passwordHash: await passwordService.hash(adminFixture.password),
-    },
-    create: {
-      email: adminFixture.email,
-      passwordHash: await passwordService.hash(adminFixture.password),
-      status: 'active',
-      tenantId: defaultTenant.id,
-      adminProfile: {
-        create: {
-          name: adminFixture.displayName,
-          tenantId: defaultTenant.id,
-        },
-      },
-    },
-  });
-
-  const customerAccount = await prisma.account.upsert({
-    where: { email: customerFixture.email },
-    update: {
-      status: 'active',
-      tenantId: defaultTenant.id,
-      passwordHash: await passwordService.hash(customerFixture.password),
-    },
-    create: {
-      email: customerFixture.email,
-      passwordHash: await passwordService.hash(customerFixture.password),
-      status: 'active',
-      tenantId: defaultTenant.id,
-      customerProfile: {
-        create: {
-          name: customerFixture.displayName,
-          tenantId: defaultTenant.id,
+  const adminAccount = skipAdmin
+    ? null
+    : await prisma.account.upsert({
+        where: { email: adminFixture.email },
+        update: {
           status: 'active',
+          tenantId: defaultTenant.id,
+          passwordHash: await passwordService.hash(adminFixture.password),
+        },
+        create: {
+          email: adminFixture.email,
+          passwordHash: await passwordService.hash(adminFixture.password),
+          status: 'active',
+          tenantId: defaultTenant.id,
+          adminProfile: {
+            create: {
+              name: adminFixture.displayName,
+              tenantId: defaultTenant.id,
+            },
+          },
+        },
+      });
+
+  const customerAccount = skipCustomer
+    ? null
+    : await prisma.account.upsert({
+        where: { email: customerFixture.email },
+        update: {
+          status: 'active',
+          tenantId: defaultTenant.id,
+          passwordHash: await passwordService.hash(customerFixture.password),
+        },
+        create: {
+          email: customerFixture.email,
+          passwordHash: await passwordService.hash(customerFixture.password),
+          status: 'active',
+          tenantId: defaultTenant.id,
+          customerProfile: {
+            create: {
+              name: customerFixture.displayName,
+              tenantId: defaultTenant.id,
+              status: 'active',
+            },
+          },
+        },
+      });
+
+  if (adminAccount) {
+    await prisma.accountRole.upsert({
+      where: {
+        accountId_roleId_audience: {
+          accountId: adminAccount.id,
+          roleId: superAdminRole.id,
+          audience: 'admin',
         },
       },
-    },
-  });
-
-  await prisma.accountRole.upsert({
-    where: {
-      accountId_roleId_audience: {
+      update: {},
+      create: {
         accountId: adminAccount.id,
         roleId: superAdminRole.id,
         audience: 'admin',
+        tenantId: defaultTenant.id,
       },
-    },
-    update: {},
-    create: {
-      accountId: adminAccount.id,
-      roleId: superAdminRole.id,
-      audience: 'admin',
-      tenantId: defaultTenant.id,
-    },
-  });
+    });
+  }
 
-  await prisma.accountRole.upsert({
-    where: {
-      accountId_roleId_audience: {
+  if (customerAccount) {
+    await prisma.accountRole.upsert({
+      where: {
+        accountId_roleId_audience: {
+          accountId: customerAccount.id,
+          roleId: customerRole.id,
+          audience: 'customer',
+        },
+      },
+      update: {},
+      create: {
         accountId: customerAccount.id,
         roleId: customerRole.id,
         audience: 'customer',
+        tenantId: defaultTenant.id,
       },
-    },
-    update: {},
-    create: {
-      accountId: customerAccount.id,
-      roleId: customerRole.id,
-      audience: 'customer',
-      tenantId: defaultTenant.id,
-    },
-  });
+    });
+  }
 
   return {
     defaultTenant,
