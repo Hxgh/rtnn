@@ -153,7 +153,7 @@ const zhCN: AppMessages = {
   },
   login: {
     title: "登录",
-    description: "使用模板内置客户账号登录，验证正式会话链路。",
+    description: "使用客户账号登录，继续访问首页与个人中心。",
     email: "邮箱",
     password: "密码",
     submit: "登录",
