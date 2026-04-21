@@ -23,6 +23,8 @@ let sourceShaArg = "";
 let databasePasswordArg = "";
 let jwtAccessSecretArg = "";
 let jwtRefreshSecretArg = "";
+let templateRootArg = "";
+let deployRootArg = "";
 
 for (let index = 0; index < args.length; index += 1) {
   if (args[index] === "--environment") {
@@ -45,6 +47,12 @@ for (let index = 0; index < args.length; index += 1) {
     index += 1;
   } else if (args[index] === "--jwt-refresh-secret") {
     jwtRefreshSecretArg = args[index + 1];
+    index += 1;
+  } else if (args[index] === "--template-root") {
+    templateRootArg = args[index + 1];
+    index += 1;
+  } else if (args[index] === "--deploy-root") {
+    deployRootArg = args[index + 1];
     index += 1;
   } else {
     console.error(`未知参数: ${args[index]}`);
@@ -81,10 +89,14 @@ if (!postgresConfig?.host || !postgresConfig?.port) {
 
 const deployRepoName = getRepoName(config.repositories?.deploy?.repo);
 const templateRepoName = getRepoName(config.repositories?.template?.repo);
-const deployRoot = path.resolve(rootDir, "..", deployRepoName);
-const templateRoot = path.resolve(rootDir, "..", templateRepoName);
+const deployRoot = deployRootArg
+  ? path.resolve(rootDir, deployRootArg)
+  : path.resolve(rootDir, "..", deployRepoName);
+const templateRoot = templateRootArg
+  ? path.resolve(rootDir, templateRootArg)
+  : path.resolve(rootDir, "..", templateRepoName);
 const renderScript = path.join(deployRoot, "scripts", "ops", "render-runtime-env.sh");
-const templateEnvFile = path.join(templateRoot, ".env");
+const templateEnvFile = resolveTemplateEnvFile(templateRoot);
 const outputFile =
   outputFileArg || path.join(deployRoot, "env", "runtime", `${environment}.env`);
 
@@ -93,8 +105,10 @@ if (!existsSync(renderScript)) {
   process.exit(1);
 }
 
-if (!existsSync(templateEnvFile)) {
-  console.error(`缺少模板 env 文件: ${templateEnvFile}`);
+if (!templateEnvFile) {
+  console.error(
+    `缺少模板 env 文件: ${path.join(templateRoot, ".env")} 或 ${path.join(templateRoot, ".env.example")}`,
+  );
   process.exit(1);
 }
 
@@ -239,6 +253,20 @@ function getRepoName(repo) {
 
   const parts = repo.split("/");
   return parts[parts.length - 1];
+}
+
+function resolveTemplateEnvFile(templateRootPath) {
+  const envFile = path.join(templateRootPath, ".env");
+  if (existsSync(envFile)) {
+    return envFile;
+  }
+
+  const envExampleFile = path.join(templateRootPath, ".env.example");
+  if (existsSync(envExampleFile)) {
+    return envExampleFile;
+  }
+
+  return "";
 }
 
 function buildDatabaseUrl({ username, password, host, port, database }) {

@@ -95,6 +95,7 @@ pnpm run template:scaffold-instance -- \
 - `.rtnn/acceptance.md`
 - `CLAUDE.md`
 - `README.md`
+- `scripts/check-instance-boundary.mjs`
 - `scripts/sync-from-template.sh`
 - `scripts/render-runtime-env.mjs`
 

@@ -49,7 +49,7 @@
 - 触发模型固定为：`main -> testing` 自动发布，`production` 在 `rtnn-deploy` 手动提升
 - backend 发布前固定执行权限生成、OpenAPI 导出、typecheck 与 backend 核心测试
 - 模板仓库只定义部署边界与部署契约，不直接承载正式环境编排
-- 首个真实实例建议通过 `rtnn-demo` 承接非敏感实例契约，而不是把实例规则继续塞回模板仓库
+- 首个真实实例建议通过 `rtnn-demo` 这类实例契约仓承接非敏感实例映射，而不是把实例规则继续塞回模板仓库
 - 真实环境 secrets 默认继续由 GitHub Environment secrets 或服务器本地受限文件管理
 
 ## 交付文档

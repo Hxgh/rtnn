@@ -118,7 +118,7 @@ pnpm run template:init -- \
 - `rtnn-deploy`
   - 独立部署引擎，负责 `testing / production` 发布与回滚
 - `rtnn-demo`
-  - 实例级非敏感映射与真实验收目录
+  - 实例级非敏感映射、薄实例资产与真实验收目录，不承载模板源码 fork
 
 当前环境模型固定为：
 

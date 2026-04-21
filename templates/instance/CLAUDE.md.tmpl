@@ -33,7 +33,16 @@
 ## 维护规则
 
 - 通用能力必须先进入 `{{TEMPLATE_REPO_NAME}}`，禁止先在实例仓库偷改再回搬。
-- 实例仓库同步模板时，默认走 `upstream merge`，不手工复制关键代码。
+- 实例仓库不做模板源码下游 merge；同步只刷新模板托管的薄实例资产。
+- 模板同步与模板引用校验通过临时模板工作区完成，不把整份 `{{TEMPLATE_REPO_NAME}}` 长期放进当前仓库。
+- 实例仓库不承接模板源码目录；默认只允许跟踪 `.rtnn / scripts / README.md / CLAUDE.md / .gitignore` 这组薄实例资产。
+- 允许跟踪的实际文件白名单，以 `.rtnn/instance.json` 的 `boundary.allowedTrackedPaths` 为准。
+- 模板托管文件清单，以 `.rtnn/instance.json` 的 `sync.templateManagedPaths` 为准。
+- 实例自有文件清单，以 `.rtnn/instance.json` 的 `sync.instanceOwnedPaths` 为准。
+- 未忽略的新文件也受同一份白名单约束，避免先落本地污染再进入提交。
+- 若确实需要新增实例文件，必须先更新 `.rtnn/instance.json` 的边界白名单，再新增文件。
+- 同步前后都要通过 `node scripts/check-instance-boundary.mjs`，不允许把污染留到“以后再清”。
+- 需要验证某个模板版本时，优先使用 `scripts/sync-from-template.sh --check --ref <ref>`，而不是先把模板代码 merge 进来再观察。
 - 只要内容属于“当前实例独有”，就优先放在本仓库，不回写到 `{{TEMPLATE_REPO_NAME}}` 或 `{{DEPLOY_REPO_NAME}}`。
 - 只要内容属于“模板通用规则”或“部署引擎通用规则”，就必须回到 `{{TEMPLATE_REPO_NAME}}` 或 `{{DEPLOY_REPO_NAME}}`，不能只留在这里。
 - 实例规则、同步边界、服务器契约优先集中维护在 `.rtnn/instance.json`。
@@ -44,6 +53,7 @@
 
 - `.rtnn/instance.json`
 - `.rtnn/acceptance.md`
+- `scripts/check-instance-boundary.mjs`
 - `scripts/sync-from-template.sh`
 - `scripts/render-runtime-env.mjs`
 - `README.md`

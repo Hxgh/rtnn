@@ -1,3 +1,75 @@
+# workspace dependencies
+node_modules/
+.pnpm-store/
+
+# lock files not tracked
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+bun.lockb
+
+# local environment
+.env
+.env.local
+.env.*.local
+.env.*
+
+# logs and runtime files
+*.log
+*.pid
+*.pid.lock
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and editor files
 .DS_Store
-node_modules
-.rtnn/tmp.*
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.swp
+*.swo
+*.orig
+
+# local build outputs and caches
+dist/
+build/
+.next/
+out/
+.swc/
+.turbo/
+.vercel/
+.cache/
+.temp/
+.taro/
+.eslintcache
+*.tmp
+*.temp
+*.tsbuildinfo
+next-env.d.ts
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# local data
+*.db
+*.sqlite
+
+# test and QA artifacts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+.playwright/
+/artifacts/
+
+# instance-local runtime data
+.rtnn/runtime/
+.rtnn/tmp/
+.rtnn/secrets/

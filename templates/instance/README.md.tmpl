@@ -39,6 +39,7 @@
 - [CLAUDE.md](./CLAUDE.md)
 - [`.rtnn/instance.json`](./.rtnn/instance.json)
 - [`.rtnn/acceptance.md`](./.rtnn/acceptance.md)
+- [`scripts/check-instance-boundary.mjs`](./scripts/check-instance-boundary.mjs)
 - [`scripts/sync-from-template.sh`](./scripts/sync-from-template.sh)
 - [`scripts/render-runtime-env.mjs`](./scripts/render-runtime-env.mjs)
 
@@ -66,8 +67,9 @@ production 正式入口固定为：
 
 1. 通用能力永远先改 `{{TEMPLATE_REPO_NAME}}`
 2. `{{INSTANCE_REPO_NAME}}` 只保留实例差异与实例契约
-3. `{{INSTANCE_REPO_NAME}}` 通过 `upstream merge` 同步 `{{TEMPLATE_REPO_NAME}}/main`
-4. 禁止手工挑“关键文件”复制到实例仓库
+3. `{{INSTANCE_REPO_NAME}}` 不 merge `{{TEMPLATE_REPO_NAME}}` 源码，只刷新模板托管的薄实例资产
+4. 模板同步与模板引用校验都通过临时模板工作区完成
+5. 禁止手工挑“关键文件”复制到实例仓库
 
 首次配置 upstream remote：
 
@@ -75,11 +77,36 @@ production 正式入口固定为：
 ./scripts/sync-from-template.sh --remote-only
 ```
 
-后续同步模板主线：
+后续刷新模板托管资产：
 
 ```bash
 ./scripts/sync-from-template.sh
 ```
+
+若要验证某个模板分支、tag 或 commit，但暂不落地当前实例文件：
+
+```bash
+./scripts/sync-from-template.sh --check --ref main
+```
+
+## 同步与防污染机制
+
+当前固定机制是：
+
+1. `{{INSTANCE_REPO_NAME}}` 只保留薄实例资产，不承接 `apps / packages / docs / compose` 等模板源码目录
+2. 允许跟踪的文件白名单，以 [`.rtnn/instance.json`](./.rtnn/instance.json) 里的 `boundary.allowedTrackedPaths` 为准
+3. 未忽略的新文件也受同一份白名单约束，避免实例仓库先被污染再提交
+4. 同步脚本会先做边界检查，再在临时模板工作区里生成一份新的实例资产
+5. 当前仓库只会刷新 `sync.templateManagedPaths` 里的模板托管文件，不会 merge 模板源码目录
+6. 当前仓库会保留 `sync.instanceOwnedPaths` 里的实例文件，并记录本次刷新的模板 ref / commit
+
+手工检查当前实例是否被污染：
+
+```bash
+node ./scripts/check-instance-boundary.mjs
+```
+
+如果未来确实需要新增实例文件，先改 `boundary.allowedTrackedPaths`，再新增文件；不要先加文件再解释原因。
 
 ## 实例驱动的 deploy env 渲染
 

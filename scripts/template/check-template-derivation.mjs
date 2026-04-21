@@ -77,6 +77,11 @@ function main() {
     const instanceJsonPath = path.join(instanceDir, ".rtnn", "instance.json");
     const acceptancePath = path.join(instanceDir, ".rtnn", "acceptance.md");
     const readmePath = path.join(instanceDir, "README.md");
+    const boundaryScriptPath = path.join(
+      instanceDir,
+      "scripts",
+      "check-instance-boundary.mjs",
+    );
     const syncScriptPath = path.join(instanceDir, "scripts", "sync-from-template.sh");
     const runtimeScriptPath = path.join(instanceDir, "scripts", "render-runtime-env.mjs");
     const testingRuntimeEnvPath = path.join(tempRoot, "testing.runtime.env");
@@ -85,9 +90,11 @@ function main() {
     assert(existsSync(instanceJsonPath), "缺少 .rtnn/instance.json");
     assert(existsSync(acceptancePath), "缺少 .rtnn/acceptance.md");
     assert(existsSync(readmePath), "缺少 README.md");
+    assert(existsSync(boundaryScriptPath), "缺少 scripts/check-instance-boundary.mjs");
     assert(existsSync(syncScriptPath), "缺少 scripts/sync-from-template.sh");
     assert(existsSync(runtimeScriptPath), "缺少 scripts/render-runtime-env.mjs");
 
+    run("node", ["--check", boundaryScriptPath], "校验实例边界脚本语法");
     run("bash", ["-n", syncScriptPath], "校验实例同步脚本语法");
     run("node", ["--check", runtimeScriptPath], "校验实例 env 渲染脚本语法");
 
@@ -150,6 +157,10 @@ EOF
     );
     chmodSync(path.join(deployRepoDir, "scripts", "ops", "render-runtime-env.sh"), 0o755);
 
+    run("git", ["-C", instanceDir, "init"], "初始化临时实例 git 仓库");
+    run("git", ["-C", instanceDir, "add", "."], "暂存临时实例文件");
+    run("node", [boundaryScriptPath], "执行实例边界校验");
+
     run(
       "node",
       [runtimeScriptPath, "--environment", "testing", "--output", testingRuntimeEnvPath],
@@ -175,6 +186,14 @@ EOF
     assert(
       instance.repositories?.deploy?.repo === "example/acme-deploy",
       "instance.json 未写入正确的 deploy repo",
+    );
+    assert(
+      instance.sync?.mode === "template-assets-refresh",
+      "instance.json 未写入正确的同步模式",
+    );
+    assert(
+      instance.templateSource?.model === "reference-workspace",
+      "instance.json 未写入正确的模板引用模型",
     );
     assert(
       instance.domains?.production?.root === "acme.example.com",

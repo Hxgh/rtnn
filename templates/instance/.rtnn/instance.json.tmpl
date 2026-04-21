@@ -1,5 +1,5 @@
 {
-  "version": "v3",
+  "version": "v4",
   "instance": {
     "repository": "{{INSTANCE_REPO}}",
     "purpose": "{{INSTANCE_PURPOSE}}",
@@ -30,15 +30,74 @@
     "deployEventType": "{{DEPLOY_EVENT_TYPE}}"
   },
   "sync": {
-    "mode": "upstream-merge",
+    "mode": "template-assets-refresh",
     "upstreamRemote": "upstream",
-    "upstreamBranch": "main",
-    "firstSyncAllowUnrelatedHistories": true,
-    "preservePaths": [
-      ".rtnn",
+    "defaultRef": "main",
+    "templateManagedPaths": [
+      ".gitignore",
+      "CLAUDE.md",
+      "scripts/check-instance-boundary.mjs",
+      "scripts/render-runtime-env.mjs",
+      "scripts/sync-from-template.sh"
+    ],
+    "instanceOwnedPaths": [
+      ".rtnn/acceptance.md",
+      ".rtnn/instance.json",
+      "README.md"
+    ],
+    "lastAssetSyncRef": "main",
+    "lastAssetSyncCommit": "pending-first-sync",
+    "validation": {
+      "environment": "testing",
+      "command": "node scripts/render-runtime-env.mjs --environment testing"
+    }
+  },
+  "templateSource": {
+    "model": "reference-workspace",
+    "note": [
+      "实例仓库不长期承载模板源码",
+      "同步与校验通过临时模板工作区完成"
+    ],
+    "localCandidatePaths": [
+      "../{{TEMPLATE_REPO_NAME}}"
+    ],
+    "remoteUrl": "https://github.com/{{TEMPLATE_REPO}}.git"
+  },
+  "boundary": {
+    "mode": "thin-instance",
+    "allowedTrackedPaths": [
+      ".gitignore",
+      ".rtnn/acceptance.md",
+      ".rtnn/instance.json",
       "CLAUDE.md",
       "README.md",
-      ".gitignore"
+      "scripts/check-instance-boundary.mjs",
+      "scripts/render-runtime-env.mjs",
+      "scripts/sync-from-template.sh"
+    ],
+    "forbiddenPathPrefixes": [
+      ".github/",
+      "apps/",
+      "packages/",
+      "docs/",
+      "compose/",
+      "tooling/",
+      "templates/",
+      "env/",
+      "state/"
+    ],
+    "forbiddenFileNames": [
+      ".env",
+      ".env.local",
+      ".env.testing",
+      ".env.production"
+    ],
+    "forbiddenFileSuffixes": [
+      ".pem",
+      ".key",
+      ".crt",
+      ".p12",
+      ".pfx"
     ]
   },
   "environmentModel": {
