@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_FILE="$ROOT_DIR/.rtnn/instance.json"
+
+[[ -f "$CONFIG_FILE" ]] || {
+  printf '缺少实例契约文件: %s\n' "$CONFIG_FILE" >&2
+  exit 1
+}
+
+if ! command -v jq >/dev/null 2>&1; then
+  printf '需要 jq 才能执行同步脚本。\n' >&2
+  exit 1
+fi
+
+REMOTE_ONLY="false"
+ALLOW_UNRELATED="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --remote-only)
+      REMOTE_ONLY="true"
+      shift
+      ;;
+    --initial)
+      ALLOW_UNRELATED="true"
+      shift
+      ;;
+    *)
+      printf '未知参数: %s\n' "$1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+UPSTREAM_REMOTE="$(jq -r '.sync.upstreamRemote' "$CONFIG_FILE")"
+UPSTREAM_BRANCH="$(jq -r '.sync.upstreamBranch' "$CONFIG_FILE")"
+TEMPLATE_REPO="$(jq -r '.repositories.template.repo' "$CONFIG_FILE")"
+UPSTREAM_URL="https://github.com/${TEMPLATE_REPO}.git"
+
+cd "$ROOT_DIR"
+
+if git remote get-url "$UPSTREAM_REMOTE" >/dev/null 2>&1; then
+  CURRENT_URL="$(git remote get-url "$UPSTREAM_REMOTE")"
+  if [[ "$CURRENT_URL" != "$UPSTREAM_URL" ]]; then
+    git remote set-url "$UPSTREAM_REMOTE" "$UPSTREAM_URL"
+  fi
+else
+  git remote add "$UPSTREAM_REMOTE" "$UPSTREAM_URL"
+fi
+
+printf 'upstream remote: %s -> %s\n' "$UPSTREAM_REMOTE" "$UPSTREAM_URL"
+
+if [[ "$REMOTE_ONLY" == "true" ]]; then
+  printf '只完成 remote 配置，未执行同步。\n'
+  exit 0
+fi
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  printf '工作区不干净，请先提交或清理后再同步。\n' >&2
+  exit 1
+fi
+
+git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
+
+TMP_DIR="$(mktemp -d)"
+cleanup() {
+  rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
+
+cp -R "$ROOT_DIR/.rtnn" "$TMP_DIR/.rtnn"
+cp "$ROOT_DIR/README.md" "$TMP_DIR/README.md"
+cp "$ROOT_DIR/CLAUDE.md" "$TMP_DIR/CLAUDE.md"
+cp "$ROOT_DIR/.gitignore" "$TMP_DIR/.gitignore"
+
+MERGE_ARGS=("$UPSTREAM_REMOTE/$UPSTREAM_BRANCH" "--no-ff" "-X" "ours" "-m" "chore(instance): sync template from ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}")
+if [[ "$ALLOW_UNRELATED" == "true" ]]; then
+  MERGE_ARGS+=("--allow-unrelated-histories")
+fi
+
+git merge "${MERGE_ARGS[@]}"
+
+rm -rf "$ROOT_DIR/.rtnn"
+cp -R "$TMP_DIR/.rtnn" "$ROOT_DIR/.rtnn"
+cp "$TMP_DIR/README.md" "$ROOT_DIR/README.md"
+cp "$TMP_DIR/CLAUDE.md" "$ROOT_DIR/CLAUDE.md"
+cp "$TMP_DIR/.gitignore" "$ROOT_DIR/.gitignore"
+
+git add .rtnn README.md CLAUDE.md .gitignore
+
+printf '模板同步完成。\n'
+printf '建议继续执行：\n'
+printf '  1. pnpm install\n'
+printf '  2. node scripts/render-runtime-env.mjs --environment testing\n'
+printf '  3. 运行本实例需要的 smoke / 验收\n'

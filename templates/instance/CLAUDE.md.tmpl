@@ -1,0 +1,49 @@
+# CLAUDE.md
+
+本文件是 `{{INSTANCE_REPO_NAME}}` 的唯一规则来源。
+
+## 基本定位
+
+- `{{INSTANCE_REPO_NAME}}` 是 `{{TEMPLATE_REPO_NAME}}` 的实例下游仓库。
+- 它负责实例级非敏感映射、真实验收记录、实例同步入口与必要的实例差异。
+- 它不是模板主线，也不是部署引擎仓库。
+- 它不反向成为 `{{TEMPLATE_REPO_NAME}}` 或 `{{DEPLOY_REPO_NAME}}` 的公开事实源。
+
+## 内容边界
+
+允许进入本仓库的内容：
+
+- 实例身份
+- 域名结构
+- 服务器目录与网络组织
+- `testing / production` 环境映射
+- 真实验收记录
+- `{{INSTANCE_REPO_NAME}} <- {{TEMPLATE_REPO_NAME}}` 的同步脚本
+- 基于实例契约的 deploy 渲染脚本
+- 与 `{{TEMPLATE_REPO_NAME}}`、`{{DEPLOY_REPO_NAME}}` 的对应关系
+
+禁止进入本仓库的内容：
+
+- 数据库密码
+- JWT secrets
+- GitHub token
+- SSH 私钥
+- 完整 runtime env
+
+## 维护规则
+
+- 通用能力必须先进入 `{{TEMPLATE_REPO_NAME}}`，禁止先在实例仓库偷改再回搬。
+- 实例仓库同步模板时，默认走 `upstream merge`，不手工复制关键代码。
+- 只要内容属于“当前实例独有”，就优先放在本仓库，不回写到 `{{TEMPLATE_REPO_NAME}}` 或 `{{DEPLOY_REPO_NAME}}`。
+- 只要内容属于“模板通用规则”或“部署引擎通用规则”，就必须回到 `{{TEMPLATE_REPO_NAME}}` 或 `{{DEPLOY_REPO_NAME}}`，不能只留在这里。
+- 实例规则、同步边界、服务器契约优先集中维护在 `.rtnn/instance.json`。
+- 当前真实验收结论与遗留事项优先集中维护在 `.rtnn/acceptance.md`。
+- 本仓库默认按 `testing + production` 双环境理解实例，不再使用 `staging` 作为正式环境名。
+
+## 固定入口
+
+- `.rtnn/instance.json`
+- `.rtnn/acceptance.md`
+- `scripts/sync-from-template.sh`
+- `scripts/render-runtime-env.mjs`
+- `README.md`

@@ -139,17 +139,7 @@ async function main() {
   assert(existsSync(TEMPLATE_ENV_FILE), `缺少环境文件 ${TEMPLATE_ENV_FILE}`);
 
   const bootstrapEnv = createBootstrapEnv();
-  const databaseUrl = new URL(bootstrapEnv.DATABASE_URL);
-  const databasePort = Number(databaseUrl.port || "5432");
-  const databaseHost = databaseUrl.hostname;
-
-  if (await isPortBusy(databaseHost, databasePort)) {
-    console.log(
-      `[bootstrap-check] PostgreSQL 已可用，跳过 postgres:up (${databaseHost}:${databasePort})`,
-    );
-  } else {
-    run("pnpm", ["run", "postgres:up"], "启动 PostgreSQL");
-  }
+  run("pnpm", ["run", "postgres:up"], "确保 PostgreSQL 已启动");
 
   const apiBaseUrl =
     apiBaseUrlOverride ?? `http://127.0.0.1:${bootstrapEnv.PORT}`;

@@ -1,0 +1,71 @@
+# {{BRAND_NAME}} Instance Acceptance
+
+## 当前固定结论
+
+- `{{TEMPLATE_REPO_NAME}}` 是唯一模板源码主线。
+- `{{INSTANCE_REPO_NAME}}` 是实例下游仓库，用来承接实例契约、真实验收记录，以及后续必要的实例差异。
+- `{{DEPLOY_REPO_NAME}}` 是独立部署引擎，只负责 `testing / production` 的发布、回滚与 smoke。
+
+## 当前环境语义
+
+- 当前远程环境只保留：
+  - `testing`
+  - `production`
+- 当前触发规则固定为：
+  - `{{TEMPLATE_REPO_NAME}} main` push -> `testing` 自动发布
+  - `production` 只在 `{{DEPLOY_REPO_NAME}}` 手动提升
+
+## 当前实例入口
+
+testing 正式验收入口固定为：
+
+- `https://{{TESTING_ROOT}}`
+- `https://{{TESTING_API}}`
+- `https://{{TESTING_ADMIN}}`
+- `https://{{TESTING_APP}}`
+- `https://{{TESTING_WEAPP}}`
+
+production 正式域名固定为：
+
+- `https://{{PRODUCTION_ROOT}}`
+- `https://{{PRODUCTION_API}}`
+- `https://{{PRODUCTION_ADMIN}}`
+- `https://{{PRODUCTION_APP}}`
+- `https://{{PRODUCTION_WEAPP}}`
+
+production 当前隐藏验收入口规划为：
+
+- `http://127.0.0.1:16100`
+- `http://127.0.0.1:16101`
+- `http://127.0.0.1:16102`
+- `http://127.0.0.1:16103`
+
+## 已收口事项
+
+- 实例仓库脚手架已建立。
+- `.rtnn/instance.json` 已成为实例契约唯一来源。
+- `scripts/sync-from-template.sh` 已成为实例同步入口。
+- `scripts/render-runtime-env.mjs` 已成为 deploy env 渲染入口。
+
+## 本阶段待验收项
+
+- `{{TEMPLATE_REPO_NAME}}`
+  - `pnpm run check:template-bootstrap`
+  - `pnpm run check:release-candidate`
+- `{{DEPLOY_REPO_NAME}}`
+  - `./scripts/ci/check-repository.sh`
+- 真实 `testing`
+  - backend `healthz / readyz / openapi.json`
+  - admin/customer 登录链路
+  - admin / app / weapp 入口可用
+- 真实 `production`
+  - 首次真实发布
+  - PostgreSQL / Redis 隔离验证
+  - 公网切流与回滚演练
+
+## 当前遗留项
+
+- 补齐真实服务器地址、证书名、runner 服务名等实例实值。
+- 生成并同步 `testing / production` runtime env secrets。
+- 完成第一次真实 `testing` 发布与 smoke。
+- 完成第一次真实 `production` 发布、切流与回滚验证。

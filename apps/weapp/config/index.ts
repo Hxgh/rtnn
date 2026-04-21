@@ -26,7 +26,12 @@ export default defineConfig<"vite">(async (merge) => {
     plugins: [],
     defineConstants: {},
     copy: {
-      patterns: [],
+      patterns: [
+        {
+          from: path.resolve(__dirname, "../src/runtime-config.js"),
+          to: path.resolve(__dirname, "../dist/runtime-config.js")
+        }
+      ],
       options: {}
     },
     framework: "react",

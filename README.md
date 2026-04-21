@@ -68,18 +68,37 @@ pnpm run dev:weapp:h5
 
 ## 派生模板
 
-派生新项目时，先改模板身份参数，再决定是否同步改源码中的项目名与 package scope。
+派生新项目时，优先使用统一入口：
 
 ```bash
-pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
-pnpm run template:rewrite-source -- --dry-run
-pnpm run template:rewrite-source -- --project-id=acme --package-scope=acme --brand-name=ACME
-pnpm install
-pnpm run contracts:permissions
-pnpm run contracts:sync
+pnpm run template:init -- --project-id=acme --brand-name=ACME
 ```
 
-`setup:env` 会以根级 `.env` 为唯一来源，清理 `apps/*` 下历史 env 文件，并维护根级 `.env.example`。
+若还要同步改源码中的项目名、workspace package scope 和静态引用：
+
+```bash
+pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme
+```
+
+若还要同时生成私有实例目录脚手架：
+
+```bash
+pnpm run template:init -- \
+  --project-id=acme \
+  --brand-name=ACME \
+  --rewrite-source \
+  --package-scope=acme \
+  --instance-dir=../acme-demo \
+  --instance-repo=your-org/acme-demo \
+  --deploy-repo=your-org/acme-deploy \
+  --base-domain=acme.example.com
+```
+
+其中：
+
+- `template:init` 会统一编排 `setup:env`
+- 传入 `--rewrite-source` 后，会继续执行源码级身份改写，并默认刷新依赖与契约产物
+- 传入 `--instance-dir` 后，会生成一个类似 `rtnn-demo` 的标准实例目录脚手架
 
 ## 环境与依赖策略
 
@@ -129,6 +148,7 @@ pnpm run check
 - `check:release-candidate`：串联契约漂移、backend 发布基线与多端交付烟测
 - `smoke:admin`：做一次管理后台 HTTP 冒烟
 - `check`：做仓库级 lint、typecheck、contracts、backend release、build 聚合检查
+  - 其中 `check:backend-release` 会先确保根级 env 与本地 PostgreSQL 可用，再执行 backend 正式发布基线
 
 ## AI 协作入口
 

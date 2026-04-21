@@ -194,7 +194,7 @@
 它们的职责分别是：
 
 - `check:template-bootstrap`：验证初始化链路与 backend 公开基线。
-- `check:backend-release`：验证 backend 正式发布基线。
+- `check:backend-release`：验证 backend 正式发布基线，并先确保本地 env 与 PostgreSQL 可用。
 - `check:release-candidate`：验证契约、backend、消费端交付闭环。
 
 部署仓库约束：

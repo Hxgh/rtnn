@@ -36,20 +36,53 @@ pnpm run dev:weapp:h5
 
 ## 派生自己的模板身份
 
-先改根级环境参数：
+推荐直接走统一入口：
 
 ```bash
-pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
+pnpm run template:init -- --project-id=acme --brand-name=ACME
 ```
+
+该命令会统一执行：
+
+- 根级 `.env` / `.env.example` 维护
+- 历史 `apps/*` env 文件清理
 
 如果还要同步改源码中的项目名、workspace package scope 和静态引用：
 
 ```bash
-pnpm run template:rewrite-source -- --dry-run
-pnpm run template:rewrite-source -- --project-id=acme --package-scope=acme --brand-name=ACME
-pnpm install
-pnpm run contracts:permissions
-pnpm run contracts:sync
+pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme
+```
+
+该命令默认还会继续执行：
+
+- `pnpm install`
+- `pnpm run contracts:permissions`
+- `pnpm run contracts:sync`
+
+如果要同时生成一个私有实例目录脚手架：
+
+```bash
+pnpm run template:init -- \
+  --project-id=acme \
+  --brand-name=ACME \
+  --rewrite-source \
+  --package-scope=acme \
+  --instance-dir=../acme-demo \
+  --instance-repo=your-org/acme-demo \
+  --deploy-repo=your-org/acme-deploy \
+  --base-domain=acme.example.com
+```
+
+若只想单独生成实例目录，也可以执行：
+
+```bash
+pnpm run template:scaffold-instance -- \
+  --project-id=acme \
+  --brand-name=ACME \
+  --target-dir=../acme-demo \
+  --instance-repo=your-org/acme-demo \
+  --deploy-repo=your-org/acme-deploy \
+  --base-domain=acme.example.com
 ```
 
 ## 依赖策略
@@ -66,7 +99,12 @@ pnpm run contracts:sync
 
 ```bash
 pnpm run check:template-bootstrap
+pnpm run check:template-derivation
 pnpm run check:release-candidate
 ```
 
-这两条命令会验证模板初始化、backend 发布基线和多端交付链路。
+这三条命令会分别验证：
+
+- 模板初始化链路
+- 模板派生与实例脚手架链路
+- backend 发布基线与多端交付链路

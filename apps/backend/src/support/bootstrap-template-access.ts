@@ -98,8 +98,7 @@ export async function bootstrapTemplateAccess({
 
   const customerPermissions = allPermissions.filter(
     (item) =>
-      item.key === 'customer:self:view' ||
-      item.key === 'customer:self:update',
+      item.key === 'customer:self:view' || item.key === 'customer:self:update',
   );
 
   for (const permission of customerPermissions) {

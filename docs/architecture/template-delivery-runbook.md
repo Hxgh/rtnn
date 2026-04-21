@@ -28,7 +28,7 @@ pnpm run setup:env
 若需要在初始化时直接改模板身份，可执行：
 
 ```bash
-pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
+pnpm run template:init -- --project-id=acme --brand-name=ACME
 ```
 
 常用参数包括：
@@ -51,16 +51,52 @@ pnpm run setup:env -- --project-id=acme --brand-name=ACME --force
 若还需要把 workspace package scope、静态 import、`pnpm --filter` 等源码级身份从当前默认值改成派生模板身份，执行：
 
 ```bash
-pnpm run template:rewrite-source -- --dry-run
-pnpm run template:rewrite-source -- --project-id=acme --package-scope=acme --brand-name=ACME
+pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme
 ```
 
 约束如下：
 
 - `--package-scope` 不传时，默认回退到 `projectId`
 - 脚本不改 generated 产物与本地依赖安装产物
-- 执行后需要重新 `pnpm install`
-- 若 backend 契约包名发生变化，再执行 `pnpm run contracts:permissions` 与 `pnpm run contracts:sync`
+- `template:init` 默认会在改写后自动执行 `pnpm install`
+- `template:init` 默认会在改写后自动执行 `pnpm run contracts:permissions` 与 `pnpm run contracts:sync`
+
+### 1.2.2 生成实例目录脚手架
+
+若需要同时生成一个私有实例目录：
+
+```bash
+pnpm run template:init -- \
+  --project-id=acme \
+  --brand-name=ACME \
+  --rewrite-source \
+  --package-scope=acme \
+  --instance-dir=../acme-demo \
+  --instance-repo=your-org/acme-demo \
+  --deploy-repo=your-org/acme-deploy \
+  --base-domain=acme.example.com
+```
+
+若只想单独生成实例目录，不改当前仓库源码：
+
+```bash
+pnpm run template:scaffold-instance -- \
+  --project-id=acme \
+  --brand-name=ACME \
+  --target-dir=../acme-demo \
+  --instance-repo=your-org/acme-demo \
+  --deploy-repo=your-org/acme-deploy \
+  --base-domain=acme.example.com
+```
+
+该脚手架会生成：
+
+- `.rtnn/instance.json`
+- `.rtnn/acceptance.md`
+- `CLAUDE.md`
+- `README.md`
+- `scripts/sync-from-template.sh`
+- `scripts/render-runtime-env.mjs`
 
 ### 1.3 启动数据库
 
@@ -71,7 +107,7 @@ pnpm run postgres:up
 默认使用本地 `docker compose` 拉起 PostgreSQL：
 
 - host: `localhost`
-- port: `5432`
+- port: `55432`
 - database: `rtnn`（当前默认初始化值）
 - user/password: `postgres/postgres`
 
@@ -115,6 +151,21 @@ pnpm run check:template-bootstrap
 - `GET /openapi.json`
 
 执行前需确保 `5100` 端口没有被其他本地进程占用。
+
+### 1.6.1 派生链路自动校验
+
+若需要确认模板派生与实例目录脚手架可用，可执行：
+
+```bash
+pnpm run check:template-derivation
+```
+
+该命令固定验证：
+
+- `template:init --dry-run`
+- `template:scaffold-instance`
+- 实例目录关键文件生成
+- `instance.json` 中的核心仓库/域名/ingress alias 约束
 
 ## 2. 联调
 
@@ -210,6 +261,8 @@ pnpm run check:backend-release
 
 覆盖：
 
+- 根级 env 就绪
+- PostgreSQL 就绪
 - 权限生成
 - OpenAPI 导出
 - backend typecheck
@@ -298,13 +351,14 @@ pnpm run check:template-delivery
 推荐严格按以下顺序执行：
 
 1. `pnpm run check:template-bootstrap`
-2. `pnpm run check:contracts`
-3. `pnpm run check:backend-release`
-4. `pnpm run smoke:admin:ui`
-5. `pnpm run smoke:app:ui`
-6. `pnpm run smoke:weapp:h5`
-7. `pnpm --filter weapp build:h5`
-8. `weapp` 手工验收
+2. `pnpm run check:template-derivation`
+3. `pnpm run check:contracts`
+4. `pnpm run check:backend-release`
+5. `pnpm run smoke:admin:ui`
+6. `pnpm run smoke:app:ui`
+7. `pnpm run smoke:weapp:h5`
+8. `pnpm --filter weapp build:h5`
+9. `weapp` 手工验收
 
 若只需要复跑消费端闭环，可执行：
 

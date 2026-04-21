@@ -8,6 +8,7 @@
 
 - [快速开始](./template/getting-started.md)
 - [模板最小承诺](./template/minimum-commitment.md)
+- 其中 `快速开始` 已包含统一派生入口 `template:init` 与实例目录脚手架入口 `template:scaffold-instance`
 
 ## 模板维护者
 

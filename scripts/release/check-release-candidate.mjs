@@ -52,6 +52,7 @@ function createReleaseCheckEnv() {
 
 function main() {
   run("pnpm", ["run", "setup:env"], "生成环境文件");
+  run("pnpm", ["run", "check:template-derivation"], "检查模板派生链路");
   run("pnpm", ["run", "postgres:up"], "启动 PostgreSQL");
 
   assert(existsSync(TEMPLATE_ENV_FILE), `缺少环境文件 ${TEMPLATE_ENV_FILE}`);

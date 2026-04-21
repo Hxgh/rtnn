@@ -1,7 +1,4 @@
-import {
-  DEFAULT_CORS_ORIGINS,
-  validateEnv,
-} from './env.validation';
+import { DEFAULT_CORS_ORIGINS, validateEnv } from './env.validation';
 
 describe('validateEnv', () => {
   it('should parse and normalize env config', () => {
@@ -9,7 +6,7 @@ describe('validateEnv', () => {
       NODE_ENV: 'development',
       PORT: '5100',
       DATABASE_URL:
-        'postgresql://postgres:postgres@localhost:5432/rtnn?schema=public',
+        'postgresql://postgres:postgres@localhost:55432/rtnn?schema=public',
       CORS_ORIGINS: 'http://localhost:5103,http://127.0.0.1:5103',
       LOGIN_RATE_LIMIT_WINDOW_SEC: '300',
       LOGIN_RATE_LIMIT_MAX_ATTEMPTS: '10',
@@ -33,7 +30,7 @@ describe('validateEnv', () => {
   it('should default cors origins for template consumers', () => {
     const parsed = validateEnv({
       DATABASE_URL:
-        'postgresql://postgres:postgres@localhost:5432/rtnn?schema=public',
+        'postgresql://postgres:postgres@localhost:55432/rtnn?schema=public',
       JWT_ACCESS_SECRET: 'abcdefghijklmnopqrstuvwxyz',
       JWT_REFRESH_SECRET: 'abcdefghijklmnopqrstuvwxyz012345',
     });

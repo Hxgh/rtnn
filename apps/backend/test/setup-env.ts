@@ -8,7 +8,7 @@ const ROOT_ENV_PATHS = [
 
 const DEFAULT_TEMPLATE_ENV = {
   TEMPLATE_DATABASE_HOST: 'localhost',
-  TEMPLATE_DATABASE_PORT: '5432',
+  TEMPLATE_DATABASE_PORT: '55432',
   TEMPLATE_DATABASE_NAME: 'rtnn',
   TEMPLATE_DATABASE_USER: 'postgres',
   TEMPLATE_DATABASE_PASSWORD: 'postgres',
@@ -34,21 +34,24 @@ function readEnvValue(key: string) {
       if (name !== key) {
         continue;
       }
-      return trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, '');
+      return trimmed
+        .slice(separatorIndex + 1)
+        .trim()
+        .replace(/^['"]|['"]$/g, '');
     }
   }
 
   return undefined;
 }
 
-function getTemplateEnvValue(
-  key: keyof typeof DEFAULT_TEMPLATE_ENV,
-): string {
+function getTemplateEnvValue(key: keyof typeof DEFAULT_TEMPLATE_ENV): string {
   return readEnvValue(key) ?? DEFAULT_TEMPLATE_ENV[key];
 }
 
 function buildDefaultDatabaseUrl() {
-  const username = encodeURIComponent(getTemplateEnvValue('TEMPLATE_DATABASE_USER'));
+  const username = encodeURIComponent(
+    getTemplateEnvValue('TEMPLATE_DATABASE_USER'),
+  );
   const password = encodeURIComponent(
     getTemplateEnvValue('TEMPLATE_DATABASE_PASSWORD'),
   );

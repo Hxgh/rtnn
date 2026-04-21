@@ -69,7 +69,7 @@ pnpm run weapp:typecheck
 - 容器默认端口：`5103`
 - 运行时 API 地址：`TARO_APP_API_BASE_URL`
 
-生产容器启动时会生成 `/runtime-config.js`，因此 `TARO_APP_API_BASE_URL` 可以在运行时注入，而不需要为不同环境重新构建镜像。
+H5 构建链会输出一个占位 `/runtime-config.js`，生产容器启动时会覆盖该文件并注入真实 `TARO_APP_API_BASE_URL`，因此不需要为不同环境重新构建镜像。
 
 ## Template scope
 

@@ -114,16 +114,13 @@ async function truncateAllTables(prisma: PrismaClient) {
 
 async function seedBaseData(prisma: PrismaClient) {
   const passwordService = new PasswordService();
-  const {
-    defaultTenant,
-    adminAccount,
-    customerAccount,
-  } = await bootstrapTemplateAccess({
-    prisma,
-    passwordService,
-    adminFixture: TEST_FIXTURES.admin,
-    customerFixture: TEST_FIXTURES.customer,
-  });
+  const { defaultTenant, adminAccount, customerAccount } =
+    await bootstrapTemplateAccess({
+      prisma,
+      passwordService,
+      adminFixture: TEST_FIXTURES.admin,
+      customerFixture: TEST_FIXTURES.customer,
+    });
 
   const limitedAdminAccount = await prisma.account.create({
     data: {

@@ -3,8 +3,11 @@ import { JWT_DEFAULTS, PORTS, TEMPLATE_IDENTITY } from '@rtnn/config';
 
 export type NodeEnv = 'development' | 'test' | 'production';
 
-export const DEFAULT_CORS_ORIGINS = [PORTS.admin, PORTS.app, PORTS.weappH5]
-  .flatMap((port) => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
+export const DEFAULT_CORS_ORIGINS = [
+  PORTS.admin,
+  PORTS.app,
+  PORTS.weappH5,
+].flatMap((port) => [`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
 
 export interface AppEnv {
   NODE_ENV: NodeEnv;
@@ -23,9 +26,7 @@ export interface AppEnv {
 
 export function normalizeCorsOrigins(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value
-      .map((origin) => String(origin).trim())
-      .filter(Boolean);
+    return value.map((origin) => String(origin).trim()).filter(Boolean);
   }
 
   if (typeof value === 'string') {
@@ -50,7 +51,7 @@ const envSchema = Joi.object<AppEnv>({
   DATABASE_URL: Joi.string()
     .uri({ scheme: ['postgresql', 'postgres'] })
     .default(
-      `postgresql://postgres:postgres@localhost:5432/${TEMPLATE_IDENTITY.projectId}?schema=public`,
+      `postgresql://postgres:postgres@localhost:55432/${TEMPLATE_IDENTITY.projectId}?schema=public`,
     ),
   CORS_ORIGINS: Joi.array()
     .items(Joi.string().uri({ scheme: ['http', 'https'] }))
