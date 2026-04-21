@@ -111,17 +111,15 @@
 
 私有实例目录不应手工复制 `rtnn` 代码，而应明确采用“上游同步 + 保留实例差异”的模式。
 
-建议在私有实例目录中固定一个同步清单，例如：
+建议在私有实例目录中固定一个最小实例元数据面，例如：
 
-- `.rtnn/project.yaml`
-- `.rtnn/server-profile.yaml`
-- `.rtnn/sync-manifest.yaml`
+- `.rtnn/instance.json`
+- `.rtnn/acceptance.md`
 
 其中：
 
-- `project.yaml`：实例身份参数。
-- `server-profile.yaml`：实例的非敏感服务器契约。
-- `sync-manifest.yaml`：哪些路径来自 `rtnn`，哪些路径需要在同步时保留。
+- `instance.json`：实例身份、仓库关系、同步规则、域名结构、服务器契约与环境边界。
+- `acceptance.md`：当前真实验收结论、有效入口与遗留事项。
 
 同步规则建议固定为：
 
@@ -131,36 +129,27 @@
 
 ## 6. 当前阶段推荐的实例元数据文件
 
-建议私有实例目录首发提供以下文件：
+建议私有实例目录首发只固定两个文件：
 
-### 6.1 `.rtnn/project.yaml`
+### 6.1 `.rtnn/instance.json`
 
-负责实例身份，例如：
+负责唯一实例契约，例如：
 
-- `project_id`
-- `brand_name`
-- `cookie_prefix`
-- `image_name_prefix`
-- `deploy_application`
-- `deploy_event_type`
+- 实例身份
+- 模板仓库 / 部署仓库 / 实例仓库关系
+- `upstream merge` 同步规则
+- testing / production 域名结构
+- 服务器契约
+- 环境映射
 
-### 6.2 `.rtnn/server-profile.yaml`
+### 6.2 `.rtnn/acceptance.md`
 
-负责实例的非敏感服务器契约，例如：
+负责人类可读的当前实例状态，例如：
 
-- 域名与入口模式
-- 复用既有共享网络还是独立网络
-- PostgreSQL / Redis 是复用还是独立
-- 目录布局
-- runner 是否启用
-
-### 6.3 `.rtnn/sync-manifest.yaml`
-
-负责同步保留规则，例如：
-
-- 上游仓库和 ref
-- 实例需要保留的目录
-- 不参与同步覆盖的文件
+- 当前 testing 入口
+- 当前回归结论
+- 当前遗留项
+- 兼容别名与历史状态说明
 
 ## 7. 与 `server/` 现状目录的关系
 
@@ -169,7 +158,7 @@
 后续推荐关系应为：
 
 - `server/README.md`：只作为过渡期现状参考。
-- `rtnn-demo` 这类实例目录中的 `.rtnn/server-profile.yaml`：成为实例级服务器契约事实源。
+- `rtnn-demo` 这类实例目录中的 `.rtnn/instance.json`：成为实例级契约事实源。
 - `rtnn-deploy`：消费该契约并生成部署产物。
 
 ## 8. 验收标准

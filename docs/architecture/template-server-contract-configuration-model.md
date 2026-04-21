@@ -91,15 +91,13 @@
 
 建议提供：
 
-- `.rtnn/project.yaml`
-- `.rtnn/server-profile.yaml`
-- `.rtnn/sync-manifest.yaml`
+- `.rtnn/instance.json`
+- `.rtnn/acceptance.md`
 
 其中：
 
-- `project.yaml`：实例身份。
-- `server-profile.yaml`：服务器契约。
-- `sync-manifest.yaml`：与 `rtnn` 的同步保留规则。
+- `instance.json`：实例身份、同步规则、服务器契约与环境映射的唯一机器配置入口。
+- `acceptance.md`：当前实例入口、真实验收结论与遗留事项。
 
 ### 3.2 在 `rtnn-deploy` 中
 
@@ -114,22 +112,16 @@
 
 `rtnn-deploy` 只存 schema、模板与渲染器，不存某个实例的真实配置。
 
-## 4. 推荐的 `server-profile.yaml` 字段
+## 4. 推荐的 `instance.json` 字段
 
 建议首版至少覆盖：
 
 - `version`
-- `environment`
-- `host_model`
-- `placement`
+- `instance`
+- `repositories`
+- `sync`
 - `domains`
-- `tls`
-- `ingress`
-- `network`
-- `postgres`
-- `redis`
-- `runner`
-- `paths`
+- `server`
 
 ### 4.1 当前阶段推荐的 `testing` 结构
 
@@ -141,60 +133,59 @@
 - PostgreSQL / Redis 支持复用既有基础设施，但逻辑隔离
 - `runner` 同机容器化部署
 
-对应的推荐值如下：
+对应的推荐值应集中进入一个实例契约文件，例如：
 
-```yaml
-version: v1
-environment: testing
-
-host_model: single-host
-placement: shared-host-isolated-stack
-
-domains:
-  base: <instance-base-domain>
-  api: api.<instance-base-domain>
-  admin: admin.<instance-base-domain>
-  app: app.<instance-base-domain>
-  weapp: weapp.<instance-base-domain>
-
-tls:
-  mode: shared-existing
-  cert_hosts:
-    - <instance-base-domain>
-    - '*.<instance-base-domain>'
-
-ingress:
-  mode: subdomain
-  provider: existing-proxy
-
-network:
-  mode: shared-existing
-  name: <shared-docker-network>
-
-postgres:
-  mode: shared-existing
-  container_name: <postgres-container-name>
-  database: <instance-postgres-database>
-  username: <instance-postgres-username>
-
-redis:
-  mode: shared-existing
-  container_name: <redis-container-name>
-  db: <instance-redis-db>
-  key_prefix: <instance-redis-key-prefix>
-
-runner:
-  enabled: true
-  mode: same-host-container
-  scope: repo-only
-
-paths:
-  root: <instance-root-path>
-  runtime_dir: <instance-runtime-dir>
-  infra_dir: <instance-infra-dir>
-  ops_dir: <instance-ops-dir>
-  env_dir: <instance-env-dir>
-  data_dir: <instance-data-dir>
+```json
+{
+  "version": "v3",
+  "domains": {
+    "testing": {
+      "root": "testing.<instance-base-domain>",
+      "api": "api.testing.<instance-base-domain>",
+      "admin": "admin.testing.<instance-base-domain>",
+      "app": "app.testing.<instance-base-domain>",
+      "weapp": "weapp.testing.<instance-base-domain>"
+    },
+    "production": {
+      "root": "<instance-base-domain>",
+      "api": "api.<instance-base-domain>",
+      "admin": "admin.<instance-base-domain>",
+      "app": "app.<instance-base-domain>",
+      "weapp": "weapp.<instance-base-domain>"
+    }
+  },
+  "server": {
+    "hostModel": "single-host",
+    "placement": "shared-host-isolated-stack",
+    "sharedInfra": {
+      "network": {
+        "mode": "shared-existing",
+        "name": "<shared-docker-network>"
+      },
+      "postgres": {
+        "mode": "shared-existing",
+        "containerName": "<postgres-container-name>",
+        "isolationStrategy": "per-environment-database-and-user"
+      },
+      "redis": {
+        "mode": "shared-existing",
+        "containerName": "<redis-container-name>",
+        "isolationStrategy": "per-environment-db-and-key-prefix"
+      }
+    },
+    "tls": {
+      "mode": "shared-unified-san-cert"
+    },
+    "paths": {
+      "root": "<instance-root-path>",
+      "runtime": "<instance-runtime-dir>",
+      "infra": "<instance-infra-dir>",
+      "ops": "<instance-ops-dir>",
+      "env": "<instance-env-dir>",
+      "data": "<instance-data-dir>"
+    }
+  }
+}
 ```
 
 ## 5. 当前部署形态的容器角色
@@ -255,8 +246,7 @@ paths:
 
 `rtnn-deploy` 的脚本应消费：
 
-- 私有实例目录中的 `.rtnn/project.yaml`
-- 私有实例目录中的 `.rtnn/server-profile.yaml`
+- 私有实例目录中的 `.rtnn/instance.json`
 - GitHub Environment secrets
 
 然后生成中间产物，例如：
@@ -280,7 +270,7 @@ paths:
 但正式长期边界应改为：
 
 - `server/README.md`：历史现状与人工排障参考
-- 私有实例目录中的 `.rtnn/server-profile.yaml`：实例级服务器契约事实源
+- 私有实例目录中的 `.rtnn/instance.json`：实例级服务器契约事实源
 - `rtnn-deploy` 渲染器：部署生成与发布执行事实源
 
 ## 9. 验收标准
