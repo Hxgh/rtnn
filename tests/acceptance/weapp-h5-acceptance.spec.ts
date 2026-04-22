@@ -13,6 +13,15 @@ test("weapp h5 客户端最小闭环验收", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByTestId("home-login-action")).toBeVisible();
+  await expect(page.locator(".weui-tabbar__item .weui-tabbar__icon")).toHaveCount(2);
+  await expect(page.locator(".weui-tabbar__item .weui-tabbar__icon").nth(0)).toHaveAttribute(
+    "src",
+    /(?:^|\/)(?:assets\/tabbar|static\/images)\/home(?:-active)?\.png|^data:image\/png/,
+  );
+  await expect(page.locator(".weui-tabbar__item .weui-tabbar__icon").nth(1)).toHaveAttribute(
+    "src",
+    /(?:^|\/)(?:assets\/tabbar|static\/images)\/me(?:-active)?\.png|^data:image\/png/,
+  );
 
   await page.getByTestId("home-login-action").click();
   await expect(page.getByTestId("login-submit-action")).toBeVisible();

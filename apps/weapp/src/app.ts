@@ -1,17 +1,21 @@
 import type { PropsWithChildren } from "react"
 import { useEffect } from "react"
 import "./app.css"
+import homeIcon from "./assets/tabbar/home.png"
+import homeActiveIcon from "./assets/tabbar/home-active.png"
+import meIcon from "./assets/tabbar/me.png"
+import meActiveIcon from "./assets/tabbar/me-active.png"
 
 const H5_TABBAR_ICONS = [
   {
     label: "首页",
-    icon: "assets/tabbar/home.png",
-    activeIcon: "assets/tabbar/home-active.png"
+    icon: homeIcon,
+    activeIcon: homeActiveIcon
   },
   {
     label: "我的",
-    icon: "assets/tabbar/me.png",
-    activeIcon: "assets/tabbar/me-active.png"
+    icon: meIcon,
+    activeIcon: meActiveIcon
   }
 ] as const
 
