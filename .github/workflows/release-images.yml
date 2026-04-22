@@ -156,30 +156,54 @@ jobs:
     needs: build-and-push
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Detect deploy dispatch config
         id: dispatch
         shell: bash
         env:
-          DISPATCH_URL: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_URL }}
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
         run: |
-          if [[ -z "${DISPATCH_URL}" || -z "${DISPATCH_TOKEN}" ]]; then
+          if [[ ! -f ".rtnn/project.json" ]]; then
             echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=missing-project-metadata" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          REPO_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
+          DEPLOY_REPO="$(jq -r '.deployment.repo // empty' .rtnn/project.json)"
+
+          if [[ "${REPO_ROLE}" != "business-source" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if [[ -z "${DEPLOY_REPO}" || -z "${DISPATCH_TOKEN}" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=missing-dispatch-config" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
           echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          echo "dispatch_url=https://api.github.com/repos/${DEPLOY_REPO}/dispatches" >> "${GITHUB_OUTPUT}"
+
+      - name: Skip deploy dispatch
+        if: ${{ steps.dispatch.outputs.enabled != 'true' }}
+        shell: bash
+        run: |
+          echo "deploy dispatch skipped: ${{ steps.dispatch.outputs.reason || 'not-enabled' }}"
 
       - name: Resolve release payload
         if: ${{ steps.dispatch.outputs.enabled == 'true' }}
         id: payload
         shell: bash
-        env:
-          DEPLOY_EVENT_TYPE: ${{ secrets.DEPLOY_REPOSITORY_EVENT_TYPE }}
         run: |
-          PROJECT_ID="${TEMPLATE_PROJECT_ID:-rtnn}"
-          IMAGE_NAME_PREFIX="${TEMPLATE_IMAGE_NAME_PREFIX:-$PROJECT_ID}"
-          DEPLOY_APPLICATION_NAME="${TEMPLATE_DEPLOY_APPLICATION:-$PROJECT_ID}"
+          PROJECT_ID="$(jq -r '.project.projectId // empty' .rtnn/project.json)"
+          IMAGE_NAME_PREFIX="$(jq -r '.deployment.imageNamePrefix // .project.projectId // empty' .rtnn/project.json)"
+          DEPLOY_APPLICATION_NAME="$(jq -r '.deployment.application // .project.projectId // empty' .rtnn/project.json)"
+          EVENT_TYPE="$(jq -r '.deployment.dispatchEventType // empty' .rtnn/project.json)"
           SHORT_SHA="${GITHUB_SHA::12}"
           if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             VERSION="main-${SHORT_SHA}"
@@ -189,7 +213,6 @@ jobs:
             DEPLOY_ENVIRONMENT=""
           fi
 
-          EVENT_TYPE="${DEPLOY_EVENT_TYPE:-${TEMPLATE_DEPLOY_EVENT_TYPE:-promote-${PROJECT_ID}}}"
           IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
 
           {
@@ -197,6 +220,8 @@ jobs:
             echo "version=${VERSION}"
             echo "deploy_environment=${DEPLOY_ENVIRONMENT}"
             echo "deploy_application=${DEPLOY_APPLICATION_NAME}"
+            echo "source_repository=${GITHUB_REPOSITORY}"
+            echo "source_ref=${GITHUB_REF}"
             echo "backend_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-backend:${VERSION}"
             echo "admin_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-admin:${VERSION}"
             echo "app_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-app:${VERSION}"
@@ -206,12 +231,14 @@ jobs:
       - name: Dispatch deploy event
         if: ${{ steps.dispatch.outputs.enabled == 'true' && steps.payload.outputs.deploy_environment != '' }}
         env:
-          DISPATCH_URL: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_URL }}
+          DISPATCH_URL: ${{ steps.dispatch.outputs.dispatch_url }}
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
           EVENT_TYPE: ${{ steps.payload.outputs.event_type }}
           VERSION: ${{ steps.payload.outputs.version }}
           DEPLOY_ENVIRONMENT: ${{ steps.payload.outputs.deploy_environment }}
           DEPLOY_APPLICATION: ${{ steps.payload.outputs.deploy_application }}
+          SOURCE_REPOSITORY: ${{ steps.payload.outputs.source_repository }}
+          SOURCE_REF: ${{ steps.payload.outputs.source_ref }}
           BACKEND_IMAGE: ${{ steps.payload.outputs.backend_image }}
           ADMIN_IMAGE: ${{ steps.payload.outputs.admin_image }}
           APP_IMAGE: ${{ steps.payload.outputs.app_image }}
@@ -223,6 +250,8 @@ jobs:
             --arg environment "${DEPLOY_ENVIRONMENT}" \
             --arg version "${VERSION}" \
             --arg sha "${GITHUB_SHA}" \
+            --arg source_repository "${SOURCE_REPOSITORY}" \
+            --arg source_ref "${SOURCE_REF}" \
             --arg backend "${BACKEND_IMAGE}" \
             --arg admin "${ADMIN_IMAGE}" \
             --arg app "${APP_IMAGE}" \
@@ -234,6 +263,8 @@ jobs:
                 environment: $environment,
                 version: $version,
                 sha: $sha,
+                source_repository: $source_repository,
+                source_ref: $source_ref,
                 images: {
                   backend: $backend,
                   admin: $admin,

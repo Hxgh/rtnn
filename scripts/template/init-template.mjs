@@ -10,8 +10,6 @@ function parseArgs(argv) {
     skipContracts: false,
     envArgs: [],
     rewriteArgs: [],
-    scaffoldArgs: [],
-    shouldScaffoldInstance: false,
     packageScope: "",
   };
 
@@ -30,25 +28,6 @@ function parseArgs(argv) {
     "--deploy-event-type",
     "--admin-email",
     "--customer-email",
-  ]);
-  const scaffoldEnvFlags = new Set([
-    "--project-id",
-    "--brand-name",
-    "--cookie-prefix",
-    "--image-prefix",
-    "--deploy-application",
-    "--deploy-event-type",
-  ]);
-
-  const scaffoldFlags = new Set([
-    "--target-dir",
-    "--instance-dir",
-    "--instance-repo",
-    "--template-repo",
-    "--deploy-repo",
-    "--base-domain",
-    "--instance-purpose",
-    "--instance-ownership",
   ]);
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -79,18 +58,13 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg === "--scaffold-instance") {
-      options.shouldScaffoldInstance = true;
-      continue;
-    }
-
     if (arg === "--help" || arg === "-h") {
       options.help = true;
       continue;
     }
 
     const [flag, inlineValue] = arg.split("=", 2);
-    const requiresValue = envFlags.has(flag) || scaffoldFlags.has(flag) || flag === "--package-scope";
+    const requiresValue = envFlags.has(flag) || flag === "--package-scope";
     if (!requiresValue) {
       throw new Error(`未知参数: ${arg}`);
     }
@@ -111,9 +85,6 @@ function parseArgs(argv) {
       if (flag === "--project-id" || flag === "--brand-name") {
         options.rewriteArgs.push(normalizedArg);
       }
-      if (scaffoldEnvFlags.has(flag)) {
-        options.scaffoldArgs.push(normalizedArg);
-      }
       continue;
     }
 
@@ -123,19 +94,14 @@ function parseArgs(argv) {
       options.rewriteArgs.push(normalizedArg);
       continue;
     }
-
-    options.shouldScaffoldInstance = true;
-    options.scaffoldArgs.push(normalizedArg);
   }
 
   if (options.force) {
     options.envArgs.push("--force");
-    options.scaffoldArgs.push("--force");
   }
 
   if (options.dryRun) {
     options.rewriteArgs.push("--dry-run");
-    options.scaffoldArgs.push("--dry-run");
   }
 
   return options;
@@ -148,7 +114,6 @@ function printHelp() {
 常用：
   pnpm run template:init -- --project-id=acme --brand-name=ACME
   pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme
-  pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme --instance-dir=../acme-demo --instance-repo=your-org/acme-demo --deploy-repo=your-org/acme-deploy --base-domain=acme.example.com
 
 选项：
   --project-id <value>
@@ -164,11 +129,6 @@ function printHelp() {
   --deploy-event-type <value>
   --rewrite-source        同步改源码中的项目名、scope 和静态引用
   --package-scope <value> 指定 workspace package scope；传入即自动启用 --rewrite-source
-  --instance-dir <path>   生成实例目录脚手架
-  --instance-repo <v>
-  --template-repo <v>
-  --deploy-repo <v>
-  --base-domain <v>
   --skip-install          rewrite-source 后跳过 pnpm install
   --skip-contracts        rewrite-source 后跳过 contracts:permissions / contracts:sync
   --force                 覆盖已有受管文件
@@ -203,6 +163,15 @@ function main() {
   }
 
   run("node", ["scripts/bootstrap/setup-env.mjs", ...options.envArgs], "生成或更新根级模板环境", options.dryRun);
+  run(
+    "node",
+    [
+      "scripts/template/sync-project-metadata.mjs",
+      ...(options.dryRun ? ["--dry-run"] : []),
+    ],
+    "同步业务仓项目事实文件",
+    options.dryRun,
+  );
 
   if (options.rewriteSource) {
     run(
@@ -222,20 +191,12 @@ function main() {
     }
   }
 
-  if (options.shouldScaffoldInstance) {
-    run(
-      "node",
-      ["scripts/template/scaffold-instance-repo.mjs", ...options.scaffoldArgs],
-      "生成实例目录脚手架",
-      options.dryRun,
-    );
-  }
-
   console.log("[template-init] 完成");
   console.log("[template-init] 建议继续执行：");
   console.log("  1. pnpm run check:template-bootstrap");
   console.log("  2. pnpm run check:template-derivation");
   console.log("  3. pnpm run check:release-candidate");
+  console.log("  4. 根据实际仓库与部署仓信息补齐 .rtnn/project.json");
 }
 
 main();

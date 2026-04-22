@@ -1,24 +1,30 @@
 # RTNN
 
-RTNN 是一套面向 AI 协作交付的全栈模板 monorepo。它不是 demo 仓库，主线是把 `backend`、`admin`、`app`、`weapp` 和 AI 协作元数据一起沉淀成可派生、可验收、可继续扩展的正式模板工程。
+RTNN 是一套面向 AI 协作交付的全栈模板 monorepo。它不是 demo 仓库，目标是沉淀一套可派生、可验收、可部署、可继续回流演进的正式模板工程。
 
 ## 模板定位
 
-- `apps/backend/`：NestJS 模板后端内核，也是唯一后端契约源
-- `apps/admin/`：Next.js 管理后台
-- `apps/app/`：Next.js 移动端前台
-- `apps/weapp/`：Taro + React 小程序端
-- `packages/`：共享配置、共享类型、共享 schema、API SDK
-- `docs/`：模板使用文档与内部工程文档
-- `scripts/`：按职责分层的仓库级工程脚本
-- `tests/acceptance/` 与 `tooling/playwright/`：交付验收与 UI 烟测基座
+- `apps/backend/`
+  - NestJS 模板后端内核，也是唯一后端契约源
+- `apps/admin/`
+  - Next.js 管理后台
+- `apps/app/`
+  - Next.js 移动端前台
+- `apps/weapp/`
+  - Taro + React 小程序端
+- `packages/`
+  - 共享配置、共享类型、共享 schema、API SDK
+- `docs/`
+  - 模板使用文档与工程文档
+- `scripts/`
+  - 模板初始化、契约、发布、smoke 与运行时脚本
 
 ## 模板最小承诺
 
 正式提供：
 
 - 以 `backend` 为唯一事实源的接口、权限、OpenAPI、shared contract 与 SDK 链路
-- 面向 `admin`、`app`、`weapp` 的正式消费端骨架，而不是示例页集合
+- 面向 `admin / app / weapp` 的正式消费端骨架，而不是示例页集合
 - 单根 `.env` 驱动的初始化方式，各端运行时变量按目标自动派生
 - 面向 AI 协作的规则入口、skills 目录、MCP 配置和工程协作元数据
 - 模板初始化校验、后端发布基线校验、消费端交付烟测
@@ -28,31 +34,17 @@ RTNN 是一套面向 AI 协作交付的全栈模板 monorepo。它不是 demo �
 - demo 示例模块、假导航、占位页面、平行契约定义
 - 多套根级 env 体系、端内散落 env 文件
 - 仓库级 lockfile 提交策略
-- 没有明确消费面的“展示型能力”
-
-更完整的边界说明见 [模板最小承诺](./docs/template/minimum-commitment.md)。
+- 没有明确消费面的展示型能力
 
 ## 快速开始
 
-1. 安装 workspace 依赖：
-
 ```bash
 pnpm install
-```
-
-2. 初始化本地模板环境：
-
-```bash
 pnpm run bootstrap
-```
-
-3. 启动 Web 主线：
-
-```bash
 pnpm run dev:web
 ```
 
-4. 按需启动其他端：
+按需启动小程序：
 
 ```bash
 pnpm run dev:weapp
@@ -66,115 +58,79 @@ pnpm run dev:weapp:h5
 - `app`: `http://localhost:5102`
 - `weapp h5`: `http://localhost:5103`
 
-## 派生模板
+## 派生业务项目
 
-派生新项目时，优先使用统一入口：
+推荐把当前仓库作为上游模板源码仓复制或 fork 成业务源码仓，再在业务仓内执行：
 
 ```bash
 pnpm run template:init -- --project-id=acme --brand-name=ACME
-```
-
-若还要同步改源码中的项目名、workspace package scope 和静态引用：
-
-```bash
 pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme
-```
-
-若还要同时生成私有实例目录脚手架：
-
-```bash
-pnpm run template:init -- \
-  --project-id=acme \
-  --brand-name=ACME \
-  --rewrite-source \
-  --package-scope=acme \
-  --instance-dir=../acme-demo \
-  --instance-repo=your-org/acme-demo \
-  --deploy-repo=your-org/acme-deploy \
-  --base-domain=acme.example.com
 ```
 
 其中：
 
-- `template:init` 会统一编排 `setup:env`
-- 传入 `--rewrite-source` 后，会继续执行源码级身份改写，并默认刷新依赖与契约产物
-- 传入 `--instance-dir` 后，会生成一个类似 `rtnn-demo` 的标准实例目录脚手架
+- `template:init` 统一编排根级 `.env` 初始化
+- `template:init` 会同时生成业务仓 `.rtnn/project.json` 骨架
+- `--rewrite-source` 会同步改源码中的项目名、workspace scope 和静态引用
+- 业务项目应直接持有完整源码，不再推荐“薄实例目录 + 资产刷新”模式
 
 ## 环境与依赖策略
 
 - 根级 `.env` 是模板初始化参数唯一来源
 - 根级 `.env.example` 是模板参数参考样板，不再维护各端 `.env*`
 - 仓库采用 latest-first 策略，故意不提交 `pnpm-lock.yaml`
-- 如果派生项目需要可重现安装，应在自己的仓库中恢复 lockfile 策略
+- 若业务仓需要可重现安装，应在自己的仓库中恢复 lockfile 策略
 
-这不是疏漏，而是模板层的明确取舍：模板仓库优先保持升级弹性，业务仓库再决定是否收紧安装确定性。
-
-## 仓库关系与发布模型
+## 三仓发布模型
 
 当前主线固定为三仓协作：
 
 - `rtnn`
-  - 模板源码与后端契约事实源
+  - 上游模板源码仓
+- 业务源码仓，例如 `rtnn-demo`
+  - 持有完整业务源码
+  - 拥有 `testing / production` 的构建、发版和验收主线
+  - 用 `.rtnn/project.json` 固化仓库角色、部署仓绑定与环境映射
 - `rtnn-deploy`
-  - 独立部署引擎，负责 `testing / production` 发布与回滚
-- `rtnn-demo`
-  - 实例级非敏感映射、薄实例资产与真实验收目录，不承载模板源码 fork
+  - 部署执行仓，只负责 deploy / rollback / smoke
 
-当前环境模型固定为：
+固定规则：
 
-- `main -> testing` 自动发布
-- `production` 在 `rtnn-deploy` 手动提升
-
-更完整说明见：
-
-- [仓库关系与触发拓扑](./docs/architecture/template-repository-topology.md)
-- [部署仓库方案](./docs/architecture/template-deployment-repository-plan.md)
-- [实例与服务器方案](./docs/architecture/template-instance-repository-model.md)
+- 业务仓 `main -> testing` 自动发布
+- 业务仓 `v*` tag 只产出 production 候选镜像
+- 业务仓手动执行 `promote-production` 发起正式发布
+- 上游模板仓 `rtnn` 默认不直接拥有任何业务环境发布权
 
 ## 验收入口
 
-常用验收命令：
-
 ```bash
 pnpm run check:template-bootstrap
+pnpm run check:template-derivation
 pnpm run check:release-candidate
 pnpm run smoke:admin
 pnpm run check
 ```
 
-其中：
-
-- `check:template-bootstrap`：验证根级环境生成、数据库初始化和 backend 基线公开能力
-- `check:release-candidate`：串联契约漂移、backend 发布基线与多端交付烟测
-- `smoke:admin`：做一次管理后台 HTTP 冒烟
-- `check`：做仓库级 lint、typecheck、contracts、backend release、build 聚合检查
-  - 其中 `check:backend-release` 会先确保根级 env 与本地 PostgreSQL 可用，再执行 backend 正式发布基线
-
 ## AI 协作入口
 
-本仓库把 AI 协作视为模板工程的一等能力，以下目录和文件是正式资产，不是临时杂物：
-
-- `.claude/skills/`：唯一维护的 skills 源目录
-- `.agents/`：兼容其他 agent 入口的镜像与元数据
-- `.mcp.json`：MCP 配置
-- `CLAUDE.md`：唯一规则来源
-- `AGENTS.md`：多 agent 入口提示
+- `.claude/skills/`
+  - 唯一维护的 skills 源目录
+- `.agents/`
+  - 兼容其他 agent 入口的镜像与元数据
+- `.mcp.json`
+  - MCP 配置
+- `CLAUDE.md`
+  - 唯一规则来源
+- `AGENTS.md`
+  - 多 agent 入口提示
 
 ## 文档入口
 
-- 模板使用者先看：[文档入口](./docs/README.md)
-- 模板快速开始：[快速开始](./docs/template/getting-started.md)
-- 模板最小承诺：[最小承诺](./docs/template/minimum-commitment.md)
-- 仓库关系与触发拓扑：[仓库拓扑](./docs/architecture/template-repository-topology.md)
-- 部署边界与契约：[部署工程文档组](./docs/architecture/template-deployment-boundary.md)
-- 实例仓库与服务器契约：[实例与服务器方案](./docs/architecture/template-instance-repository-model.md)
-- backend 说明：[backend README](./apps/backend/README.md)
-- admin 说明：[admin README](./apps/admin/README.md)
-- app 说明：[app README](./apps/app/README.md)
-- weapp 说明：[weapp README](./apps/weapp/README.md)
-
-## 协作约束
-
-- 仓库规则统一以 `CLAUDE.md` 为准
-- `backend` 是接口、权限、OpenAPI、SDK 与 shared contract 的唯一事实源
-- 模板工程默认做减法，不保留 demo 式占位能力
+- [文档入口](./docs/README.md)
+- [快速开始](./docs/template/getting-started.md)
+- [模板最小承诺](./docs/template/minimum-commitment.md)
+- [业务源码仓模型](./docs/architecture/template-business-repository-model.md)
+- [仓库关系与触发拓扑](./docs/architecture/template-repository-topology.md)
+- [部署边界](./docs/architecture/template-deployment-boundary.md)
+- [部署契约](./docs/architecture/template-deployment-contract.md)
+- [部署仓库方案](./docs/architecture/template-deployment-repository-plan.md)

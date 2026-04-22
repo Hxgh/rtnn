@@ -8,7 +8,7 @@
 
 - [快速开始](./template/getting-started.md)
 - [模板最小承诺](./template/minimum-commitment.md)
-- 其中 `快速开始` 已包含统一派生入口 `template:init` 与实例目录脚手架入口 `template:scaffold-instance`
+- [业务源码仓模型](./architecture/template-business-repository-model.md)
 
 ## 模板维护者
 
@@ -19,8 +19,8 @@
 - [模板交付执行手册](./architecture/template-delivery-runbook.md)
 - [模板发布工程化计划](./architecture/template-release-engineering-plan.md)
 - [模板初始化工程化计划](./architecture/template-initialization-engineering-plan.md)
+- [仓库关系与触发拓扑](./architecture/template-repository-topology.md)
 - [模板部署边界](./architecture/template-deployment-boundary.md)
 - [模板部署契约](./architecture/template-deployment-contract.md)
 - [模板部署仓库首发方案](./architecture/template-deployment-repository-plan.md)
-- [模板实例仓库模型](./architecture/template-instance-repository-model.md)
 - [模板服务器契约与配置分层模型](./architecture/template-server-contract-configuration-model.md)

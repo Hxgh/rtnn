@@ -141,7 +141,6 @@ export const ENV_KEYS = {
   jwtSecret: "JWT_SECRET",
   jwtRefreshSecret: "JWT_REFRESH_SECRET",
   databaseUrl: "DATABASE_URL",
-  deployWebhookUrl: "DEPLOY_REPOSITORY_DISPATCH_URL",
   deployWebhookToken: "DEPLOY_REPOSITORY_DISPATCH_TOKEN",
   ghcrUsername: "GHCR_USERNAME",
   ghcrToken: "GHCR_TOKEN",

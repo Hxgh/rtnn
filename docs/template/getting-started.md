@@ -18,7 +18,7 @@ pnpm run bootstrap
 pnpm run dev:web
 ```
 
-如需单独启动小程序：
+按需启动小程序：
 
 ```bash
 pnpm run dev:weapp
@@ -29,61 +29,37 @@ pnpm run dev:weapp:h5
 
 模板只维护一套根级环境参数：
 
-- `/.env`：当前本地运行参数
-- `/.env.example`：模板样板与参考参数
+- `/.env`
+  - 当前本地运行参数
+- `/.env.example`
+  - 模板样板与参考参数
 
 `admin`、`app`、`weapp`、`backend` 的运行时变量由脚本按目标自动派生，不再维护 `apps/*/.env*`。
 
-## 派生自己的模板身份
+## 如何派生业务源码仓
 
-推荐直接走统一入口：
+推荐先复制或 fork 当前模板仓，形成你自己的业务源码仓，然后在业务仓里执行：
 
 ```bash
 pnpm run template:init -- --project-id=acme --brand-name=ACME
-```
-
-该命令会统一执行：
-
-- 根级 `.env` / `.env.example` 维护
-- 历史 `apps/*` env 文件清理
-
-如果还要同步改源码中的项目名、workspace package scope 和静态引用：
-
-```bash
 pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source --package-scope=acme
 ```
 
-该命令默认还会继续执行：
+该命令会统一处理：
 
-- `pnpm install`
-- `pnpm run contracts:permissions`
-- `pnpm run contracts:sync`
+- 根级 `.env / .env.example`
+- `.rtnn/project.json` 业务仓事实文件骨架
+- 源码级项目身份改写
+- 依赖刷新
+- 权限、OpenAPI 与 SDK 契约刷新
 
-如果要同时生成一个私有实例目录脚手架：
+## 业务仓推荐补充动作
 
-```bash
-pnpm run template:init -- \
-  --project-id=acme \
-  --brand-name=ACME \
-  --rewrite-source \
-  --package-scope=acme \
-  --instance-dir=../acme-demo \
-  --instance-repo=your-org/acme-demo \
-  --deploy-repo=your-org/acme-deploy \
-  --base-domain=acme.example.com
-```
+- 配置 upstream remote，后续从 `rtnn` 同步通用模板能力
+- 检查并补齐 `.rtnn/project.json` 中的真实仓库、部署仓与域名信息
+- 在业务仓配置 deploy dispatch secrets，并对接 `rtnn-deploy`
 
-若只想单独生成实例目录，也可以执行：
-
-```bash
-pnpm run template:scaffold-instance -- \
-  --project-id=acme \
-  --brand-name=ACME \
-  --target-dir=../acme-demo \
-  --instance-repo=your-org/acme-demo \
-  --deploy-repo=your-org/acme-deploy \
-  --base-domain=acme.example.com
-```
+业务项目不再推荐生成“薄实例目录”壳仓。业务项目应直接持有完整源码。
 
 ## 依赖策略
 
@@ -91,7 +67,7 @@ pnpm run template:scaffold-instance -- \
 
 - 仓库故意不提交 `pnpm-lock.yaml`
 - 本地与 CI 默认按 `package.json` 范围解析当前兼容版本
-- 如果你的派生项目更需要可重现安装，请在派生仓库恢复 lockfile 提交策略
+- 如果派生业务仓更需要可重现安装，请在业务仓恢复 lockfile 提交策略
 
 ## 最小验收
 
@@ -106,5 +82,5 @@ pnpm run check:release-candidate
 这三条命令会分别验证：
 
 - 模板初始化链路
-- 模板派生与实例脚手架链路
+- 业务源码仓派生入口
 - backend 发布基线与多端交付链路
