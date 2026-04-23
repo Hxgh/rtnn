@@ -1,19 +1,17 @@
 import { AppLogger } from './app-logger.service';
 
 describe('AppLogger', () => {
-  const stdoutWrite = process.stdout.write;
-
   afterEach(() => {
-    process.stdout.write = stdoutWrite;
+    jest.restoreAllMocks();
   });
 
   it('prints structured payloads by default', () => {
     const logger = new AppLogger();
     const writes: string[] = [];
-    process.stdout.write = ((chunk: string | Uint8Array) => {
+    jest.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
       writes.push(String(chunk));
       return true;
-    }) as typeof process.stdout.write;
+    });
 
     logger.log({ event: 'test' }, 'AppLoggerSpec');
 
@@ -26,10 +24,10 @@ describe('AppLogger', () => {
   it('suppresses output when muted', () => {
     const logger = new AppLogger();
     const writes: string[] = [];
-    process.stdout.write = ((chunk: string | Uint8Array) => {
+    jest.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
       writes.push(String(chunk));
       return true;
-    }) as typeof process.stdout.write;
+    });
 
     logger.setMuted(true);
     logger.error('should-not-print', undefined, 'AppLoggerSpec');

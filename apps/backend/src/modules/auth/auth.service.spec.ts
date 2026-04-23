@@ -70,7 +70,7 @@ describe('AuthService', () => {
       prisma as never,
       appConfigService as never,
       authTokenService as never,
-      passwordService as never,
+      passwordService,
       loginRateLimitService as never,
       auditWriter as never,
     );
