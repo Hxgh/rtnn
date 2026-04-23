@@ -1,6 +1,5 @@
 services:
   db:
-    container_name: ${TEMPLATE_PROJECT_ID:-rtnn}-postgres-dev
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -23,4 +22,3 @@ services:
 
 volumes:
   postgres-data:
-    name: ${TEMPLATE_PROJECT_ID:-rtnn}-postgres-data

@@ -15,6 +15,8 @@ export default defineConfig({
   outputDir: "../../.artifacts/playwright/app",
   use: {
     baseURL: process.env.APP_BASE_URL ?? appBaseUrl,
+    browserName: "chromium",
+    channel: "chrome",
     headless: true,
     locale: "zh-CN",
     trace: "retain-on-failure",

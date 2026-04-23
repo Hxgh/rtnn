@@ -1,7 +1,9 @@
+import { PORTS } from '@rtnn/config';
 import { BackendTestHarness } from './support/test-harness';
 
 describe('Backend e2e', () => {
   const harness = new BackendTestHarness();
+  const weappOrigin = `http://127.0.0.1:${PORTS.weappH5}`;
 
   beforeAll(async () => {
     await harness.init();
@@ -78,10 +80,10 @@ describe('Backend e2e', () => {
   it('allows cors preflight from configured template consumers', async () => {
     await harness.http
       .options('/api/v1/auth/customer/login')
-      .set('Origin', 'http://127.0.0.1:5103')
+      .set('Origin', weappOrigin)
       .set('Access-Control-Request-Method', 'POST')
       .expect(204)
-      .expect('Access-Control-Allow-Origin', 'http://127.0.0.1:5103');
+      .expect('Access-Control-Allow-Origin', weappOrigin);
   });
 
   it('returns 403 on protected admin route without permission', async () => {

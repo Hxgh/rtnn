@@ -1,7 +1,11 @@
 import { defineConfig } from "@playwright/test";
+import { resolveTemplateEnv } from "../../scripts/lib/template-env.mjs";
 
+const templateEnv = resolveTemplateEnv(process.cwd());
 const backendPort = Number(process.env.WEAPP_ACCEPTANCE_BACKEND_PORT ?? "5100");
-const weappPort = Number(process.env.WEAPP_ACCEPTANCE_PORT ?? "5103");
+const weappPort = Number(
+  process.env.WEAPP_ACCEPTANCE_PORT ?? templateEnv.TEMPLATE_WEAPP_H5_PORT ?? "5103",
+);
 const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
 const weappBaseUrl = `http://127.0.0.1:${weappPort}`;
 

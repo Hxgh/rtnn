@@ -15,6 +15,8 @@ export default defineConfig({
   outputDir: "../../.artifacts/playwright/admin",
   use: {
     baseURL: process.env.ADMIN_BASE_URL ?? adminBaseUrl,
+    browserName: "chromium",
+    channel: "chrome",
     headless: true,
     locale: "zh-CN",
     trace: "retain-on-failure",
