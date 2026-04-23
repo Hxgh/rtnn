@@ -25,7 +25,9 @@ async function main() {
           tenant: result.defaultTenant.slug,
           permissionCount: result.permissions.length,
           admin: skipAdmin ? null : TEMPLATE_ACCESS_DEFAULTS.admin.email,
-          customer: skipCustomer ? null : TEMPLATE_ACCESS_DEFAULTS.customer.email,
+          customer: skipCustomer
+            ? null
+            : TEMPLATE_ACCESS_DEFAULTS.customer.email,
         },
         null,
         2,

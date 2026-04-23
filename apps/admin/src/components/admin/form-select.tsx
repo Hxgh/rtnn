@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -39,20 +39,20 @@ export function FormSelect({
   placeholder?: string;
   triggerClassName?: string;
 }) {
-  const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setValue(defaultValue);
-  }, [defaultValue]);
-
-  const selectValue =
-    value === "" && emptyLabel ? EMPTY_SELECT_VALUE : value;
+  const selectDefaultValue =
+    defaultValue === ""
+      ? emptyLabel
+        ? EMPTY_SELECT_VALUE
+        : undefined
+      : defaultValue;
 
   const handleValueChange = (nextValue: string) => {
     const resolvedValue =
       nextValue === EMPTY_SELECT_VALUE ? "" : nextValue;
-    setValue(resolvedValue);
+    if (inputRef.current) {
+      inputRef.current.value = resolvedValue;
+    }
     onValueChange?.(resolvedValue);
 
     if (autoSubmit) {
@@ -63,14 +63,17 @@ export function FormSelect({
   };
 
   return (
-    <>
+    <Fragment key={defaultValue}>
       <input
         ref={inputRef}
+        defaultValue={defaultValue}
         name={name}
         type="hidden"
-        value={value}
       />
-      <Select value={selectValue} onValueChange={handleValueChange}>
+      <Select
+        defaultValue={selectDefaultValue}
+        onValueChange={handleValueChange}
+      >
         <SelectTrigger
           aria-label={ariaLabel}
           className={triggerClassName}
@@ -89,6 +92,6 @@ export function FormSelect({
           ))}
         </SelectContent>
       </Select>
-    </>
+    </Fragment>
   );
 }

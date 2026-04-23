@@ -30,7 +30,11 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-svh antialiased">
-        <PreferencesProvider defaultLocale={locale} defaultTheme={theme}>
+        <PreferencesProvider
+          key={`${locale}:${theme}`}
+          defaultLocale={locale}
+          defaultTheme={theme}
+        >
           {children}
         </PreferencesProvider>
       </body>

@@ -63,14 +63,6 @@ export function PreferencesProvider({
   const [theme, setThemeState] = useState<AppTheme>(normalizeAppTheme(initialTheme));
 
   useEffect(() => {
-    setLocaleState(normalizeAppLocale(initialLocale));
-  }, [initialLocale]);
-
-  useEffect(() => {
-    setThemeState(normalizeAppTheme(initialTheme));
-  }, [initialTheme]);
-
-  useEffect(() => {
     applyThemeClass(theme);
     writeCookie(APP_THEME_COOKIE, theme);
   }, [theme]);

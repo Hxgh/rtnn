@@ -66,14 +66,6 @@ export function PreferencesProvider({
   const router = useRouter();
 
   useEffect(() => {
-    setLocaleState(normalizeAdminLocale(defaultLocale));
-  }, [defaultLocale]);
-
-  useEffect(() => {
-    setThemeState(normalizeAdminTheme(defaultTheme));
-  }, [defaultTheme]);
-
-  useEffect(() => {
     const root = document.documentElement;
 
     const applyTheme = () => {
