@@ -1,3 +1,6 @@
+# 业务源码仓镜像发布主线。
+# 上游模板仓会保留此 workflow 以便业务仓同步，但只有 business-source 仓会真正执行发布。
+
 name: release-images
 
 on:
@@ -20,16 +23,61 @@ env:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: release-images-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  resolve-release-context:
+    name: Resolve Release Context
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.context.outputs.enabled }}
+      reason: ${{ steps.context.outputs.reason }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Detect repository role
+        id: context
+        shell: bash
+        run: |
+          if [[ ! -f ".rtnn/project.json" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=missing-project-metadata" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          REPO_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
+
+          if [[ "${REPO_ROLE}" != "business-source" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          echo "reason=business-source" >> "${GITHUB_OUTPUT}"
+
+  skip-template-repository:
+    name: Skip Template Repository Release
+    runs-on: ubuntu-latest
+    needs: resolve-release-context
+    if: ${{ needs.resolve-release-context.outputs.enabled != 'true' }}
+
+    steps:
+      - name: Explain skip
+        shell: bash
+        run: |
+          echo "release-images skipped: ${{ needs.resolve-release-context.outputs.reason || 'not-business-source' }}"
+
   verify-release:
     name: Verify Release Candidate
     runs-on: ubuntu-latest
+    needs: resolve-release-context
+    if: ${{ needs.resolve-release-context.outputs.enabled == 'true' }}
     timeout-minutes: 45
     services:
       postgres:
@@ -85,6 +133,10 @@ jobs:
     name: Build And Push ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: verify-release
+    if: ${{ needs.verify-release.result == 'success' }}
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -154,6 +206,7 @@ jobs:
     name: Notify Deploy Repository
     runs-on: ubuntu-latest
     needs: build-and-push
+    if: ${{ needs.build-and-push.result == 'success' }}
 
     steps:
       - name: Checkout
@@ -165,20 +218,7 @@ jobs:
         env:
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
         run: |
-          if [[ ! -f ".rtnn/project.json" ]]; then
-            echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "reason=missing-project-metadata" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          REPO_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
           DEPLOY_REPO="$(jq -r '.deployment.repo // empty' .rtnn/project.json)"
-
-          if [[ "${REPO_ROLE}" != "business-source" ]]; then
-            echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
 
           if [[ -z "${DEPLOY_REPO}" || -z "${DISPATCH_TOKEN}" ]]; then
             echo "enabled=false" >> "${GITHUB_OUTPUT}"

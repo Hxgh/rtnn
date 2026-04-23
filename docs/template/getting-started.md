@@ -36,6 +36,13 @@ pnpm run dev:weapp:h5
 
 `admin`、`app`、`weapp`、`backend` 的运行时变量由脚本按目标自动派生，不再维护 `apps/*/.env*`。
 
+其中：
+
+- `TEMPLATE_TESTING_DATABASE_URL`
+- `TEMPLATE_PRODUCTION_DATABASE_URL`
+
+只用于业务仓与 `rtnn-deploy` 衔接远程环境数据库连接，不参与本地开发数据库启动。
+
 ## 如何派生业务源码仓
 
 推荐先复制或 fork 当前模板仓，形成你自己的业务源码仓，然后在业务仓里执行：
@@ -58,6 +65,7 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 - 配置 upstream remote，后续从 `rtnn` 同步通用模板能力
 - 检查并补齐 `.rtnn/project.json` 中的真实仓库、部署仓与域名信息
 - 在业务仓配置 deploy dispatch secrets，并对接 `rtnn-deploy`
+- 确认 `.github/workflows/release-images.yml` 与 `.github/workflows/promote-production.yml` 仍由 upstream 保持同步
 
 业务项目不再推荐生成“薄实例目录”壳仓。业务项目应直接持有完整源码。
 

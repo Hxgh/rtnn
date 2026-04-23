@@ -78,6 +78,7 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 
 - 根级 `.env` 是模板初始化参数唯一来源
 - 根级 `.env.example` 是模板参数参考样板，不再维护各端 `.env*`
+- `TEMPLATE_TESTING_DATABASE_URL` / `TEMPLATE_PRODUCTION_DATABASE_URL` 仅用于业务仓与 deploy 仓衔接远程环境，不参与本地开发
 - 仓库采用 latest-first 策略，故意不提交 `pnpm-lock.yaml`
 - 若业务仓需要可重现安装，应在自己的仓库中恢复 lockfile 策略
 
@@ -100,6 +101,7 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 - 业务仓 `v*` tag 只产出 production 候选镜像
 - 业务仓手动执行 `promote-production` 发起正式发布
 - 上游模板仓 `rtnn` 默认不直接拥有任何业务环境发布权
+- `rtnn` 保留 `release-images / promote-production` 作为模板源码的一部分，但只有 `project.role=business-source` 的业务仓会真正执行它们
 
 ## 验收入口
 

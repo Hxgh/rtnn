@@ -1,3 +1,6 @@
+# 业务源码仓 production promote 主线。
+# 上游模板仓会保留此 workflow 以便业务仓同步，但只有 business-source 仓会真正执行发布。
+
 name: promote-production
 
 on:
@@ -36,27 +39,59 @@ permissions:
   contents: read
 
 jobs:
-  notify-deploy:
-    name: Dispatch Production Promote
+  resolve-promote-context:
+    name: Resolve Promote Context
     runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.context.outputs.enabled }}
+      reason: ${{ steps.context.outputs.reason }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate repository role
+      - name: Detect repository role
+        id: context
         shell: bash
         run: |
-          [[ -f ".rtnn/project.json" ]] || {
-            echo "当前仓库缺少 .rtnn/project.json，拒绝发起 production promote";
-            exit 1;
-          }
+          if [[ ! -f ".rtnn/project.json" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=missing-project-metadata" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
 
           REPO_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
 
-          [[ "${REPO_ROLE}" == "business-source" ]] || {
-            echo "当前仓库未声明 business-source 角色，拒绝发起 production promote";
-            exit 1;
-          }
+          if [[ "${REPO_ROLE}" != "business-source" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "enabled=true" >> "${GITHUB_OUTPUT}"
+          echo "reason=business-source" >> "${GITHUB_OUTPUT}"
+
+  skip-template-repository:
+    name: Skip Template Repository Promote
+    runs-on: ubuntu-latest
+    needs: resolve-promote-context
+    if: ${{ needs.resolve-promote-context.outputs.enabled != 'true' }}
+
+    steps:
+      - name: Explain skip
+        shell: bash
+        run: |
+          echo "promote-production skipped: ${{ needs.resolve-promote-context.outputs.reason || 'not-business-source' }}"
+
+  notify-deploy:
+    name: Dispatch Production Promote
+    runs-on: ubuntu-latest
+    needs: resolve-promote-context
+    if: ${{ needs.resolve-promote-context.outputs.enabled == 'true' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Validate dispatch config
         shell: bash

@@ -26,6 +26,7 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 .idea/
+.claude/worktrees/
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json

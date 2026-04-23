@@ -41,13 +41,14 @@ flowchart LR
 ## 当前固定规则
 
 - 上游模板仓 `rtnn` 默认不 dispatch 业务环境发布
+- 上游模板仓 `rtnn` 会保留 `.github/workflows/release-images.yml` 与 `.github/workflows/promote-production.yml`，但模板仓自身会因缺少 `business-source` 上下文而自动 skip
 - 只有业务源码仓在 `.rtnn/project.json` 中声明 `project.role=business-source` 且补齐部署绑定后，`main` 才会自动 dispatch `testing`
 - `production` 的发布决策必须由业务源码仓发起，部署仓只执行
 
 ## 三仓各自持有什么
 
 - `rtnn`
-  - 模板代码、契约、发布前 gate、镜像构建规则
+  - 模板代码、契约、发布前 gate、业务仓 release/promote workflow
 - `rtnn-deploy`
   - deploy / rollback / smoke / runtime env / compose
 - 业务源码仓

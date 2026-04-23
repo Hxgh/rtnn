@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - "**"
+  push:
+    branches:
+      - main
 
 env:
   TEMPLATE_PROJECT_ID: ${{ vars.TEMPLATE_PROJECT_ID }}

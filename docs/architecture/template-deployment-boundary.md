@@ -17,8 +17,8 @@
 
 - `backend / admin / app / weapp` 模板源码
 - 接口、权限、OpenAPI、shared contract 与 SDK 事实源
-- 镜像构建与推送规则
-- 可复用的业务仓 dispatch workflow 模板
+- 可复用的业务仓镜像构建、promote 与 dispatch workflow
+- 模板仓自身的 `ci-check` 校验主线，以及带 `business-source` 上下文校验的发布 workflow
 
 `rtnn` 不负责：
 

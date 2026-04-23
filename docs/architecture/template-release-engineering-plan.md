@@ -83,7 +83,7 @@ PR workflow 需要补齐：
 
 1. 新增统一发布候选脚本入口。
 2. 升级 `ci-check.yml`。
-3. 升级 `release-images.yml`。
+3. 升级业务仓 `release-images` workflow 模板。
 
 ## 验收标准
 

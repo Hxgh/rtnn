@@ -30,6 +30,7 @@
 - `testing` 属于业务源码仓
 - `production` 也属于业务源码仓
 - `rtnn` 默认不直接拥有任何业务环境发布权
+- `rtnn` 会保留业务发布 workflow，但这些 workflow 只有在业务仓声明 `project.role=business-source` 后才真正执行
 - `rtnn-deploy` 只执行业务仓已经明确发起的部署动作
 
 对应触发口径：

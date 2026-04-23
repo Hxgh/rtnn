@@ -172,7 +172,6 @@ function main() {
     "同步业务仓项目事实文件",
     options.dryRun,
   );
-
   if (options.rewriteSource) {
     run(
       "node",
