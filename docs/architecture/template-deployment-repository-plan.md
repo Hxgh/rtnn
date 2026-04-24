@@ -7,7 +7,7 @@
 1. 接收业务源码仓已通过 gate 的镜像版本
 2. 管理 `testing / production` 两套远程环境
 3. 负责 promote / rollback / smoke / release state
-4. 保持开源可脱敏，不承载真实 secrets 和业务环境口头约定
+4. 默认建议私有；若未来需要开源，必须先完成脱敏且不承载真实 secrets、服务器事实和业务维护备忘
 
 ## 环境模型
 
@@ -43,5 +43,6 @@
 
 - `testing` 自动发布链路清晰且可验证
 - `production` 发布决策明确留在业务源码仓
+- deploy repo 默认按私有仓维护，公开前必须完成脱敏审查
 - deploy repo 不泄露真实 runtime env
 - deploy repo 不重新定义模板运行时契约
