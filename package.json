@@ -30,6 +30,7 @@
     "contracts:permissions": "pnpm run prepare:backend && pnpm --filter backend generate:permissions",
     "contracts:sync": "pnpm run prepare:backend && pnpm --filter backend export:openapi && pnpm --filter @rtnn/api-sdk generate && pnpm --filter @rtnn/api-sdk build",
     "generate:sdk": "pnpm run contracts:sync",
+    "release:sync-live-state": "node scripts/release/sync-live-state.mjs",
     "lint": "pnpm --filter @rtnn/config lint && pnpm --filter @rtnn/shared-types lint && pnpm --filter @rtnn/shared-schemas lint && pnpm --filter @rtnn/api-sdk lint && pnpm --filter backend lint && pnpm --filter admin lint && pnpm --filter app lint",
     "typecheck": "pnpm --filter @rtnn/config typecheck && pnpm --filter @rtnn/shared-types typecheck && pnpm --filter @rtnn/shared-schemas typecheck && pnpm --filter @rtnn/api-sdk typecheck && pnpm --filter backend typecheck && pnpm --filter admin typecheck && pnpm --filter app typecheck && pnpm --filter weapp typecheck",
     "test": "pnpm --filter backend test --runInBand",

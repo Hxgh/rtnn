@@ -41,6 +41,7 @@ function main() {
 
   run("node", ["--check", "scripts/bootstrap/setup-env.mjs"], "校验模板环境脚本语法");
   run("node", ["--check", "scripts/template/rewrite-template-source.mjs"], "校验源码改写脚本语法");
+  run("node", ["--check", "scripts/release/sync-live-state.mjs"], "校验 liveState 同步脚本语法");
   run(
     "node",
     ["scripts/template/sync-project-metadata.mjs", "--dry-run"],

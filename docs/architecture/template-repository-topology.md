@@ -55,5 +55,6 @@ flowchart LR
   - 完整业务源码
   - `.rtnn/project.json` 这类非敏感环境映射
   - 当前 `testing / production` 的事实归属
+  - 通过 deploy 仓运行事实报告校验或写回 `liveState`
 
 更完整说明见 [业务源码仓模型](./template-business-repository-model.md)。

@@ -50,6 +50,7 @@
 - 功能和通用工程能力优先进入 `rtnn`
 - 业务仓通过 upstream merge 或受控 cherry-pick 同步 `rtnn`
 - 业务仓自己的环境配置、域名、服务器映射、当前线上版本等事实，集中维护在业务仓自己的 `.rtnn/project.json`
+- 当前线上版本优先从部署仓运行事实报告校验或写回，避免 README、对话记录和手工备注成为平行事实源
 
 ## 机器配置唯一入口
 
@@ -68,3 +69,14 @@
 - 当前线上版本快照
 
 真实 secrets 不进入业务仓，继续留在 GitHub Environment secrets 或服务器受限 env 文件中。
+
+## liveState 同步
+
+业务源码仓从部署仓拿到运行事实报告后，用统一脚本校验或更新 `liveState`：
+
+```bash
+pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --check
+pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --write
+```
+
+这一步只同步 `activeRelease` 和 `sourceSha` 这类非敏感发布事实，不同步 secrets、数据库连接或服务器凭据。

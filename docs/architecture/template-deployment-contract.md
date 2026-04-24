@@ -71,3 +71,26 @@
 - `testing` 自动 dispatch
 - `production` 由业务源码仓手动 promote
 - 部署仓只根据 payload 执行，不反向决定发布版本
+
+## 运行事实报告
+
+部署仓应提供不含 secrets 的运行事实报告，用于把实际运行版本同步回业务源码仓的 `.rtnn/project.json liveState`。
+
+报告只允许包含：
+
+- deploy 绑定关系
+- `DEPLOY_VERSION` 与 `DEPLOY_SOURCE_SHA`
+- 四端镜像名
+- 公网 URL / smoke URL
+- 可选探活与容器状态
+
+报告不允许包含数据库连接串、JWT secret、GHCR token、dispatch token 或服务器 SSH 信息。
+
+业务源码仓负责执行：
+
+```bash
+pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --check
+pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --write
+```
+
+`liveState` 是业务仓的非敏感事实，不是 deploy 仓的发布决策来源。
