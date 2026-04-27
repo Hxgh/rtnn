@@ -22,6 +22,10 @@ export interface AppEnv {
   JWT_REFRESH_SECRET: string;
   JWT_ACCESS_EXPIRES_IN: string;
   JWT_REFRESH_EXPIRES_IN: string;
+  DEPLOY_ENVIRONMENT: string;
+  DEPLOY_VERSION: string;
+  DEPLOY_SOURCE_SHA: string;
+  BACKEND_IMAGE: string;
 }
 
 export function normalizeCorsOrigins(value: unknown): string[] {
@@ -69,6 +73,10 @@ const envSchema = Joi.object<AppEnv>({
     .default('replace-this-with-a-long-random-string-refresh'),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+  DEPLOY_ENVIRONMENT: Joi.string().allow('').default('local'),
+  DEPLOY_VERSION: Joi.string().allow('').default('local'),
+  DEPLOY_SOURCE_SHA: Joi.string().allow('').default('unknown'),
+  BACKEND_IMAGE: Joi.string().allow('').default('local'),
 });
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {

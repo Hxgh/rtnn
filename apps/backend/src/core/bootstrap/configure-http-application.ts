@@ -22,6 +22,7 @@ export const OPEN_API_UI_PATH = 'docs';
 const GLOBAL_PREFIX_EXCLUSIONS = [
   { path: 'healthz', method: RequestMethod.GET },
   { path: 'readyz', method: RequestMethod.GET },
+  { path: 'version', method: RequestMethod.GET },
   { path: 'openapi.json', method: RequestMethod.GET },
 ] as const;
 

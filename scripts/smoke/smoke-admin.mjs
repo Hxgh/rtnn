@@ -78,12 +78,15 @@ async function main() {
   console.log(`[smoke] apiBaseUrl=${apiBaseUrl}`);
   console.log(`[smoke] adminBaseUrl=${adminBaseUrl}`);
 
-  const [healthz, readyz, openapi] = await Promise.all([
+  const [healthz, readyz, version, openapi] = await Promise.all([
     fetch(`${apiBaseUrl}/healthz`, { headers: createHeaders() }).then((response) =>
       expectJson(response, "healthz"),
     ),
     fetch(`${apiBaseUrl}/readyz`, { headers: createHeaders() }).then((response) =>
       expectJson(response, "readyz"),
+    ),
+    fetch(`${apiBaseUrl}/version`, { headers: createHeaders() }).then((response) =>
+      expectJson(response, "version"),
     ),
     fetch(`${apiBaseUrl}/openapi.json`, { headers: createHeaders() }).then((response) =>
       expectJson(response, "openapi"),
@@ -92,6 +95,8 @@ async function main() {
   assert(healthz.status === "ok", "healthz 状态不正确");
   assert(readyz.status === "ready", "readyz 状态不正确");
   assert(readyz.database === "up", "readyz 数据库状态不正确");
+  assert(typeof version.version === "string", "version 版本号缺失");
+  assert(typeof version.sourceSha === "string", "version sourceSha 缺失");
   assert(openapi.paths["/api/v1/auth/admin/login"], "OpenAPI 缺少管理员登录接口");
   assert(openapi.paths["/api/v1/admin/customers"], "OpenAPI 缺少客户接口");
   assert(openapi.paths["/api/v1/admin/dashboard/stats"], "OpenAPI 缺少管理看板接口");

@@ -23,6 +23,12 @@ describe('Backend e2e', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body.status).toBe('ok');
+        expect(body.release).toMatchObject({
+          environment: expect.any(String),
+          version: expect.any(String),
+          sourceSha: expect.any(String),
+          backendImage: expect.any(String),
+        });
       });
 
     await harness.http
@@ -31,6 +37,23 @@ describe('Backend e2e', () => {
       .expect(({ body }) => {
         expect(body.status).toBe('ready');
         expect(body.database).toBe('up');
+        expect(body.release).toMatchObject({
+          environment: expect.any(String),
+          version: expect.any(String),
+        });
+      });
+
+    await harness.http
+      .get('/version')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          environment: expect.any(String),
+          version: expect.any(String),
+          sourceSha: expect.any(String),
+          backendImage: expect.any(String),
+          timestamp: expect.any(String),
+        });
       });
 
     await harness.http

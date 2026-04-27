@@ -30,6 +30,7 @@
 
 - `GET /healthz`
 - `GET /readyz`
+- `GET /version`
 - `GET /openapi.json`
 - `POST /api/v1/auth/admin/login`
 - `POST /api/v1/auth/admin/refresh`

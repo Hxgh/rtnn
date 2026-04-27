@@ -19,6 +19,17 @@
 - `app`
 - `weapp(H5)`
 
+## 发布可观测性
+
+backend 必须公开以下无鉴权探活/版本端点：
+
+- `GET /healthz`
+- `GET /readyz`
+- `GET /version`
+- `GET /openapi.json`
+
+`/version` 返回当前运行环境、发布版本、源码 SHA 与 backend 镜像名。部署仓 smoke 应用它校验实际运行版本是否与本次 `DEPLOY_VERSION / DEPLOY_SOURCE_SHA / BACKEND_IMAGE` 一致。
+
 ## 最小运行时变量
 
 部署仓必须能消费以下分组：

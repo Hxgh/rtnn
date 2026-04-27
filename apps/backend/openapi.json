@@ -7,7 +7,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Liveness probe",
@@ -22,10 +29,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Readiness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/version": {
+      "get": {
+        "operationId": "HealthController_version",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Runtime release metadata",
         "tags": [
           "health"
         ]
@@ -1381,6 +1417,112 @@
       }
     },
     "schemas": {
+      "ReleaseInfoDto": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "example": "testing"
+          },
+          "version": {
+            "type": "string",
+            "example": "main-bce88fb0a427"
+          },
+          "sourceSha": {
+            "type": "string",
+            "example": "bce88fb0a4271ad8180059ab8fc23c0135c8d632"
+          },
+          "backendImage": {
+            "type": "string",
+            "example": "ghcr.io/example/rtnn-backend:main-bce88fb0a427"
+          }
+        },
+        "required": [
+          "environment",
+          "version",
+          "sourceSha",
+          "backendImage"
+        ]
+      },
+      "LivenessResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-04-27T00:00:00.000Z"
+          },
+          "release": {
+            "$ref": "#/components/schemas/ReleaseInfoDto"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp",
+          "release"
+        ]
+      },
+      "ReadinessResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ready"
+          },
+          "database": {
+            "type": "string",
+            "example": "up"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-04-27T00:00:00.000Z"
+          },
+          "release": {
+            "$ref": "#/components/schemas/ReleaseInfoDto"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "timestamp",
+          "release"
+        ]
+      },
+      "VersionResponseDto": {
+        "type": "object",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "example": "testing"
+          },
+          "version": {
+            "type": "string",
+            "example": "main-bce88fb0a427"
+          },
+          "sourceSha": {
+            "type": "string",
+            "example": "bce88fb0a4271ad8180059ab8fc23c0135c8d632"
+          },
+          "backendImage": {
+            "type": "string",
+            "example": "ghcr.io/example/rtnn-backend:main-bce88fb0a427"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-04-27T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "environment",
+          "version",
+          "sourceSha",
+          "backendImage",
+          "timestamp"
+        ]
+      },
       "LoginDto": {
         "type": "object",
         "properties": {

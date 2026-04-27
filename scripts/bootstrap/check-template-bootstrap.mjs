@@ -169,13 +169,17 @@ async function main() {
   });
 
   try {
-    const [healthz, readyz, openapi] = await Promise.all([
+    const [healthz, readyz, version, openapi] = await Promise.all([
       waitForJson(`${apiBaseUrl}/healthz`, "healthz", (payload) => {
         assert(payload.status === "ok", "healthz 状态不正确");
       }, { timeoutMs: 30000, server }),
       waitForJson(`${apiBaseUrl}/readyz`, "readyz", (payload) => {
         assert(payload.status === "ready", "readyz 状态不正确");
         assert(payload.database === "up", "readyz 数据库状态不正确");
+      }, { timeoutMs: 30000, server }),
+      waitForJson(`${apiBaseUrl}/version`, "version", (payload) => {
+        assert(typeof payload.version === "string", "version 版本号缺失");
+        assert(typeof payload.sourceSha === "string", "version sourceSha 缺失");
       }, { timeoutMs: 30000, server }),
       waitForJson(`${apiBaseUrl}/openapi.json`, "openapi", (payload) => {
         assert(payload.paths?.["/api/v1/auth/admin/login"], "OpenAPI 缺少管理员登录接口");
@@ -186,6 +190,7 @@ async function main() {
 
     console.log(`[bootstrap-check] healthz=${healthz.status}`);
     console.log(`[bootstrap-check] readyz=${readyz.status}/${readyz.database}`);
+    console.log(`[bootstrap-check] version=${version.version}`);
     console.log(`[bootstrap-check] openapi title=${openapi.info?.title ?? "unknown"}`);
     console.log("[bootstrap-check] 模板初始化校验通过");
   } finally {

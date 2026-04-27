@@ -57,4 +57,20 @@ export class AppConfigService {
   get jwtRefreshExpiresIn(): string {
     return this.configService.get('JWT_REFRESH_EXPIRES_IN', { infer: true });
   }
+
+  get deployEnvironment(): string {
+    return this.configService.get('DEPLOY_ENVIRONMENT', { infer: true });
+  }
+
+  get deployVersion(): string {
+    return this.configService.get('DEPLOY_VERSION', { infer: true });
+  }
+
+  get deploySourceSha(): string {
+    return this.configService.get('DEPLOY_SOURCE_SHA', { infer: true });
+  }
+
+  get backendImage(): string {
+    return this.configService.get('BACKEND_IMAGE', { infer: true });
+  }
 }

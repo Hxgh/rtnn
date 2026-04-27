@@ -109,6 +109,7 @@ export const API_PREFIX = "/api/v1";
 export const PUBLIC_ENDPOINTS = {
   health: "/healthz",
   ready: "/readyz",
+  version: "/version",
   openapi: "/openapi.json",
   auth: {
     admin: {
