@@ -10,17 +10,6 @@ on:
     tags:
       - "v*"
 
-env:
-  TEMPLATE_PROJECT_ID: ${{ vars.TEMPLATE_PROJECT_ID }}
-  TEMPLATE_BRAND_NAME: ${{ vars.TEMPLATE_BRAND_NAME }}
-  TEMPLATE_COOKIE_PREFIX: ${{ vars.TEMPLATE_COOKIE_PREFIX }}
-  TEMPLATE_DATABASE_NAME: rtnn
-  TEMPLATE_DATABASE_USER: postgres
-  TEMPLATE_DATABASE_PASSWORD: postgres
-  TEMPLATE_IMAGE_NAME_PREFIX: ${{ vars.TEMPLATE_IMAGE_NAME_PREFIX }}
-  TEMPLATE_DEPLOY_APPLICATION: ${{ vars.TEMPLATE_DEPLOY_APPLICATION }}
-  TEMPLATE_DEPLOY_EVENT_TYPE: ${{ vars.TEMPLATE_DEPLOY_EVENT_TYPE }}
-
 permissions:
   contents: read
 
@@ -35,12 +24,19 @@ jobs:
     outputs:
       enabled: ${{ steps.context.outputs.enabled }}
       reason: ${{ steps.context.outputs.reason }}
+      project_id: ${{ steps.context.outputs.project_id }}
+      image_name_prefix: ${{ steps.context.outputs.image_name_prefix }}
+      deploy_application: ${{ steps.context.outputs.deploy_application }}
+      deploy_event_type: ${{ steps.context.outputs.deploy_event_type }}
+      deploy_repo: ${{ steps.context.outputs.deploy_repo }}
+      deploy_environment: ${{ steps.context.outputs.deploy_environment }}
+      version: ${{ steps.context.outputs.version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Detect repository role
+      - name: Resolve business project metadata
         id: context
         shell: bash
         run: |
@@ -50,16 +46,39 @@ jobs:
             exit 0
           fi
 
-          REPO_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
-
-          if [[ "${REPO_ROLE}" != "business-source" ]]; then
+          PROJECT_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
+          if [[ "${PROJECT_ROLE}" != "business-source" ]]; then
             echo "enabled=false" >> "${GITHUB_OUTPUT}"
             echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
-          echo "enabled=true" >> "${GITHUB_OUTPUT}"
-          echo "reason=business-source" >> "${GITHUB_OUTPUT}"
+          PROJECT_ID="$(jq -er '.project.projectId' .rtnn/project.json)"
+          IMAGE_NAME_PREFIX="$(jq -er '.deployment.imageNamePrefix // .project.projectId' .rtnn/project.json)"
+          DEPLOY_APPLICATION="$(jq -er '.deployment.application // .project.projectId' .rtnn/project.json)"
+          DEPLOY_EVENT_TYPE="$(jq -er '.deployment.dispatchEventType' .rtnn/project.json)"
+          DEPLOY_REPO="$(jq -r '.deployment.repo // empty' .rtnn/project.json)"
+
+          SHORT_SHA="${GITHUB_SHA::12}"
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+            DEPLOY_ENVIRONMENT="testing"
+            VERSION="main-${SHORT_SHA}"
+          else
+            DEPLOY_ENVIRONMENT=""
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+
+          {
+            echo "enabled=true"
+            echo "reason=business-source"
+            echo "project_id=${PROJECT_ID}"
+            echo "image_name_prefix=${IMAGE_NAME_PREFIX}"
+            echo "deploy_application=${DEPLOY_APPLICATION}"
+            echo "deploy_event_type=${DEPLOY_EVENT_TYPE}"
+            echo "deploy_repo=${DEPLOY_REPO}"
+            echo "deploy_environment=${DEPLOY_ENVIRONMENT}"
+            echo "version=${VERSION}"
+          } >> "${GITHUB_OUTPUT}"
 
   skip-template-repository:
     name: Skip Template Repository Release
@@ -132,7 +151,9 @@ jobs:
   build-and-push:
     name: Build And Push ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: verify-release
+    needs:
+      - resolve-release-context
+      - verify-release
     if: ${{ needs.verify-release.result == 'success' }}
     permissions:
       contents: read
@@ -163,27 +184,23 @@ jobs:
       - name: Resolve image tags
         id: vars
         shell: bash
+        env:
+          IMAGE_NAME_PREFIX: ${{ needs.resolve-release-context.outputs.image_name_prefix }}
+          VERSION: ${{ needs.resolve-release-context.outputs.version }}
+          DEPLOY_ENVIRONMENT: ${{ needs.resolve-release-context.outputs.deploy_environment }}
         run: |
-          PROJECT_ID="${TEMPLATE_PROJECT_ID:-rtnn}"
-          IMAGE_NAME_PREFIX="${TEMPLATE_IMAGE_NAME_PREFIX:-$PROJECT_ID}"
           IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME_PREFIX}-${{ matrix.service }}"
-          SHORT_SHA="${GITHUB_SHA::12}"
 
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF_NAME}"
-            CHANNEL="production-latest"
-            DEPLOY_ENVIRONMENT=""
-          else
-            VERSION="main-${SHORT_SHA}"
+          if [[ -n "${DEPLOY_ENVIRONMENT}" ]]; then
             CHANNEL="testing-latest"
-            DEPLOY_ENVIRONMENT="testing"
+          else
+            CHANNEL="production-latest"
           fi
 
           {
             echo "image=${IMAGE}"
             echo "version=${VERSION}"
             echo "channel=${CHANNEL}"
-            echo "deploy_environment=${DEPLOY_ENVIRONMENT}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Build And Push Image
@@ -205,21 +222,19 @@ jobs:
   notify-deploy:
     name: Notify Deploy Repository
     runs-on: ubuntu-latest
-    needs: build-and-push
-    if: ${{ needs.build-and-push.result == 'success' }}
+    needs:
+      - resolve-release-context
+      - build-and-push
+    if: ${{ needs.build-and-push.result == 'success' && needs.resolve-release-context.outputs.deploy_environment == 'testing' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
       - name: Detect deploy dispatch config
         id: dispatch
         shell: bash
         env:
+          DEPLOY_REPO: ${{ needs.resolve-release-context.outputs.deploy_repo }}
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
         run: |
-          DEPLOY_REPO="$(jq -r '.deployment.repo // empty' .rtnn/project.json)"
-
           if [[ -z "${DEPLOY_REPO}" || -z "${DISPATCH_TOKEN}" ]]; then
             echo "enabled=false" >> "${GITHUB_OUTPUT}"
             echo "reason=missing-dispatch-config" >> "${GITHUB_OUTPUT}"
@@ -235,55 +250,20 @@ jobs:
         run: |
           echo "deploy dispatch skipped: ${{ steps.dispatch.outputs.reason || 'not-enabled' }}"
 
-      - name: Resolve release payload
-        if: ${{ steps.dispatch.outputs.enabled == 'true' }}
-        id: payload
-        shell: bash
-        run: |
-          PROJECT_ID="$(jq -r '.project.projectId // empty' .rtnn/project.json)"
-          IMAGE_NAME_PREFIX="$(jq -r '.deployment.imageNamePrefix // .project.projectId // empty' .rtnn/project.json)"
-          DEPLOY_APPLICATION_NAME="$(jq -r '.deployment.application // .project.projectId // empty' .rtnn/project.json)"
-          EVENT_TYPE="$(jq -r '.deployment.dispatchEventType // empty' .rtnn/project.json)"
-          SHORT_SHA="${GITHUB_SHA::12}"
-          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
-            VERSION="main-${SHORT_SHA}"
-            DEPLOY_ENVIRONMENT="testing"
-          else
-            VERSION="${GITHUB_REF_NAME}"
-            DEPLOY_ENVIRONMENT=""
-          fi
-
-          IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
-
-          {
-            echo "event_type=${EVENT_TYPE}"
-            echo "version=${VERSION}"
-            echo "deploy_environment=${DEPLOY_ENVIRONMENT}"
-            echo "deploy_application=${DEPLOY_APPLICATION_NAME}"
-            echo "source_repository=${GITHUB_REPOSITORY}"
-            echo "source_ref=${GITHUB_REF}"
-            echo "backend_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-backend:${VERSION}"
-            echo "admin_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-admin:${VERSION}"
-            echo "app_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-app:${VERSION}"
-            echo "weapp_image=${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-weapp:${VERSION}"
-          } >> "${GITHUB_OUTPUT}"
-
       - name: Dispatch deploy event
-        if: ${{ steps.dispatch.outputs.enabled == 'true' && steps.payload.outputs.deploy_environment != '' }}
+        if: ${{ steps.dispatch.outputs.enabled == 'true' }}
         env:
           DISPATCH_URL: ${{ steps.dispatch.outputs.dispatch_url }}
           DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN }}
-          EVENT_TYPE: ${{ steps.payload.outputs.event_type }}
-          VERSION: ${{ steps.payload.outputs.version }}
-          DEPLOY_ENVIRONMENT: ${{ steps.payload.outputs.deploy_environment }}
-          DEPLOY_APPLICATION: ${{ steps.payload.outputs.deploy_application }}
-          SOURCE_REPOSITORY: ${{ steps.payload.outputs.source_repository }}
-          SOURCE_REF: ${{ steps.payload.outputs.source_ref }}
-          BACKEND_IMAGE: ${{ steps.payload.outputs.backend_image }}
-          ADMIN_IMAGE: ${{ steps.payload.outputs.admin_image }}
-          APP_IMAGE: ${{ steps.payload.outputs.app_image }}
-          WEAPP_IMAGE: ${{ steps.payload.outputs.weapp_image }}
+          EVENT_TYPE: ${{ needs.resolve-release-context.outputs.deploy_event_type }}
+          VERSION: ${{ needs.resolve-release-context.outputs.version }}
+          DEPLOY_ENVIRONMENT: ${{ needs.resolve-release-context.outputs.deploy_environment }}
+          DEPLOY_APPLICATION: ${{ needs.resolve-release-context.outputs.deploy_application }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_REF: ${{ github.ref }}
+          IMAGE_NAME_PREFIX: ${{ needs.resolve-release-context.outputs.image_name_prefix }}
         run: |
+          IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME_PREFIX}"
           payload="$(jq -n \
             --arg event_type "${EVENT_TYPE}" \
             --arg application "${DEPLOY_APPLICATION}" \
@@ -292,10 +272,10 @@ jobs:
             --arg sha "${GITHUB_SHA}" \
             --arg source_repository "${SOURCE_REPOSITORY}" \
             --arg source_ref "${SOURCE_REF}" \
-            --arg backend "${BACKEND_IMAGE}" \
-            --arg admin "${ADMIN_IMAGE}" \
-            --arg app "${APP_IMAGE}" \
-            --arg weapp "${WEAPP_IMAGE}" \
+            --arg backend "${IMAGE_PREFIX}-backend:${VERSION}" \
+            --arg admin "${IMAGE_PREFIX}-admin:${VERSION}" \
+            --arg app "${IMAGE_PREFIX}-app:${VERSION}" \
+            --arg weapp "${IMAGE_PREFIX}-weapp:${VERSION}" \
             '{
               event_type: $event_type,
               client_payload: {

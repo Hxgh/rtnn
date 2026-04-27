@@ -49,6 +49,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Detect repository role
         id: context
@@ -114,20 +116,35 @@ jobs:
           INPUT_APP_IMAGE: ${{ inputs.app_image }}
           INPUT_WEAPP_IMAGE: ${{ inputs.weapp_image }}
         run: |
-          PROJECT_ID="$(jq -r '.project.projectId // empty' .rtnn/project.json)"
-          IMAGE_NAME_PREFIX="$(jq -r '.deployment.imageNamePrefix // .project.projectId // empty' .rtnn/project.json)"
-          DEPLOY_APPLICATION_NAME="$(jq -r '.deployment.application // .project.projectId // empty' .rtnn/project.json)"
-          DEPLOY_REPO="$(jq -r '.deployment.repo // empty' .rtnn/project.json)"
+          PROJECT_ID="$(jq -er '.project.projectId' .rtnn/project.json)"
+          IMAGE_NAME_PREFIX="$(jq -er '.deployment.imageNamePrefix // .project.projectId' .rtnn/project.json)"
+          DEPLOY_APPLICATION_NAME="$(jq -er '.deployment.application // .project.projectId' .rtnn/project.json)"
+          DEPLOY_REPO="$(jq -er '.deployment.repo' .rtnn/project.json)"
           DEPLOY_VERSION="${INPUT_DEPLOY_VERSION}"
           IMAGE_OWNER="${INPUT_IMAGE_OWNER:-${GITHUB_REPOSITORY_OWNER,,}}"
           IMAGE_PREFIX="ghcr.io/${IMAGE_OWNER}"
-          EVENT_TYPE="$(jq -r '.deployment.dispatchEventType // empty' .rtnn/project.json)"
+          EVENT_TYPE="$(jq -er '.deployment.dispatchEventType' .rtnn/project.json)"
+
+          [[ "${DEPLOY_VERSION}" =~ ^v[0-9].* ]] || {
+            echo "deploy_version 必须是 v* tag";
+            exit 1;
+          }
 
           BACKEND_IMAGE="${INPUT_BACKEND_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-backend:${DEPLOY_VERSION}}"
           ADMIN_IMAGE="${INPUT_ADMIN_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-admin:${DEPLOY_VERSION}}"
           APP_IMAGE="${INPUT_APP_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-app:${DEPLOY_VERSION}}"
           WEAPP_IMAGE="${INPUT_WEAPP_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-weapp:${DEPLOY_VERSION}}"
-          SOURCE_SHA="${INPUT_SOURCE_SHA:-unknown}"
+          SOURCE_SHA="${INPUT_SOURCE_SHA}"
+
+          if [[ -z "${SOURCE_SHA}" ]]; then
+            git fetch --tags --force origin
+            SOURCE_SHA="$(git rev-list -n 1 "${DEPLOY_VERSION}" 2>/dev/null || true)"
+          fi
+
+          [[ -n "${SOURCE_SHA}" ]] || {
+            echo "未找到 tag ${DEPLOY_VERSION} 对应的提交；可手动填写 source_sha";
+            exit 1;
+          }
 
           {
             echo "dispatch_url=https://api.github.com/repos/${DEPLOY_REPO}/dispatches"
@@ -135,6 +152,7 @@ jobs:
             echo "version=${DEPLOY_VERSION}"
             echo "deploy_application=${DEPLOY_APPLICATION_NAME}"
             echo "source_sha=${SOURCE_SHA}"
+            echo "source_ref=refs/tags/${DEPLOY_VERSION}"
             echo "backend_image=${BACKEND_IMAGE}"
             echo "admin_image=${ADMIN_IMAGE}"
             echo "app_image=${APP_IMAGE}"
@@ -150,6 +168,7 @@ jobs:
           VERSION: ${{ steps.payload.outputs.version }}
           DEPLOY_APPLICATION: ${{ steps.payload.outputs.deploy_application }}
           SOURCE_SHA: ${{ steps.payload.outputs.source_sha }}
+          SOURCE_REF: ${{ steps.payload.outputs.source_ref }}
           BACKEND_IMAGE: ${{ steps.payload.outputs.backend_image }}
           ADMIN_IMAGE: ${{ steps.payload.outputs.admin_image }}
           APP_IMAGE: ${{ steps.payload.outputs.app_image }}
@@ -162,7 +181,7 @@ jobs:
             --arg version "${VERSION}" \
             --arg sha "${SOURCE_SHA}" \
             --arg source_repository "${GITHUB_REPOSITORY}" \
-            --arg source_ref "${GITHUB_REF}" \
+            --arg source_ref "${SOURCE_REF}" \
             --arg backend "${BACKEND_IMAGE}" \
             --arg admin "${ADMIN_IMAGE}" \
             --arg app "${APP_IMAGE}" \

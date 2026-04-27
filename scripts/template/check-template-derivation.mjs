@@ -28,6 +28,12 @@ function runExpectFailure(command, args, label) {
 function main() {
   run(
     "node",
+    ["scripts/template/check-template-neutrality.mjs"],
+    "检查模板中立性与业务事实污染",
+  );
+
+  run(
+    "node",
     [
       "scripts/template/init-template.mjs",
       "--project-id=acme",
@@ -40,6 +46,7 @@ function main() {
   );
 
   run("node", ["--check", "scripts/bootstrap/setup-env.mjs"], "校验模板环境脚本语法");
+  run("node", ["--check", "scripts/template/check-template-neutrality.mjs"], "校验模板中立性脚本语法");
   run("node", ["--check", "scripts/template/rewrite-template-source.mjs"], "校验源码改写脚本语法");
   run("node", ["--check", "scripts/release/sync-live-state.mjs"], "校验 liveState 同步脚本语法");
   run(

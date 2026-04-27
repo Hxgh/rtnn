@@ -1,14 +1,14 @@
 # 模板仓库 / 业务源码仓 / 部署仓拓扑
 
-当前正式模型固定为三仓：
+当前正式模型固定为三类仓库，不要求业务项目使用固定仓库名：
 
 1. `rtnn`
    - 上游模板源码仓
-2. 业务源码仓，例如 `rtnn-demo`
+2. 派生后的业务源码仓
    - 持有完整业务源码
    - 拥有 `testing / production`
-3. `rtnn-deploy`
-   - 部署执行仓
+3. 独立部署执行仓
+   - 可采用 `rtnn-deploy` 这类实现
 
 ## 环境归属
 
@@ -29,12 +29,12 @@
 flowchart LR
   A["business repo main push"] --> B["release-images 通过 gate"]
   B --> C["构建并推送 main-<sha12> 镜像"]
-  C --> D["repository_dispatch 到 rtnn-deploy/testing"]
+  C --> D["repository_dispatch 到部署执行仓/testing"]
   D --> E["deploy-testing 执行发布"]
 
   F["business repo tag push (v*)"] --> G["构建并推送 production 候选镜像"]
   G --> H["business repo 手动 promote-production"]
-  H --> I["repository_dispatch 到 rtnn-deploy/production"]
+  H --> I["repository_dispatch 到部署执行仓/production"]
   I --> J["deploy-production 执行发布"]
 ```
 
@@ -49,7 +49,7 @@ flowchart LR
 
 - `rtnn`
   - 模板代码、契约、发布前 gate、业务仓 release/promote workflow
-- `rtnn-deploy`
+- 独立部署执行仓
   - deploy / rollback / smoke / runtime env / compose
 - 业务源码仓
   - 完整业务源码

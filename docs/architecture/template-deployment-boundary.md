@@ -8,7 +8,8 @@
   - 负责模板代码、契约、初始化、发布候选校验与通用 workflow
 - 业务源码仓
   - 负责当前项目的 `testing / production` 发布主线
-- `rtnn-deploy`
+- 独立部署执行仓
+  - 可采用 `rtnn-deploy` 这类实现
   - 负责环境编排、版本提升、回滚与 smoke
 
 ## 模板仓负责什么
@@ -37,13 +38,13 @@
 
 ## 部署仓负责什么
 
-`rtnn-deploy` 负责：
+独立部署执行仓负责：
 
 - 消费业务源码仓发来的镜像版本与 deploy payload
 - 执行 migrate、promote、rollback、smoke
 - 注入运行时 env、维护 compose / reverse proxy / release state
 
-`rtnn-deploy` 不负责：
+独立部署执行仓不负责：
 
 - 成为业务项目的源码事实源
 - 决定哪个版本应该进入 `production`

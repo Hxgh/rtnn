@@ -1,6 +1,6 @@
 # 模板部署仓库首发方案
 
-`rtnn-deploy` 的定位固定为部署执行仓，而不是业务项目的发布决策仓。
+独立部署执行仓的定位固定为部署执行，而不是业务项目的发布决策仓。业务项目可采用 `rtnn-deploy` 这类实现，但模板不强制仓库名。
 
 ## 目标
 
@@ -36,7 +36,7 @@
 
 1. 业务源码仓通过正式 gate
 2. 业务源码仓构建并推送镜像
-3. 若是 `main` push，则自动 dispatch 到 `rtnn-deploy/testing`
+3. 若是 `main` push，则自动 dispatch 到部署执行仓的 `testing`
 4. 若是 `v*` tag，则只产出 production 候选镜像
 5. 业务源码仓手动 promote production，部署仓执行 `deploy-production`
 

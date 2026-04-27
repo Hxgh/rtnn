@@ -16,10 +16,10 @@
 
 - `rtnn`
   - 上游模板源码仓
-- 业务源码仓，例如 `rtnn-demo`
+- 派生后的业务源码仓
   - 拥有 `testing / production` 主线
-- `rtnn-deploy`
-  - 部署执行仓
+- 独立部署执行仓
+  - 可采用 `rtnn-deploy` 这类实现
 
 ## 相关文档
 

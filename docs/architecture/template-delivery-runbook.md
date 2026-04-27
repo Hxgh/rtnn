@@ -7,7 +7,7 @@
 1. 在 `rtnn` 完成能力收敛与回归
 2. 在业务源码仓同步 `rtnn` 并完成项目级身份改写
 3. 在业务源码仓补齐 `.rtnn/project.json` 的真实仓库、部署仓、域名与环境映射
-4. 在 `rtnn-deploy` 准备 runtime env 与 environment secrets
+4. 在独立部署执行仓准备 runtime env 与 environment secrets
 5. 走通 `testing` 自动发布
 6. 再走通 `production` 手动 promote
 

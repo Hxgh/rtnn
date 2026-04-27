@@ -15,6 +15,7 @@
 如果你的目标是继续收敛模板工程本身、补充交付流程或维护发布链路，阅读：
 
 - [模板总体架构](./architecture/template-overview.md)
+- [模板中立性边界](./architecture/template-neutrality.md)
 - [模板交付闭环计划](./architecture/template-delivery-closure-plan.md)
 - [模板交付执行手册](./architecture/template-delivery-runbook.md)
 - [模板发布工程化计划](./architecture/template-release-engineering-plan.md)

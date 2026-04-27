@@ -5,12 +5,12 @@
 1. `rtnn`
    - 上游模板源码仓
    - 负责模板代码、后端契约、通用 workflow、模板规则和可回流能力
-2. 业务源码仓，例如 `rtnn-demo`
+2. 派生后的业务源码仓
    - 持有完整业务源码
    - 拥有 `testing / production` 的构建、发版、验收主线
    - 通过 upstream remote 或定期 merge 同步 `rtnn`
-3. `rtnn-deploy`
-   - 部署执行仓
+3. 独立部署执行仓
+   - 可采用 `rtnn-deploy` 这类实现
    - 只负责 deploy / rollback / smoke / runtime env 注入
 
 ## 为什么不再使用薄实例目录
@@ -31,17 +31,17 @@
 - `production` 也属于业务源码仓
 - `rtnn` 默认不直接拥有任何业务环境发布权
 - `rtnn` 会保留业务发布 workflow，但这些 workflow 只有在业务仓声明 `project.role=business-source` 后才真正执行
-- `rtnn-deploy` 只执行业务仓已经明确发起的部署动作
+- 独立部署执行仓只执行业务仓已经明确发起的部署动作
 
 对应触发口径：
 
 - 业务仓 `main` push
   - 构建 `main-<sha12>` 镜像
-  - 自动 dispatch 到 `rtnn-deploy/testing`
+  - 自动 dispatch 到部署执行仓的 `testing`
 - 业务仓 `v*` tag
   - 只产出 production 候选镜像
 - 业务仓手动执行 `promote-production`
-  - dispatch 到 `rtnn-deploy/production`
+  - dispatch 到部署执行仓的 `production`
 
 ## 业务仓与模板仓同步
 

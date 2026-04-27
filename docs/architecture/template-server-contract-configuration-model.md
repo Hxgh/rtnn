@@ -8,7 +8,8 @@
   - 定义代码结构、契约和通用 workflow
 - 业务源码仓
   - 承接项目源码与非敏感环境映射
-- 部署引擎 `rtnn-deploy`
+- 独立部署执行仓
+  - 可采用 `rtnn-deploy` 这类实现
   - 渲染 runtime env、执行 deploy / rollback / smoke
 - 真实运行环境
   - 服务器、Docker、数据库、Redis、证书和受限 secrets

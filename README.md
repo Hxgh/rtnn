@@ -84,16 +84,17 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 
 ## 三仓发布模型
 
-当前主线固定为三仓协作：
+当前主线采用三类仓库协作，不要求业务项目必须使用固定仓库名：
 
 - `rtnn`
   - 上游模板源码仓
-- 业务源码仓，例如 `rtnn-demo`
+- 派生后的业务源码仓
   - 持有完整业务源码
   - 拥有 `testing / production` 的构建、发版和验收主线
   - 用 `.rtnn/project.json` 固化仓库角色、部署仓绑定与环境映射
-- `rtnn-deploy`
-  - 部署执行仓，只负责 deploy / rollback / smoke
+- 独立部署执行仓
+  - 可采用 `rtnn-deploy` 这类实现
+  - 只负责 deploy / rollback / smoke
 
 固定规则：
 
@@ -132,6 +133,7 @@ pnpm run check
 - [文档入口](./docs/README.md)
 - [快速开始](./docs/template/getting-started.md)
 - [模板最小承诺](./docs/template/minimum-commitment.md)
+- [模板中立性边界](./docs/architecture/template-neutrality.md)
 - [业务源码仓模型](./docs/architecture/template-business-repository-model.md)
 - [仓库关系与触发拓扑](./docs/architecture/template-repository-topology.md)
 - [部署边界](./docs/architecture/template-deployment-boundary.md)

@@ -13,7 +13,7 @@ function usage() {
   node scripts/release/sync-live-state.mjs --facts-file <runtime-facts.json> [--check|--write]
 
 选项:
-  --facts-file <file>        rtnn-deploy 生成的 runtime facts JSON
+  --facts-file <file>        独立部署执行仓生成的 runtime facts JSON
   --environment <name>       只处理某个环境，可重复或用逗号分隔
   --check                    只校验 liveState 是否与 runtime facts 一致，默认行为
   --write                    写回 .rtnn/project.json 的 liveState
