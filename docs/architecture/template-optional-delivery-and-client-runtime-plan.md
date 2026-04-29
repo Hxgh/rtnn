@@ -643,20 +643,18 @@ pnpm run release:clients:github-dry-run
 
 - 本机 GitHub CLI 已登录为 `Hxgh`，`gh auth status` 通过。
 - `rtnn-demo` 已配置 `DEPLOY_REPOSITORY_DISPATCH_TOKEN`。
-- 远端 GitHub 默认分支尚未包含本轮新增 workflow：
-  - `rtnn-demo`：缺少 `release-clients.yml`。
-  - `rtnn-deploy`：缺少 `sync-client-release-facts.yml`。
+- 远端 GitHub 默认分支已包含本轮新增 workflow：
+  - `rtnn-demo`：`release-clients.yml` 已可见。
+  - `rtnn-deploy`：`sync-client-release-facts.yml` 已可见。
 - `rtnn-deploy` 尚未配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
-- 因此暂不能继续触发真实 `release-clients` run 或 deploy 仓 artifact 下载。
+- 因此暂不能继续触发带 deploy facts 同步的真实 `release-clients` run。
 - 真实跨仓演练仍需配置：
   - `rtnn-deploy`：`DEPLOY_SOURCE_REPOSITORY_TOKEN`，用于下载业务仓 release-clients artifacts。
 
 解除阻塞后的优先级：
 
-1. 将 `rtnn-demo` 的 `release-clients.yml` 合入并推送到默认分支。
-2. 将 `rtnn-deploy` 的 `sync-client-release-facts.yml` 合入并推送到默认分支。
-3. 在 `rtnn-deploy` 配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
-4. 重新执行 `rtnn-demo` GitHub 前置条件 strict 检查。
-5. 执行 `rtnn-demo` release-clients testing dry-run，并开启 `sync_deploy_facts=true`，验证 deploy 仓 `sync-client-release-facts.yml --check` 实跑。
-6. 在配置真实或测试用客户端签名 secrets / variables 后，执行 release-clients testing 非 dry-run 与 deploy facts `--write` 演练。
-7. 根据真实商店审核结果补充 Android / iOS 发布策略变量，例如 track、release status、TestFlight 分发组、审核提交流程。
+1. 在 `rtnn-deploy` 配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
+2. 重新执行 `rtnn-demo` GitHub 前置条件 strict 检查。
+3. 执行 `rtnn-demo` release-clients testing dry-run，并开启 `sync_deploy_facts=true`，验证 deploy 仓 `sync-client-release-facts.yml --check` 实跑。
+4. 在配置真实或测试用客户端签名 secrets / variables 后，执行 release-clients testing 非 dry-run 与 deploy facts `--write` 演练。
+5. 根据真实商店审核结果补充 Android / iOS 发布策略变量，例如 track、release status、TestFlight 分发组、审核提交流程。
