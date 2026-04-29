@@ -29,7 +29,7 @@ function setupProject() {
   writeJson(path.join(dir, ".rtnn/project.json"), {
     version: "v1",
     project: {
-      repo: "acme/rtnn-demo",
+      repo: "acme/business-source",
       role: "business-source",
       projectId: "acme",
       brandName: "ACME",
@@ -143,7 +143,7 @@ function setupProject() {
       },
       updater: {
         configured: true,
-        endpoint: "https://github.com/acme/rtnn-demo/releases/latest/download/admin-desktop-latest.json",
+        endpoint: "https://github.com/acme/business-source/releases/latest/download/admin-desktop-latest.json",
       },
       blockers: [],
     },
@@ -318,7 +318,7 @@ test("sync-client-release-state checks and writes client liveState facts", () =>
         signingConfigured: true,
         updaterConfigured: true,
         updaterEndpoint:
-          "https://github.com/acme/rtnn-demo/releases/latest/download/admin-desktop-latest.json",
+          "https://github.com/acme/business-source/releases/latest/download/admin-desktop-latest.json",
         blockers: [],
       },
     );

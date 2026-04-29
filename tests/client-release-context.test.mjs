@@ -404,7 +404,7 @@ test("prepare-tauri-updater-signing patches Tauri config without leaking private
         CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
         TAURI_UPDATER_PUBLIC_KEY: "public-key",
         TAURI_SIGNING_PRIVATE_KEY: "private-key-must-not-leak",
-        GITHUB_REPOSITORY: "acme/rtnn-demo",
+        GITHUB_REPOSITORY: "acme/business-source",
       },
     });
 
@@ -428,13 +428,13 @@ test("prepare-tauri-updater-signing patches Tauri config without leaking private
     assert.equal(report.updater.configured, true);
     assert.equal(
       report.updater.endpoint,
-      "https://github.com/acme/rtnn-demo/releases/latest/download/admin-desktop-latest.json",
+      "https://github.com/acme/business-source/releases/latest/download/admin-desktop-latest.json",
     );
     assert.equal(reportText.includes("private-key-must-not-leak"), false);
     assert.equal(tauriConfig.bundle.createUpdaterArtifacts, true);
     assert.equal(tauriConfig.plugins.updater.pubkey, "public-key");
     assert.deepEqual(tauriConfig.plugins.updater.endpoints, [
-      "https://github.com/acme/rtnn-demo/releases/latest/download/admin-desktop-latest.json",
+      "https://github.com/acme/business-source/releases/latest/download/admin-desktop-latest.json",
     ]);
     assert.equal(tauriConfig.plugins.updater.windows.installMode, "passive");
   } finally {
@@ -1094,7 +1094,7 @@ test("write-tauri-updater-manifest skips unsigned desktop artifacts", () => {
         CLIENT_RELEASE_TAG: "v1.2.3",
         CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
         CLIENT_UPDATER_PLATFORM: "darwin-aarch64",
-        GITHUB_REPOSITORY: "acme/rtnn-demo",
+        GITHUB_REPOSITORY: "acme/business-source",
       },
     });
 
@@ -1154,7 +1154,7 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
         CLIENT_UPDATER_PLATFORM: "darwin-aarch64",
         CLIENT_UPDATER_PUB_DATE: "2026-04-29T00:00:00.000Z",
         CLIENT_UPDATER_NOTES: "Release 1.2.3",
-        GITHUB_REPOSITORY: "acme/rtnn-demo",
+        GITHUB_REPOSITORY: "acme/business-source",
       },
     });
 
@@ -1175,7 +1175,7 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
     assert.deepEqual(fragment.latest.platforms, {
       "darwin-aarch64": {
         signature: "signed",
-        url: "https://github.com/acme/rtnn-demo/releases/download/v1.2.3/RTNN%20Admin.app.tar.gz",
+        url: "https://github.com/acme/business-source/releases/download/v1.2.3/RTNN%20Admin.app.tar.gz",
       },
     });
   } finally {

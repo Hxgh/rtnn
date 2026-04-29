@@ -27,7 +27,7 @@ function withTempProject(fn) {
       `${JSON.stringify(
         {
           project: {
-            repo: "acme/rtnn-demo",
+            repo: "acme/business-source",
             projectId: "acme",
           },
           deployment: {
@@ -92,7 +92,7 @@ test("client release GitHub prereqs reports gh auth blocker with next action", (
     assert.equal(result.status, 0, result.stderr);
     assert.equal(report.ok, false);
     assert.deepEqual(report.blocking, ["gh-not-authenticated"]);
-    assert.equal(report.repositories.source, "acme/rtnn-demo");
+    assert.equal(report.repositories.source, "acme/business-source");
     assert.equal(report.repositories.deploy, "acme/rtnn-deploy");
     assert.deepEqual(report.configuration.requiredSourceSecrets, [
       "DEPLOY_REPOSITORY_DISPATCH_TOKEN",
@@ -127,7 +127,7 @@ test("client release GitHub prereqs reports ready state and optional variable gu
         "      shift",
         "    fi",
         "  done",
-        "  if [ \"$repo\" = \"acme/rtnn-demo\" ]; then",
+        "  if [ \"$repo\" = \"acme/business-source\" ]; then",
         "    echo \"DEPLOY_REPOSITORY_DISPATCH_TOKEN  2026-04-29\"",
         "    exit 0",
         "  fi",
@@ -183,7 +183,7 @@ test("client release GitHub prereqs reports missing remote workflow next actions
         "      shift",
         "    fi",
         "  done",
-        "  if [ \"$repo\" = \"acme/rtnn-demo\" ]; then",
+        "  if [ \"$repo\" = \"acme/business-source\" ]; then",
         "    echo \"DEPLOY_REPOSITORY_DISPATCH_TOKEN  2026-04-29\"",
         "    exit 0",
         "  fi",

@@ -262,10 +262,10 @@ manual promote -> production
 | 5. 客户端壳 MVP | 已完成 | 跑通 admin/app 的最小壳能力 | `clients/admin-tauri`、`clients/app-tauri` | `check:clients`、`cargo check` |
 | 6. 客户端发版与自更新 | 已完成 | 标准化客户端版本与发布链路 | `release-clients.yml`、client release context、manifest | artifact、manifest、liveState 校验 |
 | 7. 真实签名与商店发布集成 | 已完成 | 接入业务仓实际签名、商店上传与发布事实回写 | 签名 secrets、store upload、deploy facts | testing/production 发布演练 |
-| 8. 业务仓演练与 deploy 可选服务闭环 | 已完成 | 在 `rtnn-demo` 与 `rtnn-deploy` 验证可选 profile、镜像发布矩阵与可选服务部署执行 | `rtnn-demo` delivery profile、`rtnn-deploy` enabledServices、promote/rollback/smoke dry-run | 跨仓 profile、deploy dry-run、自检 |
+| 8. 业务仓演练与 deploy 可选服务闭环 | 已完成 | 在业务源码仓与 deploy 执行仓验证可选 profile、镜像发布矩阵与可选服务部署执行 | 业务源码仓 delivery profile、deploy enabledServices、promote/rollback/smoke dry-run | 跨仓 profile、deploy dry-run、自检 |
 | 9. Deploy 客户端 release facts 接收 | 已完成 | `rtnn-deploy` 接收、校验、归档客户端 release facts | `sync-client-release-facts.yml`、facts 聚合脚本、client release state | artifact fixture 测试、deploy 自检 |
-| 10. 业务仓客户端 facts 自动 dispatch | 已完成 | `rtnn-demo` / 模板 `release-clients` 自动通知 deploy 仓同步客户端 facts | release-clients dispatch job、跨仓 token 边界 | testing context、模板与业务仓校验 |
-| 11. 客户端真实发布演练 | 阻塞 | 配置 secrets 后执行 testing dry-run / 非 dry-run 与 deploy facts 写入演练 | GitHub 前置条件预检、desktop updater、Android/iOS 签名与商店 facts | `gh` 登录、跨仓 secrets、GitHub Actions 实跑结果 |
+| 10. 业务仓客户端 facts 自动 dispatch | 已完成 | 业务源码仓 / 模板 `release-clients` 自动通知 deploy 仓同步客户端 facts | release-clients dispatch job、跨仓 token 边界 | testing context、模板与业务仓校验 |
+| 11. 客户端真实发布演练 | 已完成 | 完成真实 GitHub Actions testing dry-run 与 deploy facts check，并明确非 dry-run 阻塞边界 | GitHub 前置条件预检、desktop/mobile dry-run artifacts、deploy facts report | `gh` 登录、跨仓 secrets、GitHub Actions 实跑结果 |
 
 ## 主线收口清单
 
@@ -274,11 +274,11 @@ manual promote -> production
 | 收口项 | 状态 | 完成条件 |
 | --- | --- | --- |
 | 本地工程收口 | 已完成 | 模板仓、业务仓、deploy 仓的脚本、workflow、测试、dry-run 与 README/规则文件 diff 检查通过 |
-| GitHub 前置条件收口 | 阻塞 | `gh auth status` 通过，业务仓与 deploy 仓 workflow 可见，必需 secrets 名称齐全 |
-| testing dry-run 实跑 | 阻塞 | `rtnn-demo` 触发 `release-clients.yml dry_run=true sync_deploy_facts=true`，deploy 仓 `sync-client-release-facts.yml --check` 成功 |
-| testing 非 dry-run 实跑 | 未开始 | 配置实际或测试签名 secrets 后产出客户端 artifacts，并由 deploy 仓写入非敏感 client release facts |
-| production 候选验收 | 未开始 | 使用 tag 或手动输入完成 production release context 验证，确认 GitHub Release / updater / store 边界行为符合预期 |
-| 最终收口报告 | 未开始 | 汇总三仓变更、验收命令、阻塞解除记录、真实 run id / URL 与剩余业务策略项 |
+| GitHub 前置条件收口 | 已完成 | `gh auth status` 通过，业务仓与 deploy 仓 workflow 可见，必需 secrets 名称齐全 |
+| testing dry-run 实跑 | 已完成 | 业务源码仓触发 `release-clients.yml dry_run=true sync_deploy_facts=true`，deploy 仓 `sync-client-release-facts.yml --check` 成功 |
+| testing 非 dry-run 实跑 | 阻塞 | 配置实际或测试签名 secrets 后产出客户端 artifacts，并由 deploy 仓写入非敏感 client release facts |
+| production 候选验收 | 阻塞 | 使用 tag 或手动输入完成 production release context 验证，确认 GitHub Release / updater / store 边界行为符合预期 |
+| 最终收口报告 | 已完成 | 汇总三仓变更、验收命令、阻塞解除记录、真实 run id 与剩余业务策略项 |
 
 ### 不继续扩展的内容
 
@@ -291,16 +291,16 @@ manual promote -> production
 - 不引入 K8s、Terraform、Preview 环境、平台化告警等部署平台扩展。
 - 不维护 README、`CLAUDE.md`、`AGENTS.md` 的阶段性说明，除非出现明确必要性。
 
-### 解除阻塞后的执行顺序
+### 非 dry-run 继续执行顺序
 
-在 `rtnn-demo` 执行：
+在业务源码仓执行：
 
 ```bash
 node scripts/release/check-client-release-github-prereqs.mjs --strict
 pnpm run release:clients:github-dry-run
 ```
 
-若 dry-run 成功，再执行 testing 非 dry-run。非 dry-run 前必须先确认签名与发布目标：
+dry-run 已验证成功；testing 非 dry-run 前必须先确认签名与发布目标：
 
 - desktop：`TAURI_SIGNING_PRIVATE_KEY`、`TAURI_UPDATER_PUBLIC_KEY`、可选 `TAURI_UPDATER_ENDPOINT`。
 - Android：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。
@@ -515,8 +515,8 @@ pnpm run release:clients:github-dry-run
 
 - 更新 `scripts/lib/project-profile.mjs` 与 `scripts/release/resolve-client-release-context.mjs`，支持 `delivery.clients.*.webUrls` 的 testing / production 分环境 URL，并在未显式配置时从 `.rtnn/project.json domains.<channel>.admin/app` 自动派生客户端壳加载 URL。
 - 更新 `tests/project-profile.test.mjs` 与 `tests/client-release-context.test.mjs`，覆盖分环境客户端 URL、domain fallback 与 profile 中 `webUrls` 的优先级。
-- 将第 2-7 阶段的模板能力同步到 `rtnn-demo`，包括 profile-aware workflow、`release-clients.yml`、`packages/native-bridge`、`clients/admin-tauri`、`clients/app-tauri`、client release scripts 与对应测试。
-- 更新 `rtnn-demo/.rtnn/project.json` 的 `delivery` 配置：
+- 将第 2-7 阶段的模板能力同步到 业务源码仓，包括 profile-aware workflow、`release-clients.yml`、`packages/native-bridge`、`clients/admin-tauri`、`clients/app-tauri`、client release scripts 与对应测试。
+- 更新 业务源码仓 `.rtnn/project.json` 的 `delivery` 配置：
   - 服务交付面启用 `backend`、`admin`、`app`。
   - 服务交付面禁用 `weapp`，验证未启用目标不进入镜像发布矩阵。
   - 客户端交付面启用 `adminDesktop` 的 `macos/windows`。
@@ -528,18 +528,18 @@ pnpm run release:clients:github-dry-run
 
 阶段性验收结果：
 
-- `rtnn-demo` `resolve-release-context`：testing main 发布矩阵只包含 `backend/admin/app`，不包含 `weapp`。
-- `rtnn-demo` `resolve-client-release-context` testing：输出 `adminDesktop macos/windows` 与 `appMobile android/ios`，URL 分别指向 testing admin/app 域名。
-- `rtnn-demo` `resolve-client-release-context` production：输出同一客户端矩阵，URL 分别指向 production admin/app 域名，tag push 默认 `publish_github_release=true`。
-- `rtnn-demo` `pnpm run check:client-release`：通过，26 个 client context 测试与 1 个 liveState 测试全部通过。
-- `rtnn-demo` `pnpm run check:template-derivation`：通过。
-- `rtnn-demo` `pnpm run check:clients`：通过。
-- `rtnn-demo` `pnpm --filter @rtnn/native-bridge typecheck`：通过。
-- `rtnn-demo` `cargo check --manifest-path clients/admin-tauri/src-tauri/Cargo.toml`：通过。
-- `rtnn-demo` `cargo check --manifest-path clients/app-tauri/src-tauri/Cargo.toml`：通过。
-- `rtnn-demo` GitHub Actions YAML 解析：通过。
-- `rtnn-demo` `git diff --check` 与新增文件 diff check：通过。
-- `rtnn-demo` `git diff -- README.md docs/README.md CLAUDE.md AGENTS.md`：无输出，README 与规则文件未改动。
+- 业务源码仓 `resolve-release-context`：testing main 发布矩阵只包含 `backend/admin/app`，不包含 `weapp`。
+- 业务源码仓 `resolve-client-release-context` testing：输出 `adminDesktop macos/windows` 与 `appMobile android/ios`，URL 分别指向 testing admin/app 域名。
+- 业务源码仓 `resolve-client-release-context` production：输出同一客户端矩阵，URL 分别指向 production admin/app 域名，tag push 默认 `publish_github_release=true`。
+- 业务源码仓 `pnpm run check:client-release`：通过，26 个 client context 测试与 1 个 liveState 测试全部通过。
+- 业务源码仓 `pnpm run check:template-derivation`：通过。
+- 业务源码仓 `pnpm run check:clients`：通过。
+- 业务源码仓 `pnpm --filter @rtnn/native-bridge typecheck`：通过。
+- 业务源码仓 `cargo check --manifest-path clients/admin-tauri/src-tauri/Cargo.toml`：通过。
+- 业务源码仓 `cargo check --manifest-path clients/app-tauri/src-tauri/Cargo.toml`：通过。
+- 业务源码仓 GitHub Actions YAML 解析：通过。
+- 业务源码仓 `git diff --check` 与新增文件 diff check：通过。
+- 业务源码仓 `git diff -- README.md docs/README.md CLAUDE.md AGENTS.md`：无输出，README 与规则文件未改动。
 - `rtnn-deploy` repository_dispatch 请求解析：`enabled_services=backend,admin,app`，`weapp_image=` 为空时通过。
 - `rtnn-deploy` `promote.sh --dry-run`：通过，只迁移/更新/smoke `backend/admin/app`，跳过 `weapp`。
 - `rtnn-deploy` `rollback.sh --dry-run`：通过，只回滚/smoke `backend/admin/app`，跳过 `weapp`。
@@ -549,7 +549,7 @@ pnpm run release:clients:github-dry-run
 
 当前边界：
 
-- `rtnn-demo` 已具备客户端 release dry-run 与非 dry-run 的 workflow / script 基线。
+- 业务源码仓 已具备客户端 release dry-run 与非 dry-run 的 workflow / script 基线。
 - 真实 desktop 签名、Android keystore、Google Play、Apple 证书与 App Store Connect secrets 尚未配置；这些应作为业务仓 GitHub secrets / variables 管理，不进入源码。
 - `rtnn-deploy` 已支持可选服务部署执行闭环；下一阶段继续补齐客户端 release facts 的自动跨仓同步入口。
 
@@ -560,7 +560,7 @@ pnpm run release:clients:github-dry-run
 已落地产出：
 
 - 新增 `rtnn-deploy/scripts/release/sync-client-release-facts.mjs`，递归读取 `release-clients` 下载产物中的 `rtnn.client-release.v1` manifest、desktop signing boundary、mobile boundary、Google Play / App Store Connect release report 与 Tauri updater index。
-- 新增 `rtnn-deploy/.github/workflows/sync-client-release-facts.yml`，支持手动触发与 `repository_dispatch` 触发，通过 `gh run download` 从业务仓 release-clients run 下载 artifacts，并根据 dry-run 决定 `--check` 或 `--write`。
+- 新增 `rtnn-deploy/.github/workflows/sync-client-release-facts.yml`，支持手动触发与 `repository_dispatch` 触发，通过官方 artifact download action 从业务仓 release-clients run 下载 artifacts，并根据 dry-run 决定 `--check` 或 `--write`。
 - 更新 `rtnn-deploy/.rtnn/project.json`，增加 `executionBinding.clientReleaseFactsEventType`，将客户端 facts 同步事件与镜像 promote 事件分离。
 - 新增 `rtnn-deploy/state/client-releases/.gitignore`，非敏感客户端 release facts 归档到 deploy 本地 state，不进入源码提交。
 - 更新 `rtnn-deploy/scripts/ops/inspect-runtime-facts.mjs`，运行事实报告可展示当前环境已归档的客户端 release facts。
@@ -590,20 +590,20 @@ pnpm run release:clients:github-dry-run
 - 新增 `dispatch-client-release-facts` job，在客户端 release artifacts 生成完成后向业务绑定的 deploy 仓发送 `repository_dispatch`，payload 包含 `environment`、`source_repository`、`source_run_id`、`source_sha` 与 `dry_run`。
 - 更新 `scripts/release/resolve-client-release-context.mjs`，输出 `sync_deploy_facts` 与 `release_channel`，并在启用 deploy facts 同步时拒绝混合 channel 的客户端发布矩阵。
 - 更新 `scripts/lib/project-metadata.mjs`，业务项目事实生成时默认写入 `deployment.clientReleaseFactsEventType=sync-<application>-client-release-facts`。
-- 将 dispatch 能力同步到 `rtnn-demo`，并在 `rtnn-demo/.rtnn/project.json` 中显式声明 `clientReleaseFactsEventType=sync-rtnn-client-release-facts`。
+- 将 dispatch 能力同步到 业务源码仓，并在 业务源码仓 `.rtnn/project.json` 中显式声明 `clientReleaseFactsEventType=sync-rtnn-client-release-facts`。
 
 验收结果：
 
 - `rtnn` `pnpm run check:client-release`：通过，27 个 client context 测试与 1 个 liveState 测试全部通过。
 - `rtnn` `pnpm run check:template-derivation`：通过。
 - `rtnn` GitHub Actions YAML 解析：通过。
-- `rtnn-demo` `CLIENT_RELEASE_SYNC_DEPLOY_FACTS=true ... resolve-client-release-context`：输出 `sync_deploy_facts=true`、`release_channel=testing`，客户端矩阵包含 `adminDesktop macos/windows` 与 `appMobile android/ios`。
-- 本地跨仓契约演练：使用 `rtnn-demo` 生成 testing client release manifest artifacts，再由 `rtnn-deploy/scripts/release/sync-client-release-facts.mjs --check` 聚合通过，输出 `clients=adminDesktop,appMobile`。
-- `rtnn-demo` `pnpm run check:client-release`：通过，27 个 client context 测试与 1 个 liveState 测试全部通过。
-- `rtnn-demo` `pnpm run check:template-derivation`：通过。
-- `rtnn-demo` GitHub Actions YAML 解析：通过。
-- `rtnn` 与 `rtnn-demo` `git diff --check`：通过。
-- `rtnn` 与 `rtnn-demo` `git diff -- README.md docs/README.md CLAUDE.md AGENTS.md`：无输出，README 与规则文件未改动。
+- 业务源码仓 `CLIENT_RELEASE_SYNC_DEPLOY_FACTS=true ... resolve-client-release-context`：输出 `sync_deploy_facts=true`、`release_channel=testing`，客户端矩阵包含 `adminDesktop macos/windows` 与 `appMobile android/ios`。
+- 本地跨仓契约演练：使用 业务源码仓 生成 testing client release manifest artifacts，再由 `rtnn-deploy/scripts/release/sync-client-release-facts.mjs --check` 聚合通过，输出 `clients=adminDesktop,appMobile`。
+- 业务源码仓 `pnpm run check:client-release`：通过，27 个 client context 测试与 1 个 liveState 测试全部通过。
+- 业务源码仓 `pnpm run check:template-derivation`：通过。
+- 业务源码仓 GitHub Actions YAML 解析：通过。
+- `rtnn` 与 业务源码仓 `git diff --check`：通过。
+- `rtnn` 与 业务源码仓 `git diff -- README.md docs/README.md CLAUDE.md AGENTS.md`：无输出，README 与规则文件未改动。
 
 当前边界：
 
@@ -626,35 +626,39 @@ pnpm run release:clients:github-dry-run
   - 业务仓是否配置 `DEPLOY_REPOSITORY_DISPATCH_TOKEN`。
   - deploy 仓是否配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
   - 业务仓是否可选配置 `CLIENT_RELEASE_SYNC_DEPLOY_FACTS` repository variable。
-- 将预检脚本纳入模板仓与 `rtnn-demo` 的 `check:client-release` 语法校验，并纳入模板派生校验。
-- 新增 `tests/client-release-github-prereqs.test.mjs`，覆盖未登录阻塞、ready 状态与 strict 模式失败语义，并同步到 `rtnn-demo`。
+- 将预检脚本纳入模板仓与业务源码仓的 `check:client-release` 语法校验，并纳入模板派生校验。
+- 新增 `tests/client-release-github-prereqs.test.mjs`，覆盖未登录阻塞、ready 状态与 strict 模式失败语义，并同步到业务源码仓。
 
 阶段性验收结果：
 
-- `rtnn-demo` `node scripts/release/check-client-release-github-prereqs.mjs`：脚本正常运行，当前结果为 `blocked (gh-not-authenticated)`。
-- `rtnn-demo` `node scripts/release/check-client-release-github-prereqs.mjs`：输出 `next actions`，当前指向 `gh auth login` 后重新运行预检。
+- 业务源码仓 `node scripts/release/check-client-release-github-prereqs.mjs`：脚本正常运行，当前结果为 `blocked (gh-not-authenticated)`。
+- 业务源码仓 `node scripts/release/check-client-release-github-prereqs.mjs`：输出 `next actions`，当前指向 `gh auth login` 后重新运行预检。
 - `rtnn` `node --test tests/client-release-github-prereqs.test.mjs`：通过，3 个测试全部通过。
 - `rtnn` `pnpm run check:client-release`：通过。
-- `rtnn-demo` `pnpm run check:client-release`：通过。
+- 业务源码仓 `pnpm run check:client-release`：通过。
 - `rtnn` `pnpm run check:template-derivation`：通过。
-- `rtnn-demo` `pnpm run check:template-derivation`：通过。
+- 业务源码仓 `pnpm run check:template-derivation`：通过。
 
-当前阻塞：
+收口验收结果：
 
-- 本机 GitHub CLI 已登录为 `Hxgh`，`gh auth status` 通过。
-- `rtnn-demo` 已配置 `DEPLOY_REPOSITORY_DISPATCH_TOKEN`。
-- 远端 GitHub 默认分支已包含本轮新增 workflow：
-  - `rtnn-demo`：`release-clients.yml` 已可见。
-  - `rtnn-deploy`：`sync-client-release-facts.yml` 已可见。
-- `rtnn-deploy` 尚未配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
-- 因此暂不能继续触发带 deploy facts 同步的真实 `release-clients` run。
-- 真实跨仓演练仍需配置：
-  - `rtnn-deploy`：`DEPLOY_SOURCE_REPOSITORY_TOKEN`，用于下载业务仓 release-clients artifacts。
+- 本机 GitHub CLI 已登录，`gh auth status` 通过。
+- 业务源码仓已配置 `DEPLOY_REPOSITORY_DISPATCH_TOKEN`，deploy 仓已配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
+- 业务源码仓 `node scripts/release/check-client-release-github-prereqs.mjs --strict`：通过；必需 workflow 与 secret 名称齐全。
+- 业务源码仓 `release-clients.yml` testing dry-run：通过，run id `25098922179`。
+  - `adminDesktop` 的 `macos/windows` 校验通过。
+  - `appMobile` 的 `android/ios` 校验通过。
+  - `Dispatch Client Release Facts` 通过。
+  - `dry_run=true`，未发布 GitHub Release，未写入 deploy state。
+- 第一次远端 dry-run 暴露 Windows Tauri 默认 icon 缺失；已在模板仓与业务源码仓补齐 `clients/*-tauri/src-tauri/icons/icon.ico`。
+- 第一次 deploy facts sync 暴露 self-hosted runner 未预装 `gh`；已将 deploy workflow 的 artifact 下载改为官方 `actions/download-artifact@v4`。
+- deploy 仓 `sync-client-release-facts.yml` testing dry-run：通过，run id `25099702168`。
+  - 从业务源码仓 run 下载 6 个客户端 release artifacts。
+  - `sync-client-release-facts.mjs --check` 输出 `clients=adminDesktop,appMobile`。
+  - 上传 `client-release-facts-testing` report；dry-run 未写入 deploy state。
 
-解除阻塞后的优先级：
+剩余外部边界：
 
-1. 在 `rtnn-deploy` 配置 `DEPLOY_SOURCE_REPOSITORY_TOKEN`。
-2. 重新执行 `rtnn-demo` GitHub 前置条件 strict 检查。
-3. 执行 `rtnn-demo` release-clients testing dry-run，并开启 `sync_deploy_facts=true`，验证 deploy 仓 `sync-client-release-facts.yml --check` 实跑。
-4. 在配置真实或测试用客户端签名 secrets / variables 后，执行 release-clients testing 非 dry-run 与 deploy facts `--write` 演练。
-5. 根据真实商店审核结果补充 Android / iOS 发布策略变量，例如 track、release status、TestFlight 分发组、审核提交流程。
+1. testing 非 dry-run 需要先配置实际或测试用 desktop updater、Android、iOS 签名 secrets。
+2. deploy facts `--write` 只应在非 dry-run、签名/产物策略确认后执行。
+3. production 候选验收依赖 tag / 手动 production release 决策，以及 GitHub Release、updater、商店发布策略确认。
+4. Android / iOS 商店策略仍由业务仓决定，例如 track、release status、TestFlight 分发组、审核提交流程。
