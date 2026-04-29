@@ -10,7 +10,7 @@ const CLIENTS = {
     remoteUrl: "https://admin.example.com",
     capability: "default.json",
     permissions: ["core:default", "opener:default", "updater:default"],
-    requiredCargoDependencies: ["tauri-plugin-opener", "tauri-plugin-updater"],
+    requiredCargoDependencies: ["serde_json", "tauri-plugin-opener", "tauri-plugin-updater"],
     requiredSourceSnippets: [
       "tauri_plugin_updater::UpdaterExt",
       "check_update",
@@ -25,7 +25,7 @@ const CLIENTS = {
     remoteUrl: "https://app.example.com",
     capability: "mobile.json",
     permissions: ["core:default", "opener:default"],
-    requiredCargoDependencies: ["tauri-plugin-opener"],
+    requiredCargoDependencies: ["serde_json", "tauri-plugin-opener"],
     requiredSourceSnippets: [],
   },
 };
@@ -72,6 +72,16 @@ function assertRgbaPng(filePath) {
   assert(bitDepth === 8 && colorType === 6, `图标必须是 8-bit RGBA PNG: ${filePath}`);
 }
 
+function assertIco(filePath) {
+  const file = readFileSync(filePath);
+
+  assert(file.length > 6, `图标不是有效 ICO: ${filePath}`);
+  assert(
+    file.readUInt16LE(0) === 0 && file.readUInt16LE(2) === 1 && file.readUInt16LE(4) > 0,
+    `图标不是有效 ICO: ${filePath}`,
+  );
+}
+
 function validateClient(rootDir, clientName, expected) {
   const clientDir = path.join(rootDir, "clients", clientName);
   const srcTauriDir = path.join(clientDir, "src-tauri");
@@ -98,6 +108,14 @@ function validateClient(rootDir, clientName, expected) {
     `${clientName} frontendDist 应使用远程 URL`,
   );
   assert(tauriConfig.app?.withGlobalTauri === true, `${clientName} 必须启用 withGlobalTauri`);
+  assert(
+    tauriConfig.bundle?.icon?.includes("icons/icon.png"),
+    `${clientName} bundle.icon 缺少 icons/icon.png`,
+  );
+  assert(
+    tauriConfig.bundle?.icon?.includes("icons/icon.ico"),
+    `${clientName} bundle.icon 缺少 Windows icons/icon.ico`,
+  );
 
   assert(
     capability.remote?.urls?.includes(expected.devUrl),
@@ -131,6 +149,7 @@ function validateClient(rootDir, clientName, expected) {
   for (const filePath of [
     "Cargo.toml",
     "build.rs",
+    "icons/icon.ico",
     "icons/icon.png",
     "src/lib.rs",
     "src/main.rs",
@@ -139,6 +158,7 @@ function validateClient(rootDir, clientName, expected) {
   }
 
   assertRgbaPng(path.join(srcTauriDir, "icons/icon.png"));
+  assertIco(path.join(srcTauriDir, "icons/icon.ico"));
 }
 
 function main() {
