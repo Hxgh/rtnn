@@ -45,6 +45,7 @@ jobs:
     outputs:
       enabled: ${{ steps.context.outputs.enabled }}
       reason: ${{ steps.context.outputs.reason }}
+      enabled_services_json: ${{ steps.context.outputs.enabled_services_json }}
 
     steps:
       - name: Checkout
@@ -54,24 +55,7 @@ jobs:
 
       - name: Detect repository role
         id: context
-        shell: bash
-        run: |
-          if [[ ! -f ".rtnn/project.json" ]]; then
-            echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "reason=missing-project-metadata" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          REPO_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
-
-          if [[ "${REPO_ROLE}" != "business-source" ]]; then
-            echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          echo "enabled=true" >> "${GITHUB_OUTPUT}"
-          echo "reason=business-source" >> "${GITHUB_OUTPUT}"
+        run: node scripts/release/resolve-release-context.mjs --mode=promote
 
   skip-template-repository:
     name: Skip Template Repository Promote
@@ -115,6 +99,7 @@ jobs:
           INPUT_ADMIN_IMAGE: ${{ inputs.admin_image }}
           INPUT_APP_IMAGE: ${{ inputs.app_image }}
           INPUT_WEAPP_IMAGE: ${{ inputs.weapp_image }}
+          ENABLED_SERVICES_JSON: ${{ needs.resolve-promote-context.outputs.enabled_services_json }}
         run: |
           PROJECT_ID="$(jq -er '.project.projectId' .rtnn/project.json)"
           IMAGE_NAME_PREFIX="$(jq -er '.deployment.imageNamePrefix // .project.projectId' .rtnn/project.json)"
@@ -130,10 +115,21 @@ jobs:
             exit 1;
           }
 
-          BACKEND_IMAGE="${INPUT_BACKEND_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-backend:${DEPLOY_VERSION}}"
-          ADMIN_IMAGE="${INPUT_ADMIN_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-admin:${DEPLOY_VERSION}}"
-          APP_IMAGE="${INPUT_APP_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-app:${DEPLOY_VERSION}}"
-          WEAPP_IMAGE="${INPUT_WEAPP_IMAGE:-${IMAGE_PREFIX}/${IMAGE_NAME_PREFIX}-weapp:${DEPLOY_VERSION}}"
+          image_overrides="$(jq -nc \
+            --arg backend "${INPUT_BACKEND_IMAGE}" \
+            --arg admin "${INPUT_ADMIN_IMAGE}" \
+            --arg app "${INPUT_APP_IMAGE}" \
+            --arg weapp "${INPUT_WEAPP_IMAGE}" \
+            '{backend: $backend, admin: $admin, app: $app, weapp: $weapp}'
+          )"
+          images_json="$(jq -nc \
+            --arg image_prefix "${IMAGE_PREFIX}" \
+            --arg name_prefix "${IMAGE_NAME_PREFIX}" \
+            --arg version "${DEPLOY_VERSION}" \
+            --argjson services "${ENABLED_SERVICES_JSON}" \
+            --argjson overrides "${image_overrides}" \
+            'reduce $services[] as $service ({}; .[$service] = (if ($overrides[$service] // "") != "" then $overrides[$service] else "\($image_prefix)/\($name_prefix)-\($service):\($version)" end))'
+          )"
           SOURCE_SHA="${INPUT_SOURCE_SHA}"
 
           if [[ -z "${SOURCE_SHA}" ]]; then
@@ -153,10 +149,7 @@ jobs:
             echo "deploy_application=${DEPLOY_APPLICATION_NAME}"
             echo "source_sha=${SOURCE_SHA}"
             echo "source_ref=refs/tags/${DEPLOY_VERSION}"
-            echo "backend_image=${BACKEND_IMAGE}"
-            echo "admin_image=${ADMIN_IMAGE}"
-            echo "app_image=${APP_IMAGE}"
-            echo "weapp_image=${WEAPP_IMAGE}"
+            echo "images_json=${images_json}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Dispatch deploy event
@@ -169,10 +162,7 @@ jobs:
           DEPLOY_APPLICATION: ${{ steps.payload.outputs.deploy_application }}
           SOURCE_SHA: ${{ steps.payload.outputs.source_sha }}
           SOURCE_REF: ${{ steps.payload.outputs.source_ref }}
-          BACKEND_IMAGE: ${{ steps.payload.outputs.backend_image }}
-          ADMIN_IMAGE: ${{ steps.payload.outputs.admin_image }}
-          APP_IMAGE: ${{ steps.payload.outputs.app_image }}
-          WEAPP_IMAGE: ${{ steps.payload.outputs.weapp_image }}
+          IMAGES_JSON: ${{ steps.payload.outputs.images_json }}
         run: |
           payload="$(jq -n \
             --arg event_type "${EVENT_TYPE}" \
@@ -182,10 +172,7 @@ jobs:
             --arg sha "${SOURCE_SHA}" \
             --arg source_repository "${GITHUB_REPOSITORY}" \
             --arg source_ref "${SOURCE_REF}" \
-            --arg backend "${BACKEND_IMAGE}" \
-            --arg admin "${ADMIN_IMAGE}" \
-            --arg app "${APP_IMAGE}" \
-            --arg weapp "${WEAPP_IMAGE}" \
+            --argjson images "${IMAGES_JSON}" \
             '{
               event_type: $event_type,
               client_payload: {
@@ -195,12 +182,7 @@ jobs:
                 sha: $sha,
                 source_repository: $source_repository,
                 source_ref: $source_ref,
-                images: {
-                  backend: $backend,
-                  admin: $admin,
-                  app: $app,
-                  weapp: $weapp
-                }
+                images: $images
               }
             }'
           )"

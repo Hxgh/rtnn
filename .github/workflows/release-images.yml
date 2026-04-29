@@ -31,6 +31,8 @@ jobs:
       deploy_repo: ${{ steps.context.outputs.deploy_repo }}
       deploy_environment: ${{ steps.context.outputs.deploy_environment }}
       version: ${{ steps.context.outputs.version }}
+      service_matrix: ${{ steps.context.outputs.service_matrix }}
+      enabled_services_json: ${{ steps.context.outputs.enabled_services_json }}
 
     steps:
       - name: Checkout
@@ -38,47 +40,7 @@ jobs:
 
       - name: Resolve business project metadata
         id: context
-        shell: bash
-        run: |
-          if [[ ! -f ".rtnn/project.json" ]]; then
-            echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "reason=missing-project-metadata" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          PROJECT_ROLE="$(jq -r '.project.role // empty' .rtnn/project.json)"
-          if [[ "${PROJECT_ROLE}" != "business-source" ]]; then
-            echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "reason=repo-role-disabled" >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          PROJECT_ID="$(jq -er '.project.projectId' .rtnn/project.json)"
-          IMAGE_NAME_PREFIX="$(jq -er '.deployment.imageNamePrefix // .project.projectId' .rtnn/project.json)"
-          DEPLOY_APPLICATION="$(jq -er '.deployment.application // .project.projectId' .rtnn/project.json)"
-          DEPLOY_EVENT_TYPE="$(jq -er '.deployment.dispatchEventType' .rtnn/project.json)"
-          DEPLOY_REPO="$(jq -r '.deployment.repo // empty' .rtnn/project.json)"
-
-          SHORT_SHA="${GITHUB_SHA::12}"
-          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
-            DEPLOY_ENVIRONMENT="testing"
-            VERSION="main-${SHORT_SHA}"
-          else
-            DEPLOY_ENVIRONMENT=""
-            VERSION="${GITHUB_REF_NAME}"
-          fi
-
-          {
-            echo "enabled=true"
-            echo "reason=business-source"
-            echo "project_id=${PROJECT_ID}"
-            echo "image_name_prefix=${IMAGE_NAME_PREFIX}"
-            echo "deploy_application=${DEPLOY_APPLICATION}"
-            echo "deploy_event_type=${DEPLOY_EVENT_TYPE}"
-            echo "deploy_repo=${DEPLOY_REPO}"
-            echo "deploy_environment=${DEPLOY_ENVIRONMENT}"
-            echo "version=${VERSION}"
-          } >> "${GITHUB_OUTPUT}"
+        run: node scripts/release/resolve-release-context.mjs
 
   skip-template-repository:
     name: Skip Template Repository Release
@@ -134,6 +96,7 @@ jobs:
             apps/app/package.json
             apps/backend/package.json
             apps/weapp/package.json
+            clients/*/package.json
             packages/*/package.json
 
       - name: Install dependencies
@@ -160,12 +123,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
-      matrix:
-        service:
-          - backend
-          - admin
-          - app
-          - weapp
+      matrix: ${{ fromJson(needs.resolve-release-context.outputs.service_matrix) }}
 
     steps:
       - name: Checkout
@@ -262,8 +220,16 @@ jobs:
           SOURCE_REPOSITORY: ${{ github.repository }}
           SOURCE_REF: ${{ github.ref }}
           IMAGE_NAME_PREFIX: ${{ needs.resolve-release-context.outputs.image_name_prefix }}
+          ENABLED_SERVICES_JSON: ${{ needs.resolve-release-context.outputs.enabled_services_json }}
         run: |
           IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME_PREFIX}"
+          images="$(jq -nc \
+            --arg image_prefix "${IMAGE_PREFIX}" \
+            --arg version "${VERSION}" \
+            --argjson services "${ENABLED_SERVICES_JSON}" \
+            'reduce $services[] as $service ({}; .[$service] = "\($image_prefix)-\($service):\($version)")'
+          )"
+
           payload="$(jq -n \
             --arg event_type "${EVENT_TYPE}" \
             --arg application "${DEPLOY_APPLICATION}" \
@@ -272,10 +238,7 @@ jobs:
             --arg sha "${GITHUB_SHA}" \
             --arg source_repository "${SOURCE_REPOSITORY}" \
             --arg source_ref "${SOURCE_REF}" \
-            --arg backend "${IMAGE_PREFIX}-backend:${VERSION}" \
-            --arg admin "${IMAGE_PREFIX}-admin:${VERSION}" \
-            --arg app "${IMAGE_PREFIX}-app:${VERSION}" \
-            --arg weapp "${IMAGE_PREFIX}-weapp:${VERSION}" \
+            --argjson images "${images}" \
             '{
               event_type: $event_type,
               client_payload: {
@@ -285,12 +248,7 @@ jobs:
                 sha: $sha,
                 source_repository: $source_repository,
                 source_ref: $source_ref,
-                images: {
-                  backend: $backend,
-                  admin: $admin,
-                  app: $app,
-                  weapp: $weapp
-                }
+                images: $images
               }
             }'
           )"

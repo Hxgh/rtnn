@@ -1,0 +1,15 @@
+{
+  "name": "@rtnn/admin-tauri",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "validate": "node ../../scripts/client/check-tauri-clients.mjs admin-tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.2"
+  }
+}

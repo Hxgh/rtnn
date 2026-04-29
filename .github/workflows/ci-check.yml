@@ -61,6 +61,7 @@ jobs:
             apps/app/package.json
             apps/backend/package.json
             apps/weapp/package.json
+            clients/*/package.json
             packages/*/package.json
 
       - name: Install dependencies

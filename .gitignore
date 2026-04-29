@@ -38,6 +38,7 @@ Thumbs.db
 # local build outputs and caches
 dist/
 build/
+target/
 .next/
 out/
 .swc/
@@ -52,6 +53,7 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 *.pem
+clients/*/src-tauri/gen/
 
 # local data
 *.db

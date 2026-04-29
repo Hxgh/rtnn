@@ -94,8 +94,12 @@ export function buildBusinessProjectMetadata(rootDir, existingMetadata = null) {
   const deploymentRepository =
     normalizeRepository(existingDeployment.repo, "") ||
     `example/${projectId}-deploy`;
+  const deploymentApplication = normalizeRepository(
+    existingDeployment.application,
+    projectId,
+  );
 
-  return {
+  const nextMetadata = {
     version: "v1",
     project: {
       repo: originRepository,
@@ -115,7 +119,7 @@ export function buildBusinessProjectMetadata(rootDir, existingMetadata = null) {
     },
     deployment: {
       repo: deploymentRepository,
-      application: normalizeRepository(existingDeployment.application, projectId),
+      application: deploymentApplication,
       imageNamePrefix: normalizeRepository(
         existingDeployment.imageNamePrefix,
         imageNamePrefix,
@@ -123,6 +127,10 @@ export function buildBusinessProjectMetadata(rootDir, existingMetadata = null) {
       dispatchEventType: normalizeRepository(
         existingDeployment.dispatchEventType,
         dispatchEventType,
+      ),
+      clientReleaseFactsEventType: normalizeRepository(
+        existingDeployment.clientReleaseFactsEventType,
+        `sync-${deploymentApplication}-client-release-facts`,
       ),
       environments: normalizeEnvironments(existingDeployment.environments),
       testingTrigger: normalizeRepository(
@@ -144,6 +152,12 @@ export function buildBusinessProjectMetadata(rootDir, existingMetadata = null) {
       ? existing.liveState
       : { testing: {}, production: {} },
   };
+
+  if (isPlainObject(existing.delivery)) {
+    nextMetadata.delivery = existing.delivery;
+  }
+
+  return nextMetadata;
 }
 
 export function writeProjectMetadata(rootDir, metadata) {

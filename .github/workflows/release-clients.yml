@@ -1,0 +1,712 @@
+name: release-clients
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional client release version. Defaults to tag or ref plus short sha.
+        required: false
+        type: string
+      channel:
+        description: Client release channel.
+        required: false
+        default: testing
+        type: choice
+        options:
+          - testing
+          - production
+      dry_run:
+        description: Validate and upload manifests only.
+        required: false
+        default: true
+        type: boolean
+      publish_github_release:
+        description: Upload client bundles and updater manifests to a GitHub Release when not dry-run. Tag pushes default to true.
+        required: false
+        default: false
+        type: boolean
+      sync_deploy_facts:
+        description: Dispatch deploy repository to sync non-sensitive client release facts.
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "client-*"
+      - "v*"
+
+concurrency:
+  group: release-clients-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-client-release-context:
+    name: Resolve Client Release Context
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      enabled: ${{ steps.context.outputs.enabled }}
+      reason: ${{ steps.context.outputs.reason }}
+      dry_run: ${{ steps.context.outputs.dry_run }}
+      publish_github_release: ${{ steps.context.outputs.publish_github_release }}
+      sync_deploy_facts: ${{ steps.context.outputs.sync_deploy_facts }}
+      release_channel: ${{ steps.context.outputs.release_channel }}
+      release_version: ${{ steps.context.outputs.release_version }}
+      release_tag: ${{ steps.context.outputs.release_tag }}
+      source_sha: ${{ steps.context.outputs.source_sha }}
+      source_ref: ${{ steps.context.outputs.source_ref }}
+      client_matrix: ${{ steps.context.outputs.client_matrix }}
+      enabled_clients_json: ${{ steps.context.outputs.enabled_clients_json }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Resolve client release context
+        id: context
+        env:
+          CLIENT_RELEASE_VERSION: ${{ github.event.inputs.version || '' }}
+          CLIENT_RELEASE_CHANNEL: ${{ github.event.inputs.channel || '' }}
+          CLIENT_RELEASE_DRY_RUN: ${{ github.event.inputs.dry_run || '' }}
+          CLIENT_RELEASE_PUBLISH_GITHUB_RELEASE: ${{ github.event.inputs.publish_github_release || '' }}
+          CLIENT_RELEASE_SYNC_DEPLOY_FACTS: ${{ github.event.inputs.sync_deploy_facts || vars.CLIENT_RELEASE_SYNC_DEPLOY_FACTS || '' }}
+        run: node scripts/release/resolve-client-release-context.mjs
+
+  skip-client-release:
+    name: Skip Client Release
+    runs-on: ubuntu-latest
+    needs: resolve-client-release-context
+    if: ${{ needs.resolve-client-release-context.outputs.enabled != 'true' }}
+    steps:
+      - name: Report skip reason
+        run: |
+          echo "Client release skipped: ${{ needs.resolve-client-release-context.outputs.reason }}"
+
+  validate-client-release:
+    name: Validate ${{ matrix.client }} ${{ matrix.target }}
+    needs: resolve-client-release-context
+    if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.resolve-client-release-context.outputs.client_matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.17.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: |
+            package.json
+            pnpm-workspace.yaml
+            clients/*/package.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Java
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup iOS Rust target
+        if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        run: rustup target add aarch64-apple-ios
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate client shell
+        shell: bash
+        run: pnpm --filter "${{ matrix.package }}" validate
+
+      - name: Rust format check
+        shell: bash
+        run: cargo fmt --manifest-path "${{ matrix.client_dir }}/src-tauri/Cargo.toml" -- --check
+
+      - name: Rust desktop check
+        if: ${{ matrix.target == 'macos' || matrix.target == 'windows' }}
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/rtnn-tauri-target
+        run: cargo check --manifest-path "${{ matrix.client_dir }}/src-tauri/Cargo.toml"
+
+      - name: Prepare Android signing
+        id: android_signing
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || '' }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || '' }}
+        run: |
+          if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
+            pnpm --filter "${{ matrix.package }}" tauri android init
+          fi
+
+          node scripts/release/prepare-android-signing.mjs
+
+      - name: Prepare iOS signing
+        id: ios_signing
+        if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 || '' }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD || '' }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 || '' }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD || '' }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || '' }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID || '' }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 || '' }}
+        run: node scripts/release/prepare-ios-signing.mjs
+
+      - name: Install iOS signing assets
+        if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          IOS_CERTIFICATE_PATH: ${{ steps.ios_signing.outputs.certificate_path }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_PATH: ${{ steps.ios_signing.outputs.provisioning_profile_path }}
+          IOS_KEYCHAIN_PATH: ${{ steps.ios_signing.outputs.keychain_path }}
+          IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+        run: |
+          security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$IOS_KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$IOS_KEYCHAIN_PATH"
+          security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$IOS_KEYCHAIN_PATH"
+          security import "$IOS_CERTIFICATE_PATH" \
+            -P "$IOS_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$IOS_KEYCHAIN_PATH"
+          security list-keychains -d user -s "$IOS_KEYCHAIN_PATH"
+          security default-keychain -s "$IOS_KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$IOS_KEYCHAIN_PASSWORD" \
+            "$IOS_KEYCHAIN_PATH"
+
+          PROFILE_PLIST="$RUNNER_TEMP/${CLIENT_ARTIFACT_NAME}.provisioning.plist"
+          security cms -D -i "$IOS_PROVISIONING_PROFILE_PATH" > "$PROFILE_PLIST"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print UUID' "$PROFILE_PLIST")"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$IOS_PROVISIONING_PROFILE_PATH" \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+      - name: Prepare Tauri updater signing
+        id: desktop_signing
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_CHANNEL: ${{ matrix.channel }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY || vars.TAURI_UPDATER_PUBLIC_KEY || '' }}
+          TAURI_UPDATER_ENDPOINT: ${{ vars.TAURI_UPDATER_ENDPOINT || '' }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/release/prepare-tauri-updater-signing.mjs
+
+      - name: Build desktop client
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
+          RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
+        run: pnpm --filter "${{ matrix.package }}" run build
+
+      - name: Build signed Android client
+        if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
+          RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+          ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
+        run: |
+          if [[ "$ANDROID_ARTIFACT_TYPE" == "apk" ]]; then
+            pnpm --filter "${{ matrix.package }}" tauri android build --apk
+          else
+            pnpm --filter "${{ matrix.package }}" tauri android build --aab
+          fi
+
+      - name: Build signed iOS client
+        if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
+          RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+        run: |
+          pnpm --filter "${{ matrix.package }}" tauri ios init
+          pnpm --filter "${{ matrix.package }}" tauri ios build --export-method app-store-connect
+
+      - name: Collect desktop bundle artifacts
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+        run: node scripts/release/collect-client-artifacts.mjs
+
+      - name: Collect Android bundle artifacts
+        if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_BUNDLE_DIR: ${{ matrix.client_dir }}/src-tauri/gen/android/app/build/outputs
+          CLIENT_ARTIFACT_OUTPUT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+        run: node scripts/release/collect-client-artifacts.mjs
+
+      - name: Collect iOS bundle artifacts
+        if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_BUNDLE_DIR: ${{ matrix.client_dir }}/src-tauri/gen/apple/build
+          CLIENT_ARTIFACT_OUTPUT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+        run: node scripts/release/collect-client-artifacts.mjs
+
+      - name: Prepare Google Play upload
+        id: google_play_upload
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_ARTIFACT_OUTPUT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+          ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
+          ANDROID_PACKAGE_NAME: ${{ vars.ANDROID_PACKAGE_NAME || '' }}
+          ANDROID_PLAY_TRACK: ${{ vars.ANDROID_PLAY_TRACK || 'internal' }}
+          ANDROID_PLAY_STATUS: ${{ vars.ANDROID_PLAY_STATUS || 'draft' }}
+          ANDROID_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.ANDROID_PLAY_SERVICE_ACCOUNT_JSON || '' }}
+        run: node scripts/release/prepare-google-play-upload.mjs
+
+      - name: Upload Android to Google Play
+        id: google_play_release
+        if: ${{ matrix.target == 'android' && steps.google_play_upload.outputs.configured == 'true' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.ANDROID_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ steps.google_play_upload.outputs.package_name }}
+          releaseFiles: ${{ steps.google_play_upload.outputs.release_file }}
+          tracks: ${{ steps.google_play_upload.outputs.track }}
+          status: ${{ steps.google_play_upload.outputs.release_status }}
+          releaseName: ${{ matrix.release_version }}
+          changesNotSentForReview: ${{ vars.ANDROID_PLAY_CHANGES_NOT_SENT_FOR_REVIEW || 'false' }}
+
+      - name: Write Google Play release report
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          GOOGLE_PLAY_UPLOAD_ATTEMPTED: ${{ steps.google_play_upload.outputs.configured == 'true' && 'true' || 'false' }}
+          GOOGLE_PLAY_COMMITTED_EDIT_ID: ${{ steps.google_play_release.outputs.committedEditId || '' }}
+          GOOGLE_PLAY_INTERNAL_SHARING_DOWNLOAD_URLS: ${{ steps.google_play_release.outputs.internalSharingDownloadUrls || '[]' }}
+        run: node scripts/release/write-google-play-release-report.mjs
+
+      - name: Prepare App Store Connect upload
+        id: app_store_connect_upload
+        if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_ARTIFACT_OUTPUT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+          IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || '' }}
+          IOS_DISTRIBUTION: ${{ vars.IOS_DISTRIBUTION || 'testflight' }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || '' }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID || '' }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 || '' }}
+        run: node scripts/release/prepare-app-store-connect-upload.mjs
+
+      - name: Upload iOS to App Store Connect
+        if: ${{ matrix.target == 'ios' && steps.app_store_connect_upload.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          API_PRIVATE_KEYS_DIR: ${{ steps.app_store_connect_upload.outputs.api_private_keys_dir }}
+          APP_STORE_CONNECT_IPA_FILE: ${{ steps.app_store_connect_upload.outputs.ipa_file }}
+          APP_STORE_CONNECT_KEY_ID: ${{ steps.app_store_connect_upload.outputs.api_key_id }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ steps.app_store_connect_upload.outputs.api_issuer }}
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$APP_STORE_CONNECT_IPA_FILE" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Write App Store Connect release report
+        if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          APP_STORE_CONNECT_UPLOAD_ATTEMPTED: ${{ steps.app_store_connect_upload.outputs.configured == 'true' && 'true' || 'false' }}
+        run: node scripts/release/write-app-store-connect-release-report.mjs
+
+      - name: Write Tauri updater manifest fragment
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_RELEASE_TAG: ${{ needs.resolve-client-release-context.outputs.release_tag }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/release/write-tauri-updater-manifest.mjs
+
+      - name: Upload desktop bundle artifacts
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-bundle
+          path: artifacts/client-release/${{ matrix.artifact_name }}/bundle
+          if-no-files-found: error
+
+      - name: Upload Tauri updater manifest fragment
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-updater-fragment
+          path: artifacts/client-release/updater-fragments/${{ matrix.artifact_name }}.json
+          if-no-files-found: ignore
+
+      - name: Upload Tauri updater skip report
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-updater-skip
+          path: artifacts/client-release/updater-skips/${{ matrix.artifact_name }}.json
+          if-no-files-found: ignore
+
+      - name: Upload desktop signing boundary
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-desktop-signing
+          path: artifacts/client-release/desktop-signing/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+      - name: Upload Android bundle artifacts
+        if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-android-bundle
+          path: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+          if-no-files-found: error
+
+      - name: Upload iOS bundle artifacts
+        if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-ios-bundle
+          path: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+          if-no-files-found: error
+
+      - name: Upload Android signing boundary
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-android-signing
+          path: artifacts/client-release/android-signing/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+      - name: Upload iOS signing boundary
+        if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-ios-signing
+          path: artifacts/client-release/ios-signing/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+      - name: Upload Google Play reports
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-google-play
+          path: |
+            artifacts/client-release/google-play-boundary/${{ matrix.artifact_name }}.json
+            artifacts/client-release/google-play/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+      - name: Upload App Store Connect reports
+        if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-app-store-connect
+          path: |
+            artifacts/client-release/app-store-connect-boundary/${{ matrix.artifact_name }}.json
+            artifacts/client-release/app-store-connect/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+      - name: Write mobile release boundary
+        if: ${{ matrix.desktop_build != true }}
+        shell: bash
+        env:
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_PACKAGE: ${{ matrix.package }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_SHELL_VERSION: ${{ matrix.shell_version }}
+          CLIENT_CHANNEL: ${{ matrix.channel }}
+          CLIENT_RELEASE_KIND: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' && steps.android_signing.outputs.release_kind || matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' && steps.ios_signing.outputs.release_kind || matrix.release_kind }}
+          CLIENT_WEB_URL: ${{ matrix.web_url }}
+          CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+          CLIENT_SOURCE_REF: ${{ needs.resolve-client-release-context.outputs.source_ref }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          MOBILE_BUILD_IMPLEMENTED: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' && 'true' || matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' && 'true' || 'false' }}
+          MOBILE_BUILD_ARTIFACT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+          ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
+          ANDROID_PLAY_TRACK: ${{ vars.ANDROID_PLAY_TRACK || 'internal' }}
+          ANDROID_SIGNING_CONFIGURED: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+          ANDROID_PLAY_CONFIGURED: ${{ secrets.ANDROID_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+          IOS_ARTIFACT_TYPE: ${{ vars.IOS_ARTIFACT_TYPE || 'ipa' }}
+          IOS_DISTRIBUTION: ${{ vars.IOS_DISTRIBUTION || 'testflight' }}
+          IOS_SIGNING_CONFIGURED: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 != '' && secrets.IOS_CERTIFICATE_PASSWORD != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' && secrets.IOS_KEYCHAIN_PASSWORD != '' }}
+          APP_STORE_CONNECT_CONFIGURED: ${{ secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_API_KEY_BASE64 != '' }}
+        run: node scripts/release/write-mobile-release-boundary.mjs
+
+      - name: Upload mobile release boundary
+        if: ${{ matrix.desktop_build != true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-mobile-boundary
+          path: artifacts/client-release/mobile-boundary/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+      - name: Write client release manifest
+        shell: bash
+        env:
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_PACKAGE: ${{ matrix.package }}
+          CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_SHELL_VERSION: ${{ matrix.shell_version }}
+          CLIENT_CHANNEL: ${{ matrix.channel }}
+          CLIENT_RELEASE_KIND: ${{ matrix.desktop_build == true && steps.desktop_signing.outputs.configured == 'true' && 'desktop-signed' || matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' && steps.android_signing.outputs.release_kind || matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' && steps.ios_signing.outputs.release_kind || matrix.release_kind }}
+          CLIENT_RELEASE_DRY_RUN: ${{ needs.resolve-client-release-context.outputs.dry_run }}
+          CLIENT_WEB_URL: ${{ matrix.web_url }}
+          CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+          CLIENT_SOURCE_REF: ${{ needs.resolve-client-release-context.outputs.source_ref }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+        run: node scripts/release/write-client-release-manifest.mjs
+
+      - name: Upload client release manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-manifest
+          path: artifacts/client-release/${{ matrix.artifact_name }}.json
+          if-no-files-found: error
+
+  merge-tauri-updater-manifests:
+    name: Merge Tauri Updater Manifests
+    needs:
+      - resolve-client-release-context
+      - validate-client-release
+    if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Download client release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/downloaded
+
+      - name: Merge updater fragments
+        shell: bash
+        run: |
+          mkdir -p artifacts/client-release/updater-fragments
+          find artifacts/downloaded -path "*/updater-fragments/*.json" -type f \
+            -exec cp {} artifacts/client-release/updater-fragments/ \;
+          node scripts/release/merge-tauri-updater-fragments.mjs
+
+      - name: Upload merged updater manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-updater-manifests
+          path: artifacts/client-release/updater
+          if-no-files-found: error
+
+  publish-client-github-release:
+    name: Publish Client GitHub Release
+    needs:
+      - resolve-client-release-context
+      - validate-client-release
+      - merge-tauri-updater-manifests
+    if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' && needs.resolve-client-release-context.outputs.publish_github_release == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Download client release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/downloaded
+
+      - name: Collect GitHub Release assets
+        shell: bash
+        run: node scripts/release/collect-client-github-release-assets.mjs
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLIENT_RELEASE_TAG: ${{ needs.resolve-client-release-context.outputs.release_tag }}
+          CLIENT_RELEASE_VERSION: ${{ needs.resolve-client-release-context.outputs.release_version }}
+        run: |
+          if ! gh release view "$CLIENT_RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$CLIENT_RELEASE_TAG" \
+              --target "$GITHUB_SHA" \
+              --title "$CLIENT_RELEASE_TAG" \
+              --notes "Client release $CLIENT_RELEASE_VERSION"
+          fi
+
+          find artifacts/client-release/github-release-assets \
+            -maxdepth 1 \
+            -type f \
+            ! -name asset-files.json \
+            -print0 \
+            | xargs -0 gh release upload "$CLIENT_RELEASE_TAG" --clobber
+
+  dispatch-client-release-facts:
+    name: Dispatch Client Release Facts
+    needs:
+      - resolve-client-release-context
+      - validate-client-release
+      - merge-tauri-updater-manifests
+    if: >-
+      ${{
+        always() &&
+        needs.resolve-client-release-context.outputs.enabled == 'true' &&
+        needs.resolve-client-release-context.outputs.sync_deploy_facts == 'true' &&
+        needs.validate-client-release.result == 'success' &&
+        (
+          needs.resolve-client-release-context.outputs.dry_run == 'true' ||
+          needs.merge-tauri-updater-manifests.result == 'success'
+        )
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve deploy dispatch config
+        id: deploy
+        shell: bash
+        run: |
+          CONFIG_FILE=".rtnn/project.json"
+          DEPLOY_REPOSITORY="$(jq -er '.deployment.repo' "$CONFIG_FILE")"
+          APPLICATION="$(jq -er '.deployment.application // .project.projectId' "$CONFIG_FILE")"
+          EVENT_TYPE="$(jq -r '.deployment.clientReleaseFactsEventType // ("sync-" + (.deployment.application // .project.projectId) + "-client-release-facts")' "$CONFIG_FILE")"
+
+          {
+            echo "repository=$DEPLOY_REPOSITORY"
+            echo "application=$APPLICATION"
+            echo "event_type=$EVENT_TYPE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch deploy client release facts sync
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN || github.token }}
+          DEPLOY_REPOSITORY: ${{ steps.deploy.outputs.repository }}
+          DEPLOY_EVENT_TYPE: ${{ steps.deploy.outputs.event_type }}
+          CLIENT_RELEASE_CHANNEL: ${{ needs.resolve-client-release-context.outputs.release_channel }}
+          CLIENT_RELEASE_DRY_RUN: ${{ needs.resolve-client-release-context.outputs.dry_run }}
+          CLIENT_RELEASE_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+        run: |
+          node <<'NODE' > /tmp/client-release-facts-dispatch.json
+          const payload = {
+            event_type: process.env.DEPLOY_EVENT_TYPE,
+            client_payload: {
+              environment: process.env.CLIENT_RELEASE_CHANNEL,
+              source_repository: process.env.GITHUB_REPOSITORY,
+              source_run_id: process.env.GITHUB_RUN_ID,
+              source_sha: process.env.CLIENT_RELEASE_SOURCE_SHA,
+              dry_run: process.env.CLIENT_RELEASE_DRY_RUN === "true",
+            },
+          };
+          process.stdout.write(`${JSON.stringify(payload)}\n`);
+          NODE
+
+          gh api "repos/${DEPLOY_REPOSITORY}/dispatches" \
+            --method POST \
+            --input /tmp/client-release-facts-dispatch.json

@@ -1,0 +1,9 @@
+{
+  "identifier": "admin-desktop-remote",
+  "description": "Allow the RTNN admin desktop shell to expose minimal native capabilities to approved admin URLs.",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://localhost:5101", "https://admin.example.com"]
+  },
+  "permissions": ["core:default", "opener:default", "updater:default"]
+}

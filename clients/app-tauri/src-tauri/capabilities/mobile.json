@@ -1,0 +1,10 @@
+{
+  "identifier": "app-mobile-remote",
+  "description": "Allow the RTNN app mobile shell to expose minimal native capabilities to approved app URLs.",
+  "platforms": ["android", "iOS"],
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://localhost:5102", "https://app.example.com"]
+  },
+  "permissions": ["core:default", "opener:default"]
+}
