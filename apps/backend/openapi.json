@@ -2406,6 +2406,10 @@
             "type": "string",
             "example": "production"
           },
+          "generatedAt": {
+            "type": "string",
+            "example": "2026-04-30T06:24:12.000Z"
+          },
           "mode": {
             "type": "string",
             "example": "write"

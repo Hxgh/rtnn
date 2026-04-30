@@ -952,6 +952,8 @@ export interface components {
             schemaVersion: string;
             /** @example production */
             environment: string;
+            /** @example 2026-04-30T06:24:12.000Z */
+            generatedAt?: string;
             /** @example write */
             mode?: string;
             project?: Record<string, never>;

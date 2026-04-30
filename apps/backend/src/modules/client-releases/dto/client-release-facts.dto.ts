@@ -10,6 +10,11 @@ export class ClientReleaseFactsDto {
   @IsString()
   environment: string;
 
+  @ApiPropertyOptional({ example: '2026-04-30T06:24:12.000Z' })
+  @IsOptional()
+  @IsString()
+  generatedAt?: string;
+
   @ApiPropertyOptional({ example: 'write' })
   @IsOptional()
   @IsString()
