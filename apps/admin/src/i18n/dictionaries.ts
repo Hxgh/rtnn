@@ -53,6 +53,7 @@ type NavDictionary = {
   customers: string;
   users: string;
   roles: string;
+  clientReleases: string;
   auditLogs: string;
   account: string;
 };
@@ -157,6 +158,48 @@ type AuditDictionary = {
   empty: string;
 };
 
+type ClientReleasesDictionary = {
+  title: string;
+  detailTitle: string;
+  releaseVersion: string;
+  shellVersion: string;
+  channel: string;
+  client: string;
+  target: string;
+  targets: string;
+  source: string;
+  sourceSha: string;
+  sourceRun: string;
+  generatedAt: string;
+  syncedAt: string;
+  packages: string;
+  downloadable: string;
+  distribution: string;
+  distributionStatus: string;
+  sourceUrl: string;
+  distributionUrl: string;
+  provider: string;
+  fileName: string;
+  fileSize: string;
+  sha256: string;
+  blockers: string;
+  policy: string;
+  enabled: string;
+  recommendedVersion: string;
+  minimumSupportedVersion: string;
+  forceUpdate: string;
+  allowGithubFallback: string;
+  notes: string;
+  dryRun: string;
+  allChannels: string;
+  allClients: string;
+  allTargets: string;
+  allStatuses: string;
+  empty: string;
+  noBlockers: string;
+  savePolicy: string;
+};
+
 type AccountDictionary = {
   title: string;
   profile: string;
@@ -210,6 +253,7 @@ export type AdminDictionary = {
   customers: CustomersDictionary;
   users: UsersDictionary;
   roles: RolesDictionary;
+  clientReleases: ClientReleasesDictionary;
   auditLogs: AuditDictionary;
   account: AccountDictionary;
   states: StatesDictionary;
@@ -268,6 +312,7 @@ const zhCN: AdminDictionary = {
     customers: "客户管理",
     users: "用户管理",
     roles: "角色管理",
+    clientReleases: "发布中心",
     auditLogs: "审计日志",
     account: "个人中心",
   },
@@ -349,6 +394,47 @@ const zhCN: AdminDictionary = {
     createdAt: "创建时间",
     updatedAt: "更新时间",
     empty: "暂无角色数据",
+  },
+  clientReleases: {
+    title: "发布中心",
+    detailTitle: "客户端壳版本",
+    releaseVersion: "版本",
+    shellVersion: "壳版本",
+    channel: "环境",
+    client: "客户端",
+    target: "平台",
+    targets: "平台",
+    source: "来源",
+    sourceSha: "Source SHA",
+    sourceRun: "Run ID",
+    generatedAt: "生成时间",
+    syncedAt: "同步时间",
+    packages: "平台包",
+    downloadable: "可下载",
+    distribution: "自托管分发",
+    distributionStatus: "分发状态",
+    sourceUrl: "源包地址",
+    distributionUrl: "下载地址",
+    provider: "Provider",
+    fileName: "文件名",
+    fileSize: "文件大小",
+    sha256: "SHA256",
+    blockers: "阻塞原因",
+    policy: "更新策略",
+    enabled: "启用",
+    recommendedVersion: "推荐版本",
+    minimumSupportedVersion: "最低支持版本",
+    forceUpdate: "强制更新",
+    allowGithubFallback: "允许 GitHub 兜底",
+    notes: "更新说明",
+    dryRun: "Dry run",
+    allChannels: "全部环境",
+    allClients: "全部客户端",
+    allTargets: "全部平台",
+    allStatuses: "全部状态",
+    empty: "暂无客户端壳发布记录",
+    noBlockers: "无阻塞",
+    savePolicy: "保存策略",
   },
   auditLogs: {
     title: "审计日志",
@@ -461,6 +547,7 @@ const enUS: AdminDictionary = {
     customers: "Customers",
     users: "Users",
     roles: "Roles",
+    clientReleases: "Release Center",
     auditLogs: "Audit Logs",
     account: "Account",
   },
@@ -542,6 +629,47 @@ const enUS: AdminDictionary = {
     createdAt: "Created at",
     updatedAt: "Updated at",
     empty: "No roles yet.",
+  },
+  clientReleases: {
+    title: "Release Center",
+    detailTitle: "Client shell release",
+    releaseVersion: "Version",
+    shellVersion: "Shell version",
+    channel: "Channel",
+    client: "Client",
+    target: "Target",
+    targets: "Targets",
+    source: "Source",
+    sourceSha: "Source SHA",
+    sourceRun: "Run ID",
+    generatedAt: "Generated at",
+    syncedAt: "Synced at",
+    packages: "Packages",
+    downloadable: "Downloadable",
+    distribution: "Self-hosted distribution",
+    distributionStatus: "Distribution status",
+    sourceUrl: "Source URL",
+    distributionUrl: "Download URL",
+    provider: "Provider",
+    fileName: "File name",
+    fileSize: "File size",
+    sha256: "SHA256",
+    blockers: "Blockers",
+    policy: "Update policy",
+    enabled: "Enabled",
+    recommendedVersion: "Recommended version",
+    minimumSupportedVersion: "Minimum supported version",
+    forceUpdate: "Force update",
+    allowGithubFallback: "Allow GitHub fallback",
+    notes: "Notes",
+    dryRun: "Dry run",
+    allChannels: "All channels",
+    allClients: "All clients",
+    allTargets: "All targets",
+    allStatuses: "All statuses",
+    empty: "No client shell releases yet.",
+    noBlockers: "No blockers",
+    savePolicy: "Save policy",
   },
   auditLogs: {
     title: "Audit Logs",

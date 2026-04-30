@@ -522,6 +522,91 @@ export interface paths {
         patch: operations["CustomersController_updateTag"];
         trace?: never;
     };
+    "/api/v1/internal/client-release-facts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync client release facts from deploy executor */
+        post: operations["ClientReleaseFactsController_syncFacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/client-releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List client shell releases */
+        get: operations["ClientReleasesAdminController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/client-releases/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get client shell release detail */
+        get: operations["ClientReleasesAdminController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/client-releases/{releaseId}/policies/{policyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update client shell update policy */
+        patch: operations["ClientReleasesAdminController_updatePolicy"];
+        trace?: never;
+    };
+    "/api/v1/client-downloads/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve latest client download URL */
+        get: operations["ClientDownloadsController_latest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -861,6 +946,29 @@ export interface components {
             color?: string;
             /** @example Potential customer segment */
             description?: string;
+        };
+        ClientReleaseFactsDto: {
+            /** @example rtnn.deploy.client-release-facts.v1 */
+            schemaVersion: string;
+            /** @example production */
+            environment: string;
+            /** @example write */
+            mode?: string;
+            project?: Record<string, never>;
+            binding?: Record<string, never>;
+            source?: Record<string, never>;
+            release?: Record<string, never>;
+            artifacts?: Record<string, never>;
+            clients: Record<string, never>;
+        };
+        UpdateClientReleasePolicyDto: {
+            enabled?: boolean;
+            recommendedReleaseId?: string | null;
+            /** @example 1.2.0 */
+            minimumSupportedVersion?: string | null;
+            forceUpdate?: boolean;
+            allowGithubFallback?: boolean;
+            notes?: string | null;
         };
     };
     responses: never;
@@ -1714,6 +1822,120 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateCustomerTagDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientReleaseFactsController_syncFacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientReleaseFactsDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientReleasesAdminController_list: {
+        parameters: {
+            query?: {
+                /** @description Current page number, starts from 1 */
+                page?: number;
+                /** @description Page size, max 100 */
+                pageSize?: number;
+                /** @description Fuzzy search keyword */
+                search?: string;
+                channel?: string;
+                client?: string;
+                target?: string;
+                distributionStatus?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientReleasesAdminController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientReleasesAdminController_updatePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                releaseId: string;
+                policyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClientReleasePolicyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientDownloadsController_latest: {
+        parameters: {
+            query: {
+                client: string;
+                target: string;
+                channel?: string;
+                currentVersion?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

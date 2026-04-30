@@ -19,6 +19,15 @@ import type {
   AdminUsersUpdateResult,
   AuditLogsListQuery,
   AuditLogsListResult,
+  ClientDownloadsLatestQuery,
+  ClientDownloadsLatestResult,
+  ClientReleasePathParams,
+  ClientReleasePolicyPathParams,
+  ClientReleasePolicyUpdateBody,
+  ClientReleasePolicyUpdateResult,
+  ClientReleasesGetResult,
+  ClientReleasesListQuery,
+  ClientReleasesListResult,
   CustomerChangePasswordBody,
   CustomerChangePasswordResult,
   CustomerGroupPathParams,
@@ -73,6 +82,8 @@ type TransportQuery = Record<
 
 const byIdPath = (template: string, id: string) =>
   template.replace("{id}", encodeURIComponent(id));
+const byPathParam = (template: string, key: string, value: string) =>
+  template.replace(`{${key}}`, encodeURIComponent(value));
 
 export interface ApiClient {
   auth: {
@@ -151,6 +162,18 @@ export interface ApiClient {
     auditLogs: {
       list(query?: AuditLogsListQuery): Promise<AuditLogsListResult>;
     };
+    clientReleases: {
+      list(query?: ClientReleasesListQuery): Promise<ClientReleasesListResult>;
+      get(id: ClientReleasePathParams["id"]): Promise<ClientReleasesGetResult>;
+      updatePolicy(
+        releaseId: ClientReleasePolicyPathParams["releaseId"],
+        policyId: ClientReleasePolicyPathParams["policyId"],
+        body: ClientReleasePolicyUpdateBody,
+      ): Promise<ClientReleasePolicyUpdateResult>;
+    };
+  };
+  clientDownloads: {
+    latest(query: ClientDownloadsLatestQuery): Promise<ClientDownloadsLatestResult>;
   };
 }
 
@@ -378,6 +401,44 @@ export const createApiClient = (transport: ApiTransport): ApiClient => ({
           query: query as TransportQuery | undefined,
         }),
     },
+    clientReleases: {
+      list: (query) =>
+        transport.request<ClientReleasesListResult>({
+          method: "GET",
+          path: "/api/v1/admin/client-releases",
+          query: query as TransportQuery | undefined,
+        }),
+      get: (id) =>
+        transport.request<ClientReleasesGetResult>({
+          method: "GET",
+          path: byIdPath("/api/v1/admin/client-releases/{id}", id),
+        }),
+      updatePolicy: (releaseId, policyId, body) =>
+        transport.request<
+          ClientReleasePolicyUpdateResult,
+          ClientReleasePolicyUpdateBody
+        >({
+          method: "PATCH",
+          path: byPathParam(
+            byPathParam(
+              "/api/v1/admin/client-releases/{releaseId}/policies/{policyId}",
+              "releaseId",
+              releaseId,
+            ),
+            "policyId",
+            policyId,
+          ),
+          body,
+        }),
+    },
+  },
+  clientDownloads: {
+    latest: (query) =>
+      transport.request<ClientDownloadsLatestResult>({
+        method: "GET",
+        path: "/api/v1/client-downloads/latest",
+        query: query as TransportQuery,
+      }),
   },
 });
 

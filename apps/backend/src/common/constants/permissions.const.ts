@@ -5,6 +5,7 @@ export type PermissionGroup =
   | 'customers'
   | 'customer-groups'
   | 'customer-tags'
+  | 'client-releases'
   | 'audit'
   | 'customer-self';
 
@@ -150,6 +151,18 @@ export const PERMISSION_REGISTRY = definePermissionRegistry({
     name: 'View Audit Logs',
     description: 'View audit log records.',
     group: 'audit',
+  },
+  adminClientReleasesView: {
+    key: 'admin:client-releases:view',
+    name: 'View Client Releases',
+    description: 'View client shell releases and package distribution status.',
+    group: 'client-releases',
+  },
+  adminClientReleasesManagePolicy: {
+    key: 'admin:client-releases:manage-policy',
+    name: 'Manage Client Release Policies',
+    description: 'Manage client shell update and download policies.',
+    group: 'client-releases',
   },
   customerSelfView: {
     key: 'customer:self:view',

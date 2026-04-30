@@ -1,0 +1,266 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { updateClientReleasePolicyAction } from "@/app/(dashboard)/client-releases/actions";
+import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { ErrorBlock } from "@/src/components/admin/state-block";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/src/components/ui/table";
+import { Textarea } from "@/src/components/ui/textarea";
+import { getAdminI18n } from "@/src/i18n/server";
+import { getClientReleaseById } from "@/src/lib/api-client";
+import { resolveErrorMessage } from "@/src/lib/errors";
+import { hasPermission, assertPermission } from "@/src/lib/permissions";
+import { requireUserSession } from "@/src/lib/session";
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="mt-1 break-words">{value || "-"}</dd>
+    </div>
+  );
+}
+
+function formatSize(value?: number | null) {
+  if (!value) {
+    return "-";
+  }
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function shortHash(value?: string | null) {
+  return value ? value.slice(0, 12) : "-";
+}
+
+function LinkValue({ href }: { href?: string | null }) {
+  if (!href) {
+    return <span>-</span>;
+  }
+  return (
+    <Link className="break-all text-primary underline-offset-4 hover:underline" href={href}>
+      {href}
+    </Link>
+  );
+}
+
+export default async function ClientReleaseDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { me, accessToken } = await requireUserSession();
+  const { dictionary, locale } = await getAdminI18n();
+  assertPermission(me, "admin:client-releases:view");
+  const canManagePolicy = hasPermission(me, "admin:client-releases:manage-policy");
+  const { id } = await params;
+
+  let release: Awaited<ReturnType<typeof getClientReleaseById>> | null = null;
+  let pageError: unknown = null;
+  try {
+    release = await getClientReleaseById(accessToken, id);
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : 0;
+    if (status === 404) {
+      notFound();
+    }
+    pageError = error;
+  }
+
+  if (pageError || !release) {
+    return (
+      <ErrorBlock
+        text={dictionary.states.apiUnavailable}
+        detail={resolveErrorMessage(pageError)}
+      />
+    );
+  }
+
+  return (
+    <PageFrame
+      title={dictionary.clientReleases.detailTitle}
+      subtitle={release.releaseVersion}
+    >
+      <div className="space-y-3">
+        <DataPanel className="p-6">
+          <dl className="grid gap-4 text-sm md:grid-cols-3">
+            <DetailRow label={dictionary.clientReleases.releaseVersion} value={release.releaseVersion} />
+            <DetailRow label={dictionary.clientReleases.channel} value={<Badge variant="outline">{release.channel}</Badge>} />
+            <DetailRow label={dictionary.common.status} value={release.status} />
+            <DetailRow label={dictionary.clientReleases.source} value={release.sourceRepository} />
+            <DetailRow label={dictionary.clientReleases.sourceRun} value={release.sourceRunId || "-"} />
+            <DetailRow label={dictionary.clientReleases.sourceSha} value={<span className="font-mono">{release.sourceSha}</span>} />
+            <DetailRow
+              label={dictionary.clientReleases.generatedAt}
+              value={release.generatedAt ? new Date(release.generatedAt).toLocaleString(locale) : "-"}
+            />
+            <DetailRow
+              label={dictionary.clientReleases.syncedAt}
+              value={release.syncedAt ? new Date(release.syncedAt).toLocaleString(locale) : "-"}
+            />
+            <DetailRow
+              label={dictionary.clientReleases.dryRun}
+              value={release.dryRun ? dictionary.common.active : dictionary.common.inactive}
+            />
+          </dl>
+        </DataPanel>
+
+        <DataPanel>
+          <div className="border-b border-border/70 px-4 py-3">
+            <h2 className="text-sm font-medium">{dictionary.clientReleases.packages}</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{dictionary.clientReleases.client}</TableHead>
+                  <TableHead>{dictionary.clientReleases.target}</TableHead>
+                  <TableHead>{dictionary.clientReleases.fileName}</TableHead>
+                  <TableHead>{dictionary.clientReleases.distributionStatus}</TableHead>
+                  <TableHead>{dictionary.clientReleases.fileSize}</TableHead>
+                  <TableHead>{dictionary.clientReleases.sha256}</TableHead>
+                  <TableHead>{dictionary.clientReleases.sourceUrl}</TableHead>
+                  <TableHead>{dictionary.clientReleases.distributionUrl}</TableHead>
+                  <TableHead>{dictionary.clientReleases.blockers}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {release.packages.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.client}</TableCell>
+                    <TableCell>{item.target}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div>{item.fileName || "-"}</div>
+                        <div className="text-xs text-muted-foreground">{item.artifactName}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.distributionStatus}</Badge>
+                    </TableCell>
+                    <TableCell>{formatSize(item.fileSize)}</TableCell>
+                    <TableCell className="font-mono text-xs">{shortHash(item.sha256)}</TableCell>
+                    <TableCell className="min-w-64 text-xs"><LinkValue href={item.sourceUrl} /></TableCell>
+                    <TableCell className="min-w-64 text-xs"><LinkValue href={item.distributionUrl} /></TableCell>
+                    <TableCell>
+                      {item.blockers.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.blockers.map((blocker) => (
+                            <Badge key={blocker} variant="outline">{blocker}</Badge>
+                          ))}
+                        </div>
+                      ) : dictionary.clientReleases.noBlockers}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DataPanel>
+
+        <DataPanel>
+          <div className="border-b border-border/70 px-4 py-3">
+            <h2 className="text-sm font-medium">{dictionary.clientReleases.policy}</h2>
+          </div>
+          <div className="divide-y divide-border/70">
+            {release.policies.map((policy) => (
+              <form
+                action={updateClientReleasePolicyAction}
+                className="grid gap-4 px-4 py-4"
+                key={policy.id}
+              >
+                <input name="releaseId" type="hidden" value={release.id} />
+                <input name="policyId" type="hidden" value={policy.id} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{policy.client}</Badge>
+                  <Badge variant="outline">{policy.target}</Badge>
+                  <Badge variant="outline">{policy.channel}</Badge>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor={`recommended-${policy.id}`}>
+                      {dictionary.clientReleases.recommendedVersion}
+                    </Label>
+                    <select
+                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                      defaultValue={policy.recommendedReleaseId ?? ""}
+                      disabled={!canManagePolicy}
+                      id={`recommended-${policy.id}`}
+                      name="recommendedReleaseId"
+                    >
+                      <option value="">{policy.recommendedVersion ?? "-"}</option>
+                      <option value={release.id}>{release.releaseVersion}</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor={`minimum-${policy.id}`}>
+                      {dictionary.clientReleases.minimumSupportedVersion}
+                    </Label>
+                    <Input
+                      defaultValue={policy.minimumSupportedVersion ?? ""}
+                      disabled={!canManagePolicy}
+                      id={`minimum-${policy.id}`}
+                      name="minimumSupportedVersion"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    ["enabled", dictionary.clientReleases.enabled, policy.enabled],
+                    ["forceUpdate", dictionary.clientReleases.forceUpdate, policy.forceUpdate],
+                    [
+                      "allowGithubFallback",
+                      dictionary.clientReleases.allowGithubFallback,
+                      policy.allowGithubFallback,
+                    ],
+                  ].map(([name, label, checked]) => (
+                    <label className="flex items-center gap-2 text-sm" key={String(name)}>
+                      <input name={String(name)} type="hidden" value="false" />
+                      <input
+                        defaultChecked={Boolean(checked)}
+                        disabled={!canManagePolicy}
+                        name={String(name)}
+                        type="checkbox"
+                        value="true"
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor={`notes-${policy.id}`}>{dictionary.clientReleases.notes}</Label>
+                  <Textarea
+                    defaultValue={policy.notes ?? ""}
+                    disabled={!canManagePolicy}
+                    id={`notes-${policy.id}`}
+                    name="notes"
+                    rows={2}
+                  />
+                </div>
+                {canManagePolicy ? (
+                  <div>
+                    <Button size="sm" type="submit">{dictionary.clientReleases.savePolicy}</Button>
+                  </div>
+                ) : null}
+              </form>
+            ))}
+          </div>
+        </DataPanel>
+      </div>
+    </PageFrame>
+  );
+}

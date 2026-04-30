@@ -1398,6 +1398,251 @@
           "admin-customers"
         ]
       }
+    },
+    "/api/v1/internal/client-release-facts": {
+      "post": {
+        "operationId": "ClientReleaseFactsController_syncFacts",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientReleaseFactsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Sync client release facts from deploy executor",
+        "tags": [
+          "internal-client-releases"
+        ]
+      }
+    },
+    "/api/v1/admin/client-releases": {
+      "get": {
+        "operationId": "ClientReleasesAdminController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "production",
+              "type": "string"
+            }
+          },
+          {
+            "name": "client",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "appMobile",
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "android",
+              "type": "string"
+            }
+          },
+          {
+            "name": "distributionStatus",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "synced",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List client shell releases",
+        "tags": [
+          "admin-client-releases"
+        ]
+      }
+    },
+    "/api/v1/admin/client-releases/{id}": {
+      "get": {
+        "operationId": "ClientReleasesAdminController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get client shell release detail",
+        "tags": [
+          "admin-client-releases"
+        ]
+      }
+    },
+    "/api/v1/admin/client-releases/{releaseId}/policies/{policyId}": {
+      "patch": {
+        "operationId": "ClientReleasesAdminController_updatePolicy",
+        "parameters": [
+          {
+            "name": "releaseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "policyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientReleasePolicyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update client shell update policy",
+        "tags": [
+          "admin-client-releases"
+        ]
+      }
+    },
+    "/api/v1/client-downloads/latest": {
+      "get": {
+        "operationId": "ClientDownloadsController_latest",
+        "parameters": [
+          {
+            "name": "client",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "appMobile",
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "android",
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "production",
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentVersion",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "1.2.0",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Resolve latest client download URL",
+        "tags": [
+          "client-downloads"
+        ]
+      }
     }
   },
   "info": {
@@ -2147,6 +2392,73 @@
           "description": {
             "type": "string",
             "example": "Potential customer segment"
+          }
+        }
+      },
+      "ClientReleaseFactsDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "example": "rtnn.deploy.client-release-facts.v1"
+          },
+          "environment": {
+            "type": "string",
+            "example": "production"
+          },
+          "mode": {
+            "type": "string",
+            "example": "write"
+          },
+          "project": {
+            "type": "object"
+          },
+          "binding": {
+            "type": "object"
+          },
+          "source": {
+            "type": "object"
+          },
+          "release": {
+            "type": "object"
+          },
+          "artifacts": {
+            "type": "object"
+          },
+          "clients": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "environment",
+          "clients"
+        ]
+      },
+      "UpdateClientReleasePolicyDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "recommendedReleaseId": {
+            "type": "string",
+            "nullable": true
+          },
+          "minimumSupportedVersion": {
+            "type": "string",
+            "nullable": true,
+            "example": "1.2.0"
+          },
+          "forceUpdate": {
+            "type": "boolean"
+          },
+          "allowGithubFallback": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
           }
         }
       }

@@ -53,6 +53,16 @@ export type AppMessages = {
     signedOut: string;
     signedOutHint: string;
   };
+  download: {
+    title: string;
+    description: string;
+    sectionTitle: string;
+    version: string;
+    provider: string;
+    fileSize: string;
+    unavailable: string;
+    download: string;
+  };
   login: {
     title: string;
     description: string;
@@ -151,6 +161,16 @@ const zhCN: AppMessages = {
     signedOut: "未登录",
     signedOutHint: "登录后即可访问首页、我的页和账户安全能力。",
   },
+  download: {
+    title: "客户端下载",
+    description: "获取当前可用的移动端和桌面端安装包。",
+    sectionTitle: "可下载客户端",
+    version: "版本",
+    provider: "分发源",
+    fileSize: "文件大小",
+    unavailable: "暂无可下载客户端",
+    download: "下载",
+  },
   login: {
     title: "登录",
     description: "使用客户账号登录，继续访问首页与个人中心。",
@@ -248,6 +268,16 @@ const enUS: AppMessages = {
     signedIn: "Signed in",
     signedOut: "Signed out",
     signedOutHint: "Sign in to access the home, profile, and account security flows.",
+  },
+  download: {
+    title: "Client downloads",
+    description: "Get the current mobile and desktop client installers.",
+    sectionTitle: "Available clients",
+    version: "Version",
+    provider: "Provider",
+    fileSize: "File size",
+    unavailable: "No client downloads are available.",
+    download: "Download",
   },
   login: {
     title: "Sign in",

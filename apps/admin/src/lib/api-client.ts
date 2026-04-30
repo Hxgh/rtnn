@@ -6,6 +6,8 @@ import {
   type AdminUsersListQuery,
   type AdminUsersUpdateBody,
   type AuditLogsListQuery,
+  type ClientReleasePolicyUpdateBody,
+  type ClientReleasesListQuery,
   type CustomerGroupsCreateBody,
   type CustomerGroupsUpdateBody,
   type CustomersResetPasswordBody,
@@ -27,6 +29,9 @@ import type {
   AdminUserDetail,
   AdminUserSummary,
   AuditLogItem,
+  ClientReleaseDetail,
+  ClientReleaseSummary,
+  ClientUpdatePolicySummary,
   CustomerDetail,
   CustomerGroupSummary,
   CustomerSummary,
@@ -49,6 +54,9 @@ export type AdminUserDetailRecord = AdminUserDetail;
 export type RoleRecord = RoleSummary;
 export type PermissionRecord = PermissionSummary;
 export type AuditLogRecord = AuditLogItem;
+export type ClientReleaseRecord = ClientReleaseSummary;
+export type ClientReleaseDetailRecord = ClientReleaseDetail;
+export type ClientUpdatePolicyRecord = ClientUpdatePolicySummary;
 export type CustomerRecord = CustomerSummary;
 export type CustomerDetailRecord = CustomerDetail;
 export type CustomerGroupRecord = CustomerGroupSummary;
@@ -207,6 +215,36 @@ export async function listAuditLogs(
 ): Promise<PaginatedResult<AuditLogRecord>> {
   const client = createClient(accessToken);
   return client.admin.auditLogs.list(query) as Promise<PaginatedResult<AuditLogRecord>>;
+}
+
+export async function listClientReleases(
+  accessToken: string,
+  query?: ClientReleasesListQuery,
+): Promise<PaginatedResult<ClientReleaseRecord>> {
+  const client = createClient(accessToken);
+  return client.admin.clientReleases.list(query) as Promise<PaginatedResult<ClientReleaseRecord>>;
+}
+
+export async function getClientReleaseById(
+  accessToken: string,
+  id: string,
+): Promise<ClientReleaseDetailRecord> {
+  const client = createClient(accessToken);
+  return client.admin.clientReleases.get(id) as Promise<ClientReleaseDetailRecord>;
+}
+
+export async function updateClientReleasePolicy(
+  accessToken: string,
+  releaseId: string,
+  policyId: string,
+  payload: ClientReleasePolicyUpdateBody,
+): Promise<ClientUpdatePolicyRecord> {
+  const client = createClient(accessToken);
+  return client.admin.clientReleases.updatePolicy(
+    releaseId,
+    policyId,
+    payload,
+  ) as Promise<ClientUpdatePolicyRecord>;
 }
 
 export async function listCustomers(

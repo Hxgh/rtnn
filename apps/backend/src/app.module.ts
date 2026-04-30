@@ -6,6 +6,7 @@ import { LoggerModule } from './core/logger/logger.module';
 import { PrismaModule } from './core/prisma/prisma.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ClientReleasesModule } from './modules/client-releases/client-releases.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { IamModule } from './modules/iam/iam.module';
 
@@ -19,6 +20,7 @@ import { IamModule } from './modules/iam/iam.module';
     AuthModule,
     IamModule,
     CustomersModule,
+    ClientReleasesModule,
     AuditModule,
   ],
 })

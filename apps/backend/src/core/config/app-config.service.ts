@@ -73,4 +73,10 @@ export class AppConfigService {
   get backendImage(): string {
     return this.configService.get('BACKEND_IMAGE', { infer: true });
   }
+
+  get clientReleaseFactsToken(): string {
+    return this.configService.get('CLIENT_RELEASE_FACTS_TOKEN', {
+      infer: true,
+    });
+  }
 }

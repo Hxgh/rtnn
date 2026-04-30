@@ -20,6 +20,10 @@ export const adminRoutes = {
     detail: (id: string) => `/roles/${id}`,
     edit: (id: string) => `/roles/${id}/edit`,
   },
+  clientReleases: {
+    list: "/client-releases",
+    detail: (id: string) => `/client-releases/${id}`,
+  },
   auditLogs: "/audit-logs",
 } as const;
 
@@ -30,6 +34,7 @@ export type AdminNavIcon =
   | "customers"
   | "users"
   | "roles"
+  | "client-releases"
   | "audit-logs";
 
 export type AdminNavItem = {
@@ -73,6 +78,13 @@ export function buildAdminNavItems(
       permission: "admin:roles:view",
     },
     {
+      href: adminRoutes.clientReleases.list,
+      label: dictionary.nav.clientReleases,
+      icon: "client-releases",
+      group: "system",
+      permission: "admin:client-releases:view",
+    },
+    {
       href: adminRoutes.auditLogs,
       label: dictionary.nav.auditLogs,
       icon: "audit-logs",
@@ -93,6 +105,7 @@ const adminStaticRouteSet = new Set<string>([
   adminRoutes.users.create,
   adminRoutes.roles.list,
   adminRoutes.roles.create,
+  adminRoutes.clientReleases.list,
   adminRoutes.auditLogs,
 ]);
 
@@ -109,6 +122,10 @@ export function isAdminRoutablePath(pathname: string) {
     return true;
   }
 
+  if (/^\/client-releases\/[^/]+$/.test(pathname)) {
+    return true;
+  }
+
   return false;
 }
 
@@ -120,6 +137,7 @@ export function getAdminSegmentLabelMap(
     customers: dictionary.nav.customers,
     users: dictionary.nav.users,
     roles: dictionary.nav.roles,
+    "client-releases": dictionary.nav.clientReleases,
     "audit-logs": dictionary.nav.auditLogs,
     account: dictionary.nav.account,
     new: dictionary.common.create,

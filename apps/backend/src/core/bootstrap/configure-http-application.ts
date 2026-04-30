@@ -84,6 +84,8 @@ export function configureHttpApplication(
       'Content-Type',
       'Accept-Language',
       'accept-language',
+      'X-RTNN-Client-Release-Token',
+      'x-rtnn-client-release-token',
     ],
     exposedHeaders: ['Content-Language'],
     optionsSuccessStatus: 204,

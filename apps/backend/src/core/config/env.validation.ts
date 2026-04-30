@@ -26,6 +26,7 @@ export interface AppEnv {
   DEPLOY_VERSION: string;
   DEPLOY_SOURCE_SHA: string;
   BACKEND_IMAGE: string;
+  CLIENT_RELEASE_FACTS_TOKEN: string;
 }
 
 export function normalizeCorsOrigins(value: unknown): string[] {
@@ -77,6 +78,7 @@ const envSchema = Joi.object<AppEnv>({
   DEPLOY_VERSION: Joi.string().allow('').default('local'),
   DEPLOY_SOURCE_SHA: Joi.string().allow('').default('unknown'),
   BACKEND_IMAGE: Joi.string().allow('').default('local'),
+  CLIENT_RELEASE_FACTS_TOKEN: Joi.string().allow('').default(''),
 });
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {

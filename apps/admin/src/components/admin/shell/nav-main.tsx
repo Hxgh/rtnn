@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
+  Boxes,
   LayoutGrid,
   ScrollText,
   ShieldCheck,
@@ -33,6 +34,7 @@ const iconMap: Record<AdminNavIcon, LucideIcon> = {
   customers: UserRound,
   users: Users,
   roles: ShieldCheck,
+  "client-releases": Boxes,
   "audit-logs": ScrollText,
 };
 

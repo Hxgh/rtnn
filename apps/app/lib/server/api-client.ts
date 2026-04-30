@@ -42,3 +42,22 @@ export async function createServerApiClient(options?: { accessToken?: string }) 
     }),
   );
 }
+
+export async function getLatestClientDownload(query: {
+  client: string;
+  target: string;
+  channel?: string;
+  currentVersion?: string;
+}) {
+  const locale = await getRequestLocale();
+  const client = createApiClient(
+    createFetchTransport({
+      baseUrl: resolveBaseUrl(),
+      getHeaders: () => ({
+        "accept-language": locale,
+      }),
+    }),
+  );
+
+  return client.clientDownloads.latest(query);
+}

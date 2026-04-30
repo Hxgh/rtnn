@@ -7,6 +7,12 @@ import type {
   AuditLogItem,
   AuditLogListQuery,
   ChangePasswordRequest,
+  ClientDownloadInfo,
+  ClientDownloadQuery,
+  ClientReleaseDetail,
+  ClientReleaseListQuery,
+  ClientReleaseSummary,
+  ClientUpdatePolicySummary,
   CreateAdminUserInput,
   CreateCustomerGroupInput,
   CreateCustomerInput,
@@ -29,6 +35,7 @@ import type {
   RoleListQuery,
   RoleSummary,
   UpdateAdminUserInput,
+  UpdateClientReleasePolicyInput,
   UpdateCustomerGroupInput,
   UpdateCustomerInput,
   UpdateCustomerStatusInput,
@@ -84,6 +91,10 @@ type PathParamsOf<T> = ParametersOf<T> extends { path?: infer TPathParams }
 
 type IsOpaqueGeneratedType<T> = [T] extends [never]
   ? true
+  : unknown extends T
+    ? keyof T extends never
+      ? true
+      : false
   : T extends Record<string, never>
     ? true
     : false;
@@ -151,6 +162,22 @@ type CustomerTagsUpdateOperation = Operation<
 >;
 
 type AuditLogsListOperation = Operation<"/api/v1/admin/audit-logs", "get">;
+type ClientReleasesListOperation = Operation<
+  "/api/v1/admin/client-releases",
+  "get"
+>;
+type ClientReleasesGetOperation = Operation<
+  "/api/v1/admin/client-releases/{id}",
+  "get"
+>;
+type ClientReleasePolicyUpdateOperation = Operation<
+  "/api/v1/admin/client-releases/{releaseId}/policies/{policyId}",
+  "patch"
+>;
+type ClientDownloadsLatestOperation = Operation<
+  "/api/v1/client-downloads/latest",
+  "get"
+>;
 
 export type AdminLoginBody = PreferOpenApi<
   RequestBodyOf<AdminLoginOperation>,
@@ -416,4 +443,41 @@ export type AuditLogsListQuery = PreferOpenApi<
 export type AuditLogsListResult = PreferOpenApi<
   ResponseBodyOf<AuditLogsListOperation>,
   PaginatedResult<AuditLogItem>
+>;
+
+export type ClientReleasesListQuery = PreferOpenApi<
+  QueryOf<ClientReleasesListOperation>,
+  ClientReleaseListQuery
+>;
+export type ClientReleasesListResult = PreferOpenApi<
+  ResponseBodyOf<ClientReleasesListOperation>,
+  PaginatedResult<ClientReleaseSummary>
+>;
+export type ClientReleasePathParams = PreferOpenApi<
+  PathParamsOf<ClientReleasesGetOperation>,
+  { id: string }
+>;
+export type ClientReleasesGetResult = PreferOpenApi<
+  ResponseBodyOf<ClientReleasesGetOperation>,
+  ClientReleaseDetail
+>;
+export type ClientReleasePolicyPathParams = PreferOpenApi<
+  PathParamsOf<ClientReleasePolicyUpdateOperation>,
+  { releaseId: string; policyId: string }
+>;
+export type ClientReleasePolicyUpdateBody = PreferOpenApi<
+  RequestBodyOf<ClientReleasePolicyUpdateOperation>,
+  UpdateClientReleasePolicyInput
+>;
+export type ClientReleasePolicyUpdateResult = PreferOpenApi<
+  ResponseBodyOf<ClientReleasePolicyUpdateOperation>,
+  ClientUpdatePolicySummary
+>;
+export type ClientDownloadsLatestQuery = PreferOpenApi<
+  QueryOf<ClientDownloadsLatestOperation>,
+  ClientDownloadQuery
+>;
+export type ClientDownloadsLatestResult = PreferOpenApi<
+  ResponseBodyOf<ClientDownloadsLatestOperation>,
+  ClientDownloadInfo
 >;

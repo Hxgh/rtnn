@@ -212,3 +212,81 @@ model AuditLog {
   @@index([createdAt])
   @@index([resource, resourceId])
 }
+
+model ClientRelease {
+  id               String          @id @default(cuid())
+  releaseVersion   String
+  channel          String
+  sourceRepository String
+  sourceRunId      String?
+  sourceSha        String
+  sourceRef        String?
+  dryRun           Boolean         @default(false)
+  status           String          @default("synced")
+  generatedAt      DateTime?
+  syncedAt         DateTime?
+  rawFacts         Json?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  packages         ClientPackage[]
+
+  @@unique([channel, sourceRepository, sourceRunId])
+  @@index([channel, releaseVersion])
+  @@index([sourceSha])
+}
+
+model ClientPackage {
+  id                   String        @id @default(cuid())
+  releaseId            String
+  client               String
+  target               String
+  shell                String
+  packageName          String?
+  artifactName         String
+  shellVersion         String
+  releaseKind          String
+  webUrl               String?
+  sourceUrl            String?
+  distributionProvider String        @default("github-release")
+  distributionUrl      String?
+  distributionStatus   String        @default("pending")
+  fileName             String?
+  fileSize             Int?
+  sha256               String?
+  signingStatus        String?
+  buildStatus          String?
+  updaterStatus        String?
+  updaterUrl           String?
+  storeProvider        String?
+  storeStatus          String?
+  blockers             Json?
+  rawManifest          Json?
+  rawFacts             Json?
+  syncedAt             DateTime?
+  prunedAt             DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  release              ClientRelease @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, artifactName])
+  @@index([client, target, distributionStatus])
+  @@index([artifactName])
+}
+
+model ClientUpdatePolicy {
+  id                       String   @id @default(cuid())
+  client                   String
+  target                   String
+  channel                  String
+  enabled                  Boolean  @default(true)
+  recommendedReleaseId      String?
+  minimumSupportedVersion   String?
+  forceUpdate              Boolean  @default(false)
+  allowGithubFallback       Boolean  @default(true)
+  notes                    String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@unique([client, target, channel])
+  @@index([channel])
+}
