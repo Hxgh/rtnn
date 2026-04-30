@@ -33,6 +33,15 @@ function parseOutput(stdout) {
   );
 }
 
+function childProcessEnv(overrides = {}) {
+  const env = {
+    ...process.env,
+    ...overrides,
+  };
+  delete env.GITHUB_OUTPUT;
+  return env;
+}
+
 test("resolveProjectProfile returns template full service profile without metadata", () => {
   withTempDir((rootDir) => {
     const profile = resolveProjectProfile(rootDir);
@@ -103,7 +112,10 @@ test("buildProjectProfile disables optional services and expands client targets"
   assert.deepEqual(profile.enabledClientBuildTargets, [
     { client: "adminDesktop", target: "macos" },
   ]);
-  assert.equal(profile.clients.adminDesktop.webUrl, "https://admin.example.com");
+  assert.equal(
+    profile.clients.adminDesktop.webUrl,
+    "https://admin.example.com",
+  );
   assert.deepEqual(profile.clients.adminDesktop.webUrls, {
     testing: "https://admin.testing.example.com",
     production: "https://admin.example.com",
@@ -180,12 +192,11 @@ test("resolve-release-context emits enabled service matrix from delivery profile
     const result = spawnSync(process.execPath, [scriptPath], {
       cwd: rootDir,
       encoding: "utf8",
-      env: {
-        ...process.env,
+      env: childProcessEnv({
         GITHUB_REF: "refs/heads/main",
         GITHUB_REF_NAME: "main",
         GITHUB_SHA: "1234567890abcdef",
-      },
+      }),
     });
 
     assert.equal(result.status, 0, result.stderr);

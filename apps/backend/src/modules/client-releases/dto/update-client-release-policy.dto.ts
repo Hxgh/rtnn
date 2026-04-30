@@ -12,6 +12,9 @@ const toOptionalBoolean = (value: unknown): unknown => {
   if (typeof value === 'boolean') {
     return value;
   }
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return value;
+  }
   const normalized = String(value).trim().toLowerCase();
   if (['1', 'true', 'yes', 'on'].includes(normalized)) {
     return true;
@@ -25,7 +28,9 @@ const toOptionalBoolean = (value: unknown): unknown => {
 export class UpdateClientReleasePolicyDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }: TransformFnParams): unknown => toOptionalBoolean(value))
+  @Transform(({ value }: TransformFnParams): unknown =>
+    toOptionalBoolean(value),
+  )
   @IsBoolean()
   enabled?: boolean;
 
@@ -43,13 +48,17 @@ export class UpdateClientReleasePolicyDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }: TransformFnParams): unknown => toOptionalBoolean(value))
+  @Transform(({ value }: TransformFnParams): unknown =>
+    toOptionalBoolean(value),
+  )
   @IsBoolean()
   forceUpdate?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
-  @Transform(({ value }: TransformFnParams): unknown => toOptionalBoolean(value))
+  @Transform(({ value }: TransformFnParams): unknown =>
+    toOptionalBoolean(value),
+  )
   @IsBoolean()
   allowGithubFallback?: boolean;
 

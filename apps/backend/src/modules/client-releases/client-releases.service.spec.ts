@@ -4,7 +4,10 @@ import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
 const now = new Date('2026-04-30T00:00:00.000Z');
 
 function createService(prisma: unknown) {
-  return new ClientReleasesService(prisma as never, { write: jest.fn() } as never);
+  return new ClientReleasesService(
+    prisma as never,
+    { write: jest.fn() } as never,
+  );
 }
 
 function createFacts(): ClientReleaseFactsDto {
@@ -13,7 +16,7 @@ function createFacts(): ClientReleaseFactsDto {
     environment: 'testing',
     mode: 'write',
     source: {
-      repository: 'Hxgh/rtnn-demo',
+      repository: 'acme/business-source',
       runId: '12345',
       sourceSha: '1234567890abcdef',
       sourceRefs: ['refs/tags/client-1.2.3'],
@@ -45,7 +48,7 @@ function createFacts(): ClientReleaseFactsDto {
             provider: 'self-hosted-static',
             status: 'synced',
             sourceUrl:
-              'https://github.com/Hxgh/rtnn-demo/releases/download/client-1.2.3/app.apk',
+              'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
             url: 'https://downloads.example.com/releases/testing/app-mobile/android/1.2.3/app.apk',
             fileName: 'app.apk',
             fileSize: 1024,
@@ -100,7 +103,7 @@ describe('ClientReleasesService', () => {
       id: 'rel_1',
       releaseVersion: '1.2.3',
       channel: 'testing',
-      sourceRepository: 'Hxgh/rtnn-demo',
+      sourceRepository: 'acme/business-source',
       sourceRunId: '12345',
       sourceSha: '1234567890abcdef',
       sourceRef: 'refs/tags/client-1.2.3',
@@ -128,7 +131,7 @@ describe('ClientReleasesService', () => {
         where: {
           channel_sourceRepository_sourceRunId: {
             channel: 'testing',
-            sourceRepository: 'Hxgh/rtnn-demo',
+            sourceRepository: 'acme/business-source',
             sourceRunId: '12345',
           },
         },
@@ -154,7 +157,7 @@ describe('ClientReleasesService', () => {
           shell: 'app-mobile',
           packageName: '@rtnn/app-tauri',
           sourceUrl:
-            'https://github.com/Hxgh/rtnn-demo/releases/download/client-1.2.3/app.apk',
+            'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
           distributionProvider: 'self-hosted-static',
           distributionUrl:
             'https://downloads.example.com/releases/testing/app-mobile/android/1.2.3/app.apk',
@@ -212,7 +215,8 @@ describe('ClientReleasesService', () => {
                 shellVersion: '0.3.0',
                 releaseKind: 'android-signed-apk',
                 webUrl: 'https://app.example.com',
-                sourceUrl: 'https://github.com/Hxgh/rtnn-demo/releases/download/client-1.2.3/app.apk',
+                sourceUrl:
+                  'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
                 distributionProvider: 'self-hosted-static',
                 distributionUrl: 'https://downloads.example.com/app.apk',
                 distributionStatus: 'synced',

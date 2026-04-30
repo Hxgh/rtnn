@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type {
   ClientDownloadInfo,
@@ -42,18 +46,26 @@ export class ClientReleasesService {
 
     const packages = this.readFactPackages(dto);
     if (packages.length === 0) {
-      throw new BadRequestException('Client release facts do not contain packages');
+      throw new BadRequestException(
+        'Client release facts do not contain packages',
+      );
     }
 
     const source = this.asRecord(dto.source);
     const sourceRepository = stringValue(source.repository, 'unknown');
     const sourceRunId = stringValue(source.runId, `unknown-${Date.now()}`);
-    const sourceSha = stringValue(source.sourceSha, packages[0]?.sourceSha ?? 'unknown');
+    const sourceSha = stringValue(
+      source.sourceSha,
+      packages[0]?.sourceSha ?? 'unknown',
+    );
     const sourceRefs = Array.isArray(source.sourceRefs)
       ? source.sourceRefs.map((item) => stringValue(item)).filter(Boolean)
       : [];
     const releaseVersion = packages[0].releaseVersion;
-    const channel = stringValue(dto.environment, packages[0].channel || 'production');
+    const channel = stringValue(
+      dto.environment,
+      packages[0].channel || 'production',
+    );
     const dryRun = Boolean(this.asRecord(dto.release).dryRun);
     const generatedAt = this.resolveGeneratedAt(packages);
     const status = this.resolveReleaseStatus(packages, dryRun);
@@ -242,7 +254,10 @@ export class ClientReleasesService {
       ...this.toReleaseSummary(release),
       packages: release.packages.map((item) => this.toPackageSummary(item)),
       policies: policies.map((policy) =>
-        this.toPolicySummary(policy, versionById.get(policy.recommendedReleaseId ?? '')),
+        this.toPolicySummary(
+          policy,
+          versionById.get(policy.recommendedReleaseId ?? ''),
+        ),
       ),
     };
   }
@@ -275,7 +290,8 @@ export class ClientReleasesService {
     const belongsToRelease =
       existing.channel === release.channel &&
       release.packages.some(
-        (item) => item.client === existing.client && item.target === existing.target,
+        (item) =>
+          item.client === existing.client && item.target === existing.target,
       );
     if (!belongsToRelease) {
       throw new NotFoundException('Client update policy not found');
@@ -286,8 +302,12 @@ export class ClientReleasesService {
         where: { id: policyId },
         data: {
           enabled: dto.enabled,
-          recommendedReleaseId: normalizeNullableString(dto.recommendedReleaseId),
-          minimumSupportedVersion: normalizeNullableString(dto.minimumSupportedVersion),
+          recommendedReleaseId: normalizeNullableString(
+            dto.recommendedReleaseId,
+          ),
+          minimumSupportedVersion: normalizeNullableString(
+            dto.minimumSupportedVersion,
+          ),
           forceUpdate: dto.forceUpdate,
           allowGithubFallback: dto.allowGithubFallback,
           notes: normalizeNullableString(dto.notes),
@@ -324,7 +344,9 @@ export class ClientReleasesService {
     return this.toPolicySummary(policy, recommendedRelease?.releaseVersion);
   }
 
-  async resolveDownload(query: ClientDownloadQueryDto): Promise<ClientDownloadInfo> {
+  async resolveDownload(
+    query: ClientDownloadQueryDto,
+  ): Promise<ClientDownloadInfo> {
     const channel = query.channel || 'production';
     const policy = await this.prisma.clientUpdatePolicy.findUnique({
       where: {
@@ -349,7 +371,11 @@ export class ClientReleasesService {
     }
 
     const selected = policy?.recommendedReleaseId
-      ? await this.findPackageByReleaseId(policy.recommendedReleaseId, query.client, query.target)
+      ? await this.findPackageByReleaseId(
+          policy.recommendedReleaseId,
+          query.client,
+          query.target,
+        )
       : await this.findLatestPackage(query.client, query.target, channel);
     if (!selected) {
       return {
@@ -382,11 +408,12 @@ export class ClientReleasesService {
       version: selected.release.releaseVersion,
       shellVersion: selected.shellVersion,
       downloadType: directUrl ? 'direct' : 'unavailable',
-      provider: directUrl === selected.distributionUrl
-        ? selected.distributionProvider
-        : selected.sourceUrl
-          ? 'github-release'
-          : null,
+      provider:
+        directUrl === selected.distributionUrl
+          ? selected.distributionProvider
+          : selected.sourceUrl
+            ? 'github-release'
+            : null,
       downloadUrl: directUrl,
       sourceUrl: selected.sourceUrl,
       fileName: selected.fileName,
@@ -394,8 +421,8 @@ export class ClientReleasesService {
       sha256: selected.sha256,
       updateAvailable: Boolean(
         query.currentVersion &&
-          query.currentVersion !== selected.release.releaseVersion &&
-          query.currentVersion !== selected.shellVersion,
+        query.currentVersion !== selected.release.releaseVersion &&
+        query.currentVersion !== selected.shellVersion,
       ),
       forceUpdate: Boolean(policy?.forceUpdate || belowMinimum),
       minimumSupportedVersion: policy?.minimumSupportedVersion ?? null,
@@ -519,28 +546,51 @@ export class ClientReleasesService {
           sourceRef: stringValue(state.sourceRef),
           generatedAt: dateValue(state.generatedAt),
           rawFacts: state,
-          sourceUrl: stringValue(distribution.sourceUrl, stringValue(state.sourceUrl)),
+          sourceUrl: stringValue(
+            distribution.sourceUrl,
+            stringValue(state.sourceUrl),
+          ),
           distributionProvider: stringValue(
             distribution.provider,
             stringValue(state.distributionProvider, 'github-release'),
           ),
-          distributionUrl: stringValue(distribution.url, stringValue(state.distributionUrl)),
+          distributionUrl: stringValue(
+            distribution.url,
+            stringValue(state.distributionUrl),
+          ),
           distributionStatus: stringValue(
             distribution.status,
             stringValue(state.distributionStatus, 'pending'),
           ),
-          fileName: stringValue(distribution.fileName, stringValue(state.fileName)),
+          fileName: stringValue(
+            distribution.fileName,
+            stringValue(state.fileName),
+          ),
           fileSize: numberValue(distribution.fileSize ?? state.fileSize),
           sha256: stringValue(distribution.sha256, stringValue(state.sha256)),
           syncedAt: dateValue(distribution.syncedAt ?? state.syncedAt),
           prunedAt: dateValue(distribution.prunedAt ?? state.prunedAt),
           blockers,
-          signingStatus: stringValue(desktop.status, stringValue(state.signingStatus)),
-          buildStatus: stringValue(mobile.buildStatus, stringValue(state.buildStatus)),
-          updaterStatus: updater.file ? 'ready' : stringValue(state.updaterStatus),
+          signingStatus: stringValue(
+            desktop.status,
+            stringValue(state.signingStatus),
+          ),
+          buildStatus: stringValue(
+            mobile.buildStatus,
+            stringValue(state.buildStatus),
+          ),
+          updaterStatus: updater.file
+            ? 'ready'
+            : stringValue(state.updaterStatus),
           updaterUrl: stringValue(updater.file, stringValue(state.updaterUrl)),
-          storeProvider: stringValue(storeRelease.provider, stringValue(mobile.storeProvider)),
-          storeStatus: stringValue(storeRelease.status, stringValue(mobile.storeStatus)),
+          storeProvider: stringValue(
+            storeRelease.provider,
+            stringValue(mobile.storeProvider),
+          ),
+          storeStatus: stringValue(
+            storeRelease.status,
+            stringValue(mobile.storeStatus),
+          ),
         });
       }
     }
@@ -573,7 +623,7 @@ export class ClientReleasesService {
       updaterUrl: item.updaterUrl || null,
       storeProvider: item.storeProvider || null,
       storeStatus: item.storeStatus || null,
-      blockers: item.blockers as unknown as Prisma.InputJsonValue,
+      blockers: item.blockers,
       rawFacts: item.rawFacts as unknown as Prisma.InputJsonValue,
       syncedAt: item.syncedAt ?? null,
       prunedAt: item.prunedAt ?? null,
@@ -670,7 +720,12 @@ export class ClientReleasesService {
     if (dryRun) {
       return 'dry-run';
     }
-    if (packages.some((item) => item.distributionStatus === 'failed' || item.blockers.length > 0)) {
+    if (
+      packages.some(
+        (item) =>
+          item.distributionStatus === 'failed' || item.blockers.length > 0,
+      )
+    ) {
       return 'partial';
     }
     if (packages.every((item) => item.distributionStatus === 'synced')) {
@@ -686,7 +741,9 @@ export class ClientReleasesService {
   }
 
   private resolveDistributionKeep(dto: ClientReleaseFactsDto) {
-    const distribution = this.asRecord(this.asRecord(dto.artifacts).distribution);
+    const distribution = this.asRecord(
+      this.asRecord(dto.artifacts).distribution,
+    );
     if (stringValue(distribution.provider) !== 'self-hosted-static') {
       return null;
     }
@@ -704,7 +761,9 @@ export class ClientReleasesService {
       return;
     }
 
-    const pairs = unique(packages.map((item) => `${item.client}\u0000${item.target}`));
+    const pairs = unique(
+      packages.map((item) => `${item.client}\u0000${item.target}`),
+    );
     for (const pair of pairs) {
       const [client, target] = pair.split('\u0000');
       const releases = await tx.clientRelease.findMany({
@@ -781,7 +840,18 @@ function normalizeNullableString(value: unknown) {
 }
 
 function stringValue(value: unknown, fallback = '') {
-  const normalized = String(value ?? '').trim();
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (
+    typeof value !== 'string' &&
+    typeof value !== 'number' &&
+    typeof value !== 'boolean' &&
+    typeof value !== 'bigint'
+  ) {
+    return fallback;
+  }
+  const normalized = String(value).trim();
   return normalized || fallback;
 }
 

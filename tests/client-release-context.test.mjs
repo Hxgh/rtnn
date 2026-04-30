@@ -74,8 +74,12 @@ function withTempProject(metadata, fn) {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-release-"));
   try {
     mkdirSync(path.join(dir, ".rtnn"), { recursive: true });
-    mkdirSync(path.join(dir, "clients/admin-tauri/src-tauri"), { recursive: true });
-    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), { recursive: true });
+    mkdirSync(path.join(dir, "clients/admin-tauri/src-tauri"), {
+      recursive: true,
+    });
+    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), {
+      recursive: true,
+    });
     writeFileSync(
       path.join(dir, ".rtnn/project.json"),
       `${JSON.stringify(metadata, null, 2)}\n`,
@@ -107,14 +111,20 @@ function parseOutput(stdout) {
   );
 }
 
+function childProcessEnv(overrides = {}) {
+  const env = {
+    ...process.env,
+    ...overrides,
+  };
+  delete env.GITHUB_OUTPUT;
+  return env;
+}
+
 function runContext(rootDir, env = {}) {
   const result = spawnSync(process.execPath, [scriptPath], {
     cwd: rootDir,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      ...env,
-    },
+    env: childProcessEnv(env),
   });
 
   assert.equal(result.status, 0, result.stderr);
@@ -171,7 +181,9 @@ test("resolve-client-release-context emits client build matrix from delivery pro
       assert.equal(output.release_channel, "testing");
       assert.equal(output.release_version, "1.2.3");
       assert.equal(output.release_tag, "v1.2.3");
-      assert.deepEqual(JSON.parse(output.enabled_clients_json), ["adminDesktop"]);
+      assert.deepEqual(JSON.parse(output.enabled_clients_json), [
+        "adminDesktop",
+      ]);
       assert.equal(matrix.include.length, 2);
       assert.deepEqual(
         matrix.include.map((item) => [item.client, item.target, item.runner]),
@@ -184,7 +196,10 @@ test("resolve-client-release-context emits client build matrix from delivery pro
       assert.equal(matrix.include[0].web_url, "https://admin.acme.test");
       assert.equal(matrix.include[0].channel, "testing");
       assert.equal(matrix.include[0].shell_version, "0.2.0");
-      assert.equal(matrix.include[0].artifact_name, "admin-desktop-macos-1.2.3");
+      assert.equal(
+        matrix.include[0].artifact_name,
+        "admin-desktop-macos-1.2.3",
+      );
       assert.equal(matrix.include[0].release_kind, "desktop-unsigned");
       assert.equal(matrix.include[0].desktop_build, true);
     },
@@ -327,21 +342,25 @@ test("prepare-tauri-updater-signing reports blocked desktop signing without secr
       `${JSON.stringify({ bundle: { active: true } }, null, 2)}\n`,
     );
 
-    const result = spawnSync(process.execPath, [prepareTauriSigningScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_DIR: "clients/admin-tauri",
-        CLIENT_NAME: "adminDesktop",
-        CLIENT_TARGET: "macos",
-        CLIENT_SHELL: "admin-desktop",
-        CLIENT_RELEASE_VERSION: "1.2.3",
-        CLIENT_CHANNEL: "testing",
-        CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
-        GITHUB_REPOSITORY: "",
+    const result = spawnSync(
+      process.execPath,
+      [prepareTauriSigningScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/admin-tauri",
+          CLIENT_NAME: "adminDesktop",
+          CLIENT_TARGET: "macos",
+          CLIENT_SHELL: "admin-desktop",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_CHANNEL: "testing",
+          CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
+          GITHUB_REPOSITORY: "",
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(
@@ -354,10 +373,7 @@ test("prepare-tauri-updater-signing reports blocked desktop signing without secr
       ),
     );
     const tauriConfig = JSON.parse(
-      readFileSync(
-        path.join(clientDir, "src-tauri/tauri.conf.json"),
-        "utf8",
-      ),
+      readFileSync(path.join(clientDir, "src-tauri/tauri.conf.json"), "utf8"),
     );
 
     assert.equal(report.schemaVersion, "rtnn.desktop-signing-boundary.v1");
@@ -390,23 +406,27 @@ test("prepare-tauri-updater-signing patches Tauri config without leaking private
       )}\n`,
     );
 
-    const result = spawnSync(process.execPath, [prepareTauriSigningScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_DIR: "clients/admin-tauri",
-        CLIENT_NAME: "adminDesktop",
-        CLIENT_TARGET: "macos",
-        CLIENT_SHELL: "admin-desktop",
-        CLIENT_RELEASE_VERSION: "1.2.3",
-        CLIENT_CHANNEL: "testing",
-        CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
-        TAURI_UPDATER_PUBLIC_KEY: "public-key",
-        TAURI_SIGNING_PRIVATE_KEY: "private-key-must-not-leak",
-        GITHUB_REPOSITORY: "acme/business-source",
+    const result = spawnSync(
+      process.execPath,
+      [prepareTauriSigningScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/admin-tauri",
+          CLIENT_NAME: "adminDesktop",
+          CLIENT_TARGET: "macos",
+          CLIENT_SHELL: "admin-desktop",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_CHANNEL: "testing",
+          CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
+          TAURI_UPDATER_PUBLIC_KEY: "public-key",
+          TAURI_SIGNING_PRIVATE_KEY: "private-key-must-not-leak",
+          GITHUB_REPOSITORY: "acme/business-source",
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     const reportPath = path.join(
@@ -416,10 +436,7 @@ test("prepare-tauri-updater-signing patches Tauri config without leaking private
     const reportText = readFileSync(reportPath, "utf8");
     const report = JSON.parse(reportText);
     const tauriConfig = JSON.parse(
-      readFileSync(
-        path.join(clientDir, "src-tauri/tauri.conf.json"),
-        "utf8",
-      ),
+      readFileSync(path.join(clientDir, "src-tauri/tauri.conf.json"), "utf8"),
     );
 
     assert.equal(report.status, "ready-for-signed-build");
@@ -445,19 +462,23 @@ test("prepare-tauri-updater-signing patches Tauri config without leaking private
 test("prepare-android-signing reports blocked Android signing without secrets", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-android-signing-blocked-"));
   try {
-    const result = spawnSync(process.execPath, [prepareAndroidSigningScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_DIR: "clients/app-tauri",
-        CLIENT_NAME: "appMobile",
-        CLIENT_TARGET: "android",
-        CLIENT_SHELL: "app-mobile",
-        CLIENT_RELEASE_VERSION: "1.2.3",
-        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+    const result = spawnSync(
+      process.execPath,
+      [prepareAndroidSigningScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+          CLIENT_NAME: "appMobile",
+          CLIENT_TARGET: "android",
+          CLIENT_SHELL: "app-mobile",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(
@@ -487,21 +508,24 @@ test("prepare-android-signing reports blocked Android signing without secrets", 
 test("prepare-android-signing writes keystore config and patches Gradle without leaking secrets to report", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-android-signing-ready-"));
   try {
-    const androidDir = path.join(dir, "clients/app-tauri/src-tauri/gen/android");
+    const androidDir = path.join(
+      dir,
+      "clients/app-tauri/src-tauri/gen/android",
+    );
     const appDir = path.join(androidDir, "app");
     mkdirSync(appDir, { recursive: true });
     writeFileSync(
       path.join(appDir, "build.gradle.kts"),
       [
         "plugins {",
-        "    id(\"com.android.application\")",
+        '    id("com.android.application")',
         "}",
         "",
         "android {",
-        "    namespace = \"com.rtnn.app\"",
+        '    namespace = "com.rtnn.app"',
         "",
         "    buildTypes {",
-        "        getByName(\"release\") {",
+        '        getByName("release") {',
         "            isMinifyEnabled = false",
         "        }",
         "    }",
@@ -510,24 +534,28 @@ test("prepare-android-signing writes keystore config and patches Gradle without 
       ].join("\n"),
     );
 
-    const result = spawnSync(process.execPath, [prepareAndroidSigningScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_DIR: "clients/app-tauri",
-        CLIENT_NAME: "appMobile",
-        CLIENT_TARGET: "android",
-        CLIENT_SHELL: "app-mobile",
-        CLIENT_RELEASE_VERSION: "1.2.3",
-        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
-        ANDROID_KEYSTORE_BASE64: Buffer.from("keystore").toString("base64"),
-        ANDROID_KEYSTORE_PASSWORD: "store-password-must-not-leak",
-        ANDROID_KEY_ALIAS: "release",
-        ANDROID_KEY_PASSWORD: "key-password-must-not-leak",
-        ANDROID_KEYSTORE_PATH: path.join(dir, "keystore.jks"),
+    const result = spawnSync(
+      process.execPath,
+      [prepareAndroidSigningScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+          CLIENT_NAME: "appMobile",
+          CLIENT_TARGET: "android",
+          CLIENT_SHELL: "app-mobile",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+          ANDROID_KEYSTORE_BASE64: Buffer.from("keystore").toString("base64"),
+          ANDROID_KEYSTORE_PASSWORD: "store-password-must-not-leak",
+          ANDROID_KEY_ALIAS: "release",
+          ANDROID_KEY_PASSWORD: "key-password-must-not-leak",
+          ANDROID_KEYSTORE_PATH: path.join(dir, "keystore.jks"),
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     const reportPath = path.join(
@@ -553,7 +581,10 @@ test("prepare-android-signing writes keystore config and patches Gradle without 
     assert.match(gradle, /import java\.io\.FileInputStream/);
     assert.match(gradle, /import java\.util\.Properties/);
     assert.match(gradle, /signingConfigs \{/);
-    assert.match(gradle, /signingConfig = signingConfigs\.getByName\("release"\)/);
+    assert.match(
+      gradle,
+      /signingConfig = signingConfigs\.getByName\("release"\)/,
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -562,25 +593,31 @@ test("prepare-android-signing writes keystore config and patches Gradle without 
 test("prepare-google-play-upload reports blocked upload without service account or artifact", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-google-play-blocked-"));
   try {
-    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), { recursive: true });
+    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), {
+      recursive: true,
+    });
     writeFileSync(
       path.join(dir, "clients/app-tauri/src-tauri/tauri.conf.json"),
       `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
     );
 
-    const result = spawnSync(process.execPath, [prepareGooglePlayUploadScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_DIR: "clients/app-tauri",
-        CLIENT_NAME: "appMobile",
-        CLIENT_TARGET: "android",
-        CLIENT_SHELL: "app-mobile",
-        CLIENT_RELEASE_VERSION: "1.2.3",
-        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+    const result = spawnSync(
+      process.execPath,
+      [prepareGooglePlayUploadScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+          CLIENT_NAME: "appMobile",
+          CLIENT_TARGET: "android",
+          CLIENT_SHELL: "app-mobile",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(
@@ -612,7 +649,9 @@ test("prepare-google-play-upload resolves release file without leaking service a
       dir,
       "artifacts/client-release/app-mobile-android-1.2.3/mobile/bundle/release",
     );
-    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), { recursive: true });
+    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), {
+      recursive: true,
+    });
     mkdirSync(releaseDir, { recursive: true });
     writeFileSync(
       path.join(dir, "clients/app-tauri/src-tauri/tauri.conf.json"),
@@ -620,22 +659,27 @@ test("prepare-google-play-upload resolves release file without leaking service a
     );
     writeFileSync(path.join(releaseDir, "app-release.aab"), "bundle");
 
-    const result = spawnSync(process.execPath, [prepareGooglePlayUploadScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_DIR: "clients/app-tauri",
-        CLIENT_NAME: "appMobile",
-        CLIENT_TARGET: "android",
-        CLIENT_SHELL: "app-mobile",
-        CLIENT_RELEASE_VERSION: "1.2.3",
-        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
-        ANDROID_PLAY_SERVICE_ACCOUNT_JSON: "service-account-json-must-not-leak",
-        ANDROID_PLAY_TRACK: "internal",
-        ANDROID_PLAY_STATUS: "draft",
+    const result = spawnSync(
+      process.execPath,
+      [prepareGooglePlayUploadScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+          CLIENT_NAME: "appMobile",
+          CLIENT_TARGET: "android",
+          CLIENT_SHELL: "app-mobile",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+          ANDROID_PLAY_SERVICE_ACCOUNT_JSON:
+            "service-account-json-must-not-leak",
+          ANDROID_PLAY_TRACK: "internal",
+          ANDROID_PLAY_STATUS: "draft",
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     const reportPath = path.join(
@@ -650,7 +694,10 @@ test("prepare-google-play-upload resolves release file without leaking service a
     assert.equal(report.releaseStatus, "draft");
     assert.equal(report.releaseFile.endsWith("app-release.aab"), true);
     assert.deepEqual(report.blockers, []);
-    assert.equal(reportText.includes("service-account-json-must-not-leak"), false);
+    assert.equal(
+      reportText.includes("service-account-json-must-not-leak"),
+      false,
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -680,7 +727,8 @@ test("write-google-play-release-report emits uploaded and skipped facts", () => 
           track: "internal",
           releaseStatus: "draft",
           artifactType: "aab",
-          releaseFile: "artifacts/client-release/app-mobile-android-1.2.3/mobile/bundle/release/app-release.aab",
+          releaseFile:
+            "artifacts/client-release/app-mobile-android-1.2.3/mobile/bundle/release/app-release.aab",
           blockers: [],
         },
         null,
@@ -688,19 +736,23 @@ test("write-google-play-release-report emits uploaded and skipped facts", () => 
       )}\n`,
     );
 
-    const uploaded = spawnSync(process.execPath, [googlePlayReleaseReportScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
-        GOOGLE_PLAY_UPLOAD_ATTEMPTED: "true",
-        GOOGLE_PLAY_COMMITTED_EDIT_ID: "edit-123",
-        GOOGLE_PLAY_INTERNAL_SHARING_DOWNLOAD_URLS: JSON.stringify([
-          "https://play.google.test/download",
-        ]),
+    const uploaded = spawnSync(
+      process.execPath,
+      [googlePlayReleaseReportScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+          GOOGLE_PLAY_UPLOAD_ATTEMPTED: "true",
+          GOOGLE_PLAY_COMMITTED_EDIT_ID: "edit-123",
+          GOOGLE_PLAY_INTERNAL_SHARING_DOWNLOAD_URLS: JSON.stringify([
+            "https://play.google.test/download",
+          ]),
+        },
       },
-    });
+    );
 
     assert.equal(uploaded.status, 0, uploaded.stderr);
     const uploadedReport = JSON.parse(
@@ -719,15 +771,19 @@ test("write-google-play-release-report emits uploaded and skipped facts", () => 
       "https://play.google.test/download",
     ]);
 
-    const skipped = spawnSync(process.execPath, [googlePlayReleaseReportScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
-        GOOGLE_PLAY_UPLOAD_ATTEMPTED: "false",
+    const skipped = spawnSync(
+      process.execPath,
+      [googlePlayReleaseReportScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+          GOOGLE_PLAY_UPLOAD_ATTEMPTED: "false",
+        },
       },
-    });
+    );
 
     assert.equal(skipped.status, 0, skipped.stderr);
     const skippedReport = JSON.parse(
@@ -806,13 +862,19 @@ test("prepare-ios-signing writes signing files and App Store Connect key without
         CLIENT_SHELL: "app-mobile",
         CLIENT_RELEASE_VERSION: "1.2.3",
         CLIENT_ARTIFACT_NAME: "app-mobile-ios-1.2.3",
-        IOS_CERTIFICATE_P12_BASE64: Buffer.from("p12-secret-must-not-leak").toString("base64"),
+        IOS_CERTIFICATE_P12_BASE64: Buffer.from(
+          "p12-secret-must-not-leak",
+        ).toString("base64"),
         IOS_CERTIFICATE_PASSWORD: "certificate-password-must-not-leak",
-        IOS_PROVISIONING_PROFILE_BASE64: Buffer.from("profile-secret-must-not-leak").toString("base64"),
+        IOS_PROVISIONING_PROFILE_BASE64: Buffer.from(
+          "profile-secret-must-not-leak",
+        ).toString("base64"),
         IOS_KEYCHAIN_PASSWORD: "keychain-password-must-not-leak",
         APP_STORE_CONNECT_KEY_ID: "ABC123",
         APP_STORE_CONNECT_ISSUER_ID: "issuer-123",
-        APP_STORE_CONNECT_API_KEY_BASE64: Buffer.from("api-key-secret-must-not-leak").toString("base64"),
+        APP_STORE_CONNECT_API_KEY_BASE64: Buffer.from(
+          "api-key-secret-must-not-leak",
+        ).toString("base64"),
       },
     });
 
@@ -834,7 +896,10 @@ test("prepare-ios-signing writes signing files and App Store Connect key without
     assert.deepEqual(report.uploadBlockers, []);
     assert.equal(reportText.includes("p12-secret-must-not-leak"), false);
     assert.equal(reportText.includes("profile-secret-must-not-leak"), false);
-    assert.equal(reportText.includes("certificate-password-must-not-leak"), false);
+    assert.equal(
+      reportText.includes("certificate-password-must-not-leak"),
+      false,
+    );
     assert.equal(reportText.includes("keychain-password-must-not-leak"), false);
     assert.equal(reportText.includes("api-key-secret-must-not-leak"), false);
     assert.equal(
@@ -860,7 +925,9 @@ test("prepare-ios-signing writes signing files and App Store Connect key without
 test("prepare-app-store-connect-upload reports blocked upload without IPA or API key", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-app-store-blocked-"));
   try {
-    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), { recursive: true });
+    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), {
+      recursive: true,
+    });
     writeFileSync(
       path.join(dir, "clients/app-tauri/src-tauri/tauri.conf.json"),
       `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
@@ -895,7 +962,10 @@ test("prepare-app-store-connect-upload reports blocked upload without IPA or API
       ),
     );
 
-    assert.equal(report.schemaVersion, "rtnn.app-store-connect-upload-boundary.v1");
+    assert.equal(
+      report.schemaVersion,
+      "rtnn.app-store-connect-upload-boundary.v1",
+    );
     assert.equal(report.status, "blocked");
     assert.equal(report.bundleId, "com.acme.app");
     assert.deepEqual(report.blockers, [
@@ -916,7 +986,9 @@ test("prepare-app-store-connect-upload resolves IPA without leaking private key"
       dir,
       "artifacts/client-release/app-mobile-ios-1.2.3/mobile/arm64",
     );
-    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), { recursive: true });
+    mkdirSync(path.join(dir, "clients/app-tauri/src-tauri"), {
+      recursive: true,
+    });
     mkdirSync(releaseDir, { recursive: true });
     writeFileSync(
       path.join(dir, "clients/app-tauri/src-tauri/tauri.conf.json"),
@@ -940,7 +1012,9 @@ test("prepare-app-store-connect-upload resolves IPA without leaking private key"
           CLIENT_ARTIFACT_NAME: "app-mobile-ios-1.2.3",
           APP_STORE_CONNECT_KEY_ID: "ABC123",
           APP_STORE_CONNECT_ISSUER_ID: "issuer-123",
-          APP_STORE_CONNECT_API_KEY_BASE64: Buffer.from("api-key-secret-must-not-leak").toString("base64"),
+          APP_STORE_CONNECT_API_KEY_BASE64: Buffer.from(
+            "api-key-secret-must-not-leak",
+          ).toString("base64"),
         },
       },
     );
@@ -991,7 +1065,8 @@ test("write-app-store-connect-release-report emits uploaded and skipped facts", 
           bundleId: "com.acme.app",
           distribution: "testflight",
           artifactType: "ipa",
-          ipaFile: "artifacts/client-release/app-mobile-ios-1.2.3/mobile/arm64/RTNN App.ipa",
+          ipaFile:
+            "artifacts/client-release/app-mobile-ios-1.2.3/mobile/arm64/RTNN App.ipa",
           blockers: [],
         },
         null,
@@ -1124,8 +1199,14 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
       "artifacts/client-release/admin-desktop-macos-1.2.3/bundle",
     );
     mkdirSync(path.join(bundleOutput, "macos"), { recursive: true });
-    writeFileSync(path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz"), "bundle");
-    writeFileSync(path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz.sig"), "signed");
+    writeFileSync(
+      path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz"),
+      "bundle",
+    );
+    writeFileSync(
+      path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz.sig"),
+      "signed",
+    );
     writeFileSync(
       path.join(bundleOutput, "artifact-files.json"),
       `${JSON.stringify(
@@ -1186,7 +1267,10 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
 test("merge-tauri-updater-fragments emits final static updater manifests", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-updater-merge-"));
   try {
-    const fragmentDir = path.join(dir, "artifacts/client-release/updater-fragments");
+    const fragmentDir = path.join(
+      dir,
+      "artifacts/client-release/updater-fragments",
+    );
     mkdirSync(fragmentDir, { recursive: true });
     writeFileSync(
       path.join(fragmentDir, "admin-desktop-macos-1.2.3.json"),
@@ -1252,7 +1336,10 @@ test("merge-tauri-updater-fragments emits final static updater manifests", () =>
     assert.equal(result.status, 0, result.stderr);
     const latest = JSON.parse(
       readFileSync(
-        path.join(dir, "artifacts/client-release/updater/admin-desktop-latest.json"),
+        path.join(
+          dir,
+          "artifacts/client-release/updater/admin-desktop-latest.json",
+        ),
         "utf8",
       ),
     );
@@ -1314,13 +1401,17 @@ test("collect-client-github-release-assets copies desktop bundles and updater ma
       JSON.stringify({ manifests: [] }),
     );
 
-    const result = spawnSync(process.execPath, [collectGithubReleaseAssetsScriptPath], {
-      cwd: dir,
-      encoding: "utf8",
-      env: {
-        ...process.env,
+    const result = spawnSync(
+      process.execPath,
+      [collectGithubReleaseAssetsScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+        },
       },
-    });
+    );
 
     assert.equal(result.status, 0, result.stderr);
     assert.equal(
@@ -1555,7 +1646,8 @@ test("write-mobile-release-boundary marks Android build implemented when artifac
         ANDROID_SIGNING_CONFIGURED: "true",
         ANDROID_PLAY_CONFIGURED: "true",
         MOBILE_BUILD_IMPLEMENTED: "true",
-        MOBILE_BUILD_ARTIFACT_DIR: "artifacts/client-release/app-mobile-android-1.2.3/mobile",
+        MOBILE_BUILD_ARTIFACT_DIR:
+          "artifacts/client-release/app-mobile-android-1.2.3/mobile",
         RTNN_RELEASE_GENERATED_AT: "2026-04-29T00:00:00.000Z",
       },
     });
