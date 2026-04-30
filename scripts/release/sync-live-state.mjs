@@ -118,10 +118,13 @@ function assertBindingMatches(metadata, report) {
 
 function buildDesiredState(environmentFact) {
   const release = environmentFact.release ?? {};
-  const deployVersion = String(release.deployVersion ?? "").trim();
-  const sourceSha = String(release.sourceSha ?? "").trim();
+  const observedVersion = readObservedVersion(environmentFact);
+  const deployVersion =
+    observedVersion.deployVersion || String(release.deployVersion ?? "").trim();
+  const sourceSha =
+    observedVersion.sourceSha || String(release.sourceSha ?? "").trim();
 
-  if (!environmentFact.source?.exists) {
+  if (!environmentFact.source?.exists && !observedVersion.deployVersion) {
     throw new Error(`${environmentFact.environment} 缺少可用 runtime source`);
   }
 
@@ -132,6 +135,23 @@ function buildDesiredState(environmentFact) {
   return {
     activeRelease: deployVersion,
     ...(sourceSha ? { sourceSha } : {}),
+  };
+}
+
+function readObservedVersion(environmentFact) {
+  const versionResult = environmentFact.health?.results?.version;
+  const body = versionResult?.body;
+
+  if (!versionResult?.ok || !body || typeof body !== "object") {
+    return {
+      deployVersion: "",
+      sourceSha: "",
+    };
+  }
+
+  return {
+    deployVersion: String(body.version ?? "").trim(),
+    sourceSha: String(body.sourceSha ?? "").trim(),
   };
 }
 
