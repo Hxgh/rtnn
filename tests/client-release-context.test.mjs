@@ -1594,6 +1594,16 @@ test("merge-tauri-updater-fragments emits final static updater manifests", () =>
   }
 });
 
+test("release-clients workflow collects downloaded updater fragment artifacts", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /-path "\*\/updater-fragments\/\*\.json"/);
+  assert.match(workflow, /-path "\*-updater-fragment\/\*\.json"/);
+});
+
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-github-release-assets-"));
   try {

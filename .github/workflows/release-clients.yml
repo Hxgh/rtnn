@@ -595,7 +595,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts/client-release/updater-fragments
-          find artifacts/downloaded -path "*/updater-fragments/*.json" -type f \
+          find artifacts/downloaded -type f \( \
+              -path "*/updater-fragments/*.json" -o \
+              -path "*-updater-fragment/*.json" \
+            \) \
             -exec cp {} artifacts/client-release/updater-fragments/ \;
           node scripts/release/merge-tauri-updater-fragments.mjs
 
