@@ -15,6 +15,10 @@ const targetLabels: Record<string, string> = {
 
 type DownloadPageSearchParams = Promise<{ channel?: string }>;
 
+function resolveDefaultChannel() {
+  return process.env.DEPLOY_ENVIRONMENT === "testing" ? "testing" : "production";
+}
+
 async function resolveDownloads(channel: string): Promise<ClientDownloadInfo[]> {
   try {
     return listClientDownloads({ channel });
@@ -48,7 +52,8 @@ export default async function DownloadPage({
 }) {
   const { messages } = await getServerI18n();
   const params = searchParams ? await searchParams : undefined;
-  const channel = String(params?.channel ?? "production").trim() || "production";
+  const defaultChannel = resolveDefaultChannel();
+  const channel = String(params?.channel ?? defaultChannel).trim() || defaultChannel;
   const downloads = await resolveDownloads(channel);
 
   return (
