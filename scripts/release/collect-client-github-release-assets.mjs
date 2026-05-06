@@ -10,6 +10,19 @@ import {
 import path from "node:path";
 
 const SKIPPED_ASSET_NAMES = new Set(["artifact-files.json", "asset-files.json"]);
+const PUBLISHABLE_BUNDLE_EXTENSIONS = [
+  ".apk",
+  ".aab",
+  ".ipa",
+  ".msi",
+  ".exe",
+  ".dmg",
+  ".app.tar.gz",
+  ".AppImage",
+  ".deb",
+  ".rpm",
+  ".zip",
+];
 
 function normalizeString(value, fallback = "") {
   const normalized = String(value ?? "").trim();
@@ -40,12 +53,11 @@ function shouldPublishAsset(filePath) {
     return false;
   }
 
-  return (
-    filePath.split(path.sep).some((part) => part.endsWith("-bundle")) ||
-    filePath.includes(`${path.sep}bundle${path.sep}`) ||
-    name.endsWith("-latest.json") ||
-    name === "index.json"
-  );
+  if (name.endsWith("-latest.json") || name === "index.json") {
+    return true;
+  }
+
+  return PUBLISHABLE_BUNDLE_EXTENSIONS.some((extension) => name.endsWith(extension));
 }
 
 function copyAssets(files, outputDir) {

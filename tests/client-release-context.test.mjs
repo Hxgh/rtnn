@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -1589,6 +1590,68 @@ test("collect-client-github-release-assets copies desktop bundles and updater ma
     assert.deepEqual(
       assetManifest.assets.map((asset) => asset.name),
       ["admin-desktop-latest.json", "index.json", "RTNN Admin.dmg"],
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("collect-client-github-release-assets skips macOS app internal resources", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-github-release-assets-app-"));
+  try {
+    const downloadedDir = path.join(dir, "artifacts/downloaded");
+    const bundleDir = path.join(
+      downloadedDir,
+      "admin-desktop-macos-1.2.3-bundle",
+    );
+    mkdirSync(path.join(bundleDir, "dmg"), { recursive: true });
+    mkdirSync(
+      path.join(bundleDir, "macos/RTNN Admin.app/Contents/Resources"),
+      { recursive: true },
+    );
+    writeFileSync(path.join(bundleDir, "dmg/RTNN Admin.icns"), "dmg icon");
+    writeFileSync(path.join(bundleDir, "dmg/RTNN Admin.dmg"), "dmg");
+    writeFileSync(
+      path.join(
+        bundleDir,
+        "macos/RTNN Admin.app/Contents/Resources/RTNN Admin.icns",
+      ),
+      "app icon",
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [collectGithubReleaseAssetsScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const assetManifest = JSON.parse(
+      readFileSync(
+        path.join(
+          dir,
+          "artifacts/client-release/github-release-assets/asset-files.json",
+        ),
+        "utf8",
+      ),
+    );
+    assert.deepEqual(assetManifest.assets.map((asset) => asset.name), [
+      "RTNN Admin.dmg",
+    ]);
+    assert.equal(
+      existsSync(
+        path.join(
+          dir,
+          "artifacts/client-release/github-release-assets/RTNN Admin.icns",
+        ),
+      ),
+      false,
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
