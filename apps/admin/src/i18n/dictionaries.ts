@@ -232,6 +232,19 @@ type AccountDictionary = {
   passwordTooShort: string;
   passwordCurrentInvalid: string;
   passwordSaveFailed: string;
+  nativeShellTitle: string;
+  nativeShellDescription: string;
+  nativeRuntime: string;
+  nativeVersion: string;
+  nativeChannel: string;
+  checkUpdate: string;
+  checkingUpdate: string;
+  installUpdate: string;
+  installingUpdate: string;
+  updateAvailable: string;
+  noUpdate: string;
+  updateUnavailable: string;
+  updateInstalled: string;
 };
 
 type StatesDictionary = {
@@ -493,6 +506,19 @@ const zhCN: AdminDictionary = {
     passwordTooShort: "新密码长度至少为 8 位。",
     passwordCurrentInvalid: "当前密码不正确，请重新输入。",
     passwordSaveFailed: "密码更新失败，请确认当前密码后重试。",
+    nativeShellTitle: "桌面客户端",
+    nativeShellDescription: "检查并安装当前桌面壳更新。",
+    nativeRuntime: "平台",
+    nativeVersion: "壳版本",
+    nativeChannel: "环境",
+    checkUpdate: "检查更新",
+    checkingUpdate: "检查中...",
+    installUpdate: "安装更新",
+    installingUpdate: "安装中...",
+    updateAvailable: "有可用更新",
+    noUpdate: "已是最新版本",
+    updateUnavailable: "更新检查不可用",
+    updateInstalled: "更新已安装，重启后生效。",
   },
   states: {
     loadingAdminShell: "正在加载管理端壳子...",
@@ -738,6 +764,19 @@ const enUS: AdminDictionary = {
     passwordTooShort: "The new password must be at least 8 characters.",
     passwordCurrentInvalid: "The current password is incorrect.",
     passwordSaveFailed: "Failed to update password. Verify your current password and try again.",
+    nativeShellTitle: "Desktop Client",
+    nativeShellDescription: "Check and install updates for this desktop shell.",
+    nativeRuntime: "Platform",
+    nativeVersion: "Shell version",
+    nativeChannel: "Channel",
+    checkUpdate: "Check update",
+    checkingUpdate: "Checking...",
+    installUpdate: "Install update",
+    installingUpdate: "Installing...",
+    updateAvailable: "Update available",
+    noUpdate: "Up to date",
+    updateUnavailable: "Update check unavailable",
+    updateInstalled: "Update installed. Restart to apply it.",
   },
   states: {
     loadingAdminShell: "Loading admin shell...",

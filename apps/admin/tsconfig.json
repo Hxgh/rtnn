@@ -32,6 +32,9 @@
       "@rtnn/config": [
         "../../packages/config/src/index.ts"
       ],
+      "@rtnn/native-bridge": [
+        "../../packages/native-bridge/src/index.ts"
+      ],
       "@rtnn/shared-schemas": [
         "../../packages/shared-schemas/src/index.ts"
       ],

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ClientDownloadInfo } from "@rtnn/shared-types";
+import { NativeDownloadButton } from "@/components/download/native-download-button";
 import { PageSection, PageShell, PageTitle } from "@/components/site/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
@@ -140,12 +140,11 @@ export default async function DownloadPage({
                     </div>
                   </dl>
                   {available ? (
-                    <Link
-                      className={buttonVariants({ className: "w-full" })}
-                      href={info.downloadUrl ?? "#"}
-                    >
-                      {messages.download.download}
-                    </Link>
+                    <NativeDownloadButton
+                      failedLabel={messages.download.openFailed}
+                      label={messages.download.download}
+                      url={info.downloadUrl ?? "#"}
+                    />
                   ) : (
                     <span
                       aria-disabled="true"

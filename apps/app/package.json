@@ -17,6 +17,7 @@
   "dependencies": {
     "@rtnn/api-sdk": "workspace:*",
     "@rtnn/config": "workspace:*",
+    "@rtnn/native-bridge": "workspace:*",
     "@rtnn/shared-types": "workspace:*",
     "next": "16.1.6",
     "react": "19.2.3",

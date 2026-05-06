@@ -62,6 +62,7 @@ fn build_map_url(
     let lat_value = lat.unwrap_or_default();
     let lng_value = lng.unwrap_or_default();
     let name_value = name.unwrap_or("destination");
+    let encoded_name = name_value.replace(' ', "%20");
 
     if scheme {
         return match app_type {
@@ -74,12 +75,12 @@ fn build_map_url(
                 if has_coords {
                     Ok(format!(
                         "{}://navi?sourceApplication=rtnn&lat={}&lon={}&poiname={}&dev=0&style=2",
-                        prefix, lat_value, lng_value, name_value,
+                        prefix, lat_value, lng_value, encoded_name,
                     ))
                 } else {
                     Ok(format!(
                         "{}://route/plan?sourceApplication=rtnn&dname={}&dev=0&t=0",
-                        prefix, name_value,
+                        prefix, encoded_name,
                     ))
                 }
             }
@@ -87,12 +88,12 @@ fn build_map_url(
                 if has_coords {
                     Ok(format!(
                         "baidumap://map/direction?destination=latlng:{},{}|name:{}&coord_type=gcj02&mode=driving",
-                        lat_value, lng_value, name_value,
+                        lat_value, lng_value, encoded_name,
                     ))
                 } else {
                     Ok(format!(
                         "baidumap://map/direction?destination={}&mode=driving",
-                        name_value,
+                        encoded_name,
                     ))
                 }
             }
@@ -100,12 +101,12 @@ fn build_map_url(
                 if has_coords {
                     Ok(format!(
                         "qqmap://map/routeplan?type=drive&tocoord={},{}&to={}",
-                        lat_value, lng_value, name_value,
+                        lat_value, lng_value, encoded_name,
                     ))
                 } else {
                     Ok(format!(
                         "qqmap://map/routeplan?type=drive&to={}",
-                        name_value,
+                        encoded_name,
                     ))
                 }
             }
@@ -116,12 +117,12 @@ fn build_map_url(
     if has_coords {
         Ok(format!(
             "https://uri.amap.com/navigation?to={},{},{}&mode=car",
-            lng_value, lat_value, name_value,
+            lng_value, lat_value, encoded_name,
         ))
     } else {
         Ok(format!(
             "https://uri.amap.com/navigation?to={}&mode=car",
-            name_value,
+            encoded_name,
         ))
     }
 }
@@ -141,7 +142,13 @@ fn get_client_info() -> NativeClientInfo {
 }
 
 #[tauri::command]
-fn open_external(app: tauri::AppHandle, url: String) -> Result<CommandResult, String> {
+fn open_external(
+    app: tauri::AppHandle,
+    url: String,
+    target: Option<String>,
+) -> Result<CommandResult, String> {
+    let _ = target;
+
     app.opener()
         .open_url(&url, None::<&str>)
         .map_err(|error| error.to_string())?;
@@ -160,7 +167,9 @@ fn open_map_navigation(
     lng: Option<f64>,
     name: Option<String>,
     app_type: Option<String>,
+    direct_nav: Option<bool>,
 ) -> Result<CommandResult, String> {
+    let _ = direct_nav;
     let app_type = app_type.unwrap_or_else(|| "amap".to_string());
 
     #[cfg(any(target_os = "android", target_os = "ios"))]

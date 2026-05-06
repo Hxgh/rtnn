@@ -72,6 +72,7 @@ function main() {
   run("node", ["--check", "scripts/release/sync-live-state.mjs"], "校验 liveState 同步脚本语法");
   run("node", ["--check", "scripts/release/detect-live-state-only-change.mjs"], "校验 liveState-only 变更检测脚本语法");
   run("node", ["--test", "tests/project-profile.test.mjs"], "运行 project profile 测试");
+  run("pnpm", ["run", "check:native-bridge"], "运行 native bridge 测试");
   run("node", ["--test", "tests/client-release-context.test.mjs"], "运行 client release context 测试");
   run("node", ["--test", "tests/client-release-state.test.mjs"], "运行 client release state 测试");
   run("node", ["--test", "tests/client-release-github-prereqs.test.mjs"], "运行 client release GitHub 前置条件测试");

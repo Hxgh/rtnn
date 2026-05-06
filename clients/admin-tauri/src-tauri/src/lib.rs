@@ -79,18 +79,19 @@ fn build_web_map_url(
     }
 
     let name_value = name.unwrap_or("destination");
+    let encoded_name = name_value.replace(' ', "%20");
 
     if has_coords {
         Ok(format!(
             "https://uri.amap.com/navigation?to={},{},{}&mode=car",
             lng.unwrap_or_default(),
             lat.unwrap_or_default(),
-            name_value,
+            encoded_name,
         ))
     } else {
         Ok(format!(
             "https://uri.amap.com/navigation?to={}&mode=car",
-            name_value,
+            encoded_name,
         ))
     }
 }
@@ -110,7 +111,13 @@ fn get_client_info() -> NativeClientInfo {
 }
 
 #[tauri::command]
-fn open_external(app: tauri::AppHandle, url: String) -> Result<CommandResult, String> {
+fn open_external(
+    app: tauri::AppHandle,
+    url: String,
+    target: Option<String>,
+) -> Result<CommandResult, String> {
+    let _ = target;
+
     app.opener()
         .open_url(&url, None::<&str>)
         .map_err(|error| error.to_string())?;
@@ -128,7 +135,11 @@ fn open_map_navigation(
     lat: Option<f64>,
     lng: Option<f64>,
     name: Option<String>,
+    app_type: Option<String>,
+    direct_nav: Option<bool>,
 ) -> Result<CommandResult, String> {
+    let _ = (app_type, direct_nav);
+
     let url = build_web_map_url(lat, lng, name.as_deref())?;
 
     app.opener()

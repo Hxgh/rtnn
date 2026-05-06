@@ -12,6 +12,9 @@ const CLIENTS = {
     permissions: ["core:default", "opener:default", "updater:default"],
     requiredCargoDependencies: ["serde_json", "tauri-plugin-opener", "tauri-plugin-updater"],
     requiredSourceSnippets: [
+      "get_client_info",
+      "open_external",
+      "open_map_navigation",
       "tauri_plugin_updater::UpdaterExt",
       "check_update",
       "install_update",
@@ -26,7 +29,12 @@ const CLIENTS = {
     capability: "mobile.json",
     permissions: ["core:default", "opener:default"],
     requiredCargoDependencies: ["serde_json", "tauri-plugin-opener"],
-    requiredSourceSnippets: [],
+    requiredSourceSnippets: [
+      "get_client_info",
+      "open_external",
+      "open_map_navigation",
+      "opened-native-map",
+    ],
   },
 };
 

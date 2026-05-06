@@ -1,6 +1,7 @@
 import { Button } from "@/src/components/ui/button";
 import { ChangePasswordDialog } from "@/src/components/admin/change-password-dialog";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { NativeUpdatePanel } from "@/src/components/admin/native-update-panel";
 import { Badge } from "@/src/components/ui/badge";
 import { getAdminI18n } from "@/src/i18n/server";
 import { requireUserSession } from "@/src/lib/session";
@@ -55,6 +56,8 @@ export default async function AccountPage() {
             trigger={<Button variant="outline">{dictionary.account.changePassword}</Button>}
           />
         </section>
+
+        <NativeUpdatePanel dictionary={dictionary.account} />
       </DataPanel>
     </PageFrame>
   );

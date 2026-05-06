@@ -76,6 +76,31 @@ export type TauriInvoke = <TResult = unknown>(
   args?: Record<string, unknown>,
 ) => Promise<TResult>;
 
+type BrowserOpen = (url?: string, target?: string, features?: string) => unknown;
+
+type TauriGlobalScope = {
+  navigator?: {
+    userAgent?: string;
+  };
+  open?: BrowserOpen;
+  __TAURI__?: {
+    core?: {
+      invoke?: TauriInvoke;
+    };
+    invoke?: TauriInvoke;
+  };
+  __TAURI_INTERNALS__?: {
+    invoke?: TauriInvoke;
+  };
+};
+
+export type CreateBrowserNativeBridgeOptions = Partial<
+  Pick<NativeClientInfo, "channel" | "sourceSha">
+> & {
+  open?: BrowserOpen;
+  userAgent?: string;
+};
+
 export type CreateTauriNativeBridgeOptions = {
   invoke: TauriInvoke;
   shell: NativeShell;
@@ -90,12 +115,43 @@ export type CreateTauriNativeBridgeOptions = {
   installUpdateCommand?: string;
 };
 
-function detectBrowserPlatform(): NativePlatform {
-  if (typeof navigator === "undefined") {
+export type CreateDetectedTauriNativeBridgeOptions = {
+  invoke: TauriInvoke;
+  fallback?: NativeBridge;
+  getClientInfoCommand?: string;
+  openExternalCommand?: string;
+  mapNavigationCommand?: string;
+  checkUpdateCommand?: string;
+  installUpdateCommand?: string;
+};
+
+export type CreateNativeBridgeOptions = CreateBrowserNativeBridgeOptions & {
+  globalScope?: TauriGlobalScope;
+  invoke?: TauriInvoke;
+  fallback?: NativeBridge;
+  getClientInfoCommand?: string;
+  openExternalCommand?: string;
+  mapNavigationCommand?: string;
+  checkUpdateCommand?: string;
+  installUpdateCommand?: string;
+};
+
+function getDefaultGlobalScope(): TauriGlobalScope | undefined {
+  return typeof globalThis === "undefined"
+    ? undefined
+    : (globalThis as TauriGlobalScope);
+}
+
+function detectBrowserPlatform(userAgentInput?: string): NativePlatform {
+  const userAgent = (
+    userAgentInput ??
+    getDefaultGlobalScope()?.navigator?.userAgent ??
+    ""
+  ).toLowerCase();
+
+  if (!userAgent) {
     return "web";
   }
-
-  const userAgent = navigator.userAgent.toLowerCase();
 
   if (userAgent.includes("android")) {
     return "android";
@@ -116,12 +172,14 @@ function detectBrowserPlatform(): NativePlatform {
   return "web";
 }
 
-function openBrowserUrl(url: string, target: "_blank" | "_self" = "_blank") {
-  const opener = (
-    globalThis as typeof globalThis & {
-      open?: (url?: string, target?: string, features?: string) => unknown;
-    }
-  ).open;
+function openBrowserUrl(
+  url: string,
+  target: "_blank" | "_self" = "_blank",
+  opener = getDefaultGlobalScope()?.open,
+) {
+  if (!isHttpUrl(url)) {
+    return false;
+  }
 
   if (typeof opener !== "function") {
     return false;
@@ -129,6 +187,15 @@ function openBrowserUrl(url: string, target: "_blank" | "_self" = "_blank") {
 
   opener(url, target, "noopener,noreferrer");
   return true;
+}
+
+function isHttpUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 export function buildWebMapNavigationUrl(input: MapNavigationInput) {
@@ -150,14 +217,14 @@ export function buildWebMapNavigationUrl(input: MapNavigationInput) {
 }
 
 export function createBrowserNativeBridge(
-  options: Partial<Pick<NativeClientInfo, "channel" | "sourceSha">> = {},
+  options: CreateBrowserNativeBridgeOptions = {},
 ): NativeBridge {
   return {
     async getClientInfo() {
       return {
         runtime: "browser",
         shell: null,
-        platform: detectBrowserPlatform(),
+        platform: detectBrowserPlatform(options.userAgent),
         appVersion: null,
         bridgeVersion: NATIVE_BRIDGE_VERSION,
         channel: options.channel ?? "dev",
@@ -167,7 +234,7 @@ export function createBrowserNativeBridge(
     },
 
     async openExternal(input) {
-      const opened = openBrowserUrl(input.url, input.target);
+      const opened = openBrowserUrl(input.url, input.target, options.open);
       return opened
         ? { ok: true }
         : { ok: false, reason: "browser-open-unavailable" };
@@ -180,7 +247,7 @@ export function createBrowserNativeBridge(
         return { ok: false, reason: "missing-map-target" };
       }
 
-      const opened = openBrowserUrl(url);
+      const opened = openBrowserUrl(url, "_blank", options.open);
       return opened
         ? { ok: true, message: "已打开网页版地图" }
         : { ok: false, reason: "browser-open-unavailable" };
@@ -201,6 +268,166 @@ export function createBrowserNativeBridge(
         ok: false,
         reason: "updater-unavailable",
       };
+    },
+  };
+}
+
+export function getTauriInvoke(
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): TauriInvoke | null {
+  const candidates = [
+    globalScope?.__TAURI__?.core?.invoke,
+    globalScope?.__TAURI__?.invoke,
+    globalScope?.__TAURI_INTERNALS__?.invoke,
+  ];
+  const invoke = candidates.find((candidate) => typeof candidate === "function");
+
+  return invoke ?? null;
+}
+
+export function hasNativeFeature(
+  info: Pick<NativeClientInfo, "features"> | null | undefined,
+  feature: NativeFeature,
+) {
+  return Boolean(info?.features?.includes(feature));
+}
+
+function normalizeErrorReason(error: unknown) {
+  if (error instanceof Error) {
+    return error.message || "native-command-failed";
+  }
+
+  return String(error || "native-command-failed");
+}
+
+function normalizeActionResult(
+  result: NativeBridgeActionResult | null | undefined,
+): NativeBridgeActionResult {
+  if (result && typeof result.ok === "boolean") {
+    return result;
+  }
+
+  return { ok: true };
+}
+
+function normalizeClientInfo(
+  value: NativeClientInfo | null | undefined,
+): NativeClientInfo | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  if (value.runtime !== "tauri") {
+    return null;
+  }
+
+  if (value.shell !== "admin-desktop" && value.shell !== "app-mobile") {
+    return null;
+  }
+
+  return {
+    runtime: "tauri",
+    shell: value.shell,
+    platform: value.platform ?? "web",
+    appVersion: value.appVersion ?? null,
+    bridgeVersion: value.bridgeVersion ?? NATIVE_BRIDGE_VERSION,
+    channel: value.channel ?? "dev",
+    sourceSha: value.sourceSha,
+    features: Array.isArray(value.features) ? value.features : [],
+  };
+}
+
+export function createDetectedTauriNativeBridge(
+  options: CreateDetectedTauriNativeBridgeOptions,
+): NativeBridge {
+  const fallback = options.fallback ?? createBrowserNativeBridge();
+
+  return {
+    async getClientInfo() {
+      try {
+        const result = await options.invoke<NativeClientInfo>(
+          options.getClientInfoCommand ?? "get_client_info",
+        );
+        return normalizeClientInfo(result) ?? fallback.getClientInfo();
+      } catch {
+        return fallback.getClientInfo();
+      }
+    },
+
+    async openExternal(input) {
+      try {
+        return normalizeActionResult(
+          await options.invoke<NativeBridgeActionResult>(
+            options.openExternalCommand ?? "open_external",
+            {
+              url: input.url,
+              target: input.target ?? "_blank",
+            },
+          ),
+        );
+      } catch {
+        return fallback.openExternal(input);
+      }
+    },
+
+    async openMapNavigation(input) {
+      try {
+        return normalizeActionResult(
+          await options.invoke<NativeBridgeActionResult>(
+            options.mapNavigationCommand ?? "open_map_navigation",
+            {
+              lat: input.lat ?? null,
+              lng: input.lng ?? null,
+              name: input.name ?? null,
+              appType: input.appType ?? "amap",
+              directNav:
+                input.directNav ??
+                (typeof input.lat === "number" && typeof input.lng === "number"),
+            },
+          ),
+        );
+      } catch (error) {
+        const fallbackResult = await fallback.openMapNavigation(input);
+
+        if (fallbackResult.ok) {
+          return fallbackResult;
+        }
+
+        return { ok: false, reason: normalizeErrorReason(error) };
+      }
+    },
+
+    async checkUpdate() {
+      try {
+        const result = await options.invoke<NativeUpdateCheckResult>(
+          options.checkUpdateCommand ?? "check_update",
+        );
+
+        return result ?? { ok: false, reason: "updater-unavailable" };
+      } catch (error) {
+        return {
+          ok: false,
+          reason: normalizeErrorReason(error),
+          update: {
+            available: false,
+          },
+        };
+      }
+    },
+
+    async installUpdate() {
+      try {
+        return normalizeActionResult(
+          await options.invoke<NativeBridgeActionResult>(
+            options.installUpdateCommand ?? "install_update",
+          ),
+        );
+      } catch (error) {
+        return {
+          ok: false,
+          reason: normalizeErrorReason(error),
+        };
+      }
     },
   };
 }
@@ -269,6 +496,34 @@ export function createTauriNativeBridge(
       return result ?? { ok: true };
     },
   };
+}
+
+export function createNativeBridge(
+  options: CreateNativeBridgeOptions = {},
+): NativeBridge {
+  const fallback =
+    options.fallback ??
+    createBrowserNativeBridge({
+      channel: options.channel,
+      sourceSha: options.sourceSha,
+      open: options.open,
+      userAgent: options.userAgent,
+    });
+  const invoke = options.invoke ?? getTauriInvoke(options.globalScope);
+
+  if (!invoke) {
+    return fallback;
+  }
+
+  return createDetectedTauriNativeBridge({
+    invoke,
+    fallback,
+    getClientInfoCommand: options.getClientInfoCommand,
+    openExternalCommand: options.openExternalCommand,
+    mapNavigationCommand: options.mapNavigationCommand,
+    checkUpdateCommand: options.checkUpdateCommand,
+    installUpdateCommand: options.installUpdateCommand,
+  });
 }
 
 export const browserNativeBridge = createBrowserNativeBridge();

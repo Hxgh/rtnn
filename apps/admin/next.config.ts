@@ -6,7 +6,12 @@ const workspaceRoot = path.resolve(process.cwd(), "../..");
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: workspaceRoot,
-  transpilePackages: ["@rtnn/api-sdk", "@rtnn/config", "@rtnn/shared-types"],
+  transpilePackages: [
+    "@rtnn/api-sdk",
+    "@rtnn/config",
+    "@rtnn/native-bridge",
+    "@rtnn/shared-types",
+  ],
   turbopack: {
     root: workspaceRoot,
   },

@@ -69,6 +69,7 @@ export type AppMessages = {
     sha256: string;
     unavailable: string;
     download: string;
+    openFailed: string;
   };
   login: {
     title: string;
@@ -184,6 +185,7 @@ const zhCN: AppMessages = {
     sha256: "SHA256",
     unavailable: "暂无可下载客户端",
     download: "下载",
+    openFailed: "无法打开下载地址，请稍后重试。",
   },
   login: {
     title: "登录",
@@ -299,6 +301,7 @@ const enUS: AppMessages = {
     sha256: "SHA256",
     unavailable: "No client downloads are available.",
     download: "Download",
+    openFailed: "Unable to open the download URL. Please try again later.",
   },
   login: {
     title: "Sign in",
