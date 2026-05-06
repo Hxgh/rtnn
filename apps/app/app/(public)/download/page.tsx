@@ -13,6 +13,8 @@ const targetLabels: Record<string, string> = {
   windows: "Windows",
 };
 
+export const dynamic = "force-dynamic";
+
 type DownloadPageSearchParams = Promise<{ channel?: string }>;
 
 function resolveDefaultChannel() {
