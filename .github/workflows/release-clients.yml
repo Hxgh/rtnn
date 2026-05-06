@@ -413,6 +413,7 @@ jobs:
           CLIENT_TARGET: ${{ matrix.target }}
           CLIENT_SHELL: ${{ matrix.shell }}
           CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_SHELL_VERSION: ${{ matrix.shell_version }}
           CLIENT_CHANNEL: ${{ matrix.channel }}
           CLIENT_RELEASE_TAG: ${{ needs.resolve-client-release-context.outputs.release_tag }}
           CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}

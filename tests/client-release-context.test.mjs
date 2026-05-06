@@ -1338,6 +1338,78 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
   }
 });
 
+test("write-tauri-updater-manifest uses shell semver for channel release versions", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-updater-channel-version-"));
+  try {
+    const bundleOutput = path.join(
+      dir,
+      "artifacts/client-release/admin-desktop-macos-testing-a1b2c3d/bundle",
+    );
+    mkdirSync(path.join(bundleOutput, "macos"), { recursive: true });
+    writeFileSync(
+      path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz"),
+      "bundle",
+    );
+    writeFileSync(
+      path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz.sig"),
+      "signed",
+    );
+    writeFileSync(
+      path.join(bundleOutput, "artifact-files.json"),
+      `${JSON.stringify(
+        {
+          files: [
+            { path: "macos/RTNN Admin.app.tar.gz", size: 6 },
+            { path: "macos/RTNN Admin.app.tar.gz.sig", size: 6 },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const result = spawnSync(process.execPath, [updaterManifestScriptPath], {
+      cwd: dir,
+      encoding: "utf8",
+      env: childProcessEnv({
+        CLIENT_NAME: "adminDesktop",
+        CLIENT_TARGET: "macos",
+        CLIENT_SHELL: "admin-desktop",
+        CLIENT_RELEASE_VERSION: "testing-a1b2c3d",
+        CLIENT_SHELL_VERSION: "0.1.0",
+        CLIENT_CHANNEL: "testing",
+        CLIENT_RELEASE_TAG: "testing-a1b2c3d",
+        CLIENT_ARTIFACT_NAME: "admin-desktop-macos-testing-a1b2c3d",
+        CLIENT_UPDATER_PLATFORM: "darwin-aarch64",
+        CLIENT_DISTRIBUTION_PUBLIC_BASE_URL: "https://downloads.example.com",
+        GITHUB_REPOSITORY: "acme/business-source",
+      }),
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const fragment = JSON.parse(
+      readFileSync(
+        path.join(
+          dir,
+          "artifacts/client-release/updater-fragments/admin-desktop-macos-testing-a1b2c3d.json",
+        ),
+        "utf8",
+      ),
+    );
+
+    assert.equal(fragment.releaseVersion, "testing-a1b2c3d");
+    assert.equal(fragment.latest.version, "0.1.0");
+    assert.deepEqual(fragment.latest.platforms, {
+      "darwin-aarch64": {
+        signature: "signed",
+        url: "https://downloads.example.com/releases/testing/admin-desktop/macos/testing-a1b2c3d/RTNN%20Admin.app.tar.gz",
+      },
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("write-tauri-updater-manifest can point update assets at self-hosted distribution", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-updater-fragment-self-hosted-"));
   try {

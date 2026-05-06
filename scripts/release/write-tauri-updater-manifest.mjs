@@ -156,6 +156,10 @@ function main() {
   const target = requireEnv("CLIENT_TARGET");
   const shell = requireEnv("CLIENT_SHELL");
   const releaseVersion = requireEnv("CLIENT_RELEASE_VERSION");
+  const updaterVersion = normalizeString(
+    process.env.CLIENT_UPDATER_VERSION,
+    normalizeString(process.env.CLIENT_SHELL_VERSION, releaseVersion),
+  );
   const channel = requireEnv("CLIENT_CHANNEL");
   const releaseTag = normalizeString(process.env.CLIENT_RELEASE_TAG, releaseVersion);
   const outputRoot = normalizeString(
@@ -171,8 +175,9 @@ function main() {
     new Date().toISOString();
   const notes = normalizeString(process.env.CLIENT_UPDATER_NOTES);
 
-  if (!isSemver(releaseVersion)) {
-    writeSkip(outputRoot, artifactName, "invalid-version", {
+  if (!isSemver(updaterVersion)) {
+    writeSkip(outputRoot, artifactName, "invalid-updater-version", {
+      updaterVersion,
       releaseVersion,
     });
     return;
@@ -210,8 +215,9 @@ function main() {
     channel,
     artifactName,
     releaseTag,
+    releaseVersion,
     latest: {
-      version: releaseVersion,
+      version: updaterVersion,
       notes,
       pub_date: pubDate,
       platforms: {
