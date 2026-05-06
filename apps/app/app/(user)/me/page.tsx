@@ -1,5 +1,6 @@
 import { LocaleSwitcher } from "@/components/preferences/locale-switcher";
 import { ThemeToggle } from "@/components/preferences/theme-toggle";
+import { NativeUpdatePanel } from "@/components/account/native-update-panel";
 import { ActionRowLink, DetailRow } from "@/components/site/action-row";
 import { PageSection, PageShell, PageTitle } from "@/components/site/page-shell";
 import { buttonVariants } from "@/components/ui/button";
@@ -83,6 +84,8 @@ export default async function MePage() {
           </div>
         </SurfaceCard>
       </PageSection>
+
+      <NativeUpdatePanel messages={messages.nativeUpdate} />
 
       <PageSection>
         <SurfaceCard className="px-4 py-4">

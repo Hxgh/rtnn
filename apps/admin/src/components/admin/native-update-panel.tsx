@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createNativeBridge,
   hasNativeFeature,
+  resolveNativeClientUpdateQuery,
   type NativeClientInfo,
-  type NativeUpdateCheckResult,
 } from "@rtnn/native-bridge";
+import type { ClientUpdateCheckInfo } from "@rtnn/shared-types";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 
@@ -20,11 +21,51 @@ type NativeUpdatePanelDictionary = {
   checkingUpdate: string;
   installUpdate: string;
   installingUpdate: string;
+  openUpdate: string;
+  openingUpdate: string;
   updateAvailable: string;
   noUpdate: string;
   updateUnavailable: string;
   updateInstalled: string;
+  updateOpened: string;
 };
+
+type CompletionState = "installed" | "opened" | null;
+
+function buildUpdateCheckUrl(info: NativeClientInfo) {
+  const query = resolveNativeClientUpdateQuery(info);
+
+  if (!query) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    client: query.client,
+    target: query.target,
+    channel: query.channel,
+  });
+
+  if (query.currentVersion) {
+    params.set("currentVersion", query.currentVersion);
+  }
+
+  return `/api/client-updates/check?${params.toString()}`;
+}
+
+async function checkClientUpdate(info: NativeClientInfo) {
+  const url = buildUpdateCheckUrl(info);
+
+  if (!url) {
+    return null;
+  }
+
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("client-update-check-failed");
+  }
+
+  return (await response.json()) as ClientUpdateCheckInfo;
+}
 
 export function NativeUpdatePanel({
   dictionary,
@@ -33,10 +74,11 @@ export function NativeUpdatePanel({
 }) {
   const bridge = useMemo(() => createNativeBridge(), []);
   const [clientInfo, setClientInfo] = useState<NativeClientInfo | null>(null);
-  const [checkResult, setCheckResult] = useState<NativeUpdateCheckResult | null>(null);
+  const [checkResult, setCheckResult] = useState<ClientUpdateCheckInfo | null>(null);
+  const [checkFailed, setCheckFailed] = useState(false);
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
-  const [installed, setInstalled] = useState(false);
+  const [completed, setCompleted] = useState<CompletionState>(null);
 
   useEffect(() => {
     let active = true;
@@ -59,25 +101,49 @@ export function NativeUpdatePanel({
     };
   }, [bridge]);
 
-  if (!clientInfo || !hasNativeFeature(clientInfo, "updater")) {
+  if (!clientInfo || clientInfo.shell !== "admin-desktop") {
     return null;
   }
 
-  const updateAvailable = Boolean(checkResult?.update?.available);
-  const statusText = checkResult
+  const canUseNativeUpdater = hasNativeFeature(clientInfo, "updater");
+  const updateAvailable = Boolean(checkResult?.updateAvailable);
+  const canOpenInstaller = Boolean(checkResult?.downloadUrl);
+  const canRunUpdateAction = updateAvailable && (canUseNativeUpdater || canOpenInstaller);
+  const statusText = checkFailed
+    ? dictionary.updateUnavailable
+    : checkResult
     ? updateAvailable
       ? dictionary.updateAvailable
-      : checkResult.ok
-        ? dictionary.noUpdate
-        : dictionary.updateUnavailable
+      : dictionary.noUpdate
     : null;
+  const actionLabel = canUseNativeUpdater
+    ? installing
+      ? dictionary.installingUpdate
+      : dictionary.installUpdate
+    : installing
+      ? dictionary.openingUpdate
+      : dictionary.openUpdate;
+  const completedMessage =
+    completed === "installed"
+      ? dictionary.updateInstalled
+      : completed === "opened"
+        ? dictionary.updateOpened
+        : null;
 
   async function handleCheckUpdate() {
+    if (!clientInfo) {
+      return;
+    }
+
     setChecking(true);
-    setInstalled(false);
+    setCompleted(null);
+    setCheckFailed(false);
 
     try {
-      setCheckResult(await bridge.checkUpdate());
+      setCheckResult(await checkClientUpdate(clientInfo));
+    } catch {
+      setCheckResult(null);
+      setCheckFailed(true);
     } finally {
       setChecking(false);
     }
@@ -85,10 +151,21 @@ export function NativeUpdatePanel({
 
   async function handleInstallUpdate() {
     setInstalling(true);
+    setCompleted(null);
 
     try {
-      const result = await bridge.installUpdate();
-      setInstalled(result.ok);
+      if (canUseNativeUpdater) {
+        const result = await bridge.installUpdate();
+        if (result.ok) {
+          setCompleted("installed");
+          return;
+        }
+      }
+
+      if (checkResult?.downloadUrl) {
+        const result = await bridge.openExternal({ url: checkResult.downloadUrl });
+        setCompleted(result.ok ? "opened" : null);
+      }
     } finally {
       setInstalling(false);
     }
@@ -122,22 +199,22 @@ export function NativeUpdatePanel({
         {statusText ? (
           <Badge variant={updateAvailable ? "default" : "outline"}>{statusText}</Badge>
         ) : null}
-        {checkResult?.update?.version ? (
+        {updateAvailable && checkResult?.version ? (
           <p className="text-xs text-muted-foreground">
-            {checkResult.update.currentVersion ?? "-"} -&gt; {checkResult.update.version}
+            {clientInfo.appVersion ?? "-"} -&gt; {checkResult.shellVersion ?? checkResult.version}
           </p>
         ) : null}
-        {installed ? (
-          <p className="text-sm text-muted-foreground">{dictionary.updateInstalled}</p>
+        {completedMessage ? (
+          <p className="text-sm text-muted-foreground">{completedMessage}</p>
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col gap-2 md:w-40">
         <Button onClick={handleCheckUpdate} disabled={checking || installing} variant="outline">
           {checking ? dictionary.checkingUpdate : dictionary.checkUpdate}
         </Button>
-        {updateAvailable ? (
+        {canRunUpdateAction ? (
           <Button onClick={handleInstallUpdate} disabled={checking || installing}>
-            {installing ? dictionary.installingUpdate : dictionary.installUpdate}
+            {actionLabel}
           </Button>
         ) : null}
       </div>

@@ -7,6 +7,7 @@ import {
   createNativeBridge,
   getTauriInvoke,
   hasNativeFeature,
+  resolveNativeClientUpdateQuery,
 } from "../packages/native-bridge/dist/index.js";
 
 test("browser bridge reports browser client info and opens only http URLs", async () => {
@@ -150,4 +151,55 @@ test("createNativeBridge uses detected Tauri invoke when available", async () =>
   });
 
   assert.equal((await bridge.getClientInfo()).shell, "app-mobile");
+});
+
+test("native bridge resolves backend update query from Tauri client info", () => {
+  assert.deepEqual(
+    resolveNativeClientUpdateQuery({
+      runtime: "tauri",
+      shell: "admin-desktop",
+      platform: "macos",
+      appVersion: "0.2.0",
+      bridgeVersion: "0.1.0",
+      channel: "testing",
+      features: ["external.open", "updater"],
+    }),
+    {
+      client: "adminDesktop",
+      target: "macos",
+      channel: "testing",
+      currentVersion: "0.2.0",
+    },
+  );
+
+  assert.deepEqual(
+    resolveNativeClientUpdateQuery({
+      runtime: "tauri",
+      shell: "app-mobile",
+      platform: "android",
+      appVersion: "0.3.0",
+      bridgeVersion: "0.1.0",
+      channel: "production",
+      features: ["external.open", "map.navigation"],
+    }),
+    {
+      client: "appMobile",
+      target: "android",
+      channel: "production",
+      currentVersion: "0.3.0",
+    },
+  );
+
+  assert.equal(
+    resolveNativeClientUpdateQuery({
+      runtime: "browser",
+      shell: null,
+      platform: "android",
+      appVersion: null,
+      bridgeVersion: "0.1.0",
+      channel: "testing",
+      features: [],
+    }),
+    null,
+  );
 });

@@ -89,6 +89,21 @@ export type AppMessages = {
     accountOverview: string;
     preferencesTitle: string;
   };
+  nativeUpdate: {
+    title: string;
+    description: string;
+    platform: string;
+    version: string;
+    channel: string;
+    checkUpdate: string;
+    checkingUpdate: string;
+    openUpdate: string;
+    openingUpdate: string;
+    updateAvailable: string;
+    noUpdate: string;
+    updateUnavailable: string;
+    updateOpened: string;
+  };
   security: {
     title: string;
     description: string;
@@ -205,6 +220,21 @@ const zhCN: AppMessages = {
     accountOverview: "账户概览",
     preferencesTitle: "应用偏好",
   },
+  nativeUpdate: {
+    title: "移动客户端",
+    description: "检查当前安装包是否需要更新。",
+    platform: "平台",
+    version: "壳版本",
+    channel: "环境",
+    checkUpdate: "检查更新",
+    checkingUpdate: "检查中...",
+    openUpdate: "打开更新",
+    openingUpdate: "打开中...",
+    updateAvailable: "有可用更新",
+    noUpdate: "已是最新版本",
+    updateUnavailable: "更新检查不可用",
+    updateOpened: "更新地址已打开，请按系统提示继续。",
+  },
   security: {
     title: "账户安全",
     description: "修改登录密码，并在成功后刷新当前设备会话。",
@@ -320,6 +350,21 @@ const enUS: AppMessages = {
     signOut: "Sign out",
     accountOverview: "Account overview",
     preferencesTitle: "App preferences",
+  },
+  nativeUpdate: {
+    title: "Mobile Client",
+    description: "Check whether the installed client package needs an update.",
+    platform: "Platform",
+    version: "Shell version",
+    channel: "Channel",
+    checkUpdate: "Check update",
+    checkingUpdate: "Checking...",
+    openUpdate: "Open update",
+    openingUpdate: "Opening...",
+    updateAvailable: "Update available",
+    noUpdate: "Up to date",
+    updateUnavailable: "Update check unavailable",
+    updateOpened: "Update link opened. Follow the system prompts to continue.",
   },
   security: {
     title: "Account Security",

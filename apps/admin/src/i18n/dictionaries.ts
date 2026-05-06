@@ -241,10 +241,13 @@ type AccountDictionary = {
   checkingUpdate: string;
   installUpdate: string;
   installingUpdate: string;
+  openUpdate: string;
+  openingUpdate: string;
   updateAvailable: string;
   noUpdate: string;
   updateUnavailable: string;
   updateInstalled: string;
+  updateOpened: string;
 };
 
 type StatesDictionary = {
@@ -515,10 +518,13 @@ const zhCN: AdminDictionary = {
     checkingUpdate: "检查中...",
     installUpdate: "安装更新",
     installingUpdate: "安装中...",
+    openUpdate: "打开安装包",
+    openingUpdate: "打开中...",
     updateAvailable: "有可用更新",
     noUpdate: "已是最新版本",
     updateUnavailable: "更新检查不可用",
     updateInstalled: "更新已安装，重启后生效。",
+    updateOpened: "安装包已打开，请按系统提示完成安装。",
   },
   states: {
     loadingAdminShell: "正在加载管理端壳子...",
@@ -773,10 +779,13 @@ const enUS: AdminDictionary = {
     checkingUpdate: "Checking...",
     installUpdate: "Install update",
     installingUpdate: "Installing...",
+    openUpdate: "Open installer",
+    openingUpdate: "Opening...",
     updateAvailable: "Update available",
     noUpdate: "Up to date",
     updateUnavailable: "Update check unavailable",
     updateInstalled: "Update installed. Restart to apply it.",
+    updateOpened: "Installer opened. Follow the system prompts to finish.",
   },
   states: {
     loadingAdminShell: "Loading admin shell...",

@@ -9,6 +9,7 @@ import {
   type ClientPackagesListQuery,
   type ClientReleasePolicyUpdateBody,
   type ClientReleasesListQuery,
+  type ClientUpdatesCheckQuery,
   type CustomerGroupsCreateBody,
   type CustomerGroupsUpdateBody,
   type CustomersResetPasswordBody,
@@ -33,6 +34,7 @@ import type {
   ClientPackageListItem,
   ClientReleaseDetail,
   ClientReleaseSummary,
+  ClientUpdateCheckInfo,
   ClientUpdatePolicySummary,
   CustomerDetail,
   CustomerGroupSummary,
@@ -256,6 +258,13 @@ export async function updateClientReleasePolicy(
     policyId,
     payload,
   ) as Promise<ClientUpdatePolicyRecord>;
+}
+
+export async function checkClientUpdate(
+  query: ClientUpdatesCheckQuery,
+): Promise<ClientUpdateCheckInfo> {
+  const client = createClient();
+  return client.clientUpdates.check(query) as Promise<ClientUpdateCheckInfo>;
 }
 
 export async function listCustomers(

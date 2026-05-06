@@ -1,5 +1,10 @@
-import { createApiClient, createFetchTransport } from "@rtnn/api-sdk";
+import {
+  createApiClient,
+  createFetchTransport,
+  type ClientUpdatesCheckQuery,
+} from "@rtnn/api-sdk";
 import { ENV_KEYS, PORTS } from "@rtnn/config";
+import type { ClientUpdateCheckInfo } from "@rtnn/shared-types";
 import { cookies, headers } from "next/headers";
 import {
   type AppLocale,
@@ -78,4 +83,20 @@ export async function listClientDownloads(query?: {
   );
 
   return client.clientDownloads.list(query);
+}
+
+export async function checkClientUpdate(
+  query: ClientUpdatesCheckQuery,
+): Promise<ClientUpdateCheckInfo> {
+  const locale = await getRequestLocale();
+  const client = createApiClient(
+    createFetchTransport({
+      baseUrl: resolveBaseUrl(),
+      getHeaders: () => ({
+        "accept-language": locale,
+      }),
+    }),
+  );
+
+  return client.clientUpdates.check(query) as Promise<ClientUpdateCheckInfo>;
 }

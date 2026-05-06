@@ -27,6 +27,13 @@ export type NativeClientInfo = {
   features: NativeFeature[];
 };
 
+export type NativeClientUpdateQuery = {
+  client: "adminDesktop" | "appMobile";
+  target: Exclude<NativePlatform, "web">;
+  channel: NativeChannel;
+  currentVersion?: string;
+};
+
 export type NativeBridgeActionResult = {
   ok: boolean;
   message?: string;
@@ -290,6 +297,26 @@ export function hasNativeFeature(
   feature: NativeFeature,
 ) {
   return Boolean(info?.features?.includes(feature));
+}
+
+export function resolveNativeClientUpdateQuery(
+  info: NativeClientInfo | null | undefined,
+): NativeClientUpdateQuery | null {
+  if (
+    !info ||
+    info.runtime !== "tauri" ||
+    (info.shell !== "admin-desktop" && info.shell !== "app-mobile") ||
+    info.platform === "web"
+  ) {
+    return null;
+  }
+
+  return {
+    client: info.shell === "admin-desktop" ? "adminDesktop" : "appMobile",
+    target: info.platform,
+    channel: info.channel,
+    currentVersion: info.appVersion ?? undefined,
+  };
 }
 
 function normalizeErrorReason(error: unknown) {
