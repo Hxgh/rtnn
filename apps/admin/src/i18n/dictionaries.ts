@@ -161,6 +161,10 @@ type AuditDictionary = {
 type ClientReleasesDictionary = {
   title: string;
   detailTitle: string;
+  packagesTitle: string;
+  releases: string;
+  viewPackages: string;
+  viewReleases: string;
   releaseVersion: string;
   shellVersion: string;
   channel: string;
@@ -176,6 +180,12 @@ type ClientReleasesDictionary = {
   downloadable: string;
   distribution: string;
   distributionStatus: string;
+  artifact: string;
+  release: string;
+  downloadUrl: string;
+  openDownload: string;
+  releaseStatus: string;
+  releaseSource: string;
   sourceUrl: string;
   distributionUrl: string;
   provider: string;
@@ -398,6 +408,10 @@ const zhCN: AdminDictionary = {
   clientReleases: {
     title: "发布中心",
     detailTitle: "客户端壳版本",
+    packagesTitle: "客户端包管理",
+    releases: "发布记录",
+    viewPackages: "查看平台包",
+    viewReleases: "返回发布记录",
     releaseVersion: "版本",
     shellVersion: "壳版本",
     channel: "环境",
@@ -413,6 +427,12 @@ const zhCN: AdminDictionary = {
     downloadable: "可下载",
     distribution: "自托管分发",
     distributionStatus: "分发状态",
+    artifact: "Artifact",
+    release: "所属发布",
+    downloadUrl: "下载地址",
+    openDownload: "打开下载",
+    releaseStatus: "发布状态",
+    releaseSource: "发布来源",
     sourceUrl: "源包地址",
     distributionUrl: "下载地址",
     provider: "Provider",
@@ -633,6 +653,10 @@ const enUS: AdminDictionary = {
   clientReleases: {
     title: "Release Center",
     detailTitle: "Client shell release",
+    packagesTitle: "Client Packages",
+    releases: "Releases",
+    viewPackages: "View packages",
+    viewReleases: "Back to releases",
     releaseVersion: "Version",
     shellVersion: "Shell version",
     channel: "Channel",
@@ -648,6 +672,12 @@ const enUS: AdminDictionary = {
     downloadable: "Downloadable",
     distribution: "Self-hosted distribution",
     distributionStatus: "Distribution status",
+    artifact: "Artifact",
+    release: "Release",
+    downloadUrl: "Download URL",
+    openDownload: "Open download",
+    releaseStatus: "Release status",
+    releaseSource: "Release source",
     sourceUrl: "Source URL",
     distributionUrl: "Download URL",
     provider: "Provider",

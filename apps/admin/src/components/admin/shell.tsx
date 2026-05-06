@@ -8,7 +8,10 @@ type AdminShellProps = {
   defaultSidebarOpen: boolean;
   user: AuthUser;
   onLogout: (formData: FormData) => Promise<void>;
-  dictionary: Pick<AdminDictionary, "account" | "common" | "footer" | "nav">;
+  dictionary: Pick<
+    AdminDictionary,
+    "account" | "clientReleases" | "common" | "footer" | "nav"
+  >;
   children: React.ReactNode;
 };
 

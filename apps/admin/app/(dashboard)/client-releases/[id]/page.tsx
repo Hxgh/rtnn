@@ -183,79 +183,105 @@ export default async function ClientReleaseDetailPage({
                 className="grid gap-4 px-4 py-4"
                 key={policy.id}
               >
-                <input name="releaseId" type="hidden" value={release.id} />
-                <input name="policyId" type="hidden" value={policy.id} />
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{policy.client}</Badge>
-                  <Badge variant="outline">{policy.target}</Badge>
-                  <Badge variant="outline">{policy.channel}</Badge>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor={`recommended-${policy.id}`}>
-                      {dictionary.clientReleases.recommendedVersion}
-                    </Label>
-                    <select
-                      className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      defaultValue={policy.recommendedReleaseId ?? ""}
-                      disabled={!canManagePolicy}
-                      id={`recommended-${policy.id}`}
-                      name="recommendedReleaseId"
-                    >
-                      <option value="">{policy.recommendedVersion ?? "-"}</option>
-                      <option value={release.id}>{release.releaseVersion}</option>
-                    </select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor={`minimum-${policy.id}`}>
-                      {dictionary.clientReleases.minimumSupportedVersion}
-                    </Label>
-                    <Input
-                      defaultValue={policy.minimumSupportedVersion ?? ""}
-                      disabled={!canManagePolicy}
-                      id={`minimum-${policy.id}`}
-                      name="minimumSupportedVersion"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-3">
-                  {[
-                    ["enabled", dictionary.clientReleases.enabled, policy.enabled],
-                    ["forceUpdate", dictionary.clientReleases.forceUpdate, policy.forceUpdate],
-                    [
-                      "allowGithubFallback",
-                      dictionary.clientReleases.allowGithubFallback,
-                      policy.allowGithubFallback,
-                    ],
-                  ].map(([name, label, checked]) => (
-                    <label className="flex items-center gap-2 text-sm" key={String(name)}>
-                      <input name={String(name)} type="hidden" value="false" />
-                      <input
-                        defaultChecked={Boolean(checked)}
-                        disabled={!canManagePolicy}
-                        name={String(name)}
-                        type="checkbox"
-                        value="true"
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor={`notes-${policy.id}`}>{dictionary.clientReleases.notes}</Label>
-                  <Textarea
-                    defaultValue={policy.notes ?? ""}
-                    disabled={!canManagePolicy}
-                    id={`notes-${policy.id}`}
-                    name="notes"
-                    rows={2}
-                  />
-                </div>
-                {canManagePolicy ? (
-                  <div>
-                    <Button size="sm" type="submit">{dictionary.clientReleases.savePolicy}</Button>
-                  </div>
-                ) : null}
+                {(() => {
+                  const hasCurrentOption = policy.releaseOptions.some(
+                    (option) => option.id === policy.recommendedReleaseId,
+                  );
+                  const releaseOptions =
+                    policy.recommendedReleaseId && !hasCurrentOption
+                      ? [
+                          {
+                            id: policy.recommendedReleaseId,
+                            releaseVersion:
+                              policy.recommendedVersion ??
+                              policy.recommendedReleaseId,
+                          },
+                          ...policy.releaseOptions,
+                        ]
+                      : policy.releaseOptions;
+
+                  return (
+                    <>
+                      <input name="releaseId" type="hidden" value={release.id} />
+                      <input name="policyId" type="hidden" value={policy.id} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{policy.client}</Badge>
+                        <Badge variant="outline">{policy.target}</Badge>
+                        <Badge variant="outline">{policy.channel}</Badge>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-2">
+                          <Label htmlFor={`recommended-${policy.id}`}>
+                            {dictionary.clientReleases.recommendedVersion}
+                          </Label>
+                          <select
+                            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            defaultValue={policy.recommendedReleaseId ?? ""}
+                            disabled={!canManagePolicy}
+                            id={`recommended-${policy.id}`}
+                            name="recommendedReleaseId"
+                          >
+                            <option value="">-</option>
+                            {releaseOptions.map((option) => (
+                              <option key={option.id} value={option.id}>
+                                {option.releaseVersion}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor={`minimum-${policy.id}`}>
+                            {dictionary.clientReleases.minimumSupportedVersion}
+                          </Label>
+                          <Input
+                            defaultValue={policy.minimumSupportedVersion ?? ""}
+                            disabled={!canManagePolicy}
+                            id={`minimum-${policy.id}`}
+                            name="minimumSupportedVersion"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-3">
+                        {[
+                          ["enabled", dictionary.clientReleases.enabled, policy.enabled],
+                          ["forceUpdate", dictionary.clientReleases.forceUpdate, policy.forceUpdate],
+                          [
+                            "allowGithubFallback",
+                            dictionary.clientReleases.allowGithubFallback,
+                            policy.allowGithubFallback,
+                          ],
+                        ].map(([name, label, checked]) => (
+                          <label className="flex items-center gap-2 text-sm" key={String(name)}>
+                            <input name={String(name)} type="hidden" value="false" />
+                            <input
+                              defaultChecked={Boolean(checked)}
+                              disabled={!canManagePolicy}
+                              name={String(name)}
+                              type="checkbox"
+                              value="true"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor={`notes-${policy.id}`}>{dictionary.clientReleases.notes}</Label>
+                        <Textarea
+                          defaultValue={policy.notes ?? ""}
+                          disabled={!canManagePolicy}
+                          id={`notes-${policy.id}`}
+                          name="notes"
+                          rows={2}
+                        />
+                      </div>
+                      {canManagePolicy ? (
+                        <div>
+                          <Button size="sm" type="submit">{dictionary.clientReleases.savePolicy}</Button>
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })()}
               </form>
             ))}
           </div>

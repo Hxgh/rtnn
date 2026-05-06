@@ -9,7 +9,10 @@ type AdminShellFrameProps = {
   defaultSidebarOpen: boolean;
   user: AuthUser;
   onLogout: (formData: FormData) => Promise<void>;
-  dictionary: Pick<AdminDictionary, "account" | "common" | "footer" | "nav">;
+  dictionary: Pick<
+    AdminDictionary,
+    "account" | "clientReleases" | "common" | "footer" | "nav"
+  >;
   navItems: AdminNavItem[];
   children: React.ReactNode;
 };
@@ -32,7 +35,13 @@ export function AdminShellFrame({
         variant="inset"
       />
       <SidebarInset className="h-full min-h-0 min-w-0">
-        <SiteHeader dictionary={{ common: dictionary.common, nav: dictionary.nav }} />
+        <SiteHeader
+          dictionary={{
+            clientReleases: dictionary.clientReleases,
+            common: dictionary.common,
+            nav: dictionary.nav,
+          }}
+        />
         <div className="@container/main min-h-0 flex flex-1 flex-col overflow-hidden">
           <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
             {children}

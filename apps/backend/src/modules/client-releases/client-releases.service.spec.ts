@@ -281,4 +281,152 @@ describe('ClientReleasesService', () => {
       reason: 'disabled',
     });
   });
+
+  it('lists packages with release metadata', async () => {
+    const packageRow = {
+      id: 'pkg_1',
+      releaseId: 'rel_1',
+      client: 'appMobile',
+      target: 'android',
+      shell: 'app-mobile',
+      packageName: '@rtnn/app-tauri',
+      artifactName: 'app-mobile-android-1.2.3',
+      shellVersion: '0.3.0',
+      releaseKind: 'android-signed-apk',
+      webUrl: 'https://app.testing.example.com',
+      sourceUrl: 'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+      distributionProvider: 'self-hosted-static',
+      distributionUrl: 'https://downloads.example.com/app.apk',
+      distributionStatus: 'synced',
+      fileName: 'app.apk',
+      fileSize: 1024,
+      sha256: 'a'.repeat(64),
+      signingStatus: null,
+      buildStatus: 'built',
+      updaterStatus: null,
+      updaterUrl: null,
+      storeProvider: null,
+      storeStatus: null,
+      blockers: [],
+      syncedAt: now,
+      prunedAt: null,
+      createdAt: now,
+      updatedAt: now,
+      release: {
+        id: 'rel_1',
+        releaseVersion: '1.2.3',
+        channel: 'testing',
+        sourceRepository: 'acme/business-source',
+        sourceRunId: '12345',
+        sourceSha: '1234567890abcdef',
+        sourceRef: 'refs/tags/client-1.2.3',
+        dryRun: false,
+        status: 'synced',
+        generatedAt: now,
+        syncedAt: now,
+        rawFacts: {},
+        createdAt: now,
+        updatedAt: now,
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn((operations: Array<Promise<unknown>>) =>
+        Promise.all(operations),
+      ),
+      clientPackage: {
+        count: jest.fn().mockResolvedValue(1),
+        findMany: jest.fn().mockResolvedValue([packageRow]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.listPackages({
+        page: 1,
+        pageSize: 10,
+        channel: 'testing',
+        client: 'appMobile',
+        search: '1.2.3',
+      }),
+    ).resolves.toMatchObject({
+      data: [
+        {
+          id: 'pkg_1',
+          releaseId: 'rel_1',
+          releaseVersion: '1.2.3',
+          channel: 'testing',
+          releaseStatus: 'synced',
+          releaseSourceSha: '1234567890abcdef',
+          distributionUrl: 'https://downloads.example.com/app.apk',
+        },
+      ],
+      meta: {
+        page: 1,
+        pageSize: 10,
+        total: 1,
+        totalPages: 1,
+      },
+    });
+    expect(prisma.clientPackage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        client: 'appMobile',
+        release: { channel: 'testing' },
+      }),
+    });
+  });
+
+  it('rejects recommended releases outside the policy client target channel', async () => {
+    const prisma = {
+      $transaction: jest.fn((operations: Array<Promise<unknown>>) =>
+        Promise.all(operations),
+      ),
+      clientUpdatePolicy: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'policy_1',
+          client: 'appMobile',
+          target: 'android',
+          channel: 'testing',
+        }),
+      },
+      clientRelease: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'rel_current',
+          channel: 'testing',
+          packages: [{ client: 'appMobile', target: 'android' }],
+        }),
+      },
+      clientPackage: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'pkg_2',
+          release: {
+            id: 'rel_prod',
+            channel: 'production',
+          },
+        }),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.updatePolicy(
+        { type: 'admin', id: 'admin_1', name: 'Admin' },
+        'rel_current',
+        'policy_1',
+        {
+          recommendedReleaseId: 'rel_prod',
+        },
+      ),
+    ).rejects.toThrow(
+      'Recommended release is not available for this client target channel',
+    );
+    expect(prisma.clientPackage.findFirst).toHaveBeenCalledWith({
+      where: {
+        releaseId: 'rel_prod',
+        client: 'appMobile',
+        target: 'android',
+        distributionStatus: { notIn: ['disabled', 'pruned'] },
+      },
+      include: { release: true },
+    });
+  });
 });

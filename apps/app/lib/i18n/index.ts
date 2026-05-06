@@ -58,8 +58,15 @@ export type AppMessages = {
     description: string;
     sectionTitle: string;
     version: string;
+    status: string;
+    reason: string;
+    available: string;
+    notAvailable: string;
+    channel: string;
     provider: string;
+    file: string;
     fileSize: string;
+    sha256: string;
     unavailable: string;
     download: string;
   };
@@ -166,8 +173,15 @@ const zhCN: AppMessages = {
     description: "获取当前可用的移动端和桌面端安装包。",
     sectionTitle: "可下载客户端",
     version: "版本",
+    status: "状态",
+    reason: "原因",
+    available: "可下载",
+    notAvailable: "不可用",
+    channel: "环境",
     provider: "分发源",
+    file: "文件",
     fileSize: "文件大小",
+    sha256: "SHA256",
     unavailable: "暂无可下载客户端",
     download: "下载",
   },
@@ -274,8 +288,15 @@ const enUS: AppMessages = {
     description: "Get the current mobile and desktop client installers.",
     sectionTitle: "Available clients",
     version: "Version",
+    status: "Status",
+    reason: "Reason",
+    available: "Available",
+    notAvailable: "Unavailable",
+    channel: "Channel",
     provider: "Provider",
+    file: "File",
     fileSize: "File size",
+    sha256: "SHA256",
     unavailable: "No client downloads are available.",
     download: "Download",
   },

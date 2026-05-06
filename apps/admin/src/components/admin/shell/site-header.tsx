@@ -9,7 +9,7 @@ import type { AdminDictionary } from "@/src/i18n/dictionaries";
 export function SiteHeader({
   dictionary,
 }: {
-  dictionary: Pick<AdminDictionary, "common" | "nav">;
+  dictionary: Pick<AdminDictionary, "clientReleases" | "common" | "nav">;
 }) {
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 transition-[width,height] ease-linear backdrop-blur supports-[backdrop-filter]:bg-background/80 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">

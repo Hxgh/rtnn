@@ -21,6 +21,8 @@ import type {
   AuditLogsListResult,
   ClientDownloadsLatestQuery,
   ClientDownloadsLatestResult,
+  ClientPackagesListQuery,
+  ClientPackagesListResult,
   ClientReleasePathParams,
   ClientReleasePolicyPathParams,
   ClientReleasePolicyUpdateBody,
@@ -164,6 +166,7 @@ export interface ApiClient {
     };
     clientReleases: {
       list(query?: ClientReleasesListQuery): Promise<ClientReleasesListResult>;
+      listPackages(query?: ClientPackagesListQuery): Promise<ClientPackagesListResult>;
       get(id: ClientReleasePathParams["id"]): Promise<ClientReleasesGetResult>;
       updatePolicy(
         releaseId: ClientReleasePolicyPathParams["releaseId"],
@@ -406,6 +409,12 @@ export const createApiClient = (transport: ApiTransport): ApiClient => ({
         transport.request<ClientReleasesListResult>({
           method: "GET",
           path: "/api/v1/admin/client-releases",
+          query: query as TransportQuery | undefined,
+        }),
+      listPackages: (query) =>
+        transport.request<ClientPackagesListResult>({
+          method: "GET",
+          path: "/api/v1/admin/client-releases/packages",
           query: query as TransportQuery | undefined,
         }),
       get: (id) =>

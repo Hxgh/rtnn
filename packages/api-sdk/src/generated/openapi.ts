@@ -556,6 +556,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/client-releases/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List client release packages */
+        get: operations["ClientReleasesAdminController_listPackages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/client-releases/{id}": {
         parameters: {
             query?: never;
@@ -1855,6 +1872,34 @@ export interface operations {
         };
     };
     ClientReleasesAdminController_list: {
+        parameters: {
+            query?: {
+                /** @description Current page number, starts from 1 */
+                page?: number;
+                /** @description Page size, max 100 */
+                pageSize?: number;
+                /** @description Fuzzy search keyword */
+                search?: string;
+                channel?: string;
+                client?: string;
+                target?: string;
+                distributionStatus?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientReleasesAdminController_listPackages: {
         parameters: {
             query?: {
                 /** @description Current page number, starts from 1 */

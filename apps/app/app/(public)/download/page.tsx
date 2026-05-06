@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 import { getServerI18n } from "@/lib/i18n/server";
 import { getLatestClientDownload } from "@/lib/server/api-client";
+import { cn } from "@/lib/utils";
 
 const downloadTargets = [
   { client: "appMobile", target: "android", label: "Android" },
@@ -14,9 +15,26 @@ const downloadTargets = [
 ] as const;
 
 type DownloadPageSearchParams = Promise<{ channel?: string }>;
+type DownloadTarget = (typeof downloadTargets)[number];
+
+type DownloadResult = DownloadTarget & {
+  info: ClientDownloadInfo;
+};
+
+function unavailableInfo(target: DownloadTarget, channel: string, reason: string): ClientDownloadInfo {
+  return {
+    client: target.client,
+    target: target.target,
+    channel,
+    downloadType: "unavailable",
+    updateAvailable: false,
+    forceUpdate: false,
+    reason,
+  };
+}
 
 async function resolveDownloads(channel: string) {
-  const results = await Promise.all(
+  return Promise.all(
     downloadTargets.map(async (target) => {
       try {
         const info = await getLatestClientDownload({
@@ -24,20 +42,15 @@ async function resolveDownloads(channel: string) {
           target: target.target,
           channel,
         });
-        return { ...target, info };
+        return { ...target, info: info as ClientDownloadInfo };
       } catch {
         return {
           ...target,
-          info: null,
+          info: unavailableInfo(target, channel, "api-unavailable"),
         };
       }
     }),
-  );
-
-  return results.filter(
-    (item): item is typeof item & { info: ClientDownloadInfo } =>
-      Boolean(item.info?.downloadUrl),
-  );
+  ) satisfies Promise<DownloadResult[]>;
 }
 
 function formatSize(value?: number | null) {
@@ -48,6 +61,10 @@ function formatSize(value?: number | null) {
     return `${(value / 1024).toFixed(1)} KB`;
   }
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function shortHash(value?: string | null) {
+  return value ? value.slice(0, 12) : "-";
 }
 
 export default async function DownloadPage({
@@ -68,9 +85,10 @@ export default async function DownloadPage({
       />
 
       <PageSection title={messages.download.sectionTitle}>
-        {downloads.length > 0 ? (
-          <div className="space-y-3">
-            {downloads.map(({ client, target, label, info }) => (
+        <div className="space-y-3">
+          {downloads.map(({ client, target, label, info }) => {
+            const available = Boolean(info.downloadUrl);
+            return (
               <SurfaceCard className="overflow-hidden" key={`${client}-${target}`}>
                 <div className="space-y-4 px-4 py-4">
                   <div className="flex items-start justify-between gap-3">
@@ -80,39 +98,70 @@ export default async function DownloadPage({
                         {client} / {target}
                       </p>
                     </div>
-                    <span className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground">
-                      {channel}
+                    <span
+                      className={cn(
+                        "rounded-md border px-2 py-1 text-xs",
+                        available
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-border text-muted-foreground",
+                      )}
+                    >
+                      {available ? messages.download.available : messages.download.notAvailable}
                     </span>
                   </div>
                   <dl className="grid gap-2 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{messages.download.version}</dt>
-                      <dd>{info.version ?? info.shellVersion ?? "-"}</dd>
+                      <dd className="text-right">{info.version ?? info.shellVersion ?? "-"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{messages.download.channel}</dt>
+                      <dd className="text-right">{info.channel}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{messages.download.provider}</dt>
-                      <dd>{info.provider ?? "-"}</dd>
+                      <dd className="text-right">{info.provider ?? "-"}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{messages.download.file}</dt>
+                      <dd className="max-w-[12rem] truncate text-right">{info.fileName ?? "-"}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{messages.download.fileSize}</dt>
-                      <dd>{formatSize(info.fileSize)}</dd>
+                      <dd className="text-right">{formatSize(info.fileSize)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{messages.download.sha256}</dt>
+                      <dd className="font-mono text-xs">{shortHash(info.sha256)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{messages.download.reason}</dt>
+                      <dd className="text-right">{info.reason ?? "-"}</dd>
                     </div>
                   </dl>
-                  <Link
-                    className={buttonVariants({ className: "w-full" })}
-                    href={info.downloadUrl ?? "#"}
-                  >
-                    {messages.download.download}
-                  </Link>
+                  {available ? (
+                    <Link
+                      className={buttonVariants({ className: "w-full" })}
+                      href={info.downloadUrl ?? "#"}
+                    >
+                      {messages.download.download}
+                    </Link>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className={buttonVariants({
+                        className: "pointer-events-none w-full opacity-50",
+                        variant: "outline",
+                      })}
+                    >
+                      {messages.download.unavailable}
+                    </span>
+                  )}
                 </div>
               </SurfaceCard>
-            ))}
-          </div>
-        ) : (
-          <SurfaceCard className="px-4 py-5 text-sm text-muted-foreground">
-            {messages.download.unavailable}
-          </SurfaceCard>
-        )}
+            );
+          })}
+        </div>
       </PageSection>
     </PageShell>
   );

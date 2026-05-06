@@ -14,7 +14,7 @@ import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { getAdminI18n } from "@/src/i18n/server";
 import { adminRoutes } from "@/src/lib/admin-routes";
-import { listClientReleases } from "@/src/lib/api-client";
+import { listClientPackages } from "@/src/lib/api-client";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { parsePageSize } from "@/src/lib/pagination";
 import { assertPermission } from "@/src/lib/permissions";
@@ -26,7 +26,7 @@ const clients = ["adminDesktop", "appMobile"] as const;
 const targets = ["android", "ios", "macos", "windows"] as const;
 const distributionStatuses = ["pending", "synced", "failed", "pruned", "disabled"] as const;
 
-type ClientReleaseRow = Awaited<ReturnType<typeof listClientReleases>>["data"][number];
+type ClientPackageRow = Awaited<ReturnType<typeof listClientPackages>>["data"][number];
 type PageSearchParams = Promise<{
   page?: string;
   pageSize?: string;
@@ -61,7 +61,7 @@ function buildHref(page: number, pageSize: number, filters: ReturnType<typeof no
     }
   }
   const query = params.toString();
-  return query ? `${adminRoutes.clientReleases.list}?${query}` : adminRoutes.clientReleases.list;
+  return query ? `${adminRoutes.clientReleases.packages}?${query}` : adminRoutes.clientReleases.packages;
 }
 
 function statusClassName(status: string) {
@@ -77,17 +77,21 @@ function statusClassName(status: string) {
   return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300";
 }
 
-function BadgeList({ values }: { values: string[] }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      {values.length > 0 ? values.map((value) => (
-        <Badge key={value} variant="outline">{value}</Badge>
-      )) : "-"}
-    </div>
-  );
+function formatSize(value?: number | null) {
+  if (!value) {
+    return "-";
+  }
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default async function ClientReleasesPage({
+function shortHash(value?: string | null) {
+  return value ? value.slice(0, 12) : "-";
+}
+
+export default async function ClientPackagesPage({
   searchParams,
 }: {
   searchParams?: PageSearchParams;
@@ -100,11 +104,11 @@ export default async function ClientReleasesPage({
   const filters = normalizeFilters(params);
   const page = parsePositiveInt(params?.page, 1);
   const pageSize = parsePageSize(params?.pageSize, defaultPageSize);
-  let result: Awaited<ReturnType<typeof listClientReleases>> | null = null;
+  let result: Awaited<ReturnType<typeof listClientPackages>> | null = null;
   let pageError: unknown = null;
 
   try {
-    result = await listClientReleases(accessToken, {
+    result = await listClientPackages(accessToken, {
       page,
       pageSize,
       search: filters.search || undefined,
@@ -130,60 +134,76 @@ export default async function ClientReleasesPage({
     redirect(buildHref(result.meta.totalPages, pageSize, filters));
   }
 
-  const columns: AdminTableColumn<ClientReleaseRow>[] = [
+  const columns: AdminTableColumn<ClientPackageRow>[] = [
     {
-      id: "version",
-      header: dictionary.clientReleases.releaseVersion,
-      cellClassName: "font-medium",
+      id: "client",
+      header: dictionary.clientReleases.client,
       cell: (item) => (
         <div className="space-y-1">
-          <div>{item.releaseVersion}</div>
-          {item.dryRun ? (
-            <Badge variant="outline">{dictionary.clientReleases.dryRun}</Badge>
-          ) : null}
+          <div>{item.client}</div>
+          <div className="text-xs text-muted-foreground">{item.target}</div>
         </div>
       ),
     },
     {
-      id: "channel",
-      header: dictionary.clientReleases.channel,
-      cell: (item) => <Badge variant="outline">{item.channel}</Badge>,
+      id: "release",
+      header: dictionary.clientReleases.release,
+      cell: (item) => (
+        <div className="space-y-1">
+          <Link
+            className="font-medium underline-offset-4 hover:underline"
+            href={adminRoutes.clientReleases.detail(item.releaseId)}
+          >
+            {item.releaseVersion}
+          </Link>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="outline">{item.channel}</Badge>
+            <Badge variant="outline">{item.releaseStatus}</Badge>
+          </div>
+        </div>
+      ),
     },
     {
-      id: "clients",
-      header: dictionary.clientReleases.client,
-      cell: (item) => <BadgeList values={item.clients} />,
-    },
-    {
-      id: "targets",
-      header: dictionary.clientReleases.targets,
-      cell: (item) => <BadgeList values={item.targets} />,
+      id: "artifact",
+      header: dictionary.clientReleases.artifact,
+      cell: (item) => (
+        <div className="max-w-72 space-y-1">
+          <div className="break-all">{item.fileName || item.artifactName}</div>
+          <div className="break-all text-xs text-muted-foreground">{item.artifactName}</div>
+        </div>
+      ),
     },
     {
       id: "distributionStatus",
       header: dictionary.clientReleases.distributionStatus,
       cell: (item) => (
-        <div className="flex flex-wrap gap-1">
-          {item.distributionStatuses.map((status) => (
-            <Badge key={status} className={cn("border", statusClassName(status))} variant="outline">
-              {status}
-            </Badge>
-          ))}
+        <Badge className={cn("border", statusClassName(item.distributionStatus))} variant="outline">
+          {item.distributionStatus}
+        </Badge>
+      ),
+    },
+    {
+      id: "provider",
+      header: dictionary.clientReleases.provider,
+      cell: (item) => item.distributionProvider,
+    },
+    {
+      id: "file",
+      header: dictionary.clientReleases.fileSize,
+      cell: (item) => (
+        <div className="space-y-1 text-xs">
+          <div>{formatSize(item.fileSize)}</div>
+          <div className="font-mono text-muted-foreground">{shortHash(item.sha256)}</div>
         </div>
       ),
     },
     {
-      id: "downloadable",
-      header: dictionary.clientReleases.downloadable,
-      cell: (item) => `${item.downloadablePackageCount} / ${item.packageCount}`,
-    },
-    {
       id: "source",
-      header: dictionary.clientReleases.source,
+      header: dictionary.clientReleases.releaseSource,
       cell: (item) => (
         <div className="space-y-1 text-xs">
-          <div className="font-mono">{item.sourceSha.slice(0, 12)}</div>
-          <div className="text-muted-foreground">{item.sourceRunId || "-"}</div>
+          <div className="font-mono">{shortHash(item.releaseSourceSha)}</div>
+          <div className="text-muted-foreground">{item.releaseSourceRunId || "-"}</div>
         </div>
       ),
     },
@@ -199,9 +219,14 @@ export default async function ClientReleasesPage({
       cellClassName: "text-right",
       cell: (item) => (
         <AdminTableRowActions>
-          <AdminTableActionLink href={adminRoutes.clientReleases.detail(item.id)}>
+          <AdminTableActionLink href={adminRoutes.clientReleases.detail(item.releaseId)}>
             {dictionary.common.detail}
           </AdminTableActionLink>
+          {item.distributionUrl ? (
+            <AdminTableActionLink href={item.distributionUrl}>
+              {dictionary.clientReleases.openDownload}
+            </AdminTableActionLink>
+          ) : null}
         </AdminTableRowActions>
       ),
     },
@@ -209,11 +234,11 @@ export default async function ClientReleasesPage({
 
   return (
     <AdminTablePage
-      title={dictionary.clientReleases.title}
+      title={dictionary.clientReleases.packagesTitle}
       actions={(
         <Button asChild size="sm" variant="outline">
-          <Link href={adminRoutes.clientReleases.packages}>
-            {dictionary.clientReleases.viewPackages}
+          <Link href={adminRoutes.clientReleases.list}>
+            {dictionary.clientReleases.viewReleases}
           </Link>
         </Button>
       )}

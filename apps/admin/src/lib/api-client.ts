@@ -6,6 +6,7 @@ import {
   type AdminUsersListQuery,
   type AdminUsersUpdateBody,
   type AuditLogsListQuery,
+  type ClientPackagesListQuery,
   type ClientReleasePolicyUpdateBody,
   type ClientReleasesListQuery,
   type CustomerGroupsCreateBody,
@@ -29,6 +30,7 @@ import type {
   AdminUserDetail,
   AdminUserSummary,
   AuditLogItem,
+  ClientPackageListItem,
   ClientReleaseDetail,
   ClientReleaseSummary,
   ClientUpdatePolicySummary,
@@ -54,6 +56,7 @@ export type AdminUserDetailRecord = AdminUserDetail;
 export type RoleRecord = RoleSummary;
 export type PermissionRecord = PermissionSummary;
 export type AuditLogRecord = AuditLogItem;
+export type ClientPackageRecord = ClientPackageListItem;
 export type ClientReleaseRecord = ClientReleaseSummary;
 export type ClientReleaseDetailRecord = ClientReleaseDetail;
 export type ClientUpdatePolicyRecord = ClientUpdatePolicySummary;
@@ -223,6 +226,14 @@ export async function listClientReleases(
 ): Promise<PaginatedResult<ClientReleaseRecord>> {
   const client = createClient(accessToken);
   return client.admin.clientReleases.list(query) as Promise<PaginatedResult<ClientReleaseRecord>>;
+}
+
+export async function listClientPackages(
+  accessToken: string,
+  query?: ClientPackagesListQuery,
+): Promise<PaginatedResult<ClientPackageRecord>> {
+  const client = createClient(accessToken);
+  return client.admin.clientReleases.listPackages(query) as Promise<PaginatedResult<ClientPackageRecord>>;
 }
 
 export async function getClientReleaseById(

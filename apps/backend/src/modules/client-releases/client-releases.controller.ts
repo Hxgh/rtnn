@@ -18,6 +18,7 @@ import { RequirePermission } from '../../common/guards/require-permission.decora
 import { AppConfigService } from '../../core/config/app-config.service';
 import { AuditActor, toAuditActor } from '../audit/audit.types';
 import { ClientDownloadQueryDto } from './dto/client-download-query.dto';
+import { ClientPackageListQueryDto } from './dto/client-package-list-query.dto';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
 import { ClientReleaseListQueryDto } from './dto/client-release-list-query.dto';
 import { UpdateClientReleasePolicyDto } from './dto/update-client-release-policy.dto';
@@ -61,6 +62,13 @@ export class ClientReleasesAdminController {
   @RequirePermission(PERMISSIONS.adminClientReleasesView)
   list(@Query() query: ClientReleaseListQueryDto) {
     return this.clientReleasesService.list(query);
+  }
+
+  @Get('packages')
+  @ApiOperation({ summary: 'List client release packages' })
+  @RequirePermission(PERMISSIONS.adminClientReleasesView)
+  listPackages(@Query() query: ClientPackageListQueryDto) {
+    return this.clientReleasesService.listPackages(query);
   }
 
   @Get(':id')

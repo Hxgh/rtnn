@@ -6,6 +6,8 @@ import {
 import { Prisma } from '@prisma/client';
 import type {
   ClientDownloadInfo,
+  ClientPackageListItem,
+  ClientPackageListQuery,
   ClientPackageSummary,
   ClientReleaseDetail,
   ClientReleaseSummary,
@@ -16,6 +18,7 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
 import { ClientDownloadQueryDto } from './dto/client-download-query.dto';
+import { ClientPackageListQueryDto } from './dto/client-package-list-query.dto';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
 import { ClientReleaseListQueryDto } from './dto/client-release-list-query.dto';
 import { UpdateClientReleasePolicyDto } from './dto/update-client-release-policy.dto';
@@ -213,6 +216,40 @@ export class ClientReleasesService {
     };
   }
 
+  async listPackages(
+    query: ClientPackageListQueryDto,
+  ): Promise<PaginatedResult<ClientPackageListItem>> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+    const where = this.buildPackageWhere(query);
+
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.clientPackage.count({ where }),
+      this.prisma.clientPackage.findMany({
+        where,
+        include: { release: true },
+        orderBy: [
+          { release: { generatedAt: 'desc' } },
+          { release: { createdAt: 'desc' } },
+          { client: 'asc' },
+          { target: 'asc' },
+        ],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    return {
+      data: rows.map((row) => this.toPackageListItem(row)),
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
+  }
+
   async detail(id: string): Promise<ClientReleaseDetail> {
     const release = await this.prisma.clientRelease.findUnique({
       where: { id },
@@ -236,19 +273,7 @@ export class ClientReleasesService {
       },
       orderBy: [{ client: 'asc' }, { target: 'asc' }],
     });
-    const recommendedIds = policies
-      .map((policy) => policy.recommendedReleaseId)
-      .filter((value): value is string => Boolean(value));
-    const recommendedReleases =
-      recommendedIds.length > 0
-        ? await this.prisma.clientRelease.findMany({
-            where: { id: { in: recommendedIds } },
-            select: { id: true, releaseVersion: true },
-          })
-        : [];
-    const versionById = new Map(
-      recommendedReleases.map((row) => [row.id, row.releaseVersion]),
-    );
+    const optionsByPolicyKey = await this.resolvePolicyOptions(policies);
 
     return {
       ...this.toReleaseSummary(release),
@@ -256,10 +281,59 @@ export class ClientReleasesService {
       policies: policies.map((policy) =>
         this.toPolicySummary(
           policy,
-          versionById.get(policy.recommendedReleaseId ?? ''),
+          optionsByPolicyKey.get(policyKey(policy)) ?? [],
         ),
       ),
     };
+  }
+
+  private async resolvePolicyOptions(
+    policies: Prisma.ClientUpdatePolicyGetPayload<object>[],
+  ) {
+    if (policies.length === 0) {
+      return new Map<string, ClientUpdatePolicySummary['releaseOptions']>();
+    }
+
+    const pairs = unique(policies.map((policy) => policyKey(policy)));
+    const optionsByPolicyKey = new Map<
+      string,
+      ClientUpdatePolicySummary['releaseOptions']
+    >();
+
+    for (const pair of pairs) {
+      const [client, target, channel] = pair.split('\u0000');
+      const releases = await this.prisma.clientRelease.findMany({
+        where: {
+          channel,
+          dryRun: false,
+          packages: {
+            some: {
+              client,
+              target,
+              distributionStatus: { notIn: ['disabled', 'pruned'] },
+            },
+          },
+        },
+        select: {
+          id: true,
+          releaseVersion: true,
+          generatedAt: true,
+          createdAt: true,
+        },
+        orderBy: [{ generatedAt: 'desc' }, { createdAt: 'desc' }],
+        take: 30,
+      });
+      optionsByPolicyKey.set(
+        `${client}\u0000${target}\u0000${channel}`,
+        releases.map((release) => ({
+          id: release.id,
+          releaseVersion: release.releaseVersion,
+          generatedAt: release.generatedAt?.toISOString() ?? null,
+        })),
+      );
+    }
+
+    return optionsByPolicyKey;
   }
 
   async updatePolicy(
@@ -297,14 +371,28 @@ export class ClientReleasesService {
       throw new NotFoundException('Client update policy not found');
     }
 
+    const recommendedReleaseId = normalizeNullableString(
+      dto.recommendedReleaseId,
+    );
+    if (recommendedReleaseId) {
+      const candidate = await this.findPackageByReleaseId(
+        recommendedReleaseId,
+        existing.client,
+        existing.target,
+      );
+      if (!candidate || candidate.release.channel !== existing.channel) {
+        throw new BadRequestException(
+          'Recommended release is not available for this client target channel',
+        );
+      }
+    }
+
     const policy = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.clientUpdatePolicy.update({
         where: { id: policyId },
         data: {
           enabled: dto.enabled,
-          recommendedReleaseId: normalizeNullableString(
-            dto.recommendedReleaseId,
-          ),
+          recommendedReleaseId,
           minimumSupportedVersion: normalizeNullableString(
             dto.minimumSupportedVersion,
           ),
@@ -334,14 +422,12 @@ export class ClientReleasesService {
       return updated;
     });
 
-    const recommendedRelease = policy.recommendedReleaseId
-      ? await this.prisma.clientRelease.findUnique({
-          where: { id: policy.recommendedReleaseId },
-          select: { releaseVersion: true },
-        })
-      : null;
+    const optionsByPolicyKey = await this.resolvePolicyOptions([policy]);
 
-    return this.toPolicySummary(policy, recommendedRelease?.releaseVersion);
+    return this.toPolicySummary(
+      policy,
+      optionsByPolicyKey.get(policyKey(policy)) ?? [],
+    );
   }
 
   async resolveDownload(
@@ -480,6 +566,59 @@ export class ClientReleasesService {
     const release = releases[0];
     const pkg = release?.packages[0];
     return release && pkg ? { ...pkg, release } : null;
+  }
+
+  private buildPackageWhere(
+    query: ClientPackageListQuery,
+  ): Prisma.ClientPackageWhereInput {
+    return {
+      ...(query.client ? { client: query.client } : {}),
+      ...(query.target ? { target: query.target } : {}),
+      ...(query.distributionStatus
+        ? { distributionStatus: query.distributionStatus }
+        : {}),
+      ...(query.channel ? { release: { channel: query.channel } } : {}),
+      ...(query.search
+        ? {
+            OR: [
+              {
+                artifactName: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                fileName: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                sha256: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                release: {
+                  releaseVersion: {
+                    contains: query.search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+              {
+                release: {
+                  sourceSha: {
+                    contains: query.search,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
   }
 
   private readFactPackages(dto: ClientReleaseFactsDto) {
@@ -692,10 +831,27 @@ export class ClientReleasesService {
     };
   }
 
+  private toPackageListItem(item: PackageWithRelease): ClientPackageListItem {
+    return {
+      ...this.toPackageSummary(item),
+      releaseId: item.releaseId,
+      releaseVersion: item.release.releaseVersion,
+      channel: item.release.channel,
+      releaseStatus: item.release.status,
+      releaseGeneratedAt: item.release.generatedAt?.toISOString() ?? null,
+      releaseSyncedAt: item.release.syncedAt?.toISOString() ?? null,
+      releaseSourceSha: item.release.sourceSha,
+      releaseSourceRunId: item.release.sourceRunId,
+    };
+  }
+
   private toPolicySummary(
     policy: Prisma.ClientUpdatePolicyGetPayload<object>,
-    recommendedVersion?: string,
+    releaseOptions: ClientUpdatePolicySummary['releaseOptions'] = [],
   ): ClientUpdatePolicySummary {
+    const recommendedOption = releaseOptions.find(
+      (option) => option.id === policy.recommendedReleaseId,
+    );
     return {
       id: policy.id,
       client: policy.client,
@@ -703,7 +859,8 @@ export class ClientReleasesService {
       channel: policy.channel,
       enabled: policy.enabled,
       recommendedReleaseId: policy.recommendedReleaseId,
-      recommendedVersion: recommendedVersion ?? null,
+      recommendedVersion: recommendedOption?.releaseVersion ?? null,
+      releaseOptions,
       minimumSupportedVersion: policy.minimumSupportedVersion,
       forceUpdate: policy.forceUpdate,
       allowGithubFallback: policy.allowGithubFallback,
@@ -881,6 +1038,10 @@ function stringArray(value: unknown): string[] {
 
 function unique(values: string[]) {
   return [...new Set(values.filter(Boolean))].sort();
+}
+
+function policyKey(policy: { client: string; target: string; channel: string }) {
+  return `${policy.client}\u0000${policy.target}\u0000${policy.channel}`;
 }
 
 function parseSemver(value: string): [number, number, number] | null {

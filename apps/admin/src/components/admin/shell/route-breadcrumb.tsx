@@ -25,7 +25,7 @@ type RouteCrumb = {
 
 function formatSegment(
   part: string,
-  dictionary: Pick<AdminDictionary, "nav" | "common">,
+  dictionary: Pick<AdminDictionary, "clientReleases" | "common" | "nav">,
 ) {
   const segmentLabels: Record<string, string> = getAdminSegmentLabelMap(dictionary);
 
@@ -42,7 +42,7 @@ function formatSegment(
 
 function buildBreadcrumbs(
   pathname: string,
-  dictionary: Pick<AdminDictionary, "nav" | "common">,
+  dictionary: Pick<AdminDictionary, "clientReleases" | "common" | "nav">,
 ): RouteCrumb[] {
   const parts = pathname.split("/").filter(Boolean);
 
@@ -63,7 +63,7 @@ function buildBreadcrumbs(
 export function RouteBreadcrumb({
   dictionary,
 }: {
-  dictionary: Pick<AdminDictionary, "common" | "nav">;
+  dictionary: Pick<AdminDictionary, "clientReleases" | "common" | "nav">;
 }) {
   const pathname = usePathname();
   const breadcrumbs = buildBreadcrumbs(pathname, dictionary);

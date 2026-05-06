@@ -388,6 +388,14 @@ export interface ClientReleaseListQuery extends PaginationQuery {
   distributionStatus?: ClientReleaseDistributionStatus;
 }
 
+export interface ClientPackageListQuery extends PaginationQuery {
+  search?: string;
+  channel?: string;
+  client?: string;
+  target?: string;
+  distributionStatus?: ClientReleaseDistributionStatus;
+}
+
 export interface ClientPackageSummary {
   id: string;
   client: string;
@@ -416,6 +424,17 @@ export interface ClientPackageSummary {
   prunedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClientPackageListItem extends ClientPackageSummary {
+  releaseId: string;
+  releaseVersion: string;
+  channel: string;
+  releaseStatus: string;
+  releaseGeneratedAt?: string | null;
+  releaseSyncedAt?: string | null;
+  releaseSourceSha: string;
+  releaseSourceRunId?: string | null;
 }
 
 export interface ClientReleaseSummary {
@@ -447,6 +466,11 @@ export interface ClientUpdatePolicySummary {
   enabled: boolean;
   recommendedReleaseId?: string | null;
   recommendedVersion?: string | null;
+  releaseOptions: Array<{
+    id: string;
+    releaseVersion: string;
+    generatedAt?: string | null;
+  }>;
   minimumSupportedVersion?: string | null;
   forceUpdate: boolean;
   allowGithubFallback: boolean;

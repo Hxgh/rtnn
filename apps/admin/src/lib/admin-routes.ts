@@ -22,6 +22,7 @@ export const adminRoutes = {
   },
   clientReleases: {
     list: "/client-releases",
+    packages: "/client-releases/packages",
     detail: (id: string) => `/client-releases/${id}`,
   },
   auditLogs: "/audit-logs",
@@ -106,6 +107,7 @@ const adminStaticRouteSet = new Set<string>([
   adminRoutes.roles.list,
   adminRoutes.roles.create,
   adminRoutes.clientReleases.list,
+  adminRoutes.clientReleases.packages,
   adminRoutes.auditLogs,
 ]);
 
@@ -130,7 +132,7 @@ export function isAdminRoutablePath(pathname: string) {
 }
 
 export function getAdminSegmentLabelMap(
-  dictionary: Pick<AdminDictionary, "common" | "nav">,
+  dictionary: Pick<AdminDictionary, "clientReleases" | "common" | "nav">,
 ) {
   return {
     dashboard: dictionary.nav.overview,
@@ -138,6 +140,7 @@ export function getAdminSegmentLabelMap(
     users: dictionary.nav.users,
     roles: dictionary.nav.roles,
     "client-releases": dictionary.nav.clientReleases,
+    packages: dictionary.clientReleases.packagesTitle,
     "audit-logs": dictionary.nav.auditLogs,
     account: dictionary.nav.account,
     new: dictionary.common.create,

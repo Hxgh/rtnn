@@ -1516,6 +1516,98 @@
         ]
       }
     },
+    "/api/v1/admin/client-releases/packages": {
+      "get": {
+        "operationId": "ClientReleasesAdminController_listPackages",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Current page number, starts from 1",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size, max 100",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Fuzzy search keyword",
+            "schema": {
+              "example": "demo",
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "production",
+              "type": "string"
+            }
+          },
+          {
+            "name": "client",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "appMobile",
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "android",
+              "type": "string"
+            }
+          },
+          {
+            "name": "distributionStatus",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "synced",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List client release packages",
+        "tags": [
+          "admin-client-releases"
+        ]
+      }
+    },
     "/api/v1/admin/client-releases/{id}": {
       "get": {
         "operationId": "ClientReleasesAdminController_detail",

@@ -9,6 +9,8 @@ import type {
   ChangePasswordRequest,
   ClientDownloadInfo,
   ClientDownloadQuery,
+  ClientPackageListItem,
+  ClientPackageListQuery,
   ClientReleaseDetail,
   ClientReleaseListQuery,
   ClientReleaseSummary,
@@ -164,6 +166,10 @@ type CustomerTagsUpdateOperation = Operation<
 type AuditLogsListOperation = Operation<"/api/v1/admin/audit-logs", "get">;
 type ClientReleasesListOperation = Operation<
   "/api/v1/admin/client-releases",
+  "get"
+>;
+type ClientPackagesListOperation = Operation<
+  "/api/v1/admin/client-releases/packages",
   "get"
 >;
 type ClientReleasesGetOperation = Operation<
@@ -452,6 +458,14 @@ export type ClientReleasesListQuery = PreferOpenApi<
 export type ClientReleasesListResult = PreferOpenApi<
   ResponseBodyOf<ClientReleasesListOperation>,
   PaginatedResult<ClientReleaseSummary>
+>;
+export type ClientPackagesListQuery = PreferOpenApi<
+  QueryOf<ClientPackagesListOperation>,
+  ClientPackageListQuery
+>;
+export type ClientPackagesListResult = PreferOpenApi<
+  ResponseBodyOf<ClientPackagesListOperation>,
+  PaginatedResult<ClientPackageListItem>
 >;
 export type ClientReleasePathParams = PreferOpenApi<
   PathParamsOf<ClientReleasesGetOperation>,
