@@ -1040,7 +1040,11 @@ function unique(values: string[]) {
   return [...new Set(values.filter(Boolean))].sort();
 }
 
-function policyKey(policy: { client: string; target: string; channel: string }) {
+function policyKey(policy: {
+  client: string;
+  target: string;
+  channel: string;
+}) {
   return `${policy.client}\u0000${policy.target}\u0000${policy.channel}`;
 }
 

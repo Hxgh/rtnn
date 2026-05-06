@@ -294,7 +294,8 @@ describe('ClientReleasesService', () => {
       shellVersion: '0.3.0',
       releaseKind: 'android-signed-apk',
       webUrl: 'https://app.testing.example.com',
-      sourceUrl: 'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+      sourceUrl:
+        'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
       distributionProvider: 'self-hosted-static',
       distributionUrl: 'https://downloads.example.com/app.apk',
       distributionStatus: 'synced',
