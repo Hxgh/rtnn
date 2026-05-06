@@ -70,10 +70,12 @@ function main() {
   run("node", ["--check", "scripts/release/check-client-release-github-prereqs.mjs"], "校验 client release GitHub 前置条件脚本语法");
   run("node", ["--check", "scripts/release/run-client-release-github-dry-run.mjs"], "校验 client release GitHub dry-run 触发脚本语法");
   run("node", ["--check", "scripts/release/sync-live-state.mjs"], "校验 liveState 同步脚本语法");
+  run("node", ["--check", "scripts/release/detect-live-state-only-change.mjs"], "校验 liveState-only 变更检测脚本语法");
   run("node", ["--test", "tests/project-profile.test.mjs"], "运行 project profile 测试");
   run("node", ["--test", "tests/client-release-context.test.mjs"], "运行 client release context 测试");
   run("node", ["--test", "tests/client-release-state.test.mjs"], "运行 client release state 测试");
   run("node", ["--test", "tests/client-release-github-prereqs.test.mjs"], "运行 client release GitHub 前置条件测试");
+  run("node", ["--test", "tests/live-state-only-change.test.mjs"], "运行 liveState-only 变更检测测试");
   run("node", ["scripts/client/check-tauri-clients.mjs"], "验证 Tauri client 壳骨架");
   run(
     "node",

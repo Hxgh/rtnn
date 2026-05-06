@@ -18,9 +18,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  detect-live-state-only:
+    name: Detect Live State Only Change
+    runs-on: ubuntu-latest
+    outputs:
+      live_state_only: ${{ steps.detect.outputs.live_state_only }}
+      reason: ${{ steps.detect.outputs.reason }}
+
+    steps:
+      - name: Checkout
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect liveState-only change
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_SHA: ${{ github.sha }}
+          EVENT_REF: ${{ github.ref }}
+        run: |
+          if [[ "${EVENT_NAME}" != "push" || "${EVENT_REF}" != "refs/heads/main" ]]; then
+            {
+              echo "live_state_only=false"
+              echo "reason=not-main-push"
+            } >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          node scripts/release/detect-live-state-only-change.mjs \
+            --base "${EVENT_BEFORE}" \
+            --head "${EVENT_SHA}"
+
+  skip-live-state-only:
+    name: Skip Live State Only Change
+    runs-on: ubuntu-latest
+    needs: detect-live-state-only
+    if: ${{ needs.detect-live-state-only.outputs.live_state_only == 'true' }}
+
+    steps:
+      - name: Explain skip
+        shell: bash
+        run: |
+          echo "release-images skipped: ${{ needs.detect-live-state-only.outputs.reason }}"
+
   resolve-release-context:
     name: Resolve Release Context
     runs-on: ubuntu-latest
+    needs: detect-live-state-only
+    if: ${{ needs.detect-live-state-only.outputs.live_state_only != 'true' }}
     outputs:
       enabled: ${{ steps.context.outputs.enabled }}
       reason: ${{ steps.context.outputs.reason }}
