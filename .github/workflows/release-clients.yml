@@ -140,6 +140,17 @@ jobs:
         shell: bash
         run: pnpm --filter "${{ matrix.package }}" validate
 
+      - name: Prepare Tauri remote web URL
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_TARGET: ${{ matrix.target }}
+          CLIENT_SHELL: ${{ matrix.shell }}
+          CLIENT_WEB_URL: ${{ matrix.web_url }}
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+        run: node scripts/release/prepare-tauri-remote-web-url.mjs
+
       - name: Rust format check
         shell: bash
         run: cargo fmt --manifest-path "${{ matrix.client_dir }}/src-tauri/Cargo.toml" -- --check
