@@ -111,6 +111,17 @@ function resolveAssetBaseUrl(releaseTag) {
     return explicit.replace(/\/+$/, "");
   }
 
+  const publicBaseUrl = normalizeString(
+    process.env.CLIENT_DISTRIBUTION_PUBLIC_BASE_URL,
+  ).replace(/\/+$/, "");
+  const channel = normalizeString(process.env.CLIENT_CHANNEL);
+  const shell = normalizeString(process.env.CLIENT_SHELL);
+  const target = normalizeString(process.env.CLIENT_TARGET);
+  const releaseVersion = normalizeString(process.env.CLIENT_RELEASE_VERSION);
+  if (publicBaseUrl && channel && shell && target && releaseVersion) {
+    return `${publicBaseUrl}/releases/${encodeURIComponent(channel)}/${encodeURIComponent(shell)}/${encodeURIComponent(target)}/${encodeURIComponent(releaseVersion)}`;
+  }
+
   const repository = normalizeString(process.env.GITHUB_REPOSITORY);
   if (!repository) {
     return "";
@@ -145,6 +156,7 @@ function main() {
   const target = requireEnv("CLIENT_TARGET");
   const shell = requireEnv("CLIENT_SHELL");
   const releaseVersion = requireEnv("CLIENT_RELEASE_VERSION");
+  const channel = requireEnv("CLIENT_CHANNEL");
   const releaseTag = normalizeString(process.env.CLIENT_RELEASE_TAG, releaseVersion);
   const outputRoot = normalizeString(
     process.env.CLIENT_RELEASE_MANIFEST_DIR,
@@ -195,6 +207,7 @@ function main() {
     client,
     target,
     shell,
+    channel,
     artifactName,
     releaseTag,
     latest: {

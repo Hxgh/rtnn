@@ -11,6 +11,7 @@ import type {
   ClientPackageSummary,
   ClientReleaseDetail,
   ClientReleaseSummary,
+  ClientUpdateCheckInfo,
   ClientUpdatePolicySummary,
   PaginatedResult,
 } from '@rtnn/shared-types';
@@ -515,6 +516,12 @@ export class ClientReleasesService {
       notes: policy?.notes ?? null,
       reason: directUrl ? null : 'missing-distribution-url',
     };
+  }
+
+  async checkUpdate(
+    query: ClientDownloadQueryDto,
+  ): Promise<ClientUpdateCheckInfo> {
+    return this.resolveDownload(query);
   }
 
   private async findPackageByReleaseId(

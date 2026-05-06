@@ -4,6 +4,7 @@ import {
   ClientDownloadsController,
   ClientReleaseFactsController,
   ClientReleasesAdminController,
+  ClientUpdatesController,
 } from './client-releases.controller';
 import { ClientReleasesService } from './client-releases.service';
 
@@ -13,6 +14,7 @@ import { ClientReleasesService } from './client-releases.service';
     ClientReleaseFactsController,
     ClientReleasesAdminController,
     ClientDownloadsController,
+    ClientUpdatesController,
   ],
   providers: [ClientReleasesService],
   exports: [ClientReleasesService],

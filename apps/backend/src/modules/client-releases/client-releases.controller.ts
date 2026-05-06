@@ -109,6 +109,19 @@ export class ClientDownloadsController {
   }
 }
 
+@ApiTags('client-updates')
+@Controller('client-updates')
+export class ClientUpdatesController {
+  constructor(private readonly clientReleasesService: ClientReleasesService) {}
+
+  @Get('check')
+  @Public()
+  @ApiOperation({ summary: 'Check client shell update availability' })
+  check(@Query() query: ClientDownloadQueryDto) {
+    return this.clientReleasesService.checkUpdate(query);
+  }
+}
+
 function requireAdminActor(user: AuthSessionUser | undefined): AuditActor {
   if (!user?.sub || user.audience !== 'admin') {
     throw new UnauthorizedException('Missing admin session user');

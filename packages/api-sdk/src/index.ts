@@ -29,6 +29,8 @@ export type {
   AuditLogsListResult,
   ClientDownloadsLatestQuery,
   ClientDownloadsLatestResult,
+  ClientUpdatesCheckQuery,
+  ClientUpdatesCheckResult,
   ClientPackagesListQuery,
   ClientPackagesListResult,
   ClientReleasePathParams,

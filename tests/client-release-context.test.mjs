@@ -459,6 +459,77 @@ test("prepare-tauri-updater-signing patches Tauri config without leaking private
   }
 });
 
+test("prepare-tauri-updater-signing derives self-hosted updater endpoint from project metadata", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-tauri-signing-self-hosted-"));
+  try {
+    const clientDir = path.join(dir, "clients/admin-tauri");
+    mkdirSync(path.join(clientDir, "src-tauri"), { recursive: true });
+    mkdirSync(path.join(dir, ".rtnn"), { recursive: true });
+    writeFileSync(
+      path.join(dir, ".rtnn/project.json"),
+      `${JSON.stringify(
+        {
+          project: { role: "business-source" },
+          delivery: {
+            clientDistribution: {
+              enabled: true,
+              provider: "self-hosted-static",
+              publicBaseUrl: "https://downloads.example.com/downloads",
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    writeFileSync(
+      path.join(clientDir, "src-tauri/tauri.conf.json"),
+      `${JSON.stringify({ bundle: { active: true } }, null, 2)}\n`,
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [prepareTauriSigningScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: childProcessEnv({
+          CLIENT_DIR: "clients/admin-tauri",
+          CLIENT_NAME: "adminDesktop",
+          CLIENT_TARGET: "macos",
+          CLIENT_SHELL: "admin-desktop",
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_CHANNEL: "testing",
+          CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
+          TAURI_UPDATER_PUBLIC_KEY: "public-key",
+          TAURI_SIGNING_PRIVATE_KEY: "private-key-must-not-leak",
+        }),
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(
+      readFileSync(
+        path.join(
+          dir,
+          "artifacts/client-release/desktop-signing/admin-desktop-macos-1.2.3.json",
+        ),
+        "utf8",
+      ),
+    );
+    const tauriConfig = JSON.parse(
+      readFileSync(path.join(clientDir, "src-tauri/tauri.conf.json"), "utf8"),
+    );
+    const expected =
+      "https://downloads.example.com/downloads/releases/testing/updater/admin-desktop-latest.json";
+
+    assert.equal(report.updater.endpoint, expected);
+    assert.deepEqual(tauriConfig.plugins.updater.endpoints, [expected]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("prepare-android-signing reports blocked Android signing without secrets", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-android-signing-blocked-"));
   try {
@@ -1166,6 +1237,7 @@ test("write-tauri-updater-manifest skips unsigned desktop artifacts", () => {
         CLIENT_TARGET: "macos",
         CLIENT_SHELL: "admin-desktop",
         CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_CHANNEL: "testing",
         CLIENT_RELEASE_TAG: "v1.2.3",
         CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
         CLIENT_UPDATER_PLATFORM: "darwin-aarch64",
@@ -1230,6 +1302,7 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
         CLIENT_TARGET: "macos",
         CLIENT_SHELL: "admin-desktop",
         CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_CHANNEL: "testing",
         CLIENT_RELEASE_TAG: "v1.2.3",
         CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
         CLIENT_UPDATER_PLATFORM: "darwin-aarch64",
@@ -1257,6 +1330,76 @@ test("write-tauri-updater-manifest emits a signed Tauri updater fragment", () =>
       "darwin-aarch64": {
         signature: "signed",
         url: "https://github.com/acme/business-source/releases/download/v1.2.3/RTNN%20Admin.app.tar.gz",
+      },
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("write-tauri-updater-manifest can point update assets at self-hosted distribution", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-updater-fragment-self-hosted-"));
+  try {
+    const bundleOutput = path.join(
+      dir,
+      "artifacts/client-release/admin-desktop-macos-1.2.3/bundle",
+    );
+    mkdirSync(path.join(bundleOutput, "macos"), { recursive: true });
+    writeFileSync(
+      path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz"),
+      "bundle",
+    );
+    writeFileSync(
+      path.join(bundleOutput, "macos/RTNN Admin.app.tar.gz.sig"),
+      "signed",
+    );
+    writeFileSync(
+      path.join(bundleOutput, "artifact-files.json"),
+      `${JSON.stringify(
+        {
+          files: [
+            { path: "macos/RTNN Admin.app.tar.gz", size: 6 },
+            { path: "macos/RTNN Admin.app.tar.gz.sig", size: 6 },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    const result = spawnSync(process.execPath, [updaterManifestScriptPath], {
+      cwd: dir,
+      encoding: "utf8",
+      env: childProcessEnv({
+        CLIENT_NAME: "adminDesktop",
+        CLIENT_TARGET: "macos",
+        CLIENT_SHELL: "admin-desktop",
+        CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_CHANNEL: "testing",
+        CLIENT_RELEASE_TAG: "v1.2.3",
+        CLIENT_ARTIFACT_NAME: "admin-desktop-macos-1.2.3",
+        CLIENT_UPDATER_PLATFORM: "darwin-aarch64",
+        CLIENT_DISTRIBUTION_PUBLIC_BASE_URL: "https://downloads.example.com",
+        GITHUB_REPOSITORY: "acme/business-source",
+      }),
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const fragment = JSON.parse(
+      readFileSync(
+        path.join(
+          dir,
+          "artifacts/client-release/updater-fragments/admin-desktop-macos-1.2.3.json",
+        ),
+        "utf8",
+      ),
+    );
+
+    assert.equal(fragment.channel, "testing");
+    assert.deepEqual(fragment.latest.platforms, {
+      "darwin-aarch64": {
+        signature: "signed",
+        url: "https://downloads.example.com/releases/testing/admin-desktop/macos/1.2.3/RTNN%20Admin.app.tar.gz",
       },
     });
   } finally {

@@ -1,5 +1,6 @@
 import {
   appendFileSync,
+  existsSync,
   mkdirSync,
   readFileSync,
   writeFileSync,
@@ -24,6 +25,15 @@ function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
 
+function readProjectMetadata() {
+  const filePath = path.join(process.cwd(), ".rtnn/project.json");
+  if (!existsSync(filePath)) {
+    return {};
+  }
+
+  return readJson(filePath);
+}
+
 function writeJson(filePath, value) {
   mkdirSync(path.dirname(filePath), { recursive: true });
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
@@ -35,12 +45,51 @@ function writeOutput(key, value) {
   }
 }
 
+function resolveDistributionPublicBaseUrl(metadata) {
+  const explicit = normalizeString(process.env.CLIENT_DISTRIBUTION_PUBLIC_BASE_URL);
+  if (explicit) {
+    return explicit.replace(/\/+$/, "");
+  }
+
+  const distribution = metadata?.delivery?.clientDistribution;
+  if (distribution?.enabled === false) {
+    return "";
+  }
+  if (
+    normalizeString(distribution?.provider) &&
+    normalizeString(distribution.provider) !== "self-hosted-static"
+  ) {
+    return "";
+  }
+
+  return normalizeString(distribution?.publicBaseUrl).replace(/\/+$/, "");
+}
+
+function resolveSelfHostedUpdaterEndpoint(shell, channel, metadata) {
+  const publicBaseUrl = resolveDistributionPublicBaseUrl(metadata);
+  if (!publicBaseUrl) {
+    return "";
+  }
+
+  return `${publicBaseUrl}/releases/${encodeURIComponent(channel)}/updater/${encodeURIComponent(shell)}-latest.json`;
+}
+
 function resolveUpdaterEndpoint(shell) {
   const explicit =
     normalizeString(process.env.TAURI_UPDATER_ENDPOINT) ||
     normalizeString(process.env.CLIENT_UPDATER_ENDPOINT);
   if (explicit) {
     return explicit;
+  }
+
+  const metadata = readProjectMetadata();
+  const selfHosted = resolveSelfHostedUpdaterEndpoint(
+    shell,
+    normalizeString(process.env.CLIENT_CHANNEL, "production"),
+    metadata,
+  );
+  if (selfHosted) {
+    return selfHosted;
   }
 
   const repository = normalizeString(process.env.GITHUB_REPOSITORY);

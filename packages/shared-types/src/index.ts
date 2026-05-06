@@ -519,3 +519,7 @@ export interface ClientDownloadInfo {
   notes?: string | null;
   reason?: string | null;
 }
+
+export type ClientUpdateCheckQuery = ClientDownloadQuery;
+
+export type ClientUpdateCheckInfo = ClientDownloadInfo;

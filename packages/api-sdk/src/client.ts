@@ -21,6 +21,8 @@ import type {
   AuditLogsListResult,
   ClientDownloadsLatestQuery,
   ClientDownloadsLatestResult,
+  ClientUpdatesCheckQuery,
+  ClientUpdatesCheckResult,
   ClientPackagesListQuery,
   ClientPackagesListResult,
   ClientReleasePathParams,
@@ -177,6 +179,9 @@ export interface ApiClient {
   };
   clientDownloads: {
     latest(query: ClientDownloadsLatestQuery): Promise<ClientDownloadsLatestResult>;
+  };
+  clientUpdates: {
+    check(query: ClientUpdatesCheckQuery): Promise<ClientUpdatesCheckResult>;
   };
 }
 
@@ -447,6 +452,14 @@ export const createApiClient = (transport: ApiTransport): ApiClient => ({
         method: "GET",
         path: "/api/v1/client-downloads/latest",
         query: query as TransportQuery,
+      }),
+  },
+  clientUpdates: {
+    check: (query) =>
+      transport.request<ClientUpdatesCheckResult>({
+        method: "GET",
+        path: "/api/v1/client-updates/check",
+        query: query as unknown as TransportQuery,
       }),
   },
 });

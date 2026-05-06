@@ -1735,6 +1735,58 @@
           "client-downloads"
         ]
       }
+    },
+    "/api/v1/client-updates/check": {
+      "get": {
+        "operationId": "ClientUpdatesController_check",
+        "parameters": [
+          {
+            "name": "client",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "appMobile",
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "android",
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "production",
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentVersion",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "1.2.0",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Check client shell update availability",
+        "tags": [
+          "client-updates"
+        ]
+      }
     }
   },
   "info": {

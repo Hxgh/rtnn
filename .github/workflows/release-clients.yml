@@ -243,6 +243,7 @@ jobs:
           CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY || vars.TAURI_UPDATER_PUBLIC_KEY || '' }}
           TAURI_UPDATER_ENDPOINT: ${{ vars.TAURI_UPDATER_ENDPOINT || '' }}
+          CLIENT_DISTRIBUTION_PUBLIC_BASE_URL: ${{ vars.CLIENT_DISTRIBUTION_PUBLIC_BASE_URL || '' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/release/prepare-tauri-updater-signing.mjs
@@ -401,8 +402,10 @@ jobs:
           CLIENT_TARGET: ${{ matrix.target }}
           CLIENT_SHELL: ${{ matrix.shell }}
           CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
+          CLIENT_CHANNEL: ${{ matrix.channel }}
           CLIENT_RELEASE_TAG: ${{ needs.resolve-client-release-context.outputs.release_tag }}
           CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_DISTRIBUTION_PUBLIC_BASE_URL: ${{ vars.CLIENT_DISTRIBUTION_PUBLIC_BASE_URL || '' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node scripts/release/write-tauri-updater-manifest.mjs
 

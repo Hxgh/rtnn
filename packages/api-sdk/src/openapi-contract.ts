@@ -14,6 +14,8 @@ import type {
   ClientReleaseDetail,
   ClientReleaseListQuery,
   ClientReleaseSummary,
+  ClientUpdateCheckInfo,
+  ClientUpdateCheckQuery,
   ClientUpdatePolicySummary,
   CreateAdminUserInput,
   CreateCustomerGroupInput,
@@ -182,6 +184,10 @@ type ClientReleasePolicyUpdateOperation = Operation<
 >;
 type ClientDownloadsLatestOperation = Operation<
   "/api/v1/client-downloads/latest",
+  "get"
+>;
+type ClientUpdatesCheckOperation = Operation<
+  "/api/v1/client-updates/check",
   "get"
 >;
 
@@ -494,4 +500,12 @@ export type ClientDownloadsLatestQuery = PreferOpenApi<
 export type ClientDownloadsLatestResult = PreferOpenApi<
   ResponseBodyOf<ClientDownloadsLatestOperation>,
   ClientDownloadInfo
+>;
+export type ClientUpdatesCheckQuery = PreferOpenApi<
+  QueryOf<ClientUpdatesCheckOperation>,
+  ClientUpdateCheckQuery
+>;
+export type ClientUpdatesCheckResult = PreferOpenApi<
+  ResponseBodyOf<ClientUpdatesCheckOperation>,
+  ClientUpdateCheckInfo
 >;

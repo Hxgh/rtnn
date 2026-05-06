@@ -263,6 +263,84 @@ describe('ClientReleasesService', () => {
     });
   });
 
+  it('checks update availability with the same release policy as downloads', async () => {
+    const prisma = {
+      clientUpdatePolicy: {
+        findUnique: jest.fn().mockResolvedValue({
+          enabled: true,
+          recommendedReleaseId: null,
+          minimumSupportedVersion: '1.1.0',
+          forceUpdate: false,
+          allowGithubFallback: true,
+          notes: 'Upgrade required for supported shells.',
+        }),
+      },
+      clientRelease: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'rel_1',
+            channel: 'production',
+            releaseVersion: '1.2.3',
+            createdAt: now,
+            updatedAt: now,
+            packages: [
+              {
+                id: 'pkg_1',
+                client: 'adminDesktop',
+                target: 'macos',
+                shell: 'admin-desktop',
+                packageName: '@rtnn/admin-tauri',
+                artifactName: 'admin-desktop-macos-1.2.3',
+                shellVersion: '0.3.0',
+                releaseKind: 'desktop-signed',
+                webUrl: 'https://admin.example.com',
+                sourceUrl:
+                  'https://github.com/acme/business-source/releases/download/client-1.2.3/admin.dmg',
+                distributionProvider: 'self-hosted-static',
+                distributionUrl: 'https://downloads.example.com/admin.dmg',
+                distributionStatus: 'synced',
+                fileName: 'admin.dmg',
+                fileSize: 2048,
+                sha256: 'b'.repeat(64),
+                signingStatus: 'ready-for-signed-build',
+                buildStatus: null,
+                updaterStatus: 'ready',
+                updaterUrl: 'admin-desktop-latest.json',
+                storeProvider: null,
+                storeStatus: null,
+                blockers: [],
+                syncedAt: now,
+                prunedAt: null,
+                createdAt: now,
+                updatedAt: now,
+              },
+            ],
+          },
+        ]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.checkUpdate({
+        client: 'adminDesktop',
+        target: 'macos',
+        channel: 'production',
+        currentVersion: '1.0.0',
+      }),
+    ).resolves.toMatchObject({
+      client: 'adminDesktop',
+      target: 'macos',
+      channel: 'production',
+      version: '1.2.3',
+      downloadType: 'direct',
+      updateAvailable: true,
+      forceUpdate: true,
+      minimumSupportedVersion: '1.1.0',
+      notes: 'Upgrade required for supported shells.',
+    });
+  });
+
   it('returns unavailable when update policy is disabled', async () => {
     const service = createService({
       clientUpdatePolicy: {
