@@ -8,6 +8,7 @@ import type {
   AuditLogListQuery,
   ChangePasswordRequest,
   ClientDownloadInfo,
+  ClientDownloadListQuery,
   ClientDownloadQuery,
   ClientPackageListItem,
   ClientPackageListQuery,
@@ -181,6 +182,10 @@ type ClientReleasesGetOperation = Operation<
 type ClientReleasePolicyUpdateOperation = Operation<
   "/api/v1/admin/client-releases/{releaseId}/policies/{policyId}",
   "patch"
+>;
+type ClientDownloadsListOperation = Operation<
+  "/api/v1/client-downloads",
+  "get"
 >;
 type ClientDownloadsLatestOperation = Operation<
   "/api/v1/client-downloads/latest",
@@ -492,6 +497,14 @@ export type ClientReleasePolicyUpdateBody = PreferOpenApi<
 export type ClientReleasePolicyUpdateResult = PreferOpenApi<
   ResponseBodyOf<ClientReleasePolicyUpdateOperation>,
   ClientUpdatePolicySummary
+>;
+export type ClientDownloadsListQuery = PreferOpenApi<
+  QueryOf<ClientDownloadsListOperation>,
+  ClientDownloadListQuery
+>;
+export type ClientDownloadsListResult = PreferOpenApi<
+  ResponseBodyOf<ClientDownloadsListOperation>,
+  ClientDownloadInfo[]
 >;
 export type ClientDownloadsLatestQuery = PreferOpenApi<
   QueryOf<ClientDownloadsLatestOperation>,

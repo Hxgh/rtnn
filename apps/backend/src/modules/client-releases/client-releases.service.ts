@@ -6,6 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 import type {
   ClientDownloadInfo,
+  ClientDownloadListQuery,
   ClientPackageListItem,
   ClientPackageListQuery,
   ClientPackageSummary,
@@ -18,6 +19,7 @@ import type {
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
+import { ClientDownloadListQueryDto } from './dto/client-download-list-query.dto';
 import { ClientDownloadQueryDto } from './dto/client-download-query.dto';
 import { ClientPackageListQueryDto } from './dto/client-package-list-query.dto';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
@@ -457,13 +459,19 @@ export class ClientReleasesService {
       };
     }
 
+    const allowGithubFallback = policy?.allowGithubFallback ?? true;
     const selected = policy?.recommendedReleaseId
       ? await this.findPackageByReleaseId(
           policy.recommendedReleaseId,
           query.client,
           query.target,
         )
-      : await this.findLatestPackage(query.client, query.target, channel);
+      : await this.findLatestPackage(
+          query.client,
+          query.target,
+          channel,
+          allowGithubFallback,
+        );
     if (!selected) {
       return {
         client: query.client,
@@ -476,13 +484,11 @@ export class ClientReleasesService {
       };
     }
 
-    const allowGithubFallback = policy?.allowGithubFallback ?? true;
-    const directUrl =
-      selected.distributionStatus === 'synced' && selected.distributionUrl
-        ? selected.distributionUrl
-        : allowGithubFallback
-          ? selected.sourceUrl
-          : null;
+    const directUrl = this.resolvePackageDownloadUrl(
+      selected,
+      allowGithubFallback,
+    );
+    const provider = this.resolveDownloadProvider(selected, directUrl);
     const belowMinimum = this.isBelowMinimum(
       query.currentVersion,
       policy?.minimumSupportedVersion,
@@ -495,12 +501,7 @@ export class ClientReleasesService {
       version: selected.release.releaseVersion,
       shellVersion: selected.shellVersion,
       downloadType: directUrl ? 'direct' : 'unavailable',
-      provider:
-        directUrl === selected.distributionUrl
-          ? selected.distributionProvider
-          : selected.sourceUrl
-            ? 'github-release'
-            : null,
+      provider,
       downloadUrl: directUrl,
       sourceUrl: selected.sourceUrl,
       fileName: selected.fileName,
@@ -516,6 +517,37 @@ export class ClientReleasesService {
       notes: policy?.notes ?? null,
       reason: directUrl ? null : 'missing-distribution-url',
     };
+  }
+
+  async listDownloads(
+    query: ClientDownloadListQueryDto,
+  ): Promise<ClientDownloadInfo[]> {
+    const channel = query.channel || 'production';
+    const rows = await this.prisma.clientPackage.findMany({
+      where: this.buildDownloadPackageWhere({
+        ...query,
+        channel,
+      }),
+      select: {
+        client: true,
+        target: true,
+      },
+      orderBy: [{ client: 'asc' }, { target: 'asc' }],
+    });
+    const pairs = unique(
+      rows.map((item) => `${item.client}\u0000${item.target}`),
+    );
+    const downloads = await Promise.all(
+      pairs.map((pair) => {
+        const [client, target] = pair.split('\u0000');
+        return this.resolveDownload({ client, target, channel });
+      }),
+    );
+
+    return downloads.filter(
+      (item) =>
+        item.downloadType !== 'unavailable' && Boolean(item.downloadUrl),
+    );
   }
 
   async checkUpdate(
@@ -544,6 +576,7 @@ export class ClientReleasesService {
     client: string,
     target: string,
     channel: string,
+    allowGithubFallback = true,
   ): Promise<PackageWithRelease | null> {
     const releases = await this.prisma.clientRelease.findMany({
       where: {
@@ -568,11 +601,18 @@ export class ClientReleasesService {
         },
       },
       orderBy: [{ generatedAt: 'desc' }, { createdAt: 'desc' }],
-      take: 1,
+      take: 30,
     });
-    const release = releases[0];
-    const pkg = release?.packages[0];
-    return release && pkg ? { ...pkg, release } : null;
+    const candidates = releases.flatMap((release) =>
+      release.packages.map((item) => ({ ...item, release })),
+    );
+    return (
+      candidates.find((item) =>
+        this.resolvePackageDownloadUrl(item, allowGithubFallback),
+      ) ??
+      candidates[0] ??
+      null
+    );
   }
 
   private buildPackageWhere(
@@ -625,6 +665,20 @@ export class ClientReleasesService {
             ],
           }
         : {}),
+    };
+  }
+
+  private buildDownloadPackageWhere(
+    query: ClientDownloadListQuery,
+  ): Prisma.ClientPackageWhereInput {
+    return {
+      ...(query.client ? { client: query.client } : {}),
+      ...(query.target ? { target: query.target } : {}),
+      distributionStatus: { notIn: ['disabled', 'pruned'] },
+      release: {
+        channel: query.channel || 'production',
+        dryRun: false,
+      },
     };
   }
 
@@ -939,7 +993,7 @@ export class ClientReleasesService {
               client,
               target,
               distributionProvider: 'self-hosted-static',
-              distributionStatus: { not: 'pruned' },
+              distributionStatus: 'synced',
             },
           },
         },
@@ -949,7 +1003,7 @@ export class ClientReleasesService {
               client,
               target,
               distributionProvider: 'self-hosted-static',
-              distributionStatus: { not: 'pruned' },
+              distributionStatus: 'synced',
             },
           },
         },
@@ -995,6 +1049,32 @@ export class ClientReleasesService {
       }
     }
     return false;
+  }
+
+  private resolveDownloadProvider(
+    selected: PackageWithRelease,
+    directUrl: string | null,
+  ): ClientDownloadInfo['provider'] {
+    if (!directUrl) {
+      return null;
+    }
+    if (selected.distributionUrl && directUrl === selected.distributionUrl) {
+      return selected.distributionProvider;
+    }
+    if (selected.sourceUrl && directUrl === selected.sourceUrl) {
+      return 'github-release';
+    }
+    return null;
+  }
+
+  private resolvePackageDownloadUrl(
+    selected: PackageWithRelease,
+    allowGithubFallback: boolean,
+  ) {
+    if (selected.distributionStatus === 'synced' && selected.distributionUrl) {
+      return selected.distributionUrl;
+    }
+    return allowGithubFallback ? selected.sourceUrl : null;
   }
 }
 

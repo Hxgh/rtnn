@@ -1684,6 +1684,49 @@
         ]
       }
     },
+    "/api/v1/client-downloads": {
+      "get": {
+        "operationId": "ClientDownloadsController_list",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "production",
+              "type": "string"
+            }
+          },
+          {
+            "name": "client",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "appMobile",
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "android",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List latest available client downloads",
+        "tags": [
+          "client-downloads"
+        ]
+      }
+    },
     "/api/v1/client-downloads/latest": {
       "get": {
         "operationId": "ClientDownloadsController_latest",

@@ -607,6 +607,23 @@ export interface paths {
         patch: operations["ClientReleasesAdminController_updatePolicy"];
         trace?: never;
     };
+    "/api/v1/client-downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List latest available client downloads */
+        get: operations["ClientDownloadsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/client-downloads/latest": {
         parameters: {
             query?: never;
@@ -1978,6 +1995,27 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateClientReleasePolicyDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClientDownloadsController_list: {
+        parameters: {
+            query?: {
+                channel?: string;
+                client?: string;
+                target?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

@@ -1,56 +1,30 @@
 import type { ClientDownloadInfo } from "@rtnn/shared-types";
 import { NativeDownloadButton } from "@/components/download/native-download-button";
 import { PageSection, PageShell, PageTitle } from "@/components/site/page-shell";
-import { buttonVariants } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 import { getServerI18n } from "@/lib/i18n/server";
-import { getLatestClientDownload } from "@/lib/server/api-client";
+import { listClientDownloads } from "@/lib/server/api-client";
 import { cn } from "@/lib/utils";
 
-const downloadTargets = [
-  { client: "appMobile", target: "android", label: "Android" },
-  { client: "adminDesktop", target: "windows", label: "Windows" },
-  { client: "adminDesktop", target: "macos", label: "macOS" },
-  { client: "appMobile", target: "ios", label: "iOS" },
-] as const;
-
-type DownloadPageSearchParams = Promise<{ channel?: string }>;
-type DownloadTarget = (typeof downloadTargets)[number];
-
-type DownloadResult = DownloadTarget & {
-  info: ClientDownloadInfo;
+const targetLabels: Record<string, string> = {
+  android: "Android",
+  ios: "iOS",
+  macos: "macOS",
+  windows: "Windows",
 };
 
-function unavailableInfo(target: DownloadTarget, channel: string, reason: string): ClientDownloadInfo {
-  return {
-    client: target.client,
-    target: target.target,
-    channel,
-    downloadType: "unavailable",
-    updateAvailable: false,
-    forceUpdate: false,
-    reason,
-  };
+type DownloadPageSearchParams = Promise<{ channel?: string }>;
+
+async function resolveDownloads(channel: string): Promise<ClientDownloadInfo[]> {
+  try {
+    return listClientDownloads({ channel });
+  } catch {
+    return [];
+  }
 }
 
-async function resolveDownloads(channel: string) {
-  return Promise.all(
-    downloadTargets.map(async (target) => {
-      try {
-        const info = await getLatestClientDownload({
-          client: target.client,
-          target: target.target,
-          channel,
-        });
-        return { ...target, info: info as ClientDownloadInfo };
-      } catch {
-        return {
-          ...target,
-          info: unavailableInfo(target, channel, "api-unavailable"),
-        };
-      }
-    }),
-  ) satisfies Promise<DownloadResult[]>;
+function formatDownloadLabel(info: ClientDownloadInfo) {
+  return targetLabels[info.target] ?? info.target;
 }
 
 function formatSize(value?: number | null) {
@@ -86,16 +60,25 @@ export default async function DownloadPage({
 
       <PageSection title={messages.download.sectionTitle}>
         <div className="space-y-3">
-          {downloads.map(({ client, target, label, info }) => {
+          {downloads.length === 0 ? (
+            <SurfaceCard className="px-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                {messages.download.unavailable}
+              </p>
+            </SurfaceCard>
+          ) : null}
+          {downloads.map((info) => {
             const available = Boolean(info.downloadUrl);
             return (
-              <SurfaceCard className="overflow-hidden" key={`${client}-${target}`}>
+              <SurfaceCard className="overflow-hidden" key={`${info.client}-${info.target}`}>
                 <div className="space-y-4 px-4 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-sm font-semibold text-foreground">{label}</h2>
+                      <h2 className="text-sm font-semibold text-foreground">
+                        {formatDownloadLabel(info)}
+                      </h2>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {client} / {target}
+                        {info.client} / {info.target}
                       </p>
                     </div>
                     <span
@@ -145,17 +128,7 @@ export default async function DownloadPage({
                       label={messages.download.download}
                       url={info.downloadUrl ?? "#"}
                     />
-                  ) : (
-                    <span
-                      aria-disabled="true"
-                      className={buttonVariants({
-                        className: "pointer-events-none w-full opacity-50",
-                        variant: "outline",
-                      })}
-                    >
-                      {messages.download.unavailable}
-                    </span>
-                  )}
+                  ) : null}
                 </div>
               </SurfaceCard>
             );

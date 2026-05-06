@@ -61,3 +61,21 @@ export async function getLatestClientDownload(query: {
 
   return client.clientDownloads.latest(query);
 }
+
+export async function listClientDownloads(query?: {
+  channel?: string;
+  client?: string;
+  target?: string;
+}) {
+  const locale = await getRequestLocale();
+  const client = createApiClient(
+    createFetchTransport({
+      baseUrl: resolveBaseUrl(),
+      getHeaders: () => ({
+        "accept-language": locale,
+      }),
+    }),
+  );
+
+  return client.clientDownloads.list(query);
+}

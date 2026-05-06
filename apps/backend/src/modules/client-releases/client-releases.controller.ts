@@ -17,6 +17,7 @@ import { Public } from '../../common/guards/public.decorator';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { AuditActor, toAuditActor } from '../audit/audit.types';
+import { ClientDownloadListQueryDto } from './dto/client-download-list-query.dto';
 import { ClientDownloadQueryDto } from './dto/client-download-query.dto';
 import { ClientPackageListQueryDto } from './dto/client-package-list-query.dto';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
@@ -100,6 +101,13 @@ export class ClientReleasesAdminController {
 @Controller('client-downloads')
 export class ClientDownloadsController {
   constructor(private readonly clientReleasesService: ClientReleasesService) {}
+
+  @Get()
+  @Public()
+  @ApiOperation({ summary: 'List latest available client downloads' })
+  list(@Query() query: ClientDownloadListQueryDto) {
+    return this.clientReleasesService.listDownloads(query);
+  }
 
   @Get('latest')
   @Public()

@@ -188,6 +188,17 @@ describe('ClientReleasesService', () => {
         prunedAt: expect.any(Date),
       }),
     });
+    expect(tx.clientRelease.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          packages: {
+            some: expect.objectContaining({
+              distributionStatus: 'synced',
+            }),
+          },
+        }),
+      }),
+    );
     expect(detail).toHaveBeenCalledWith('rel_1');
   });
 
@@ -261,6 +272,272 @@ describe('ClientReleasesService', () => {
       updateAvailable: true,
       forceUpdate: false,
     });
+  });
+
+  it('does not expose a provider when no download URL can be resolved', async () => {
+    const prisma = {
+      clientUpdatePolicy: {
+        findUnique: jest.fn().mockResolvedValue({
+          enabled: true,
+          recommendedReleaseId: null,
+          minimumSupportedVersion: null,
+          forceUpdate: false,
+          allowGithubFallback: false,
+          notes: null,
+        }),
+      },
+      clientRelease: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'rel_1',
+            channel: 'production',
+            releaseVersion: '1.2.3',
+            createdAt: now,
+            updatedAt: now,
+            packages: [
+              {
+                id: 'pkg_1',
+                client: 'appMobile',
+                target: 'ios',
+                shell: 'app-mobile',
+                packageName: '@rtnn/app-tauri',
+                artifactName: 'app-mobile-ios-1.2.3',
+                shellVersion: '0.3.0',
+                releaseKind: 'mobile-manifest-only',
+                webUrl: 'https://app.example.com',
+                sourceUrl: null,
+                distributionProvider: 'self-hosted-static',
+                distributionUrl: null,
+                distributionStatus: 'pending',
+                fileName: null,
+                fileSize: null,
+                sha256: null,
+                signingStatus: null,
+                buildStatus: 'blocked',
+                updaterStatus: null,
+                updaterUrl: null,
+                storeProvider: null,
+                storeStatus: null,
+                blockers: ['missing-ios-signing-config'],
+                syncedAt: null,
+                prunedAt: null,
+                createdAt: now,
+                updatedAt: now,
+              },
+            ],
+          },
+        ]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.resolveDownload({
+        client: 'appMobile',
+        target: 'ios',
+        channel: 'production',
+      }),
+    ).resolves.toMatchObject({
+      downloadType: 'unavailable',
+      provider: null,
+      downloadUrl: null,
+      reason: 'missing-distribution-url',
+    });
+  });
+
+  it('falls back to the latest downloadable package when a newer package has no URL', async () => {
+    const prisma = {
+      clientUpdatePolicy: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      clientRelease: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'rel_new',
+            channel: 'production',
+            releaseVersion: '1.2.4',
+            createdAt: new Date('2026-05-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-05-01T00:00:00.000Z'),
+            packages: [
+              {
+                id: 'pkg_new',
+                client: 'appMobile',
+                target: 'android',
+                shell: 'app-mobile',
+                packageName: '@rtnn/app-tauri',
+                artifactName: 'app-mobile-android-1.2.4',
+                shellVersion: '0.3.1',
+                releaseKind: 'android-signed-apk',
+                webUrl: 'https://app.example.com',
+                sourceUrl: null,
+                distributionProvider: 'self-hosted-static',
+                distributionUrl: null,
+                distributionStatus: 'failed',
+                fileName: null,
+                fileSize: null,
+                sha256: null,
+                signingStatus: null,
+                buildStatus: 'built',
+                updaterStatus: null,
+                updaterUrl: null,
+                storeProvider: null,
+                storeStatus: null,
+                blockers: ['missing-distribution-asset'],
+                syncedAt: null,
+                prunedAt: null,
+                createdAt: new Date('2026-05-01T00:00:00.000Z'),
+                updatedAt: new Date('2026-05-01T00:00:00.000Z'),
+              },
+            ],
+          },
+          {
+            id: 'rel_old',
+            channel: 'production',
+            releaseVersion: '1.2.3',
+            createdAt: now,
+            updatedAt: now,
+            packages: [
+              {
+                id: 'pkg_old',
+                client: 'appMobile',
+                target: 'android',
+                shell: 'app-mobile',
+                packageName: '@rtnn/app-tauri',
+                artifactName: 'app-mobile-android-1.2.3',
+                shellVersion: '0.3.0',
+                releaseKind: 'android-signed-apk',
+                webUrl: 'https://app.example.com',
+                sourceUrl:
+                  'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+                distributionProvider: 'self-hosted-static',
+                distributionUrl: 'https://downloads.example.com/app.apk',
+                distributionStatus: 'synced',
+                fileName: 'app.apk',
+                fileSize: 1024,
+                sha256: 'a'.repeat(64),
+                signingStatus: null,
+                buildStatus: 'built',
+                updaterStatus: null,
+                updaterUrl: null,
+                storeProvider: null,
+                storeStatus: null,
+                blockers: [],
+                syncedAt: now,
+                prunedAt: null,
+                createdAt: now,
+                updatedAt: now,
+              },
+            ],
+          },
+        ]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.resolveDownload({
+        client: 'appMobile',
+        target: 'android',
+        channel: 'production',
+      }),
+    ).resolves.toMatchObject({
+      version: '1.2.3',
+      downloadType: 'direct',
+      downloadUrl: 'https://downloads.example.com/app.apk',
+    });
+    expect(prisma.clientRelease.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 30,
+      }),
+    );
+  });
+
+  it('lists only currently available public downloads', async () => {
+    const prisma = {
+      clientPackage: {
+        findMany: jest.fn().mockResolvedValue([
+          { client: 'appMobile', target: 'android' },
+          { client: 'appMobile', target: 'android' },
+          { client: 'appMobile', target: 'ios' },
+        ]),
+      },
+      clientUpdatePolicy: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ enabled: false }),
+      },
+      clientRelease: {
+        findMany: jest.fn().mockResolvedValueOnce([
+          {
+            id: 'rel_1',
+            channel: 'production',
+            releaseVersion: '1.2.3',
+            createdAt: now,
+            updatedAt: now,
+            packages: [
+              {
+                id: 'pkg_1',
+                client: 'appMobile',
+                target: 'android',
+                shell: 'app-mobile',
+                packageName: '@rtnn/app-tauri',
+                artifactName: 'app-mobile-android-1.2.3',
+                shellVersion: '0.3.0',
+                releaseKind: 'android-signed-apk',
+                webUrl: 'https://app.example.com',
+                sourceUrl:
+                  'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+                distributionProvider: 'self-hosted-static',
+                distributionUrl: 'https://downloads.example.com/app.apk',
+                distributionStatus: 'synced',
+                fileName: 'app.apk',
+                fileSize: 1024,
+                sha256: 'a'.repeat(64),
+                signingStatus: null,
+                buildStatus: 'built',
+                updaterStatus: null,
+                updaterUrl: null,
+                storeProvider: null,
+                storeStatus: null,
+                blockers: [],
+                syncedAt: now,
+                prunedAt: null,
+                createdAt: now,
+                updatedAt: now,
+              },
+            ],
+          },
+        ]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.listDownloads({ channel: 'production' }),
+    ).resolves.toMatchObject([
+      {
+        client: 'appMobile',
+        target: 'android',
+        downloadType: 'direct',
+        downloadUrl: 'https://downloads.example.com/app.apk',
+      },
+    ]);
+    expect(prisma.clientPackage.findMany).toHaveBeenCalledWith({
+      where: {
+        distributionStatus: { notIn: ['disabled', 'pruned'] },
+        release: {
+          channel: 'production',
+          dryRun: false,
+        },
+      },
+      select: {
+        client: true,
+        target: true,
+      },
+      orderBy: [{ client: 'asc' }, { target: 'asc' }],
+    });
+    expect(prisma.clientRelease.findMany).toHaveBeenCalledTimes(1);
   });
 
   it('checks update availability with the same release policy as downloads', async () => {

@@ -500,6 +500,12 @@ export interface ClientDownloadQuery {
   currentVersion?: string;
 }
 
+export interface ClientDownloadListQuery {
+  channel?: string;
+  client?: string;
+  target?: string;
+}
+
 export interface ClientDownloadInfo {
   client: string;
   target: string;
