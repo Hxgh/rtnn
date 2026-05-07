@@ -5,6 +5,7 @@ import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
+import { Card, CardContent } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -58,14 +59,17 @@ function LinkValue({ href }: { href?: string | null }) {
 
 export default async function ClientReleaseDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ policyStatus?: string }>;
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
   assertPermission(me, "admin:client-releases:view");
   const canManagePolicy = hasPermission(me, "admin:client-releases:manage-policy");
   const { id } = await params;
+  const policyStatus = (await searchParams)?.policyStatus;
 
   let release: Awaited<ReturnType<typeof getClientReleaseById>> | null = null;
   let pageError: unknown = null;
@@ -96,6 +100,22 @@ export default async function ClientReleaseDetailPage({
       subtitle={release.releaseVersion}
     >
       <div className="space-y-3">
+        {policyStatus === "saved" || policyStatus === "failed" ? (
+          <Card
+            className={
+              policyStatus === "saved"
+                ? "border-emerald-300/45 bg-emerald-50/60 dark:border-emerald-400/30 dark:bg-emerald-900/10"
+                : "border-amber-300/45 bg-amber-50/60 dark:border-amber-400/30 dark:bg-amber-900/10"
+            }
+          >
+            <CardContent className="p-4 text-sm">
+              {policyStatus === "saved"
+                ? dictionary.clientReleases.policySaved
+                : dictionary.clientReleases.policySaveFailed}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <DataPanel className="p-6">
           <dl className="grid gap-4 text-sm md:grid-cols-3">
             <DetailRow label={dictionary.clientReleases.releaseVersion} value={release.releaseVersion} />

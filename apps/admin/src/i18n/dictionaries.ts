@@ -208,6 +208,8 @@ type ClientReleasesDictionary = {
   empty: string;
   noBlockers: string;
   savePolicy: string;
+  policySaved: string;
+  policySaveFailed: string;
 };
 
 type AccountDictionary = {
@@ -471,6 +473,8 @@ const zhCN: AdminDictionary = {
     empty: "暂无客户端壳发布记录",
     noBlockers: "无阻塞",
     savePolicy: "保存策略",
+    policySaved: "更新策略已保存。",
+    policySaveFailed: "更新策略保存失败，请稍后重试。",
   },
   auditLogs: {
     title: "审计日志",
@@ -732,6 +736,8 @@ const enUS: AdminDictionary = {
     empty: "No client shell releases yet.",
     noBlockers: "No blockers",
     savePolicy: "Save policy",
+    policySaved: "Update policy saved.",
+    policySaveFailed: "Failed to save update policy. Please try again.",
   },
   auditLogs: {
     title: "Audit Logs",

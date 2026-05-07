@@ -1648,6 +1648,17 @@ test("release-clients workflow collects downloaded updater fragment artifacts", 
   assert.match(workflow, /-path "\*-updater-fragment\/\*\.json"/);
 });
 
+test("release-clients workflow is opt-in for client package builds", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /- "client-\*"/);
+  assert.doesNotMatch(workflow, /- "v\*"/);
+});
+
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-github-release-assets-"));
   try {

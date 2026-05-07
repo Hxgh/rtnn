@@ -33,7 +33,6 @@ on:
   push:
     tags:
       - "client-*"
-      - "v*"
 
 concurrency:
   group: release-clients-${{ github.ref }}

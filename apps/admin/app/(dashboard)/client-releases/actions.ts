@@ -1,19 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { updateClientReleasePolicy } from "@/src/lib/api-client";
 import { adminRoutes } from "@/src/lib/admin-routes";
+import { getFormCheckbox, getOptionalFormString } from "@/src/lib/form-data";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-
-function optionalString(value: FormDataEntryValue | null) {
-  const normalized = String(value ?? "").trim();
-  return normalized || null;
-}
-
-function checkboxValue(value: FormDataEntryValue | null) {
-  return String(value ?? "").trim() === "true";
-}
 
 export async function updateClientReleasePolicyAction(formData: FormData) {
   const { me, accessToken } = await requireUserSession();
@@ -25,14 +18,27 @@ export async function updateClientReleasePolicyAction(formData: FormData) {
     return;
   }
 
-  await updateClientReleasePolicy(accessToken, releaseId, policyId, {
-    enabled: checkboxValue(formData.get("enabled")),
-    recommendedReleaseId: optionalString(formData.get("recommendedReleaseId")),
-    minimumSupportedVersion: optionalString(formData.get("minimumSupportedVersion")),
-    forceUpdate: checkboxValue(formData.get("forceUpdate")),
-    allowGithubFallback: checkboxValue(formData.get("allowGithubFallback")),
-    notes: optionalString(formData.get("notes")),
-  });
+  const detailPath = adminRoutes.clientReleases.detail(releaseId);
 
-  revalidatePath(adminRoutes.clientReleases.detail(releaseId));
+  try {
+    await updateClientReleasePolicy(accessToken, releaseId, policyId, {
+      enabled: getFormCheckbox(formData, "enabled"),
+      recommendedReleaseId: getOptionalFormString(
+        formData,
+        "recommendedReleaseId",
+      ),
+      minimumSupportedVersion: getOptionalFormString(
+        formData,
+        "minimumSupportedVersion",
+      ),
+      forceUpdate: getFormCheckbox(formData, "forceUpdate"),
+      allowGithubFallback: getFormCheckbox(formData, "allowGithubFallback"),
+      notes: getOptionalFormString(formData, "notes"),
+    });
+    revalidatePath(detailPath);
+  } catch {
+    redirect(`${detailPath}?policyStatus=failed`);
+  }
+
+  redirect(`${detailPath}?policyStatus=saved`);
 }
