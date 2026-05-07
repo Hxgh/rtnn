@@ -85,7 +85,7 @@ function readJson(filePath) {
 test("prepare-tauri-remote-web-url patches Tauri config and capability URLs", () => {
   withTempClient(({ dir, srcTauriDir, capabilitiesDir }) => {
     const result = runScript(dir, {
-      CLIENT_WEB_URL: "https://app.testing.rtnn.soolan.xyz/",
+      CLIENT_WEB_URL: "https://app.testing.acme.test/",
     });
 
     assert.equal(result.status, 0, result.stderr);
@@ -101,14 +101,14 @@ test("prepare-tauri-remote-web-url patches Tauri config and capability URLs", ()
 
     assert.equal(
       config.build.frontendDist,
-      "https://app.testing.rtnn.soolan.xyz",
+      "https://app.testing.acme.test",
     );
     assert.deepEqual(capability.remote.urls, [
       "http://localhost:5102",
-      "https://app.testing.rtnn.soolan.xyz",
+      "https://app.testing.acme.test",
     ]);
     assert.equal(report.schemaVersion, "rtnn.tauri-remote-web-url.v1");
-    assert.equal(report.webUrl, "https://app.testing.rtnn.soolan.xyz");
+    assert.equal(report.webUrl, "https://app.testing.acme.test");
     assert.equal(report.config.previousFrontendDistConfigured, true);
     assert.equal(
       JSON.stringify(report).includes("https://app.example.com"),
