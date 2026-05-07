@@ -168,9 +168,11 @@ test("resolve-client-release-context emits client build matrix from delivery pro
     (rootDir) => {
       const output = runContext(rootDir, {
         CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_RELEASE_TAG: "v1.2.3",
+        CLIENT_RELEASE_PUBLISH_GITHUB_RELEASE: "true",
         CLIENT_RELEASE_SYNC_DEPLOY_FACTS: "true",
-        GITHUB_REF: "refs/tags/v1.2.3",
-        GITHUB_REF_NAME: "v1.2.3",
+        GITHUB_REF: "refs/heads/main",
+        GITHUB_REF_NAME: "main",
         GITHUB_SHA: "1234567890abcdef",
       });
       const matrix = JSON.parse(output.client_matrix);
@@ -288,6 +290,48 @@ test("resolve-client-release-context resolves channel-specific client web URLs",
       assert.equal(matrix.include[0].target, "android");
       assert.equal(matrix.include[0].channel, "testing");
       assert.equal(matrix.include[0].web_url, "https://app.testing.acme.test");
+    },
+  );
+});
+
+test("resolve-client-release-context defaults v tags to production channel", () => {
+  withTempProject(
+    {
+      project: {
+        role: "business-source",
+        projectId: "acme",
+      },
+      domains: {
+        testing: {
+          admin: "admin.testing.acme.test",
+        },
+        production: {
+          admin: "admin.acme.test",
+        },
+      },
+      delivery: {
+        clients: {
+          adminDesktop: {
+            enabled: true,
+            targets: ["macos"],
+            channel: "testing",
+          },
+        },
+      },
+    },
+    (rootDir) => {
+      const output = runContext(rootDir, {
+        CLIENT_RELEASE_VERSION: "1.2.3",
+        GITHUB_REF: "refs/tags/v1.2.3",
+        GITHUB_REF_NAME: "v1.2.3",
+        GITHUB_SHA: "1234567890abcdef",
+      });
+      const matrix = JSON.parse(output.client_matrix);
+
+      assert.equal(output.release_channel, "production");
+      assert.equal(matrix.include.length, 1);
+      assert.equal(matrix.include[0].channel, "production");
+      assert.equal(matrix.include[0].web_url, "https://admin.acme.test");
     },
   );
 });

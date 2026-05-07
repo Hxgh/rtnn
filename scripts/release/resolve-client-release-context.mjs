@@ -113,6 +113,10 @@ function resolveReleaseTag(releaseVersion) {
   return releaseVersion;
 }
 
+function isProductionTagRef() {
+  return /^refs\/tags\/v[0-9]/.test(resolveSourceRef());
+}
+
 function resolveDryRun() {
   const value = normalizeString(process.env.CLIENT_RELEASE_DRY_RUN).toLowerCase();
   if (["1", "true", "yes"].includes(value)) {
@@ -154,6 +158,19 @@ function resolveSyncDeployFacts() {
   }
 
   return false;
+}
+
+function resolveReleaseChannel(clientProfile) {
+  const explicit = normalizeString(process.env.CLIENT_RELEASE_CHANNEL);
+  if (explicit) {
+    return explicit;
+  }
+
+  if (isProductionTagRef()) {
+    return "production";
+  }
+
+  return normalizeString(clientProfile.channel, "testing");
 }
 
 function readShellVersion(rootDir, clientDir) {
@@ -217,7 +234,6 @@ function main() {
   const dryRun = resolveDryRun();
   const publishGithubRelease = resolvePublishGithubRelease();
   const syncDeployFacts = resolveSyncDeployFacts();
-  const channelOverride = normalizeString(process.env.CLIENT_RELEASE_CHANNEL);
   const matrix = [];
 
   for (const { client, target } of profile.enabledClientBuildTargets) {
@@ -232,7 +248,7 @@ function main() {
     }
 
     const clientProfile = profile.clients[client];
-    const channel = channelOverride || clientProfile.channel || "production";
+    const channel = resolveReleaseChannel(clientProfile);
     const webUrl = resolveClientWebUrl(metadata, clientProfile, spec, channel);
     const artifactName = `${spec.shell}-${target}-${releaseVersion}`;
     const desktopBuild = ["macos", "windows"].includes(target);
@@ -273,7 +289,7 @@ function main() {
   writeOutput("dry_run", dryRun ? "true" : "false");
   writeOutput("publish_github_release", publishGithubRelease ? "true" : "false");
   writeOutput("sync_deploy_facts", syncDeployFacts ? "true" : "false");
-  writeOutput("release_channel", releaseChannels[0] ?? channelOverride);
+  writeOutput("release_channel", releaseChannels[0] ?? "");
   writeOutput("release_version", releaseVersion);
   writeOutput("release_tag", releaseTag);
   writeOutput("source_sha", sourceSha);
