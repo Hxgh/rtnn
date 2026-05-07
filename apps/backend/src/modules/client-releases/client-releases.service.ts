@@ -305,16 +305,13 @@ export class ClientReleasesService {
 
     for (const pair of pairs) {
       const [client, target, channel] = pair.split('\u0000');
+      const packageWhere = this.buildDownloadablePackageWhere(client, target);
       const releases = await this.prisma.clientRelease.findMany({
         where: {
           channel,
           dryRun: false,
           packages: {
-            some: {
-              client,
-              target,
-              distributionStatus: { notIn: ['disabled', 'pruned'] },
-            },
+            some: packageWhere,
           },
         },
         select: {
@@ -377,6 +374,8 @@ export class ClientReleasesService {
     const recommendedReleaseId = normalizeNullableString(
       dto.recommendedReleaseId,
     );
+    const nextAllowGithubFallback =
+      dto.allowGithubFallback ?? existing.allowGithubFallback;
     if (recommendedReleaseId) {
       const candidate = await this.findPackageByReleaseId(
         recommendedReleaseId,
@@ -386,6 +385,11 @@ export class ClientReleasesService {
       if (!candidate || candidate.release.channel !== existing.channel) {
         throw new BadRequestException(
           'Recommended release is not available for this client target channel',
+        );
+      }
+      if (!this.resolvePackageDownloadUrl(candidate, nextAllowGithubFallback)) {
+        throw new BadRequestException(
+          'Recommended release does not have a downloadable package for this policy',
         );
       }
     }
@@ -515,7 +519,11 @@ export class ClientReleasesService {
       forceUpdate: Boolean(policy?.forceUpdate || belowMinimum),
       minimumSupportedVersion: policy?.minimumSupportedVersion ?? null,
       notes: policy?.notes ?? null,
-      reason: directUrl ? null : 'missing-distribution-url',
+      reason: this.resolveDownloadReason(
+        selected,
+        directUrl,
+        allowGithubFallback,
+      ),
     };
   }
 
@@ -679,6 +687,26 @@ export class ClientReleasesService {
         channel: query.channel || 'production',
         dryRun: false,
       },
+    };
+  }
+
+  private buildDownloadablePackageWhere(
+    client: string,
+    target: string,
+  ): Prisma.ClientPackageWhereInput {
+    return {
+      client,
+      target,
+      distributionStatus: { notIn: ['disabled', 'pruned'] },
+      OR: [
+        {
+          distributionStatus: 'synced',
+          distributionUrl: { not: null },
+        },
+        {
+          sourceUrl: { not: null },
+        },
+      ],
     };
   }
 
@@ -1065,6 +1093,20 @@ export class ClientReleasesService {
       return 'github-release';
     }
     return null;
+  }
+
+  private resolveDownloadReason(
+    selected: PackageWithRelease,
+    directUrl: string | null,
+    allowGithubFallback: boolean,
+  ) {
+    if (directUrl) {
+      return null;
+    }
+    if (!allowGithubFallback && selected.sourceUrl) {
+      return 'github-fallback-disabled';
+    }
+    return 'missing-distribution-url';
   }
 
   private resolvePackageDownloadUrl(

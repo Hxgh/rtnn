@@ -227,6 +227,11 @@ export default async function ClientPackagesPage({
               {dictionary.clientReleases.openDownload}
             </AdminTableActionLink>
           ) : null}
+          {item.sourceUrl && item.sourceUrl !== item.distributionUrl ? (
+            <AdminTableActionLink href={item.sourceUrl}>
+              {dictionary.clientReleases.openSource}
+            </AdminTableActionLink>
+          ) : null}
         </AdminTableRowActions>
       ),
     },

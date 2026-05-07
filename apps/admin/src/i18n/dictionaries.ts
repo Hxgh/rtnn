@@ -184,6 +184,7 @@ type ClientReleasesDictionary = {
   release: string;
   downloadUrl: string;
   openDownload: string;
+  openSource: string;
   releaseStatus: string;
   releaseSource: string;
   sourceUrl: string;
@@ -449,6 +450,7 @@ const zhCN: AdminDictionary = {
     release: "所属发布",
     downloadUrl: "下载地址",
     openDownload: "打开下载",
+    openSource: "打开源包",
     releaseStatus: "发布状态",
     releaseSource: "发布来源",
     sourceUrl: "源包地址",
@@ -712,6 +714,7 @@ const enUS: AdminDictionary = {
     release: "Release",
     downloadUrl: "Download URL",
     openDownload: "Open download",
+    openSource: "Open source asset",
     releaseStatus: "Release status",
     releaseSource: "Release source",
     sourceUrl: "Source URL",

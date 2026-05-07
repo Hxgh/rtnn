@@ -345,6 +345,80 @@ describe('ClientReleasesService', () => {
     });
   });
 
+  it('reports when GitHub fallback is disabled for a source-only package', async () => {
+    const prisma = {
+      clientUpdatePolicy: {
+        findUnique: jest.fn().mockResolvedValue({
+          enabled: true,
+          recommendedReleaseId: null,
+          minimumSupportedVersion: null,
+          forceUpdate: false,
+          allowGithubFallback: false,
+          notes: null,
+        }),
+      },
+      clientRelease: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'rel_1',
+            channel: 'production',
+            releaseVersion: '1.2.3',
+            createdAt: now,
+            updatedAt: now,
+            packages: [
+              {
+                id: 'pkg_1',
+                client: 'appMobile',
+                target: 'android',
+                shell: 'app-mobile',
+                packageName: '@rtnn/app-tauri',
+                artifactName: 'app-mobile-android-1.2.3',
+                shellVersion: '0.3.0',
+                releaseKind: 'android-signed-apk',
+                webUrl: 'https://app.example.com',
+                sourceUrl:
+                  'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+                distributionProvider: 'self-hosted-static',
+                distributionUrl: null,
+                distributionStatus: 'failed',
+                fileName: 'app.apk',
+                fileSize: 1024,
+                sha256: 'a'.repeat(64),
+                signingStatus: null,
+                buildStatus: 'built',
+                updaterStatus: null,
+                updaterUrl: null,
+                storeProvider: null,
+                storeStatus: null,
+                blockers: ['missing-self-hosted-asset'],
+                syncedAt: null,
+                prunedAt: null,
+                createdAt: now,
+                updatedAt: now,
+              },
+            ],
+          },
+        ]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.resolveDownload({
+        client: 'appMobile',
+        target: 'android',
+        channel: 'production',
+      }),
+    ).resolves.toMatchObject({
+      downloadType: 'unavailable',
+      provider: null,
+      downloadUrl: null,
+      sourceUrl:
+        'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+      reason: 'github-fallback-disabled',
+    });
+  });
+
   it('falls back to the latest downloadable package when a newer package has no URL', async () => {
     const prisma = {
       clientUpdatePolicy: {
@@ -784,5 +858,59 @@ describe('ClientReleasesService', () => {
       },
       include: { release: true },
     });
+  });
+
+  it('rejects recommended releases that cannot be downloaded under the policy fallback setting', async () => {
+    const prisma = {
+      $transaction: jest.fn((operations: Array<Promise<unknown>>) =>
+        Promise.all(operations),
+      ),
+      clientUpdatePolicy: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'policy_1',
+          client: 'appMobile',
+          target: 'android',
+          channel: 'production',
+          allowGithubFallback: false,
+        }),
+      },
+      clientRelease: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'rel_current',
+          channel: 'production',
+          packages: [{ client: 'appMobile', target: 'android' }],
+        }),
+      },
+      clientPackage: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'pkg_1',
+          client: 'appMobile',
+          target: 'android',
+          sourceUrl:
+            'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+          distributionUrl: null,
+          distributionStatus: 'failed',
+          release: {
+            id: 'rel_source_only',
+            channel: 'production',
+          },
+        }),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.updatePolicy(
+        { type: 'admin', id: 'admin_1', name: 'Admin' },
+        'rel_current',
+        'policy_1',
+        {
+          recommendedReleaseId: 'rel_source_only',
+          allowGithubFallback: false,
+        },
+      ),
+    ).rejects.toThrow(
+      'Recommended release does not have a downloadable package for this policy',
+    );
   });
 });
