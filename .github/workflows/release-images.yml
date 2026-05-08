@@ -171,9 +171,6 @@ jobs:
       - name: Template bootstrap gate
         run: pnpm run check:template-bootstrap
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-
       - name: Release candidate gate
         run: pnpm run check:release-candidate
 
