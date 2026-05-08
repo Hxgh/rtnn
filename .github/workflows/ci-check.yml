@@ -99,6 +99,13 @@ jobs:
           version: 10.17.0
 
       - name: Setup Node.js
+        if: ${{ github.event_name != 'pull_request' && vars.RTNN_RELEASE_EXECUTION_MODE != 'github-hosted' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Setup Node.js With Pnpm Cache
+        if: ${{ github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted' }}
         uses: actions/setup-node@v6
         with:
           node-version: 20
