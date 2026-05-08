@@ -1974,6 +1974,8 @@ test("release-clients workflow verifies Android SDK for signed builds", () => {
   assert.match(workflow, /\$HOME\/android-sdk/);
   assert.match(workflow, /ANDROID_NDK_HOME=\$ndk_home/);
   assert.match(workflow, /Android SDK not found/);
+  assert.match(workflow, /ANDROID_SDK_PLATFORM/);
+  assert.match(workflow, /platforms;\$sdk_platform/);
 });
 
 test("release-clients workflow primes Android Gradle wrapper before signed builds", () => {

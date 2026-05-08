@@ -161,6 +161,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || '' }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || '' }}
+          ANDROID_SDK_PLATFORM: ${{ vars.ANDROID_SDK_PLATFORM || 'android-36' }}
         run: |
           set -euo pipefail
 
@@ -194,6 +195,15 @@ jobs:
 
           if [[ ! -d "$android_home/platforms" ]]; then
             echo "::error::Android SDK platforms are missing. Install at least one platforms;android-* package."
+            exit 1
+          fi
+
+          sdk_platform="$ANDROID_SDK_PLATFORM"
+          if [[ "$sdk_platform" != android-* ]]; then
+            sdk_platform="android-$sdk_platform"
+          fi
+          if [[ ! -d "$android_home/platforms/$sdk_platform" ]]; then
+            echo "::error::Android SDK platform $sdk_platform is missing. Install it with sdkmanager \"platforms;$sdk_platform\" or set ANDROID_SDK_PLATFORM to an installed platform."
             exit 1
           fi
 
