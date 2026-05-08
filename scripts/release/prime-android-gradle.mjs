@@ -17,6 +17,13 @@ function normalizePositiveInteger(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseList(value) {
+  return normalizeString(value)
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function patchNetworkTimeout(source, timeout) {
   const line = `networkTimeout=${timeout}`;
   if (/^networkTimeout=/m.test(source)) {
@@ -70,6 +77,42 @@ function patchDistributionUrl(source, distributionUrl) {
   return `${source.replace(/\s*$/, "\n")}${line}\n`;
 }
 
+function buildMavenMirrorBlock(urls, indent, isKotlinDsl) {
+  const childIndent = `${indent}    `;
+  const lines = [
+    `${childIndent}// RTNN_ANDROID_MAVEN_MIRRORS_START`,
+    ...urls.map((url) =>
+      isKotlinDsl
+        ? `${childIndent}maven { url = uri(${JSON.stringify(url)}) }`
+        : `${childIndent}maven { url ${JSON.stringify(url)} }`,
+    ),
+    `${childIndent}// RTNN_ANDROID_MAVEN_MIRRORS_END`,
+  ];
+
+  return `${lines.join("\n")}\n`;
+}
+
+function patchMavenRepositories(source, urls, isKotlinDsl) {
+  if (urls.length === 0) {
+    return source;
+  }
+
+  const withoutOldBlock = source.replace(
+    /^[ \t]*\/\/ RTNN_ANDROID_MAVEN_MIRRORS_START[\s\S]*?^[ \t]*\/\/ RTNN_ANDROID_MAVEN_MIRRORS_END\r?\n?/gm,
+    "",
+  );
+  let patchedCount = 0;
+  const patched = withoutOldBlock.replace(
+    /^([ \t]*)repositories\s*\{\s*\r?\n/gm,
+    (match, indent) => {
+      patchedCount += 1;
+      return `${match}${buildMavenMirrorBlock(urls, indent, isKotlinDsl)}`;
+    },
+  );
+
+  return patchedCount > 0 ? patched : withoutOldBlock;
+}
+
 function writeOutput(name, value) {
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) {
@@ -108,6 +151,7 @@ const attempts = normalizePositiveInteger(
   process.env.GRADLE_WRAPPER_PRIME_ATTEMPTS,
   3,
 );
+const mavenRepositoryUrls = parseList(process.env.ANDROID_MAVEN_REPOSITORY_URLS);
 const shouldDownload =
   normalizeString(process.env.GRADLE_WRAPPER_PRIME_DOWNLOAD, "true") !==
   "false";
@@ -134,6 +178,39 @@ console.log(
 writeOutput("configured", "true");
 writeOutput("network_timeout", String(timeout));
 writeOutput("distribution_url", distributionUrl);
+
+if (mavenRepositoryUrls.length > 0) {
+  const gradleFiles = [
+    "build.gradle",
+    "build.gradle.kts",
+    path.join("app", "build.gradle"),
+    path.join("app", "build.gradle.kts"),
+    path.join("buildSrc", "build.gradle"),
+    path.join("buildSrc", "build.gradle.kts"),
+  ]
+    .map((file) => path.join(androidDir, file))
+    .filter((file) => existsSync(file));
+  let patchedFiles = 0;
+
+  for (const file of gradleFiles) {
+    const current = readFileSync(file, "utf8");
+    const patchedSource = patchMavenRepositories(
+      current,
+      mavenRepositoryUrls,
+      file.endsWith(".kts"),
+    );
+    if (patchedSource !== current) {
+      writeFileSync(file, patchedSource);
+      patchedFiles += 1;
+    }
+  }
+
+  console.log(
+    `[android-gradle] maven mirrors configured; urls=${mavenRepositoryUrls.length}; files=${patchedFiles}`,
+  );
+  writeOutput("maven_mirror_count", String(mavenRepositoryUrls.length));
+  writeOutput("maven_mirror_files", String(patchedFiles));
+}
 
 if (!shouldDownload) {
   console.log("[android-gradle] distribution download skipped by GRADLE_WRAPPER_PRIME_DOWNLOAD=false");
