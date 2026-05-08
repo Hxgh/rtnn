@@ -138,11 +138,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Java
-        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' && matrix.runner_kind == 'github-hosted' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Verify server-local Java
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' && matrix.runner_kind == 'self-hosted' }}
+        shell: bash
+        run: |
+          java -version
+          javac -version
 
       - name: Setup iOS Rust target
         if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
