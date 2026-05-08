@@ -140,6 +140,25 @@ async function updateCustomerStatus(
   expect(response.ok()).toBeTruthy();
 }
 
+async function expectBottomNavSafeAreaFilled(page: Page) {
+  await expect(async () => {
+    const navSurface = page.locator("nav > div").first();
+    await expect(navSurface).toBeVisible();
+
+    const [box, backgroundColor, viewport] = await Promise.all([
+      navSurface.boundingBox(),
+      navSurface.evaluate((element) => getComputedStyle(element).backgroundColor),
+      page.viewportSize(),
+    ]);
+
+    expect(box).toBeTruthy();
+    expect(viewport).toBeTruthy();
+    expect(Math.round(box!.y + box!.height)).toBeGreaterThanOrEqual(viewport!.height - 1);
+    expect(backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(backgroundColor).not.toBe("transparent");
+  }).toPass();
+}
+
 test("app 客户端最小闭环验收", async ({ page }) => {
   await loginCustomer(page);
 
@@ -162,6 +181,7 @@ test("app 客户端最小闭环验收", async ({ page }) => {
 
   await page.goto("/me");
   await expect(page.getByRole("heading", { name: meTitle })).toBeVisible();
+  await expectBottomNavSafeAreaFilled(page);
 
   const logoutNavigation = page.waitForURL("**/login");
   await page.getByRole("button", { name: logoutButton }).click();

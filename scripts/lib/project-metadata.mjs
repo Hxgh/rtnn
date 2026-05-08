@@ -4,6 +4,17 @@ import path from "node:path";
 import { resolveTemplateEnv } from "./template-env.mjs";
 
 export const PROJECT_METADATA_FILE = ".rtnn/project.json";
+export const RELEASE_EXECUTION_MODES = Object.freeze([
+  "server-local",
+  "github-hosted",
+]);
+
+const CLIENT_RELEASE_TARGETS = Object.freeze([
+  "android",
+  "macos",
+  "windows",
+  "ios",
+]);
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -55,6 +66,82 @@ function normalizeEnvironments(value) {
     .filter(Boolean);
 
   return normalized.length > 0 ? normalized : ["testing", "production"];
+}
+
+function defaultReleaseExecution() {
+  return {
+    defaultMode: "server-local",
+    allowedModes: ["server-local", "github-hosted"],
+    githubHosted: {
+      enabled: false,
+      requiresExplicitOptIn: true,
+    },
+    clientBuild: {
+      defaultTrigger: "manual",
+      targets: {
+        android: {
+          enabled: true,
+          defaultMode: "server-local",
+        },
+        macos: {
+          enabled: false,
+          defaultMode: "github-hosted",
+        },
+        windows: {
+          enabled: false,
+          defaultMode: "github-hosted",
+        },
+        ios: {
+          enabled: false,
+          defaultMode: "github-hosted",
+        },
+      },
+    },
+  };
+}
+
+function mergeReleaseExecution(existingReleaseExecution) {
+  const defaults = defaultReleaseExecution();
+  if (!isPlainObject(existingReleaseExecution)) {
+    return defaults;
+  }
+
+  const existingGithubHosted = isPlainObject(existingReleaseExecution.githubHosted)
+    ? existingReleaseExecution.githubHosted
+    : {};
+  const existingClientBuild = isPlainObject(existingReleaseExecution.clientBuild)
+    ? existingReleaseExecution.clientBuild
+    : {};
+  const existingClientBuildTargets = isPlainObject(existingClientBuild.targets)
+    ? existingClientBuild.targets
+    : {};
+  const targets = {};
+
+  for (const target of CLIENT_RELEASE_TARGETS) {
+    targets[target] = {
+      ...defaults.clientBuild.targets[target],
+      ...(isPlainObject(existingClientBuildTargets[target])
+        ? existingClientBuildTargets[target]
+        : {}),
+    };
+  }
+
+  return {
+    ...defaults,
+    ...existingReleaseExecution,
+    allowedModes: Array.isArray(existingReleaseExecution.allowedModes)
+      ? existingReleaseExecution.allowedModes
+      : defaults.allowedModes,
+    githubHosted: {
+      ...defaults.githubHosted,
+      ...existingGithubHosted,
+    },
+    clientBuild: {
+      ...defaults.clientBuild,
+      ...existingClientBuild,
+      targets,
+    },
+  };
 }
 
 export function readProjectMetadata(rootDir) {
@@ -148,6 +235,7 @@ export function buildBusinessProjectMetadata(rootDir, existingMetadata = null) {
     server: isPlainObject(existing.server)
       ? existing.server
       : { hostModel: "single-host" },
+    releaseExecution: mergeReleaseExecution(existing.releaseExecution),
     liveState: isPlainObject(existing.liveState)
       ? existing.liveState
       : { testing: {}, production: {} },
@@ -204,6 +292,9 @@ export function validateBusinessProjectMetadata(rootDir, options = {}) {
     ? metadata.upstreamTemplate
     : {};
   const deployment = isPlainObject(metadata.deployment) ? metadata.deployment : {};
+  const releaseExecution = isPlainObject(metadata.releaseExecution)
+    ? metadata.releaseExecution
+    : null;
 
   const requiredFields = [
     ["project.repo", project.repo],
@@ -234,6 +325,87 @@ export function validateBusinessProjectMetadata(rootDir, options = {}) {
 
   if (!String(upstreamTemplate.repo ?? "").trim()) {
     errors.push("upstreamTemplate.repo 不能为空");
+  }
+
+  if (releaseExecution) {
+    const allowedModes = Array.isArray(releaseExecution.allowedModes)
+      ? releaseExecution.allowedModes
+          .map((item) => String(item ?? "").trim())
+          .filter(Boolean)
+      : [];
+    const defaultMode = String(releaseExecution.defaultMode ?? "").trim();
+
+    if (!RELEASE_EXECUTION_MODES.includes(defaultMode)) {
+      errors.push(
+        `releaseExecution.defaultMode 必须是 ${RELEASE_EXECUTION_MODES.join("/")}`,
+      );
+    }
+
+    if (allowedModes.length === 0) {
+      errors.push("releaseExecution.allowedModes 不能为空");
+    }
+
+    for (const mode of allowedModes) {
+      if (!RELEASE_EXECUTION_MODES.includes(mode)) {
+        errors.push(`releaseExecution.allowedModes 包含未知模式: ${mode}`);
+      }
+    }
+
+    if (defaultMode && allowedModes.length > 0 && !allowedModes.includes(defaultMode)) {
+      errors.push("releaseExecution.defaultMode 必须包含在 allowedModes 中");
+    }
+
+    const githubHosted = isPlainObject(releaseExecution.githubHosted)
+      ? releaseExecution.githubHosted
+      : {};
+    for (const [field, value] of [
+      ["releaseExecution.githubHosted.enabled", githubHosted.enabled],
+      [
+        "releaseExecution.githubHosted.requiresExplicitOptIn",
+        githubHosted.requiresExplicitOptIn,
+      ],
+    ]) {
+      if (value !== undefined && typeof value !== "boolean") {
+        errors.push(`${field} 必须是 boolean`);
+      }
+    }
+
+    const clientBuild = isPlainObject(releaseExecution.clientBuild)
+      ? releaseExecution.clientBuild
+      : {};
+    const clientBuildTargets = isPlainObject(clientBuild.targets)
+      ? clientBuild.targets
+      : {};
+    for (const [target, targetConfig] of Object.entries(clientBuildTargets)) {
+      if (!CLIENT_RELEASE_TARGETS.includes(target)) {
+        errors.push(`releaseExecution.clientBuild.targets 包含未知目标: ${target}`);
+        continue;
+      }
+
+      if (!isPlainObject(targetConfig)) {
+        errors.push(`releaseExecution.clientBuild.targets.${target} 必须是对象`);
+        continue;
+      }
+
+      if (
+        targetConfig.enabled !== undefined &&
+        typeof targetConfig.enabled !== "boolean"
+      ) {
+        errors.push(
+          `releaseExecution.clientBuild.targets.${target}.enabled 必须是 boolean`,
+        );
+      }
+
+      const targetDefaultMode = String(targetConfig.defaultMode ?? "").trim();
+      if (
+        targetDefaultMode &&
+        !RELEASE_EXECUTION_MODES.includes(targetDefaultMode)
+      ) {
+        errors.push(
+          `releaseExecution.clientBuild.targets.${target}.defaultMode 必须是 ${RELEASE_EXECUTION_MODES.join("/")}`,
+        );
+      }
+    }
   }
 
   if (requireConcreteRepositories) {

@@ -1,5 +1,4 @@
-import { BottomTabBar } from "@/components/site/bottom-tab-bar";
-import { SiteHeader } from "@/components/site/site-header";
+import { AppChrome } from "@/components/site/app-chrome";
 import { readSession } from "@/lib/server/session";
 
 export default async function PublicLayout({
@@ -7,15 +6,5 @@ export default async function PublicLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await readSession();
 
-  if (!session) {
-    return children;
-  }
-
-  return (
-    <>
-      <SiteHeader />
-      {children}
-      <BottomTabBar />
-    </>
-  );
+  return <AppChrome showTabBar={Boolean(session)}>{children}</AppChrome>;
 }

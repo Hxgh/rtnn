@@ -1,14 +1,7 @@
-import { BottomTabBar } from "@/components/site/bottom-tab-bar";
-import { SiteHeader } from "@/components/site/site-header";
+import { AppChrome } from "@/components/site/app-chrome";
 
 export default async function UserLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <>
-      <SiteHeader />
-      {children}
-      <BottomTabBar />
-    </>
-  );
+  return <AppChrome>{children}</AppChrome>;
 }

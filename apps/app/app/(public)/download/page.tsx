@@ -1,6 +1,6 @@
 import type { ClientDownloadInfo } from "@rtnn/shared-types";
 import { NativeDownloadButton } from "@/components/download/native-download-button";
-import { PageSection, PageShell, PageTitle } from "@/components/site/page-shell";
+import { PageSection, PageShell } from "@/components/site/page-shell";
 import { SurfaceCard } from "@/components/ui/card";
 import { getServerI18n } from "@/lib/i18n/server";
 import { listClientDownloads } from "@/lib/server/api-client";
@@ -23,7 +23,7 @@ function resolveDefaultChannel() {
 
 async function resolveDownloads(channel: string): Promise<ClientDownloadInfo[]> {
   try {
-    return listClientDownloads({ channel });
+    return await listClientDownloads({ channel });
   } catch {
     return [];
   }
@@ -59,11 +59,10 @@ export default async function DownloadPage({
   const downloads = await resolveDownloads(channel);
 
   return (
-    <PageShell className="space-y-6 pt-8">
-      <PageTitle
-        title={messages.download.title}
-        description={messages.download.description}
-      />
+    <PageShell className="space-y-5 pt-5">
+      <p className="max-w-[24rem] text-sm leading-6 text-muted-foreground">
+        {messages.download.description}
+      </p>
 
       <PageSection title={messages.download.sectionTitle}>
         <div className="space-y-3">

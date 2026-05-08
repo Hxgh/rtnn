@@ -67,6 +67,7 @@ function normalizeRemoteWebUrl(value) {
 
   if (
     hostname === "localhost" ||
+    hostname === "0.0.0.0" ||
     hostname === "127.0.0.1" ||
     hostname === "::1" ||
     hostname.endsWith(".localhost")
@@ -93,6 +94,7 @@ function isLocalDevRemoteUrl(value) {
     const hostname = url.hostname.toLowerCase();
     return (
       hostname === "localhost" ||
+      hostname === "0.0.0.0" ||
       hostname === "127.0.0.1" ||
       hostname === "::1" ||
       hostname.endsWith(".localhost")

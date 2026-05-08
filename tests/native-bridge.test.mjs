@@ -4,9 +4,11 @@ import {
   buildWebMapNavigationUrl,
   createBrowserNativeBridge,
   createDetectedTauriNativeBridge,
+  createNativeCapabilityCore,
   createNativeBridge,
   getTauriInvoke,
   hasNativeFeature,
+  installNativeViewportInsets,
   resolveNativeClientUpdateQuery,
 } from "../packages/native-bridge/dist/index.js";
 
@@ -57,6 +59,28 @@ test("browser map navigation builds AMap URL from coordinates", () => {
   );
 
   assert.equal(buildWebMapNavigationUrl({}), null);
+});
+
+test("browser map navigation supports common China map web fallbacks", () => {
+  assert.equal(
+    buildWebMapNavigationUrl({
+      appType: "baidu",
+      lat: 30.25,
+      lng: 120.16,
+      name: "杭州",
+    }),
+    "https://api.map.baidu.com/direction?destination=latlng:30.25,120.16|name:%E6%9D%AD%E5%B7%9E&mode=driving&output=html&coord_type=gcj02",
+  );
+
+  assert.equal(
+    buildWebMapNavigationUrl({
+      appType: "tencent",
+      lat: 30.25,
+      lng: 120.16,
+      name: "杭州",
+    }),
+    "https://apis.map.qq.com/uri/v1/routeplan?type=drive&tocoord=30.25,120.16&to=%E6%9D%AD%E5%B7%9E",
+  );
 });
 
 test("native bridge detects Tauri invoke from global scope", () => {
@@ -115,6 +139,69 @@ test("detected Tauri bridge reads native client info and commands", async () => 
   );
 });
 
+test("detected Tauri bridge uses native permission and map install commands", async () => {
+  const calls = [];
+  const invoke = async (command, args) => {
+    calls.push({ command, args });
+
+    if (command === "check_permission") {
+      return {
+        ok: true,
+        kind: args.kind,
+        status: "prompt",
+        requested: false,
+        canAskAgain: true,
+      };
+    }
+
+    if (command === "request_permission") {
+      return {
+        ok: true,
+        kind: args.kind,
+        status: "granted",
+        requested: true,
+      };
+    }
+
+    if (command === "check_map_installed") {
+      return {
+        ok: true,
+        appType: args.appType,
+        installed: true,
+        status: "installed",
+      };
+    }
+
+    return { ok: true };
+  };
+
+  const bridge = createDetectedTauriNativeBridge({ invoke });
+
+  assert.equal((await bridge.checkPermission("camera")).status, "prompt");
+  assert.equal(
+    (
+      await bridge.requestPermission({
+        kind: "camera",
+        trigger: "on-demand",
+        purpose: "capture-image",
+      })
+    ).status,
+    "granted",
+  );
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "amap" }), {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    message: undefined,
+    reason: undefined,
+  });
+  assert.deepEqual(
+    calls.map((call) => call.command),
+    ["check_permission", "request_permission", "check_map_installed"],
+  );
+});
+
 test("createNativeBridge falls back to browser without Tauri", async () => {
   const bridge = createNativeBridge({
     globalScope: {},
@@ -151,6 +238,177 @@ test("createNativeBridge uses detected Tauri invoke when available", async () =>
   });
 
   assert.equal((await bridge.getClientInfo()).shell, "app-mobile");
+});
+
+test("browser bridge reports unavailable image picker without document", async () => {
+  const bridge = createBrowserNativeBridge();
+
+  assert.deepEqual(await bridge.pickImages(), {
+    ok: false,
+    reason: "file-picker-unavailable",
+    files: [],
+  });
+});
+
+test("browser bridge exposes a unified permission contract", async () => {
+  let requested = false;
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      Notification: {
+        permission: "default",
+        requestPermission: async () => {
+          requested = true;
+          return "granted";
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(await bridge.checkPermission("photo-library"), {
+    ok: true,
+    kind: "photo-library",
+    status: "prompt",
+    requested: false,
+    canAskAgain: true,
+    message: undefined,
+    reason: "permission-managed-by-file-picker",
+  });
+
+  assert.equal((await bridge.checkPermission("notification")).status, "prompt");
+  assert.equal((await bridge.requestPermission("notification")).status, "granted");
+  assert.equal(requested, true);
+});
+
+test("native capability core requests media permissions before image picking", async () => {
+  const calls = [];
+  const bridge = {
+    async getClientInfo() {
+      calls.push(["getClientInfo"]);
+      return {
+        runtime: "browser",
+        shell: null,
+        platform: "android",
+        appVersion: null,
+        bridgeVersion: "0.1.0",
+        channel: "testing",
+        features: [],
+      };
+    },
+    async openExternal(input) {
+      calls.push(["openExternal", input]);
+      return { ok: true };
+    },
+    async openMapNavigation(input) {
+      calls.push(["openMapNavigation", input]);
+      return { ok: true };
+    },
+    async checkMapInstalled(input) {
+      calls.push(["checkMapInstalled", input]);
+      return {
+        ok: true,
+        appType: input.appType,
+        installed: null,
+        status: "unknown",
+      };
+    },
+    async checkPermission(input) {
+      calls.push(["checkPermission", input.kind ?? input]);
+      return {
+        ok: true,
+        kind: input.kind ?? input,
+        status: "granted",
+      };
+    },
+    async requestPermission(input) {
+      calls.push(["requestPermission", input.kind ?? input]);
+      return {
+        ok: true,
+        kind: input.kind ?? input,
+        status: "granted",
+      };
+    },
+    async ensurePermission(input) {
+      calls.push(["ensurePermission", input.kind ?? input, input.purpose]);
+      return {
+        ok: true,
+        kind: input.kind ?? input,
+        status: "granted",
+      };
+    },
+    async pickImages(input) {
+      calls.push(["pickImages", input?.capture ?? null]);
+      return { ok: true, files: [] };
+    },
+    async checkUpdate() {
+      calls.push(["checkUpdate"]);
+      return { ok: false, update: { available: false } };
+    },
+    async installUpdate() {
+      calls.push(["installUpdate"]);
+      return { ok: false };
+    },
+  };
+  const core = createNativeCapabilityCore({ bridge });
+
+  assert.deepEqual(core.listMapApps().map((item) => item.appType), [
+    "amap",
+    "baidu",
+    "tencent",
+  ]);
+  assert.deepEqual(await core.pickImages({ capture: "environment" }), {
+    ok: true,
+    files: [],
+  });
+  assert.deepEqual(calls, [
+    ["ensurePermission", "photo-library", "pick-image"],
+    ["ensurePermission", "camera", "capture-image"],
+    ["pickImages", "environment"],
+  ]);
+});
+
+test("native viewport insets writes keyboard CSS variables from visual viewport", () => {
+  const styles = new Map();
+  const root = {
+    style: {
+      setProperty(name, value) {
+        styles.set(name, value);
+      },
+    },
+  };
+  const listeners = new Map();
+  const visualViewport = {
+    height: 500,
+    offsetTop: 0,
+    addEventListener(name, listener) {
+      listeners.set(`viewport:${name}`, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(`viewport:${name}`);
+    },
+  };
+  const win = {
+    innerHeight: 760,
+    visualViewport,
+    document: { documentElement: root },
+    addEventListener(name, listener) {
+      listeners.set(`window:${name}`, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(`window:${name}`);
+    },
+  };
+
+  const cleanup = installNativeViewportInsets({ root, window: win });
+
+  assert.equal(styles.get("--rtnn-keyboard-height"), "260px");
+  assert.equal(styles.get("--skb"), "260px");
+
+  visualViewport.height = 750;
+  listeners.get("viewport:resize")();
+  assert.equal(styles.get("--rtnn-keyboard-height"), "0px");
+
+  cleanup();
+  assert.equal(listeners.size, 0);
 });
 
 test("native bridge resolves backend update query from Tauri client info", () => {

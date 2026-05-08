@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { TEMPLATE_DISPLAY } from "@rtnn/config";
+import { NativeRuntimeProvider } from "@/components/providers/native-runtime-provider";
 import { PreferencesProvider } from "@/components/providers/preferences-provider";
 import { getServerPreferencesFromRequest } from "@/lib/i18n/server";
 import "./globals.css";
@@ -12,6 +13,14 @@ export const metadata: Metadata = {
     shortcut: "/brand/brand-mark.svg",
     apple: "/brand/brand-mark.svg",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -30,7 +39,7 @@ export default async function RootLayout({
           initialLocale={locale}
           initialTheme={theme}
         >
-          {children}
+          <NativeRuntimeProvider>{children}</NativeRuntimeProvider>
         </PreferencesProvider>
       </body>
     </html>

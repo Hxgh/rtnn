@@ -20,6 +20,29 @@ struct CommandResult {
     reason: Option<String>,
 }
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PermissionResult {
+    ok: bool,
+    kind: String,
+    status: &'static str,
+    requested: bool,
+    can_ask_again: Option<bool>,
+    message: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MapInstallResult {
+    ok: bool,
+    app_type: String,
+    installed: Option<bool>,
+    status: &'static str,
+    message: Option<String>,
+    reason: Option<String>,
+}
+
 fn current_platform() -> &'static str {
     #[cfg(target_os = "macos")]
     {
@@ -45,12 +68,37 @@ fn current_platform() -> &'static str {
     "web"
 }
 
+fn picker_managed_permission(kind: &str) -> bool {
+    matches!(kind, "camera" | "photo-library" | "file-picker")
+}
+
+fn permission_result(
+    kind: String,
+    status: &'static str,
+    requested: bool,
+    reason: Option<String>,
+) -> PermissionResult {
+    let ok = matches!(status, "granted")
+        || (matches!(status, "prompt" | "unknown") && picker_managed_permission(&kind));
+
+    PermissionResult {
+        ok,
+        kind,
+        status,
+        requested,
+        can_ask_again: Some(matches!(status, "prompt" | "unknown")),
+        message: None,
+        reason,
+    }
+}
+
 fn build_map_url(
     app_type: &str,
     lat: Option<f64>,
     lng: Option<f64>,
     name: Option<&str>,
     scheme: bool,
+    direct_nav: bool,
 ) -> Result<String, String> {
     let has_coords = lat.is_some() && lng.is_some();
     let has_name = name.map(|value| !value.trim().is_empty()).unwrap_or(false);
@@ -62,7 +110,7 @@ fn build_map_url(
     let lat_value = lat.unwrap_or_default();
     let lng_value = lng.unwrap_or_default();
     let name_value = name.unwrap_or("destination");
-    let encoded_name = name_value.replace(' ', "%20");
+    let encoded_name = encode_url_component(name_value);
 
     if scheme {
         return match app_type {
@@ -72,9 +120,14 @@ fn build_map_url(
                 #[cfg(not(target_os = "ios"))]
                 let prefix = "androidamap";
 
-                if has_coords {
+                if direct_nav && has_coords {
                     Ok(format!(
                         "{}://navi?sourceApplication=rtnn&lat={}&lon={}&poiname={}&dev=0&style=2",
+                        prefix, lat_value, lng_value, encoded_name,
+                    ))
+                } else if has_coords {
+                    Ok(format!(
+                        "{}://route/plan?sourceApplication=rtnn&dlat={}&dlon={}&dname={}&dev=0&t=0",
                         prefix, lat_value, lng_value, encoded_name,
                     ))
                 } else {
@@ -127,6 +180,21 @@ fn build_map_url(
     }
 }
 
+fn encode_url_component(value: &str) -> String {
+    let mut output = String::new();
+
+    for byte in value.as_bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                output.push(*byte as char)
+            }
+            _ => output.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+
+    output
+}
+
 #[tauri::command]
 fn get_client_info() -> NativeClientInfo {
     NativeClientInfo {
@@ -137,7 +205,14 @@ fn get_client_info() -> NativeClientInfo {
         bridge_version: "0.1.0",
         channel: std::env::var("RTNN_CLIENT_CHANNEL").unwrap_or_else(|_| "dev".to_string()),
         source_sha: std::env::var("RTNN_CLIENT_SOURCE_SHA").ok(),
-        features: vec!["external.open", "map.navigation"],
+        features: vec![
+            "external.open",
+            "map.navigation",
+            "file.pick",
+            "permission",
+            "safe-area",
+            "keyboard",
+        ],
     }
 }
 
@@ -169,12 +244,12 @@ fn open_map_navigation(
     app_type: Option<String>,
     direct_nav: Option<bool>,
 ) -> Result<CommandResult, String> {
-    let _ = direct_nav;
     let app_type = app_type.unwrap_or_else(|| "amap".to_string());
+    let direct_nav = direct_nav.unwrap_or_else(|| lat.is_some() && lng.is_some());
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
-        let scheme_url = build_map_url(&app_type, lat, lng, name.as_deref(), true)?;
+        let scheme_url = build_map_url(&app_type, lat, lng, name.as_deref(), true, direct_nav)?;
 
         if app.opener().open_url(&scheme_url, None::<&str>).is_ok() {
             return Ok(CommandResult {
@@ -185,7 +260,7 @@ fn open_map_navigation(
         }
     }
 
-    let web_url = build_map_url(&app_type, lat, lng, name.as_deref(), false)?;
+    let web_url = build_map_url(&app_type, lat, lng, name.as_deref(), false, direct_nav)?;
 
     app.opener()
         .open_url(&web_url, None::<&str>)
@@ -198,6 +273,63 @@ fn open_map_navigation(
     })
 }
 
+#[tauri::command]
+fn check_map_installed(app_type: String) -> MapInstallResult {
+    MapInstallResult {
+        ok: true,
+        app_type,
+        installed: None,
+        status: "unknown",
+        message: None,
+        reason: Some("map-install-check-unavailable".to_string()),
+    }
+}
+
+#[tauri::command]
+fn check_permission(kind: String) -> PermissionResult {
+    if picker_managed_permission(&kind) {
+        return permission_result(
+            kind,
+            "prompt",
+            false,
+            Some("permission-managed-by-file-picker".to_string()),
+        );
+    }
+
+    permission_result(
+        kind,
+        "unsupported",
+        false,
+        Some("permission-unavailable".to_string()),
+    )
+}
+
+#[tauri::command]
+fn request_permission(
+    kind: String,
+    trigger: Option<String>,
+    purpose: Option<String>,
+) -> PermissionResult {
+    let _ = trigger;
+    let _ = purpose;
+
+    if picker_managed_permission(&kind) {
+        return permission_result(
+            kind,
+            "prompt",
+            true,
+            Some("permission-managed-by-file-picker".to_string()),
+        );
+    }
+
+    permission_result(
+        kind,
+        "unsupported",
+        true,
+        Some("permission-unavailable".to_string()),
+    )
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -206,6 +338,9 @@ pub fn run() {
             get_client_info,
             open_external,
             open_map_navigation,
+            check_map_installed,
+            check_permission,
+            request_permission,
         ])
         .run(tauri::generate_context!())
         .expect("error while running rtnn app tauri shell");

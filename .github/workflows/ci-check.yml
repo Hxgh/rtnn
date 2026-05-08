@@ -23,7 +23,7 @@ concurrency:
 jobs:
   detect-live-state-only:
     name: Detect Live State Only Change
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     outputs:
       live_state_only: ${{ steps.detect.outputs.live_state_only }}
       reason: ${{ steps.detect.outputs.reason }}
@@ -58,7 +58,7 @@ jobs:
 
   skip-live-state-only:
     name: Skip Live State Only Change
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     needs: detect-live-state-only
     if: ${{ needs.detect-live-state-only.outputs.live_state_only == 'true' }}
 
@@ -72,7 +72,7 @@ jobs:
     name: Lint Typecheck Test Build
     needs: detect-live-state-only
     if: ${{ needs.detect-live-state-only.outputs.live_state_only != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 45
     services:
       postgres:

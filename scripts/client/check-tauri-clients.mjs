@@ -7,7 +7,7 @@ const CLIENTS = {
     productName: "RTNN Admin",
     identifier: "com.rtnn.admin",
     devUrl: "http://localhost:5101",
-    remoteUrl: "https://admin.example.com",
+    remoteUrl: "https://admin.rtnn.invalid",
     capability: "default.json",
     permissions: ["core:default", "opener:default", "updater:default"],
     requiredCargoDependencies: ["serde_json", "tauri-plugin-opener", "tauri-plugin-updater"],
@@ -25,7 +25,7 @@ const CLIENTS = {
     productName: "RTNN App",
     identifier: "com.rtnn.app",
     devUrl: "http://localhost:5102",
-    remoteUrl: "https://app.example.com",
+    remoteUrl: "https://app.rtnn.invalid",
     capability: "mobile.json",
     permissions: ["core:default", "opener:default"],
     requiredCargoDependencies: ["serde_json", "tauri-plugin-opener"],
@@ -34,7 +34,15 @@ const CLIENTS = {
       "open_external",
       "open_map_navigation",
       "opened-native-map",
+      "check_map_installed",
+      "check_permission",
+      "request_permission",
+      "file.pick",
+      "permission",
+      "safe-area",
+      "keyboard",
     ],
+    requiredFiles: ["../../scripts/client/prepare-app-tauri-android.mjs"],
   },
 };
 
@@ -152,6 +160,10 @@ function validateClient(rootDir, clientName, expected) {
       rustSource.includes(snippet),
       `${clientName} Rust 壳缺少 ${snippet}`,
     );
+  }
+
+  for (const relativeFilePath of expected.requiredFiles ?? []) {
+    assertFile(path.resolve(clientDir, relativeFilePath));
   }
 
   for (const filePath of [

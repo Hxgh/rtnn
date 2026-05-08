@@ -138,3 +138,14 @@ test("prepare-tauri-remote-web-url rejects local development URLs", () => {
     assert.match(result.stderr, /必须是 https URL/);
   });
 });
+
+test("prepare-tauri-remote-web-url rejects wildcard host URLs", () => {
+  withTempClient(({ dir }) => {
+    const result = runScript(dir, {
+      CLIENT_WEB_URL: "https://0.0.0.0:5102",
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /本地开发地址/);
+  });
+});

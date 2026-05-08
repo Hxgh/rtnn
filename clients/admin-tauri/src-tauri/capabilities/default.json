@@ -3,7 +3,7 @@
   "description": "Allow the RTNN admin desktop shell to expose minimal native capabilities to approved admin URLs.",
   "windows": ["main"],
   "remote": {
-    "urls": ["http://localhost:5101", "https://admin.example.com"]
+    "urls": ["http://localhost:5101", "https://admin.rtnn.invalid"]
   },
   "permissions": ["core:default", "opener:default", "updater:default"]
 }

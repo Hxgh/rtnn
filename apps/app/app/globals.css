@@ -2,6 +2,27 @@
 
 :root {
   --radius: 0.875rem;
+  --sat: constant(safe-area-inset-top, 0px);
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: constant(safe-area-inset-bottom, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: constant(safe-area-inset-left, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: constant(safe-area-inset-right, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --rtnn-safe-top: var(--sat);
+  --rtnn-safe-bottom: var(--sab);
+  --rtnn-safe-left: var(--sal);
+  --rtnn-safe-right: var(--sar);
+  --rtnn-keyboard-height: 0px;
+  --skb: var(--rtnn-keyboard-height);
+  --rtnn-header-spacing: calc(0.75rem + var(--rtnn-safe-top));
+  --rtnn-page-bottom: calc(1.75rem + max(var(--rtnn-safe-bottom), var(--rtnn-keyboard-height)));
+  --rtnn-bottom-bar-height: 4.25rem;
+  --rtnn-bottom-nav-spacing: calc(0.75rem + max(var(--rtnn-safe-bottom), var(--rtnn-keyboard-height)));
+  --rtnn-bottom-nav-page-bottom: calc(
+    var(--rtnn-bottom-bar-height) + var(--rtnn-bottom-nav-spacing) + 2rem
+  );
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -83,6 +104,9 @@
 html {
   font-family: var(--font-sans);
   color-scheme: light;
+  height: 100%;
+  min-height: 100%;
+  overscroll-behavior: none;
 }
 
 html.dark {
@@ -90,11 +114,43 @@ html.dark {
 }
 
 body {
+  margin: 0;
+  height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
   text-rendering: optimizeLegibility;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+.rtnn-app-viewport {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.rtnn-app-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .rtnn-app-scroll {
+    overscroll-behavior-y: none;
+  }
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 a {

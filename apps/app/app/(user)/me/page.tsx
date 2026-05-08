@@ -1,8 +1,9 @@
 import { LocaleSwitcher } from "@/components/preferences/locale-switcher";
 import { ThemeToggle } from "@/components/preferences/theme-toggle";
+import { NativeCapabilitiesPanel } from "@/components/account/native-capabilities-panel";
 import { NativeUpdatePanel } from "@/components/account/native-update-panel";
 import { ActionRowLink, DetailRow } from "@/components/site/action-row";
-import { PageSection, PageShell, PageTitle } from "@/components/site/page-shell";
+import { PageSection, PageShell } from "@/components/site/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import {
   SurfaceCard,
@@ -16,9 +17,7 @@ export default async function MePage() {
   const initials = session.displayName.trim().slice(0, 1).toUpperCase();
 
   return (
-    <PageShell className="space-y-6 pt-6" withBottomInset>
-      <PageTitle title={messages.common.nav.me} description={messages.profile.description} />
-
+    <PageShell className="space-y-6 pt-5" withBottomInset>
       <SurfaceCard className="overflow-hidden">
         <div className="flex items-center gap-4 px-4 py-5">
           <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-secondary text-lg font-semibold text-foreground">
@@ -85,6 +84,7 @@ export default async function MePage() {
         </SurfaceCard>
       </PageSection>
 
+      <NativeCapabilitiesPanel messages={messages.nativeCapabilities} />
       <NativeUpdatePanel messages={messages.nativeUpdate} />
 
       <PageSection>

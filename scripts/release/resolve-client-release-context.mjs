@@ -4,7 +4,10 @@ import {
   PROJECT_METADATA_FILE,
   readProjectMetadata,
 } from "../lib/project-metadata.mjs";
-import { buildProjectProfile } from "../lib/project-profile.mjs";
+import {
+  RELEASE_EXECUTION_MODES,
+  buildProjectProfile,
+} from "../lib/project-profile.mjs";
 
 const CLIENT_SPECS = Object.freeze({
   adminDesktop: Object.freeze({
@@ -12,22 +15,13 @@ const CLIENT_SPECS = Object.freeze({
     clientDir: "clients/admin-tauri",
     shell: "admin-desktop",
     domainKey: "admin",
-    defaultWebUrl: "https://admin.example.com",
   }),
   appMobile: Object.freeze({
     packageName: "@rtnn/app-tauri",
     clientDir: "clients/app-tauri",
     shell: "app-mobile",
     domainKey: "app",
-    defaultWebUrl: "https://app.example.com",
   }),
-});
-
-const TARGET_RUNNERS = Object.freeze({
-  macos: "macos-latest",
-  windows: "windows-latest",
-  android: "ubuntu-latest",
-  ios: "macos-latest",
 });
 
 function normalizeString(value, fallback = "") {
@@ -52,8 +46,10 @@ function writeOutput(key, value) {
 }
 
 function writeDisabled(reason) {
+  const releaseExecutionMode = resolveReleaseExecutionMode();
   writeOutput("enabled", "false");
   writeOutput("reason", reason);
+  writeOutput("release_execution_mode", releaseExecutionMode);
   writeOutput("dry_run", resolveDryRun() ? "true" : "false");
   writeOutput(
     "publish_github_release",
@@ -70,6 +66,42 @@ function writeDisabled(reason) {
   writeOutput("release_tag", resolveReleaseTag(resolveReleaseVersion()));
   writeOutput("client_matrix", JSON.stringify({ include: [] }));
   writeOutput("enabled_clients_json", JSON.stringify([]));
+}
+
+function resolveBooleanFlag(value, fallback = false) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (["1", "true", "yes"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+}
+
+function resolveReleaseExecutionMode() {
+  const mode = normalizeString(process.env.CLIENT_RELEASE_EXECUTION_MODE);
+  if (!mode) {
+    return "";
+  }
+
+  if (!RELEASE_EXECUTION_MODES.includes(mode)) {
+    throw new Error(
+      `CLIENT_RELEASE_EXECUTION_MODE 必须是 ${RELEASE_EXECUTION_MODES.join("/")}`,
+    );
+  }
+
+  return mode;
+}
+
+function resolveAllowGithubHosted(releaseExecutionMode) {
+  if (releaseExecutionMode === "github-hosted") {
+    return true;
+  }
+
+  return resolveBooleanFlag(process.env.CLIENT_RELEASE_ALLOW_GITHUB_HOSTED);
 }
 
 function resolveSourceRef() {
@@ -208,7 +240,9 @@ function resolveClientWebUrl(metadata, clientProfile, spec, channel) {
     return domainUrl;
   }
 
-  return spec.defaultWebUrl;
+  throw new Error(
+    `${spec.shell} 缺少 ${channel} 环境 Web URL；请配置 delivery.clients.*.webUrl、delivery.clients.*.webUrls.${channel} 或 domains.${channel}.${spec.domainKey}`,
+  );
 }
 
 function main() {
@@ -226,7 +260,16 @@ function main() {
     return;
   }
 
-  const profile = buildProjectProfile(metadata);
+  const requestedReleaseExecutionMode = resolveReleaseExecutionMode();
+  const allowGithubHosted = resolveAllowGithubHosted(
+    requestedReleaseExecutionMode,
+  );
+  const profile = buildProjectProfile(metadata, {
+    releaseExecutionMode: requestedReleaseExecutionMode,
+    allowGithubHosted,
+    requestedClientTargets: process.env.CLIENT_RELEASE_TARGETS,
+  });
+  const releaseExecutionMode = profile.releaseExecution.effectiveMode;
   const releaseVersion = resolveReleaseVersion();
   const releaseTag = resolveReleaseTag(releaseVersion);
   const sourceSha = resolveSourceSha();
@@ -236,14 +279,19 @@ function main() {
   const syncDeployFacts = resolveSyncDeployFacts();
   const matrix = [];
 
-  for (const { client, target } of profile.enabledClientBuildTargets) {
+  for (const {
+    client,
+    target,
+    executionMode,
+    runner,
+    runnerKind,
+  } of profile.enabledClientBuildTargets) {
     const spec = CLIENT_SPECS[client];
     if (!spec) {
       throw new Error(`未知客户端发布目标: ${client}`);
     }
 
-    const targetRunner = TARGET_RUNNERS[target];
-    if (!targetRunner) {
+    if (!runner) {
       throw new Error(`未知客户端平台目标: ${client}/${target}`);
     }
 
@@ -256,7 +304,9 @@ function main() {
     matrix.push({
       client,
       target,
-      runner: targetRunner,
+      runner,
+      runner_kind: runnerKind,
+      execution_mode: executionMode,
       package: spec.packageName,
       client_dir: spec.clientDir,
       shell: spec.shell,
@@ -286,6 +336,7 @@ function main() {
 
   writeOutput("enabled", "true");
   writeOutput("reason", "business-source");
+  writeOutput("release_execution_mode", releaseExecutionMode);
   writeOutput("dry_run", dryRun ? "true" : "false");
   writeOutput("publish_github_release", publishGithubRelease ? "true" : "false");
   writeOutput("sync_deploy_facts", syncDeployFacts ? "true" : "false");

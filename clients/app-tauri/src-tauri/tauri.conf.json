@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.rtnn.app",
   "build": {
-    "frontendDist": "https://app.example.com",
+    "frontendDist": "https://app.rtnn.invalid",
     "devUrl": "http://localhost:5102",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""

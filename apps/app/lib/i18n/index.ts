@@ -74,9 +74,12 @@ export type AppMessages = {
   login: {
     title: string;
     description: string;
+    passwordLogin: string;
     email: string;
     password: string;
     submit: string;
+    backHome: string;
+    resetByAdmin: string;
     invalid: string;
     required: string;
     expired: string;
@@ -103,6 +106,39 @@ export type AppMessages = {
     noUpdate: string;
     updateUnavailable: string;
     updateOpened: string;
+  };
+  nativeCapabilities: {
+    title: string;
+    description: string;
+    runtime: string;
+    platform: string;
+    shell: string;
+    features: string;
+    browserRuntime: string;
+    unavailable: string;
+    permissions: string;
+    photoPermission: string;
+    cameraPermission: string;
+    notificationPermission: string;
+    permissionGranted: string;
+    permissionDenied: string;
+    permissionPrompt: string;
+    permissionUnsupported: string;
+    permissionUnknown: string;
+    requestPermission: string;
+    openExternal: string;
+    openMap: string;
+    pickImages: string;
+    captureImage: string;
+    clearImages: string;
+    keyboardLabel: string;
+    keyboardPlaceholder: string;
+    openDownloads: string;
+    opening: string;
+    opened: string;
+    failed: string;
+    selectedImages: string;
+    noImages: string;
   };
   security: {
     title: string;
@@ -205,9 +241,12 @@ const zhCN: AppMessages = {
   login: {
     title: "登录",
     description: "使用客户账号登录，继续访问首页与个人中心。",
+    passwordLogin: "密码登录",
     email: "邮箱",
     password: "密码",
     submit: "登录",
+    backHome: "返回首页",
+    resetByAdmin: "忘记密码请联系管理员重置。",
     invalid: "账号或密码错误，请重试。",
     required: "请输入邮箱和密码。",
     expired: "会话已过期，请重新登录。",
@@ -234,6 +273,39 @@ const zhCN: AppMessages = {
     noUpdate: "已是最新版本",
     updateUnavailable: "更新检查不可用",
     updateOpened: "更新地址已打开，请按系统提示继续。",
+  },
+  nativeCapabilities: {
+    title: "客户端能力",
+    description: "验证当前壳子的外链、地图、相机相册、键盘和下载入口。",
+    runtime: "运行环境",
+    platform: "平台",
+    shell: "壳类型",
+    features: "能力",
+    browserRuntime: "浏览器",
+    unavailable: "当前在浏览器中运行，原生能力会降级为 Web 行为。",
+    permissions: "权限状态",
+    photoPermission: "相册",
+    cameraPermission: "相机",
+    notificationPermission: "通知",
+    permissionGranted: "已允许",
+    permissionDenied: "已拒绝",
+    permissionPrompt: "按需询问",
+    permissionUnsupported: "不支持",
+    permissionUnknown: "未知",
+    requestPermission: "请求权限",
+    openExternal: "打开外链",
+    openMap: "打开地图",
+    pickImages: "选择图片",
+    captureImage: "拍照",
+    clearImages: "清空图片",
+    keyboardLabel: "键盘测试",
+    keyboardPlaceholder: "点击输入，检查底部区域是否随键盘抬起",
+    openDownloads: "客户端下载",
+    opening: "打开中...",
+    opened: "操作已触发，请查看系统响应。",
+    failed: "操作失败，请检查当前壳子能力或系统权限。",
+    selectedImages: "已选择图片",
+    noImages: "尚未选择图片",
   },
   security: {
     title: "账户安全",
@@ -335,10 +407,13 @@ const enUS: AppMessages = {
   },
   login: {
     title: "Sign in",
-    description: "Use the built-in customer account to verify the real session flow.",
+    description: "Use your customer account to continue.",
+    passwordLogin: "Password",
     email: "Email",
     password: "Password",
     submit: "Sign in",
+    backHome: "Back home",
+    resetByAdmin: "Forgot your password? Contact an administrator to reset it.",
     invalid: "Invalid email or password. Please try again.",
     required: "Please enter both email and password.",
     expired: "Session expired. Please sign in again.",
@@ -365,6 +440,39 @@ const enUS: AppMessages = {
     noUpdate: "Up to date",
     updateUnavailable: "Update check unavailable",
     updateOpened: "Update link opened. Follow the system prompts to continue.",
+  },
+  nativeCapabilities: {
+    title: "Client capabilities",
+    description: "Verify external links, map navigation, image picking, keyboard behavior, and downloads.",
+    runtime: "Runtime",
+    platform: "Platform",
+    shell: "Shell",
+    features: "Features",
+    browserRuntime: "Browser",
+    unavailable: "The current runtime is a browser, so native actions fall back to web behavior.",
+    permissions: "Permissions",
+    photoPermission: "Photos",
+    cameraPermission: "Camera",
+    notificationPermission: "Notifications",
+    permissionGranted: "Allowed",
+    permissionDenied: "Denied",
+    permissionPrompt: "Ask when needed",
+    permissionUnsupported: "Unsupported",
+    permissionUnknown: "Unknown",
+    requestPermission: "Request permission",
+    openExternal: "Open external link",
+    openMap: "Open map",
+    pickImages: "Pick images",
+    captureImage: "Capture image",
+    clearImages: "Clear images",
+    keyboardLabel: "Keyboard test",
+    keyboardPlaceholder: "Focus this field to verify the bottom area follows the keyboard",
+    openDownloads: "Client downloads",
+    opening: "Opening...",
+    opened: "Action started. Check the system response.",
+    failed: "Action failed. Check shell capabilities or system permissions.",
+    selectedImages: "Selected images",
+    noImages: "No images selected",
   },
   security: {
     title: "Account Security",

@@ -10,7 +10,7 @@ function HomeIcon() {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -28,7 +28,7 @@ function MeIcon() {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-5 w-5"
+      className="h-6 w-6"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"
@@ -41,10 +41,10 @@ function MeIcon() {
   );
 }
 
-export function BottomTabBar() {
+export function BottomTabBar({ enabled = true }: { enabled?: boolean }) {
   const pathname = usePathname();
   const { messages } = usePreferences();
-  const showTabBar = pathname === "/" || pathname === "/me";
+  const showTabBar = enabled && (pathname === "/" || pathname === "/me");
 
   if (!showTabBar) {
     return null;
@@ -67,9 +67,9 @@ export function BottomTabBar() {
 
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
-      <div className="mx-auto w-full max-w-[28rem] px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        <div className="pointer-events-auto rounded-[1.4rem] border border-border/80 bg-background/95 px-3 py-2 shadow-[0_-14px_40px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
-          <div className="grid grid-cols-2 gap-1">
+      <div className="mx-auto w-full max-w-[28rem] bg-background/98 backdrop-blur">
+        <div className="pointer-events-auto border-t border-border/70 px-5 pt-1 pb-[var(--rtnn-bottom-nav-spacing)]">
+          <div className="grid h-[var(--rtnn-bottom-bar-height)] grid-cols-2">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -77,19 +77,14 @@ export function BottomTabBar() {
                   key={tab.href}
                   href={tab.href}
                   className={cn(
-                    "flex min-h-14 flex-col items-center justify-center gap-1 rounded-[1rem] px-3 text-[11px] font-medium transition-colors",
+                    "flex min-h-14 flex-col items-center justify-center gap-0.5 px-3 text-[11px] transition-colors active:bg-secondary/70",
                     tab.active
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
+                      ? "font-semibold text-foreground"
+                      : "font-medium text-muted-foreground hover:text-foreground",
                   )}
                   aria-current={tab.active ? "page" : undefined}
                 >
-                  <span
-                    className={cn(
-                      "flex size-9 items-center justify-center rounded-full transition-colors",
-                      tab.active && "bg-secondary text-foreground",
-                    )}
-                  >
+                  <span className="flex size-8 items-center justify-center">
                     <Icon />
                   </span>
                   <span>{tab.label}</span>

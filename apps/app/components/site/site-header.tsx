@@ -2,59 +2,64 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { BrandLogoMark } from "@/components/brand/brand-logo";
 import { usePreferences } from "@/components/providers/preferences-provider";
+
+function BackIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    >
+      <path d="M15 18 9 12l6-6" />
+    </svg>
+  );
+}
 
 export function SiteHeader() {
   const pathname = usePathname();
   const { messages } = usePreferences();
-  const isSubPage = pathname.startsWith("/account");
+  const isAccountPage = pathname.startsWith("/account");
+  const isDownloadPage = pathname.startsWith("/download");
+  const isSubPage = isAccountPage || isDownloadPage;
+  const backHref = isAccountPage ? "/me" : "/";
   const currentTitle =
-    isSubPage ? messages.security.title : pathname.startsWith("/me") ? messages.common.nav.me : messages.common.nav.home;
-
-  if (isSubPage) {
-    return (
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/96 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-[28rem] items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
-          <Link
-            href="/me"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/80 bg-background text-foreground"
-            aria-label={messages.common.actions.back}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M15 18 9 12l6-6" />
-            </svg>
-          </Link>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">{currentTitle}</p>
-          </div>
-        </div>
-      </header>
-    );
-  }
+    isAccountPage
+      ? messages.security.title
+      : isDownloadPage
+          ? messages.download.title
+          : pathname.startsWith("/me")
+            ? messages.common.nav.me
+            : messages.common.nav.home;
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/96 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-[28rem] items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <BrandLogoMark className="size-8" />
-          <div className="min-w-0">
-            <p className="truncate text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              {TEMPLATE_DISPLAY.brand}
-            </p>
-            <p className="truncate text-sm font-semibold text-foreground">{currentTitle}</p>
-          </div>
+    <header className="shrink-0 border-b border-border/65 bg-background/98 backdrop-blur">
+      <div className="mx-auto grid h-[calc(2.75rem_+_var(--rtnn-safe-top))] w-full max-w-[28rem] grid-cols-[3rem_1fr_3rem] items-end px-2 pb-1.5 pt-[var(--rtnn-safe-top)]">
+        <div className="flex h-11 items-center justify-start">
+          {isSubPage ? (
+            <Link
+              href={backHref}
+              className="flex size-10 items-center justify-center rounded-full text-foreground active:bg-secondary"
+              aria-label={messages.common.actions.back}
+            >
+              <BackIcon />
+            </Link>
+          ) : pathname === "/" ? (
+            <div className="flex size-10 items-center justify-center">
+              <BrandLogoMark className="size-7" />
+            </div>
+          ) : null}
         </div>
+        <h1 className="min-w-0 self-center truncate text-center text-[17px] font-semibold leading-6 text-foreground">
+          {currentTitle}
+        </h1>
+        <div className="h-11" aria-hidden="true" />
       </div>
     </header>
   );

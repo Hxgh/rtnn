@@ -12,6 +12,7 @@ export type NativeFeature =
   | "notification"
   | "clipboard"
   | "barcode.scan"
+  | "permission"
   | "safe-area"
   | "keyboard"
   | "updater";
@@ -40,6 +41,41 @@ export type NativeBridgeActionResult = {
   reason?: string;
 };
 
+export type NativePermissionKind =
+  | "camera"
+  | "photo-library"
+  | "notification"
+  | "clipboard"
+  | "location"
+  | "file-picker"
+  | "barcode";
+
+export type NativePermissionStatus =
+  | "granted"
+  | "denied"
+  | "prompt"
+  | "unsupported"
+  | "unknown";
+
+export type NativePermissionTrigger = "startup" | "on-demand" | "manual";
+
+export type NativePermissionInput = {
+  kind: NativePermissionKind;
+  trigger?: NativePermissionTrigger;
+  purpose?: string;
+};
+
+export type NativePermissionTarget =
+  | NativePermissionKind
+  | NativePermissionInput;
+
+export type NativePermissionResult = NativeBridgeActionResult & {
+  kind: NativePermissionKind;
+  status: NativePermissionStatus;
+  requested?: boolean;
+  canAskAgain?: boolean;
+};
+
 export type NativeUpdateInfo = {
   available: boolean;
   version?: string;
@@ -60,6 +96,11 @@ export type OpenExternalInput = {
 
 export type MapAppType = "amap" | "baidu" | "tencent";
 
+export type NativeMapAppInfo = {
+  appType: MapAppType;
+  label: string;
+};
+
 export type MapNavigationInput = {
   lat?: number;
   lng?: number;
@@ -68,14 +109,66 @@ export type MapNavigationInput = {
   directNav?: boolean;
 };
 
+export type NativeMapInstallInput = {
+  appType: MapAppType;
+};
+
+export type NativeMapInstallStatus =
+  | "installed"
+  | "not-installed"
+  | "unknown"
+  | "unsupported";
+
+export type NativeMapInstallResult = NativeBridgeActionResult & {
+  appType: MapAppType;
+  installed: boolean | null;
+  status: NativeMapInstallStatus;
+};
+
+export type NativeImagePickInput = {
+  accept?: string;
+  capture?: "environment" | "user" | "camera";
+  maxFiles?: number;
+  multiple?: boolean;
+  readAsDataUrl?: boolean;
+};
+
+export type NativePickedFile = {
+  name: string;
+  type: string;
+  size: number;
+  dataUrl?: string;
+};
+
+export type NativeImagePickResult = NativeBridgeActionResult & {
+  files: NativePickedFile[];
+};
+
 export type NativeBridge = {
   getClientInfo(): Promise<NativeClientInfo>;
   openExternal(input: OpenExternalInput): Promise<NativeBridgeActionResult>;
   openMapNavigation(
     input: MapNavigationInput,
   ): Promise<NativeBridgeActionResult>;
+  checkMapInstalled(
+    input: NativeMapInstallInput,
+  ): Promise<NativeMapInstallResult>;
+  checkPermission(
+    input: NativePermissionTarget,
+  ): Promise<NativePermissionResult>;
+  requestPermission(
+    input: NativePermissionTarget,
+  ): Promise<NativePermissionResult>;
+  ensurePermission(
+    input: NativePermissionTarget,
+  ): Promise<NativePermissionResult>;
+  pickImages(input?: NativeImagePickInput): Promise<NativeImagePickResult>;
   checkUpdate(): Promise<NativeUpdateCheckResult>;
   installUpdate(): Promise<NativeBridgeActionResult>;
+};
+
+export type NativeCapabilityCore = NativeBridge & {
+  listMapApps(): NativeMapAppInfo[];
 };
 
 export type TauriInvoke = <TResult = unknown>(
@@ -84,12 +177,37 @@ export type TauriInvoke = <TResult = unknown>(
 ) => Promise<TResult>;
 
 type BrowserOpen = (url?: string, target?: string, features?: string) => unknown;
+type BrowserPermissionState = "granted" | "denied" | "prompt";
+type BrowserPermissionStatus = {
+  state?: BrowserPermissionState | NativePermissionStatus;
+};
+type BrowserPermissionsApi = {
+  query?: (descriptor: { name: string }) => Promise<BrowserPermissionStatus>;
+};
+type BrowserMediaStreamLike = {
+  getTracks?: () => Array<{ stop?: () => void }>;
+};
+type BrowserMediaDevicesApi = {
+  getUserMedia?: (
+    constraints: Record<string, unknown>,
+  ) => Promise<BrowserMediaStreamLike>;
+};
+type BrowserNotificationApi = {
+  permission?: NotificationPermission | "default";
+  requestPermission?: () =>
+    | Promise<NotificationPermission | "default">
+    | NotificationPermission
+    | "default";
+};
 
 type TauriGlobalScope = {
   navigator?: {
     userAgent?: string;
+    permissions?: BrowserPermissionsApi;
+    mediaDevices?: BrowserMediaDevicesApi;
   };
   open?: BrowserOpen;
+  Notification?: BrowserNotificationApi;
   __TAURI__?: {
     core?: {
       invoke?: TauriInvoke;
@@ -106,6 +224,7 @@ export type CreateBrowserNativeBridgeOptions = Partial<
 > & {
   open?: BrowserOpen;
   userAgent?: string;
+  globalScope?: TauriGlobalScope;
 };
 
 export type CreateTauriNativeBridgeOptions = {
@@ -118,6 +237,9 @@ export type CreateTauriNativeBridgeOptions = {
   features?: NativeFeature[];
   openExternalCommand?: string;
   mapNavigationCommand?: string;
+  checkMapInstalledCommand?: string;
+  checkPermissionCommand?: string;
+  requestPermissionCommand?: string;
   checkUpdateCommand?: string;
   installUpdateCommand?: string;
 };
@@ -128,6 +250,9 @@ export type CreateDetectedTauriNativeBridgeOptions = {
   getClientInfoCommand?: string;
   openExternalCommand?: string;
   mapNavigationCommand?: string;
+  checkMapInstalledCommand?: string;
+  checkPermissionCommand?: string;
+  requestPermissionCommand?: string;
   checkUpdateCommand?: string;
   installUpdateCommand?: string;
 };
@@ -139,9 +264,36 @@ export type CreateNativeBridgeOptions = CreateBrowserNativeBridgeOptions & {
   getClientInfoCommand?: string;
   openExternalCommand?: string;
   mapNavigationCommand?: string;
+  checkMapInstalledCommand?: string;
+  checkPermissionCommand?: string;
+  requestPermissionCommand?: string;
   checkUpdateCommand?: string;
   installUpdateCommand?: string;
 };
+
+export type CreateNativeCapabilityCoreOptions = CreateNativeBridgeOptions & {
+  bridge?: NativeBridge;
+};
+
+export type NativeViewportInsetsOptions = {
+  root?: HTMLElement | null;
+  window?: Window | null;
+  keyboardVariable?: string;
+  keyboardAliasVariable?: string;
+  minKeyboardHeight?: number;
+};
+
+export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
+  { appType: "amap", label: "高德地图" },
+  { appType: "baidu", label: "百度地图" },
+  { appType: "tencent", label: "腾讯地图" },
+];
+
+const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
+  "camera",
+  "photo-library",
+  "file-picker",
+]);
 
 function getDefaultGlobalScope(): TauriGlobalScope | undefined {
   return typeof globalThis === "undefined"
@@ -205,6 +357,385 @@ function isHttpUrl(url: string) {
   }
 }
 
+function getDefaultDocument() {
+  return typeof document === "undefined" ? null : document;
+}
+
+function fileToDataUrl(file: File): Promise<string | undefined> {
+  if (typeof FileReader === "undefined") {
+    return Promise.resolve(undefined);
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(typeof reader.result === "string" ? reader.result : undefined);
+    };
+    reader.onerror = () => resolve(undefined);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function normalizePickedFile(
+  file: File,
+  readAsDataUrl: boolean,
+): Promise<NativePickedFile> {
+  return {
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    dataUrl: readAsDataUrl ? await fileToDataUrl(file) : undefined,
+  };
+}
+
+function normalizeCapture(value?: NativeImagePickInput["capture"]) {
+  if (!value) {
+    return "";
+  }
+
+  return value === "camera" ? "environment" : value;
+}
+
+function normalizePermissionInput(
+  input: NativePermissionTarget,
+): NativePermissionInput {
+  if (typeof input === "string") {
+    return { kind: input, trigger: "manual" };
+  }
+
+  return {
+    kind: input.kind,
+    trigger: input.trigger ?? "manual",
+    purpose: input.purpose,
+  };
+}
+
+function normalizePermissionStatus(value: unknown): NativePermissionStatus {
+  if (value === "default") {
+    return "prompt";
+  }
+
+  if (
+    value === "granted" ||
+    value === "denied" ||
+    value === "prompt" ||
+    value === "unsupported" ||
+    value === "unknown"
+  ) {
+    return value;
+  }
+
+  return "unknown";
+}
+
+function isPermissionUsable(
+  kind: NativePermissionKind,
+  status: NativePermissionStatus,
+) {
+  if (status === "granted") {
+    return true;
+  }
+
+  if (status === "prompt" || status === "unknown") {
+    return pickerManagedPermissionKinds.has(kind);
+  }
+
+  return false;
+}
+
+function makePermissionResult(
+  input: NativePermissionInput,
+  status: NativePermissionStatus,
+  result: Partial<NativePermissionResult> = {},
+): NativePermissionResult {
+  const ok = result.ok ?? isPermissionUsable(input.kind, status);
+
+  return {
+    ok,
+    kind: input.kind,
+    status,
+    requested: result.requested,
+    canAskAgain: result.canAskAgain,
+    message: result.message,
+    reason: result.reason,
+  };
+}
+
+function makePickerManagedPermissionResult(
+  input: NativePermissionInput,
+  requested = false,
+) {
+  return makePermissionResult(input, "prompt", {
+    ok: true,
+    requested,
+    canAskAgain: true,
+    reason: "permission-managed-by-file-picker",
+  });
+}
+
+async function queryBrowserPermission(
+  kind: NativePermissionKind,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+) {
+  const permissions = globalScope?.navigator?.permissions;
+
+  if (typeof permissions?.query !== "function") {
+    return null;
+  }
+
+  const permissionNameByKind: Partial<Record<NativePermissionKind, string>> = {
+    camera: "camera",
+    clipboard: "clipboard-read",
+    location: "geolocation",
+    notification: "notifications",
+  };
+  const name = permissionNameByKind[kind];
+
+  if (!name) {
+    return null;
+  }
+
+  try {
+    return normalizePermissionStatus(
+      (await permissions.query({ name }))?.state,
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function checkBrowserPermission(
+  input: NativePermissionTarget,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): Promise<NativePermissionResult> {
+  const normalized = normalizePermissionInput(input);
+
+  if (pickerManagedPermissionKinds.has(normalized.kind)) {
+    const queried = await queryBrowserPermission(normalized.kind, globalScope);
+    return queried
+      ? makePermissionResult(normalized, queried, { canAskAgain: queried === "prompt" })
+      : makePickerManagedPermissionResult(normalized);
+  }
+
+  if (normalized.kind === "notification") {
+    const notification = globalScope?.Notification;
+
+    if (notification?.permission) {
+      const status = normalizePermissionStatus(notification.permission);
+      return makePermissionResult(normalized, status, {
+        canAskAgain: status === "prompt",
+      });
+    }
+  }
+
+  const queried = await queryBrowserPermission(normalized.kind, globalScope);
+  if (queried) {
+    return makePermissionResult(normalized, queried, {
+      canAskAgain: queried === "prompt",
+    });
+  }
+
+  return makePermissionResult(normalized, "unsupported", {
+    ok: false,
+    reason: "permission-unavailable",
+  });
+}
+
+async function requestBrowserPermission(
+  input: NativePermissionTarget,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): Promise<NativePermissionResult> {
+  const normalized = normalizePermissionInput(input);
+
+  if (
+    pickerManagedPermissionKinds.has(normalized.kind) &&
+    normalized.purpose !== "standalone-camera"
+  ) {
+    return makePickerManagedPermissionResult(normalized, true);
+  }
+
+  if (normalized.kind === "notification") {
+    const notification = globalScope?.Notification;
+
+    if (typeof notification?.requestPermission === "function") {
+      try {
+        const status = normalizePermissionStatus(
+          await notification.requestPermission(),
+        );
+        return makePermissionResult(normalized, status, {
+          requested: true,
+          canAskAgain: status === "prompt",
+        });
+      } catch (error) {
+        return makePermissionResult(normalized, "unknown", {
+          ok: false,
+          requested: true,
+          reason: normalizeErrorReason(error),
+        });
+      }
+    }
+  }
+
+  if (normalized.kind === "camera") {
+    const getUserMedia = globalScope?.navigator?.mediaDevices?.getUserMedia;
+
+    if (typeof getUserMedia === "function") {
+      try {
+        const stream = await getUserMedia({ video: true });
+        stream.getTracks?.().forEach((track) => track.stop?.());
+        return makePermissionResult(normalized, "granted", {
+          requested: true,
+          canAskAgain: false,
+        });
+      } catch (error) {
+        return makePermissionResult(normalized, "denied", {
+          requested: true,
+          canAskAgain: false,
+          reason: normalizeErrorReason(error),
+        });
+      }
+    }
+  }
+
+  const checked = await checkBrowserPermission(normalized, globalScope);
+  return {
+    ...checked,
+    requested: true,
+  };
+}
+
+async function ensureBrowserPermission(
+  input: NativePermissionTarget,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+) {
+  const normalized = normalizePermissionInput(input);
+  const checked = await checkBrowserPermission(normalized, globalScope);
+
+  if (checked.status === "granted") {
+    return checked;
+  }
+
+  if (checked.status === "denied" || checked.status === "unsupported") {
+    return checked;
+  }
+
+  return requestBrowserPermission(
+    {
+      ...normalized,
+      trigger: normalized.trigger ?? "on-demand",
+    },
+    globalScope,
+  );
+}
+
+function pickImagesWithInput(
+  input: NativeImagePickInput = {},
+): Promise<NativeImagePickResult> {
+  const doc = getDefaultDocument();
+
+  if (!doc?.body) {
+    return Promise.resolve({
+      ok: false,
+      reason: "file-picker-unavailable",
+      files: [],
+    });
+  }
+
+  return new Promise((resolve) => {
+    const element = doc.createElement("input");
+    const readAsDataUrl = input.readAsDataUrl ?? true;
+    const maxFiles =
+      typeof input.maxFiles === "number" && input.maxFiles > 0
+        ? Math.floor(input.maxFiles)
+        : undefined;
+
+    element.type = "file";
+    element.accept = input.accept ?? "image/*";
+    element.multiple = input.multiple ?? true;
+    element.style.display = "none";
+
+    const capture = normalizeCapture(input.capture);
+    if (capture) {
+      element.setAttribute("capture", capture);
+    }
+
+    function cleanup() {
+      element.remove();
+    }
+
+    element.addEventListener(
+      "change",
+      async () => {
+        const selectedFiles = Array.from(element.files ?? []);
+        const files = maxFiles ? selectedFiles.slice(0, maxFiles) : selectedFiles;
+
+        cleanup();
+
+        resolve({
+          ok: true,
+          files: await Promise.all(
+            files.map((file) => normalizePickedFile(file, readAsDataUrl)),
+          ),
+        });
+      },
+      { once: true },
+    );
+
+    doc.body.append(element);
+    element.click();
+  });
+}
+
+export function installNativeViewportInsets(
+  options: NativeViewportInsetsOptions = {},
+) {
+  const maybeWindow =
+    options.window ??
+    (typeof window === "undefined" ? null : window);
+  const maybeRoot =
+    options.root ??
+    maybeWindow?.document?.documentElement ??
+    (typeof document === "undefined" ? null : document.documentElement);
+
+  if (!maybeWindow || !maybeRoot) {
+    return () => {};
+  }
+
+  const win = maybeWindow;
+  const root = maybeRoot;
+  const keyboardVariable = options.keyboardVariable ?? "--rtnn-keyboard-height";
+  const keyboardAliasVariable = options.keyboardAliasVariable ?? "--skb";
+  const minKeyboardHeight = options.minKeyboardHeight ?? 80;
+
+  function updateKeyboardHeight() {
+    const viewport = win.visualViewport;
+    const rawHeight = viewport
+      ? win.innerHeight - viewport.height - viewport.offsetTop
+      : 0;
+    const height = rawHeight >= minKeyboardHeight ? Math.round(rawHeight) : 0;
+
+    root.style.setProperty(keyboardVariable, `${height}px`);
+    root.style.setProperty(keyboardAliasVariable, `${height}px`);
+  }
+
+  updateKeyboardHeight();
+
+  const viewport = win.visualViewport;
+  viewport?.addEventListener("resize", updateKeyboardHeight);
+  viewport?.addEventListener("scroll", updateKeyboardHeight);
+  win.addEventListener("resize", updateKeyboardHeight);
+  win.addEventListener("focusin", updateKeyboardHeight);
+  win.addEventListener("focusout", updateKeyboardHeight);
+
+  return () => {
+    viewport?.removeEventListener("resize", updateKeyboardHeight);
+    viewport?.removeEventListener("scroll", updateKeyboardHeight);
+    win.removeEventListener("resize", updateKeyboardHeight);
+    win.removeEventListener("focusin", updateKeyboardHeight);
+    win.removeEventListener("focusout", updateKeyboardHeight);
+  };
+}
+
 export function buildWebMapNavigationUrl(input: MapNavigationInput) {
   const hasCoords =
     typeof input.lat === "number" && typeof input.lng === "number";
@@ -216,6 +747,22 @@ export function buildWebMapNavigationUrl(input: MapNavigationInput) {
 
   const encodedName = encodeURIComponent(name || "目的地");
 
+  if (input.appType === "baidu") {
+    if (hasCoords) {
+      return `https://api.map.baidu.com/direction?destination=latlng:${input.lat},${input.lng}|name:${encodedName}&mode=driving&output=html&coord_type=gcj02`;
+    }
+
+    return `https://api.map.baidu.com/direction?destination=${encodedName}&mode=driving&output=html&coord_type=gcj02`;
+  }
+
+  if (input.appType === "tencent") {
+    if (hasCoords) {
+      return `https://apis.map.qq.com/uri/v1/routeplan?type=drive&tocoord=${input.lat},${input.lng}&to=${encodedName}`;
+    }
+
+    return `https://apis.map.qq.com/uri/v1/routeplan?type=drive&to=${encodedName}`;
+  }
+
   if (hasCoords) {
     return `https://uri.amap.com/navigation?to=${input.lng},${input.lat},${encodedName}&mode=car`;
   }
@@ -226,12 +773,16 @@ export function buildWebMapNavigationUrl(input: MapNavigationInput) {
 export function createBrowserNativeBridge(
   options: CreateBrowserNativeBridgeOptions = {},
 ): NativeBridge {
+  const globalScope = options.globalScope ?? getDefaultGlobalScope();
+
   return {
     async getClientInfo() {
       return {
         runtime: "browser",
         shell: null,
-        platform: detectBrowserPlatform(options.userAgent),
+        platform: detectBrowserPlatform(
+          options.userAgent ?? globalScope?.navigator?.userAgent,
+        ),
         appVersion: null,
         bridgeVersion: NATIVE_BRIDGE_VERSION,
         channel: options.channel ?? "dev",
@@ -241,7 +792,11 @@ export function createBrowserNativeBridge(
     },
 
     async openExternal(input) {
-      const opened = openBrowserUrl(input.url, input.target, options.open);
+      const opened = openBrowserUrl(
+        input.url,
+        input.target,
+        options.open ?? globalScope?.open,
+      );
       return opened
         ? { ok: true }
         : { ok: false, reason: "browser-open-unavailable" };
@@ -254,10 +809,36 @@ export function createBrowserNativeBridge(
         return { ok: false, reason: "missing-map-target" };
       }
 
-      const opened = openBrowserUrl(url, "_blank", options.open);
+      const opened = openBrowserUrl(url, "_blank", options.open ?? globalScope?.open);
       return opened
         ? { ok: true, message: "已打开网页版地图" }
         : { ok: false, reason: "browser-open-unavailable" };
+    },
+
+    async checkMapInstalled(input) {
+      return {
+        ok: true,
+        appType: input.appType,
+        installed: null,
+        status: "unknown",
+        reason: "map-install-check-unavailable",
+      };
+    },
+
+    async checkPermission(input) {
+      return checkBrowserPermission(input, globalScope);
+    },
+
+    async requestPermission(input) {
+      return requestBrowserPermission(input, globalScope);
+    },
+
+    async ensurePermission(input) {
+      return ensureBrowserPermission(input, globalScope);
+    },
+
+    async pickImages(input) {
+      return pickImagesWithInput(input);
     },
 
     async checkUpdate() {
@@ -335,6 +916,69 @@ function normalizeActionResult(
   }
 
   return { ok: true };
+}
+
+function normalizePermissionResult(
+  result: NativePermissionResult | null | undefined,
+  input: NativePermissionInput,
+): NativePermissionResult {
+  if (!result || typeof result !== "object") {
+    return makePermissionResult(input, "unknown", { requested: false });
+  }
+
+  const status = normalizePermissionStatus(result.status);
+
+  return makePermissionResult(input, status, {
+    ok:
+      typeof result.ok === "boolean"
+        ? result.ok
+        : isPermissionUsable(input.kind, status),
+    requested: result.requested,
+    canAskAgain: result.canAskAgain,
+    message: result.message ?? undefined,
+    reason: result.reason ?? undefined,
+  });
+}
+
+function normalizeMapInstallResult(
+  result: NativeMapInstallResult | null | undefined,
+  appType: MapAppType,
+): NativeMapInstallResult {
+  if (!result || typeof result !== "object") {
+    return {
+      ok: true,
+      appType,
+      installed: null,
+      status: "unknown",
+      reason: "map-install-check-unavailable",
+    };
+  }
+
+  const installed =
+    typeof result.installed === "boolean" ? result.installed : null;
+  const status =
+    result.status === "installed" ||
+    result.status === "not-installed" ||
+    result.status === "unknown" ||
+    result.status === "unsupported"
+      ? result.status
+      : installed === true
+        ? "installed"
+        : installed === false
+          ? "not-installed"
+          : "unknown";
+
+  return {
+    ok:
+      typeof result.ok === "boolean"
+        ? result.ok
+        : status !== "unsupported" && status !== "not-installed",
+    appType: result.appType ?? appType,
+    installed,
+    status,
+    message: result.message ?? undefined,
+    reason: result.reason ?? undefined,
+  };
 }
 
 function normalizeClientInfo(
@@ -424,6 +1068,84 @@ export function createDetectedTauriNativeBridge(
       }
     },
 
+    async checkMapInstalled(input) {
+      try {
+        return normalizeMapInstallResult(
+          await options.invoke<NativeMapInstallResult>(
+            options.checkMapInstalledCommand ?? "check_map_installed",
+            {
+              appType: input.appType,
+            },
+          ),
+          input.appType,
+        );
+      } catch {
+        return fallback.checkMapInstalled(input);
+      }
+    },
+
+    async checkPermission(input) {
+      const normalized = normalizePermissionInput(input);
+
+      try {
+        return normalizePermissionResult(
+          await options.invoke<NativePermissionResult>(
+            options.checkPermissionCommand ?? "check_permission",
+            {
+              kind: normalized.kind,
+              trigger: normalized.trigger,
+              purpose: normalized.purpose,
+            },
+          ),
+          normalized,
+        );
+      } catch {
+        return fallback.checkPermission(normalized);
+      }
+    },
+
+    async requestPermission(input) {
+      const normalized = normalizePermissionInput(input);
+
+      try {
+        return normalizePermissionResult(
+          await options.invoke<NativePermissionResult>(
+            options.requestPermissionCommand ?? "request_permission",
+            {
+              kind: normalized.kind,
+              trigger: normalized.trigger,
+              purpose: normalized.purpose,
+            },
+          ),
+          normalized,
+        );
+      } catch {
+        return fallback.requestPermission(normalized);
+      }
+    },
+
+    async ensurePermission(input) {
+      const normalized = normalizePermissionInput(input);
+      const checked = await this.checkPermission(normalized);
+
+      if (checked.status === "granted") {
+        return checked;
+      }
+
+      if (checked.status === "denied" || checked.status === "unsupported") {
+        return checked;
+      }
+
+      return this.requestPermission({
+        ...normalized,
+        trigger: normalized.trigger ?? "on-demand",
+      });
+    },
+
+    async pickImages(input) {
+      return fallback.pickImages(input);
+    },
+
     async checkUpdate() {
       try {
         const result = await options.invoke<NativeUpdateCheckResult>(
@@ -507,6 +1229,72 @@ export function createTauriNativeBridge(
       return result ?? { ok: true };
     },
 
+    async checkMapInstalled(input) {
+      return normalizeMapInstallResult(
+        await options.invoke<NativeMapInstallResult>(
+          options.checkMapInstalledCommand ?? "check_map_installed",
+          {
+            appType: input.appType,
+          },
+        ),
+        input.appType,
+      );
+    },
+
+    async checkPermission(input) {
+      const normalized = normalizePermissionInput(input);
+
+      return normalizePermissionResult(
+        await options.invoke<NativePermissionResult>(
+          options.checkPermissionCommand ?? "check_permission",
+          {
+            kind: normalized.kind,
+            trigger: normalized.trigger,
+            purpose: normalized.purpose,
+          },
+        ),
+        normalized,
+      );
+    },
+
+    async requestPermission(input) {
+      const normalized = normalizePermissionInput(input);
+
+      return normalizePermissionResult(
+        await options.invoke<NativePermissionResult>(
+          options.requestPermissionCommand ?? "request_permission",
+          {
+            kind: normalized.kind,
+            trigger: normalized.trigger,
+            purpose: normalized.purpose,
+          },
+        ),
+        normalized,
+      );
+    },
+
+    async ensurePermission(input) {
+      const normalized = normalizePermissionInput(input);
+      const checked = await this.checkPermission(normalized);
+
+      if (checked.status === "granted") {
+        return checked;
+      }
+
+      if (checked.status === "denied" || checked.status === "unsupported") {
+        return checked;
+      }
+
+      return this.requestPermission({
+        ...normalized,
+        trigger: normalized.trigger ?? "on-demand",
+      });
+    },
+
+    async pickImages(input) {
+      return pickImagesWithInput(input);
+    },
+
     async checkUpdate() {
       const result = await options.invoke<NativeUpdateCheckResult>(
         options.checkUpdateCommand ?? "check_update",
@@ -535,6 +1323,7 @@ export function createNativeBridge(
       sourceSha: options.sourceSha,
       open: options.open,
       userAgent: options.userAgent,
+      globalScope: options.globalScope,
     });
   const invoke = options.invoke ?? getTauriInvoke(options.globalScope);
 
@@ -548,9 +1337,64 @@ export function createNativeBridge(
     getClientInfoCommand: options.getClientInfoCommand,
     openExternalCommand: options.openExternalCommand,
     mapNavigationCommand: options.mapNavigationCommand,
+    checkMapInstalledCommand: options.checkMapInstalledCommand,
+    checkPermissionCommand: options.checkPermissionCommand,
+    requestPermissionCommand: options.requestPermissionCommand,
     checkUpdateCommand: options.checkUpdateCommand,
     installUpdateCommand: options.installUpdateCommand,
   });
+}
+
+export function createNativeCapabilityCore(
+  options: CreateNativeCapabilityCoreOptions = {},
+): NativeCapabilityCore {
+  const bridge = options.bridge ?? createNativeBridge(options);
+
+  return {
+    ...bridge,
+
+    listMapApps() {
+      return [...NATIVE_MAP_APPS];
+    },
+
+    async ensurePermission(input) {
+      return bridge.ensurePermission(input);
+    },
+
+    async pickImages(input) {
+      const photoPermission = await bridge.ensurePermission({
+        kind: "photo-library",
+        trigger: "on-demand",
+        purpose: "pick-image",
+      });
+
+      if (!photoPermission.ok) {
+        return {
+          ok: false,
+          reason: photoPermission.reason ?? "photo-library-permission-denied",
+          files: [],
+        };
+      }
+
+      if (input?.capture) {
+        const cameraPermission = await bridge.ensurePermission({
+          kind: "camera",
+          trigger: "on-demand",
+          purpose: "capture-image",
+        });
+
+        if (!cameraPermission.ok) {
+          return {
+            ok: false,
+            reason: cameraPermission.reason ?? "camera-permission-denied",
+            files: [],
+          };
+        }
+      }
+
+      return bridge.pickImages(input);
+    },
+  };
 }
 
 export const browserNativeBridge = createBrowserNativeBridge();

@@ -4,7 +4,7 @@
   "platforms": ["android", "iOS"],
   "windows": ["main"],
   "remote": {
-    "urls": ["http://localhost:5102", "https://app.example.com"]
+    "urls": ["http://localhost:5102", "https://app.rtnn.invalid"]
   },
   "permissions": ["core:default", "opener:default"]
 }

@@ -9,8 +9,8 @@ export function PageShell(props: {
   return (
     <main
       className={cn(
-        "mx-auto w-full max-w-[28rem] px-4 pt-5 pb-[calc(1.75rem+env(safe-area-inset-bottom))]",
-        withBottomInset && "pb-[calc(8.25rem+env(safe-area-inset-bottom))]",
+        "mx-auto w-full max-w-[28rem] px-4 pt-5 pb-[var(--rtnn-page-bottom)]",
+        withBottomInset && "pb-[var(--rtnn-bottom-nav-page-bottom)]",
         className,
       )}
     >

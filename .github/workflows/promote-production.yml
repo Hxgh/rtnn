@@ -34,6 +34,14 @@ on:
         description: weapp 镜像，留空则按默认规则推导
         required: false
         type: string
+      execution_mode:
+        description: Promote workflow execution mode. Default uses the server self-hosted runner; GitHub-hosted is explicit opt-in.
+        required: false
+        default: server-local
+        type: choice
+        options:
+          - server-local
+          - github-hosted
 
 permissions:
   contents: read
@@ -41,10 +49,11 @@ permissions:
 jobs:
   resolve-promote-context:
     name: Resolve Promote Context
-    runs-on: ubuntu-latest
+    runs-on: ${{ (inputs.execution_mode == 'github-hosted' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     outputs:
       enabled: ${{ steps.context.outputs.enabled }}
       reason: ${{ steps.context.outputs.reason }}
+      release_execution_mode: ${{ steps.context.outputs.release_execution_mode }}
       enabled_services_json: ${{ steps.context.outputs.enabled_services_json }}
 
     steps:
@@ -55,11 +64,13 @@ jobs:
 
       - name: Detect repository role
         id: context
+        env:
+          RTNN_RELEASE_EXECUTION_MODE: ${{ inputs.execution_mode || vars.RTNN_RELEASE_EXECUTION_MODE || '' }}
         run: node scripts/release/resolve-release-context.mjs --mode=promote
 
   skip-template-repository:
     name: Skip Template Repository Promote
-    runs-on: ubuntu-latest
+    runs-on: ${{ (inputs.execution_mode == 'github-hosted' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     needs: resolve-promote-context
     if: ${{ needs.resolve-promote-context.outputs.enabled != 'true' }}
 
@@ -71,7 +82,7 @@ jobs:
 
   notify-deploy:
     name: Dispatch Production Promote
-    runs-on: ubuntu-latest
+    runs-on: ${{ (inputs.execution_mode == 'github-hosted' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     needs: resolve-promote-context
     if: ${{ needs.resolve-promote-context.outputs.enabled == 'true' }}
 
@@ -99,6 +110,7 @@ jobs:
           INPUT_ADMIN_IMAGE: ${{ inputs.admin_image }}
           INPUT_APP_IMAGE: ${{ inputs.app_image }}
           INPUT_WEAPP_IMAGE: ${{ inputs.weapp_image }}
+          RELEASE_EXECUTION_MODE: ${{ needs.resolve-promote-context.outputs.release_execution_mode }}
           ENABLED_SERVICES_JSON: ${{ needs.resolve-promote-context.outputs.enabled_services_json }}
         run: |
           PROJECT_ID="$(jq -er '.project.projectId' .rtnn/project.json)"
@@ -109,27 +121,32 @@ jobs:
           IMAGE_OWNER="${INPUT_IMAGE_OWNER:-${GITHUB_REPOSITORY_OWNER,,}}"
           IMAGE_PREFIX="ghcr.io/${IMAGE_OWNER}"
           EVENT_TYPE="$(jq -er '.deployment.dispatchEventType' .rtnn/project.json)"
+          RELEASE_EXECUTION_MODE="${RELEASE_EXECUTION_MODE:-server-local}"
 
           [[ "${DEPLOY_VERSION}" =~ ^v[0-9].* ]] || {
             echo "deploy_version 必须是 v* tag";
             exit 1;
           }
 
-          image_overrides="$(jq -nc \
-            --arg backend "${INPUT_BACKEND_IMAGE}" \
-            --arg admin "${INPUT_ADMIN_IMAGE}" \
-            --arg app "${INPUT_APP_IMAGE}" \
-            --arg weapp "${INPUT_WEAPP_IMAGE}" \
-            '{backend: $backend, admin: $admin, app: $app, weapp: $weapp}'
-          )"
-          images_json="$(jq -nc \
-            --arg image_prefix "${IMAGE_PREFIX}" \
-            --arg name_prefix "${IMAGE_NAME_PREFIX}" \
-            --arg version "${DEPLOY_VERSION}" \
-            --argjson services "${ENABLED_SERVICES_JSON}" \
-            --argjson overrides "${image_overrides}" \
-            'reduce $services[] as $service ({}; .[$service] = (if ($overrides[$service] // "") != "" then $overrides[$service] else "\($image_prefix)/\($name_prefix)-\($service):\($version)" end))'
-          )"
+          if [[ "$RELEASE_EXECUTION_MODE" == "server-local" ]]; then
+            images_json="{}"
+          else
+            image_overrides="$(jq -nc \
+              --arg backend "${INPUT_BACKEND_IMAGE}" \
+              --arg admin "${INPUT_ADMIN_IMAGE}" \
+              --arg app "${INPUT_APP_IMAGE}" \
+              --arg weapp "${INPUT_WEAPP_IMAGE}" \
+              '{backend: $backend, admin: $admin, app: $app, weapp: $weapp}'
+            )"
+            images_json="$(jq -nc \
+              --arg image_prefix "${IMAGE_PREFIX}" \
+              --arg name_prefix "${IMAGE_NAME_PREFIX}" \
+              --arg version "${DEPLOY_VERSION}" \
+              --argjson services "${ENABLED_SERVICES_JSON}" \
+              --argjson overrides "${image_overrides}" \
+              'reduce $services[] as $service ({}; .[$service] = (if ($overrides[$service] // "") != "" then $overrides[$service] else "\($image_prefix)/\($name_prefix)-\($service):\($version)" end))'
+            )"
+          fi
           SOURCE_SHA="${INPUT_SOURCE_SHA}"
 
           if [[ -z "${SOURCE_SHA}" ]]; then
@@ -149,6 +166,7 @@ jobs:
             echo "deploy_application=${DEPLOY_APPLICATION_NAME}"
             echo "source_sha=${SOURCE_SHA}"
             echo "source_ref=refs/tags/${DEPLOY_VERSION}"
+            echo "release_execution_mode=${RELEASE_EXECUTION_MODE}"
             echo "images_json=${images_json}"
           } >> "${GITHUB_OUTPUT}"
 
@@ -162,6 +180,7 @@ jobs:
           DEPLOY_APPLICATION: ${{ steps.payload.outputs.deploy_application }}
           SOURCE_SHA: ${{ steps.payload.outputs.source_sha }}
           SOURCE_REF: ${{ steps.payload.outputs.source_ref }}
+          RELEASE_EXECUTION_MODE: ${{ steps.payload.outputs.release_execution_mode }}
           IMAGES_JSON: ${{ steps.payload.outputs.images_json }}
         run: |
           payload="$(jq -n \
@@ -172,6 +191,7 @@ jobs:
             --arg sha "${SOURCE_SHA}" \
             --arg source_repository "${GITHUB_REPOSITORY}" \
             --arg source_ref "${SOURCE_REF}" \
+            --arg release_execution_mode "${RELEASE_EXECUTION_MODE}" \
             --argjson images "${IMAGES_JSON}" \
             '{
               event_type: $event_type,
@@ -182,6 +202,7 @@ jobs:
                 sha: $sha,
                 source_repository: $source_repository,
                 source_ref: $source_ref,
+                release_execution_mode: $release_execution_mode,
                 images: $images
               }
             }'

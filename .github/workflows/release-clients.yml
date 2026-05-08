@@ -30,6 +30,18 @@ on:
         required: false
         default: false
         type: boolean
+      execution_mode:
+        description: Client build execution mode. Default uses the server self-hosted runner; GitHub-hosted is explicit opt-in.
+        required: false
+        default: server-local
+        type: choice
+        options:
+          - server-local
+          - github-hosted
+      targets:
+        description: Optional comma separated client targets, such as appMobile:android or adminDesktop:macos.
+        required: false
+        type: string
   push:
     tags:
       - "client-*"
@@ -41,7 +53,7 @@ concurrency:
 jobs:
   resolve-client-release-context:
     name: Resolve Client Release Context
-    runs-on: ubuntu-latest
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 10
     outputs:
       enabled: ${{ steps.context.outputs.enabled }}
@@ -49,6 +61,7 @@ jobs:
       dry_run: ${{ steps.context.outputs.dry_run }}
       publish_github_release: ${{ steps.context.outputs.publish_github_release }}
       sync_deploy_facts: ${{ steps.context.outputs.sync_deploy_facts }}
+      release_execution_mode: ${{ steps.context.outputs.release_execution_mode }}
       release_channel: ${{ steps.context.outputs.release_channel }}
       release_version: ${{ steps.context.outputs.release_version }}
       release_tag: ${{ steps.context.outputs.release_tag }}
@@ -74,11 +87,14 @@ jobs:
           CLIENT_RELEASE_DRY_RUN: ${{ github.event.inputs.dry_run || '' }}
           CLIENT_RELEASE_PUBLISH_GITHUB_RELEASE: ${{ github.event.inputs.publish_github_release || '' }}
           CLIENT_RELEASE_SYNC_DEPLOY_FACTS: ${{ github.event.inputs.sync_deploy_facts || vars.CLIENT_RELEASE_SYNC_DEPLOY_FACTS || '' }}
+          CLIENT_RELEASE_EXECUTION_MODE: ${{ github.event.inputs.execution_mode || vars.CLIENT_RELEASE_EXECUTION_MODE || '' }}
+          CLIENT_RELEASE_TARGETS: ${{ github.event.inputs.targets || vars.CLIENT_RELEASE_TARGETS || '' }}
+          CLIENT_RELEASE_ALLOW_GITHUB_HOSTED: ${{ (github.event.inputs.execution_mode == 'github-hosted' && 'true') || vars.CLIENT_RELEASE_ALLOW_GITHUB_HOSTED || '' }}
         run: node scripts/release/resolve-client-release-context.mjs
 
   skip-client-release:
     name: Skip Client Release
-    runs-on: ubuntu-latest
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     needs: resolve-client-release-context
     if: ${{ needs.resolve-client-release-context.outputs.enabled != 'true' }}
     steps:
@@ -180,6 +196,9 @@ jobs:
         run: |
           if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEY_PASSWORD" ]]; then
             pnpm --filter "${{ matrix.package }}" tauri android init
+            if [[ "${{ matrix.client }}" == "appMobile" ]]; then
+              CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
+            fi
           fi
 
           node scripts/release/prepare-android-signing.mjs
@@ -276,6 +295,10 @@ jobs:
           RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
           ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
         run: |
+          if [[ "${{ matrix.client }}" == "appMobile" ]]; then
+            CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
+          fi
+
           if [[ "$ANDROID_ARTIFACT_TYPE" == "apk" ]]; then
             pnpm --filter "${{ matrix.package }}" tauri android build --apk
           else
@@ -571,7 +594,7 @@ jobs:
       - resolve-client-release-context
       - validate-client-release
     if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -615,7 +638,7 @@ jobs:
       - validate-client-release
       - merge-tauri-updater-manifests
     if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' && needs.resolve-client-release-context.outputs.publish_github_release == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 15
     permissions:
       contents: write
@@ -676,7 +699,7 @@ jobs:
           needs.merge-tauri-updater-manifests.result == 'success'
         )
       }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 10
     permissions:
       contents: read

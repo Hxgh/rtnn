@@ -70,6 +70,10 @@ const mobileBoundaryScriptPath = path.join(
   repoRoot,
   "scripts/release/write-mobile-release-boundary.mjs",
 );
+const prepareAppTauriAndroidScriptPath = path.join(
+  repoRoot,
+  "scripts/client/prepare-app-tauri-android.mjs",
+);
 
 function withTempProject(metadata, fn) {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-release-"));
@@ -151,6 +155,11 @@ test("resolve-client-release-context emits client build matrix from delivery pro
         role: "business-source",
         projectId: "acme",
       },
+      domains: {
+        testing: {
+          app: "app.testing.acme.test",
+        },
+      },
       delivery: {
         clients: {
           adminDesktop: {
@@ -160,7 +169,9 @@ test("resolve-client-release-context emits client build matrix from delivery pro
             channel: "testing",
           },
           appMobile: {
-            enabled: false,
+            enabled: true,
+            targets: ["android", "ios"],
+            channel: "testing",
           },
         },
       },
@@ -181,29 +192,108 @@ test("resolve-client-release-context emits client build matrix from delivery pro
       assert.equal(output.dry_run, "false");
       assert.equal(output.publish_github_release, "true");
       assert.equal(output.sync_deploy_facts, "true");
+      assert.equal(output.release_execution_mode, "server-local");
       assert.equal(output.release_channel, "testing");
       assert.equal(output.release_version, "1.2.3");
       assert.equal(output.release_tag, "v1.2.3");
       assert.deepEqual(JSON.parse(output.enabled_clients_json), [
-        "adminDesktop",
+        "appMobile",
       ]);
-      assert.equal(matrix.include.length, 2);
+      assert.equal(matrix.include.length, 1);
       assert.deepEqual(
-        matrix.include.map((item) => [item.client, item.target, item.runner]),
+        matrix.include.map((item) => [
+          item.client,
+          item.target,
+          item.runner,
+          item.execution_mode,
+        ]),
+        [["appMobile", "android", "self-hosted", "server-local"]],
+      );
+      assert.equal(matrix.include[0].package, "@rtnn/app-tauri");
+      assert.equal(
+        matrix.include[0].web_url,
+        "https://app.testing.acme.test",
+      );
+      assert.equal(matrix.include[0].channel, "testing");
+      assert.equal(matrix.include[0].shell_version, "0.3.0");
+      assert.equal(
+        matrix.include[0].artifact_name,
+        "app-mobile-android-1.2.3",
+      );
+      assert.equal(matrix.include[0].release_kind, "mobile-manifest-only");
+      assert.equal(matrix.include[0].desktop_build, false);
+    },
+  );
+});
+
+test("resolve-client-release-context allows GitHub-hosted targets only by explicit request", () => {
+  withTempProject(
+    {
+      project: {
+        role: "business-source",
+        projectId: "acme",
+      },
+      domains: {
+        testing: {
+          app: "app.testing.acme.test",
+        },
+      },
+      delivery: {
+        clients: {
+          adminDesktop: {
+            enabled: true,
+            targets: ["macos", "windows"],
+            webUrl: "https://admin.acme.test",
+            channel: "testing",
+          },
+          appMobile: {
+            enabled: true,
+            targets: ["android", "ios"],
+            channel: "testing",
+          },
+        },
+      },
+    },
+    (rootDir) => {
+      const output = runContext(rootDir, {
+        CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
+        CLIENT_RELEASE_TARGETS: "adminDesktop:macos,adminDesktop:windows",
+        GITHUB_REF: "refs/heads/main",
+        GITHUB_REF_NAME: "main",
+        GITHUB_SHA: "1234567890abcdef",
+      });
+      const matrix = JSON.parse(output.client_matrix);
+
+      assert.equal(output.enabled, "true");
+      assert.equal(output.release_execution_mode, "github-hosted");
+      assert.deepEqual(
+        matrix.include.map((item) => [
+          item.client,
+          item.target,
+          item.runner,
+          item.execution_mode,
+          item.runner_kind,
+        ]),
         [
-          ["adminDesktop", "macos", "macos-latest"],
-          ["adminDesktop", "windows", "windows-latest"],
+          [
+            "adminDesktop",
+            "macos",
+            "macos-latest",
+            "github-hosted",
+            "github-hosted",
+          ],
+          [
+            "adminDesktop",
+            "windows",
+            "windows-latest",
+            "github-hosted",
+            "github-hosted",
+          ],
         ],
       );
       assert.equal(matrix.include[0].package, "@rtnn/admin-tauri");
       assert.equal(matrix.include[0].web_url, "https://admin.acme.test");
-      assert.equal(matrix.include[0].channel, "testing");
-      assert.equal(matrix.include[0].shell_version, "0.2.0");
-      assert.equal(
-        matrix.include[0].artifact_name,
-        "admin-desktop-macos-1.2.3",
-      );
-      assert.equal(matrix.include[0].release_kind, "desktop-unsigned");
       assert.equal(matrix.include[0].desktop_build, true);
     },
   );
@@ -215,6 +305,14 @@ test("resolve-client-release-context rejects deploy facts sync for mixed channel
       project: {
         role: "business-source",
         projectId: "acme",
+      },
+      domains: {
+        testing: {
+          admin: "admin.testing.acme.test",
+        },
+        production: {
+          app: "app.acme.test",
+        },
       },
       delivery: {
         clients: {
@@ -237,6 +335,8 @@ test("resolve-client-release-context rejects deploy facts sync for mixed channel
         encoding: "utf8",
         env: {
           ...process.env,
+          CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
+          CLIENT_RELEASE_TARGETS: "adminDesktop:macos,appMobile:android",
           CLIENT_RELEASE_SYNC_DEPLOY_FACTS: "true",
           GITHUB_REF: "refs/heads/main",
           GITHUB_REF_NAME: "main",
@@ -246,6 +346,41 @@ test("resolve-client-release-context rejects deploy facts sync for mixed channel
 
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /客户端发布矩阵 channel 不一致/);
+    },
+  );
+});
+
+test("resolve-client-release-context requires concrete client web URL", () => {
+  withTempProject(
+    {
+      project: {
+        role: "business-source",
+        projectId: "acme",
+      },
+      delivery: {
+        clients: {
+          appMobile: {
+            enabled: true,
+            targets: ["android"],
+            channel: "testing",
+          },
+        },
+      },
+    },
+    (rootDir) => {
+      const result = spawnSync(process.execPath, [scriptPath], {
+        cwd: rootDir,
+        encoding: "utf8",
+        env: childProcessEnv({
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          GITHUB_REF: "refs/heads/main",
+          GITHUB_REF_NAME: "main",
+          GITHUB_SHA: "1234567890abcdef",
+        }),
+      });
+
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /缺少 testing 环境 Web URL/);
     },
   );
 });
@@ -322,6 +457,8 @@ test("resolve-client-release-context defaults v tags to production channel", () 
     (rootDir) => {
       const output = runContext(rootDir, {
         CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
+        CLIENT_RELEASE_TARGETS: "adminDesktop:macos",
         GITHUB_REF: "refs/tags/v1.2.3",
         GITHUB_REF_NAME: "v1.2.3",
         GITHUB_SHA: "1234567890abcdef",
@@ -364,6 +501,8 @@ test("resolve-client-release-context prefers delivery webUrls over domains", () 
     (rootDir) => {
       const output = runContext(rootDir, {
         CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
+        CLIENT_RELEASE_TARGETS: "adminDesktop:macos",
         GITHUB_REF: "refs/tags/v1.2.3",
         GITHUB_REF_NAME: "v1.2.3",
         GITHUB_SHA: "1234567890abcdef",
@@ -701,6 +840,106 @@ test("prepare-android-signing writes keystore config and patches Gradle without 
       gradle,
       /signingConfig = signingConfigs\.getByName\("release"\)/,
     );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("prepare-app-tauri-android patches generated Android shell capabilities", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-app-tauri-android-"));
+  try {
+    const clientDir = path.join(dir, "clients/app-tauri");
+    const srcTauriDir = path.join(clientDir, "src-tauri");
+    const androidDir = path.join(srcTauriDir, "gen/android");
+    const mainDir = path.join(androidDir, "app/src/main");
+    const javaDir = path.join(mainDir, "java/com/acme/app");
+
+    mkdirSync(javaDir, { recursive: true });
+    mkdirSync(path.join(androidDir, "app"), { recursive: true });
+    writeFileSync(
+      path.join(srcTauriDir, "tauri.conf.json"),
+      `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
+    );
+    writeFileSync(
+      path.join(javaDir, "MainActivity.kt"),
+      [
+        "package com.acme.app",
+        "",
+        "import android.os.Bundle",
+        "",
+        "class MainActivity : TauriActivity() {",
+        "  override fun onCreate(savedInstanceState: Bundle?) {",
+        "    super.onCreate(savedInstanceState)",
+        "  }",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      path.join(mainDir, "AndroidManifest.xml"),
+      [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+        '    <uses-permission android:name="android.permission.INTERNET" />',
+        "    <application>",
+        "    </application>",
+        "</manifest>",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      path.join(androidDir, "app/build.gradle.kts"),
+      [
+        "plugins {",
+        '    id("com.android.application")',
+        "}",
+        "",
+        "dependencies {",
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [prepareAppTauriAndroidScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+
+    const mainActivity = readFileSync(
+      path.join(javaDir, "MainActivity.kt"),
+      "utf8",
+    );
+    const manifest = readFileSync(
+      path.join(mainDir, "AndroidManifest.xml"),
+      "utf8",
+    );
+    const gradle = readFileSync(
+      path.join(androidDir, "app/build.gradle.kts"),
+      "utf8",
+    );
+    const filePaths = readFileSync(
+      path.join(mainDir, "res/xml/file_paths.xml"),
+      "utf8",
+    );
+
+    assert.match(mainActivity, /onShowFileChooser/);
+    assert.match(mainActivity, /--rtnn-keyboard-height/);
+    assert.match(mainActivity, /FileProvider\.getUriForFile/);
+    assert.match(manifest, /android\.permission\.CAMERA/);
+    assert.match(manifest, /androidx\.core\.content\.FileProvider/);
+    assert.match(gradle, /androidx\.activity:activity-ktx/);
+    assert.match(gradle, /androidx\.core:core-ktx/);
+    assert.match(filePaths, /external-files-path/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

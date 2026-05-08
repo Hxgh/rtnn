@@ -3,11 +3,29 @@ import {
   PROJECT_METADATA_FILE,
   readProjectMetadata,
 } from "../lib/project-metadata.mjs";
-import { buildProjectProfile } from "../lib/project-profile.mjs";
+import {
+  RELEASE_EXECUTION_MODES,
+  buildProjectProfile,
+} from "../lib/project-profile.mjs";
 
 function normalizeString(value, fallback = "") {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+}
+
+function resolveReleaseExecutionMode() {
+  const mode = normalizeString(process.env.RTNN_RELEASE_EXECUTION_MODE);
+  if (!mode) {
+    return "";
+  }
+
+  if (!RELEASE_EXECUTION_MODES.includes(mode)) {
+    throw new Error(
+      `RTNN_RELEASE_EXECUTION_MODE 必须是 ${RELEASE_EXECUTION_MODES.join("/")}`,
+    );
+  }
+
+  return mode;
 }
 
 function writeOutput(key, value) {
@@ -23,6 +41,7 @@ function writeOutput(key, value) {
 function writeDisabled(reason) {
   writeOutput("enabled", "false");
   writeOutput("reason", reason);
+  writeOutput("release_execution_mode", "");
   writeOutput("service_matrix", JSON.stringify({ service: [] }));
   writeOutput("enabled_services_json", JSON.stringify([]));
 }
@@ -73,7 +92,11 @@ function main() {
     return;
   }
 
-  const profile = buildProjectProfile(metadata);
+  const requestedReleaseExecutionMode = resolveReleaseExecutionMode();
+  const profile = buildProjectProfile(metadata, {
+    releaseExecutionMode: requestedReleaseExecutionMode,
+  });
+  const releaseExecutionMode = profile.releaseExecution.effectiveMode;
   const enabledServices = profile.enabledImageTargets;
   const projectId = normalizeString(project.projectId);
   const imageNamePrefix = normalizeString(
@@ -111,6 +134,7 @@ function main() {
 
   writeOutput("enabled", "true");
   writeOutput("reason", "business-source");
+  writeOutput("release_execution_mode", releaseExecutionMode);
   writeOutput("project_id", projectId);
   writeOutput("image_name_prefix", imageNamePrefix);
   writeOutput("deploy_application", deployApplication);
