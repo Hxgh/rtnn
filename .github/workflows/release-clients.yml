@@ -377,18 +377,47 @@ jobs:
           RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
           RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
           ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
+          ANDROID_BUILD_TARGETS: ${{ vars.ANDROID_BUILD_TARGETS || 'aarch64' }}
+          ANDROID_SPLIT_PER_ABI: ${{ vars.ANDROID_SPLIT_PER_ABI || 'false' }}
+          ANDROID_GRADLE_MAX_WORKERS: ${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
+          ANDROID_MIN_FREE_DISK_MB: ${{ vars.ANDROID_MIN_FREE_DISK_MB || '4096' }}
           GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
-          GRADLE_OPTS: -Dorg.gradle.internal.http.connectionTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.internal.http.socketTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
+          GRADLE_OPTS: -Dorg.gradle.internal.http.connectionTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.internal.http.socketTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.workers.max=${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
         run: |
           if [[ "${{ matrix.client }}" == "appMobile" ]]; then
             CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
           fi
 
-          if [[ "$ANDROID_ARTIFACT_TYPE" == "apk" ]]; then
-            pnpm --filter "${{ matrix.package }}" tauri android build --apk
-          else
-            pnpm --filter "${{ matrix.package }}" tauri android build --aab
+          free_mb="$(df -Pm . | awk 'NR==2 { print $4 }')"
+          if [[ -n "$ANDROID_MIN_FREE_DISK_MB" && "$free_mb" -lt "$ANDROID_MIN_FREE_DISK_MB" ]]; then
+            echo "::error::Insufficient disk for Android client build: ${free_mb}MB free, require ${ANDROID_MIN_FREE_DISK_MB}MB. Clean runner artifacts or use a dedicated/GitHub-hosted runner."
+            exit 1
           fi
+
+          build_args=()
+          normalized_targets="$(printf '%s' "$ANDROID_BUILD_TARGETS" | tr ',' ' ')"
+          if [[ -n "${normalized_targets// /}" && "$normalized_targets" != "all" ]]; then
+            for target in $normalized_targets; do
+              build_args+=(--target "$target")
+            done
+          fi
+
+          if [[ "$ANDROID_SPLIT_PER_ABI" == "true" ]]; then
+            build_args+=(--split-per-abi)
+          fi
+
+          if [[ "$ANDROID_ARTIFACT_TYPE" == "apk" ]]; then
+            build_args+=(--apk)
+          else
+            build_args+=(--aab)
+          fi
+
+          runner_args=()
+          if [[ -n "$ANDROID_GRADLE_MAX_WORKERS" ]]; then
+            runner_args+=(--max-workers "$ANDROID_GRADLE_MAX_WORKERS")
+          fi
+
+          pnpm --filter "${{ matrix.package }}" tauri android build "${build_args[@]}" -- "${runner_args[@]}"
 
       - name: Build signed iOS client
         if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}

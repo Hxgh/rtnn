@@ -12,6 +12,16 @@ function normalizeString(value, fallback = "") {
   return normalized || fallback;
 }
 
+function resolveExistingPath(...candidates) {
+  for (const candidate of candidates) {
+    if (candidate && existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates.find(Boolean);
+}
+
 function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
@@ -335,13 +345,24 @@ class MainActivity : TauriActivity() {
 }
 
 function main() {
-  const clientDir = normalizeString(
+  const rawClientDir = normalizeString(
     process.env.CLIENT_DIR,
-    path.join("clients", "app-tauri"),
+    "",
+  );
+  const clientDir = resolveExistingPath(
+    rawClientDir,
+    rawClientDir ? path.resolve(process.cwd(), rawClientDir) : "",
+    path.resolve(process.cwd(), "clients", "app-tauri"),
+    process.cwd(),
   );
   const srcTauriDir = path.join(clientDir, "src-tauri");
-  const androidDir = normalizeString(
+  const rawAndroidDir = normalizeString(
     process.env.ANDROID_PROJECT_DIR,
+    "",
+  );
+  const androidDir = resolveExistingPath(
+    rawAndroidDir,
+    rawAndroidDir ? path.resolve(process.cwd(), rawAndroidDir) : "",
     path.join(srcTauriDir, "gen", "android"),
   );
 

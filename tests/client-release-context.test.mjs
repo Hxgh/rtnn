@@ -1010,6 +1010,70 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
   }
 });
 
+test("prepare-app-tauri-android resolves CLIENT_DIR when package script cwd is client dir", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-app-tauri-android-cwd-"));
+  try {
+    const clientDir = path.join(dir, "clients/app-tauri");
+    const srcTauriDir = path.join(clientDir, "src-tauri");
+    const androidDir = path.join(srcTauriDir, "gen/android");
+    const mainDir = path.join(androidDir, "app/src/main");
+    const javaDir = path.join(mainDir, "java/com/acme/app");
+
+    mkdirSync(javaDir, { recursive: true });
+    mkdirSync(path.join(androidDir, "app"), { recursive: true });
+    writeFileSync(
+      path.join(srcTauriDir, "tauri.conf.json"),
+      `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
+    );
+    writeFileSync(
+      path.join(javaDir, "MainActivity.kt"),
+      [
+        "package com.acme.app",
+        "",
+        "class MainActivity : TauriActivity() {",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      path.join(mainDir, "AndroidManifest.xml"),
+      [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+        "    <application>",
+        "    </application>",
+        "</manifest>",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      path.join(androidDir, "app/build.gradle.kts"),
+      ["dependencies {", "}", ""].join("\n"),
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [prepareAppTauriAndroidScriptPath],
+      {
+        cwd: clientDir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      readFileSync(path.join(javaDir, "MainActivity.kt"), "utf8"),
+      /onShowFileChooser/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("prepare-google-play-upload reports blocked upload without service account or artifact", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-google-play-blocked-"));
   try {
@@ -1989,6 +2053,19 @@ test("release-clients workflow primes Android Gradle wrapper before signed build
   assert.match(workflow, /GRADLE_DISTRIBUTION_BASE_URL/);
   assert.match(workflow, /GRADLE_WRAPPER_NETWORK_TIMEOUT/);
   assert.match(workflow, /org\.gradle\.internal\.http\.socketTimeout/);
+});
+
+test("release-clients workflow constrains server-local Android build resources", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /ANDROID_BUILD_TARGETS: \$\{\{ vars\.ANDROID_BUILD_TARGETS \|\| 'aarch64' \}\}/);
+  assert.match(workflow, /ANDROID_MIN_FREE_DISK_MB/);
+  assert.match(workflow, /org\.gradle\.workers\.max/);
+  assert.match(workflow, /--target "\$target"/);
+  assert.match(workflow, /--max-workers "\$ANDROID_GRADLE_MAX_WORKERS"/);
 });
 
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {
