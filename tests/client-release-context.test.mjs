@@ -38,6 +38,10 @@ const prepareAndroidSigningScriptPath = path.join(
   repoRoot,
   "scripts/release/prepare-android-signing.mjs",
 );
+const primeAndroidGradleScriptPath = path.join(
+  repoRoot,
+  "scripts/release/prime-android-gradle.mjs",
+);
 const prepareGooglePlayUploadScriptPath = path.join(
   repoRoot,
   "scripts/release/prepare-google-play-upload.mjs",
@@ -843,6 +847,58 @@ test("prepare-android-signing writes keystore config and patches Gradle without 
     assert.match(
       gradle,
       /signingConfig = signingConfigs\.getByName\("release"\)/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("prime-android-gradle patches wrapper timeout and primes distribution", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-android-gradle-"));
+  try {
+    const androidDir = path.join(
+      dir,
+      "clients/app-tauri/src-tauri/gen/android",
+    );
+    const wrapperDir = path.join(androidDir, "gradle/wrapper");
+    mkdirSync(wrapperDir, { recursive: true });
+    writeFileSync(
+      path.join(wrapperDir, "gradle-wrapper.properties"),
+      [
+        "distributionBase=GRADLE_USER_HOME",
+        "distributionPath=wrapper/dists",
+        "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-bin.zip",
+        "networkTimeout=10000",
+        "zipStoreBase=GRADLE_USER_HOME",
+        "zipStorePath=wrapper/dists",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      path.join(androidDir, "gradlew"),
+      "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" > \"$PWD/gradle-called.txt\"\nexit 0\n",
+      { mode: 0o755 },
+    );
+
+    const result = spawnSync(process.execPath, [primeAndroidGradleScriptPath], {
+      cwd: dir,
+      encoding: "utf8",
+      env: childProcessEnv({
+        CLIENT_DIR: "clients/app-tauri",
+        GRADLE_WRAPPER_NETWORK_TIMEOUT: "120000",
+        GRADLE_WRAPPER_PRIME_ATTEMPTS: "1",
+      }),
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const properties = readFileSync(
+      path.join(wrapperDir, "gradle-wrapper.properties"),
+      "utf8",
+    );
+    assert.match(properties, /^networkTimeout=120000$/m);
+    assert.equal(
+      readFileSync(path.join(androidDir, "gradle-called.txt"), "utf8").trim(),
+      "--version --no-daemon",
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -1913,6 +1969,18 @@ test("release-clients workflow verifies Android SDK for signed builds", () => {
   assert.match(workflow, /\$HOME\/android-sdk/);
   assert.match(workflow, /ANDROID_NDK_HOME=\$ndk_home/);
   assert.match(workflow, /Android SDK not found/);
+});
+
+test("release-clients workflow primes Android Gradle wrapper before signed builds", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /name: Prime Android Gradle wrapper/);
+  assert.match(workflow, /prime-android-gradle\.mjs/);
+  assert.match(workflow, /GRADLE_WRAPPER_NETWORK_TIMEOUT/);
+  assert.match(workflow, /org\.gradle\.internal\.http\.socketTimeout/);
 });
 
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {

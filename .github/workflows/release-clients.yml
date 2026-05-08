@@ -264,6 +264,15 @@ jobs:
 
           node scripts/release/prepare-android-signing.mjs
 
+      - name: Prime Android Gradle wrapper
+        if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+          GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
+          GRADLE_WRAPPER_PRIME_ATTEMPTS: ${{ vars.GRADLE_WRAPPER_PRIME_ATTEMPTS || '3' }}
+        run: node scripts/release/prime-android-gradle.mjs
+
       - name: Prepare iOS signing
         id: ios_signing
         if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
@@ -355,6 +364,8 @@ jobs:
           RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
           RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
           ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
+          GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
+          GRADLE_OPTS: -Dorg.gradle.internal.http.connectionTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.internal.http.socketTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
         run: |
           if [[ "${{ matrix.client }}" == "appMobile" ]]; then
             CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
