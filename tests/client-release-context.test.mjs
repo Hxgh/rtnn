@@ -26,6 +26,10 @@ const collectArtifactsScriptPath = path.join(
   repoRoot,
   "scripts/release/collect-client-artifacts.mjs",
 );
+const checkArtifactUrlsScriptPath = path.join(
+  repoRoot,
+  "scripts/release/check-client-artifact-urls.mjs",
+);
 const prepareTauriSigningScriptPath = path.join(
   repoRoot,
   "scripts/release/prepare-tauri-updater-signing.mjs",
@@ -2150,6 +2154,92 @@ test("collect-client-artifacts copies bundle outputs and writes file manifest", 
         size: 6,
       },
     ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-client-artifact-urls rejects local and placeholder URLs in bundle outputs", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-artifact-urls-"));
+  try {
+    const scanDir = path.join(
+      dir,
+      "artifacts/client-release/app-mobile-android-1.2.3/mobile",
+    );
+    mkdirSync(scanDir, { recursive: true });
+    writeFileSync(
+      path.join(scanDir, "app-universal-release.apk"),
+      "https://app.testing.acme.test http://localhost:5102",
+    );
+
+    const result = spawnSync(process.execPath, [checkArtifactUrlsScriptPath], {
+      cwd: dir,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+        CLIENT_ARTIFACT_SCAN_DIR: scanDir,
+      },
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /本地开发或模板占位 URL/);
+    const report = JSON.parse(
+      readFileSync(
+        path.join(
+          dir,
+          "artifacts/client-release/artifact-url-checks/app-mobile-android-1.2.3.json",
+        ),
+        "utf8",
+      ),
+    );
+    assert.deepEqual(report.blockedMatches, [
+      {
+        path: "app-universal-release.apk",
+        size: 51,
+        matches: ["http://localhost", "localhost:5102"],
+      },
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-client-artifact-urls accepts production bundle URLs", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-artifact-urls-ok-"));
+  try {
+    const scanDir = path.join(
+      dir,
+      "artifacts/client-release/app-mobile-android-1.2.3/mobile",
+    );
+    mkdirSync(scanDir, { recursive: true });
+    writeFileSync(
+      path.join(scanDir, "app-universal-release.apk"),
+      "https://app.testing.acme.test https://api.testing.acme.test",
+    );
+
+    const result = spawnSync(process.execPath, [checkArtifactUrlsScriptPath], {
+      cwd: dir,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CLIENT_ARTIFACT_NAME: "app-mobile-android-1.2.3",
+        CLIENT_ARTIFACT_SCAN_DIR: scanDir,
+      },
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(
+      readFileSync(
+        path.join(
+          dir,
+          "artifacts/client-release/artifact-url-checks/app-mobile-android-1.2.3.json",
+        ),
+        "utf8",
+      ),
+    );
+    assert.equal(report.checkedFiles, 1);
+    assert.deepEqual(report.blockedMatches, []);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

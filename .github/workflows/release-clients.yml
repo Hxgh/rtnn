@@ -324,6 +324,14 @@ jobs:
           CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
         run: node scripts/release/collect-client-artifacts.mjs
 
+      - name: Check desktop bundle URLs
+        if: ${{ matrix.desktop_build == true && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_ARTIFACT_SCAN_DIR: artifacts/client-release/${{ matrix.artifact_name }}/bundle
+        run: node scripts/release/check-client-artifact-urls.mjs
+
       - name: Collect Android bundle artifacts
         if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
         shell: bash
@@ -334,6 +342,14 @@ jobs:
           CLIENT_ARTIFACT_OUTPUT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
         run: node scripts/release/collect-client-artifacts.mjs
 
+      - name: Check Android bundle URLs
+        if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_ARTIFACT_SCAN_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+        run: node scripts/release/check-client-artifact-urls.mjs
+
       - name: Collect iOS bundle artifacts
         if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
         shell: bash
@@ -343,6 +359,14 @@ jobs:
           CLIENT_BUNDLE_DIR: ${{ matrix.client_dir }}/src-tauri/gen/apple/build
           CLIENT_ARTIFACT_OUTPUT_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
         run: node scripts/release/collect-client-artifacts.mjs
+
+      - name: Check iOS bundle URLs
+        if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_ARTIFACT_SCAN_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
+        run: node scripts/release/check-client-artifact-urls.mjs
 
       - name: Prepare Google Play upload
         id: google_play_upload

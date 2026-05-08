@@ -111,15 +111,19 @@ function dedupeStrings(values) {
 function patchTauriConfig(configPath, webUrl) {
   const config = readJson(configPath);
   const previousFrontendDist = normalizeString(config.build?.frontendDist);
+  const previousDevUrl = normalizeString(config.build?.devUrl);
 
   config.build = config.build ?? {};
   config.build.frontendDist = webUrl;
+  delete config.build.devUrl;
   writeJson(configPath, config);
 
   return {
     path: configPath,
     frontendDist: webUrl,
     previousFrontendDistConfigured: Boolean(previousFrontendDist),
+    previousDevUrlConfigured: Boolean(previousDevUrl),
+    devUrlRemoved: Boolean(previousDevUrl),
     patched: previousFrontendDist !== webUrl,
   };
 }
@@ -131,22 +135,14 @@ function patchCapabilityFile(filePath, webUrl) {
     : [];
 
   capability.remote = capability.remote ?? {};
-  capability.remote.urls = dedupeStrings([
-    ...previousUrls.filter((url) => {
-      if (!isHttpLikeUrl(url)) {
-        return true;
-      }
-
-      return isLocalDevRemoteUrl(url) || normalizeString(url) === webUrl;
-    }),
-    webUrl,
-  ]);
+  capability.remote.urls = dedupeStrings([webUrl]);
   writeJson(filePath, capability);
 
   return {
     path: filePath,
     urls: capability.remote.urls,
     previousUrlCount: previousUrls.length,
+    removedUrlCount: previousUrls.filter((url) => normalizeString(url) !== webUrl).length,
     patched:
       JSON.stringify(previousUrls) !== JSON.stringify(capability.remote.urls),
   };
