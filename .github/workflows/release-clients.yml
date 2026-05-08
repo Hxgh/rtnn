@@ -53,6 +53,7 @@ concurrency:
 jobs:
   resolve-client-release-context:
     name: Resolve Client Release Context
+    if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' }}
     runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 10
     outputs:
@@ -96,7 +97,7 @@ jobs:
     name: Skip Client Release
     runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     needs: resolve-client-release-context
-    if: ${{ needs.resolve-client-release-context.outputs.enabled != 'true' }}
+    if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled != 'true' }}
     steps:
       - name: Report skip reason
         run: |
@@ -105,7 +106,7 @@ jobs:
   validate-client-release:
     name: Validate ${{ matrix.client }} ${{ matrix.target }}
     needs: resolve-client-release-context
-    if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' }}
+    if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     permissions:
@@ -593,7 +594,7 @@ jobs:
     needs:
       - resolve-client-release-context
       - validate-client-release
-    if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+    if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
     runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 10
     permissions:
@@ -637,7 +638,7 @@ jobs:
       - resolve-client-release-context
       - validate-client-release
       - merge-tauri-updater-manifests
-    if: ${{ needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' && needs.resolve-client-release-context.outputs.publish_github_release == 'true' }}
+    if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' && needs.resolve-client-release-context.outputs.publish_github_release == 'true' }}
     runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 15
     permissions:
@@ -691,6 +692,7 @@ jobs:
     if: >-
       ${{
         always() &&
+        vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' &&
         needs.resolve-client-release-context.outputs.enabled == 'true' &&
         needs.resolve-client-release-context.outputs.sync_deploy_facts == 'true' &&
         needs.validate-client-release.result == 'success' &&
