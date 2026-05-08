@@ -8,6 +8,7 @@ const weappPort = Number(
 );
 const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
 const weappBaseUrl = `http://127.0.0.1:${weappPort}`;
+const chromiumChannel = process.env.PLAYWRIGHT_CHROMIUM_CHANNEL?.trim();
 
 export default defineConfig({
   testDir: "../../tests/acceptance",
@@ -20,7 +21,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.WEAPP_BASE_URL ?? weappBaseUrl,
     browserName: "chromium",
-    channel: "chrome",
+    ...(chromiumChannel ? { channel: chromiumChannel } : {}),
     headless: true,
     locale: "zh-CN",
     trace: "retain-on-failure",

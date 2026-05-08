@@ -171,6 +171,15 @@ jobs:
       - name: Template bootstrap gate
         run: pnpm run check:template-bootstrap
 
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            pnpm exec playwright install --with-deps chromium
+          else
+            pnpm exec playwright install chromium
+          fi
+
       - name: Release candidate gate
         run: pnpm run check:release-candidate
 

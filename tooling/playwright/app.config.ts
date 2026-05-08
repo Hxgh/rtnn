@@ -4,6 +4,7 @@ const backendPort = Number(process.env.APP_ACCEPTANCE_BACKEND_PORT ?? "5110");
 const appPort = Number(process.env.APP_ACCEPTANCE_PORT ?? "5120");
 const backendBaseUrl = `http://127.0.0.1:${backendPort}`;
 const appBaseUrl = `http://localhost:${appPort}`;
+const chromiumChannel = process.env.PLAYWRIGHT_CHROMIUM_CHANNEL?.trim();
 
 export default defineConfig({
   testDir: "../../tests/acceptance",
@@ -16,7 +17,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.APP_BASE_URL ?? appBaseUrl,
     browserName: "chromium",
-    channel: "chrome",
+    ...(chromiumChannel ? { channel: chromiumChannel } : {}),
     headless: true,
     locale: "zh-CN",
     trace: "retain-on-failure",
