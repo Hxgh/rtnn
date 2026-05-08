@@ -1902,6 +1902,19 @@ test("release-clients workflow is opt-in for client package builds", () => {
   assert.doesNotMatch(workflow, /- "v\*"/);
 });
 
+test("release-clients workflow verifies Android SDK for signed builds", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /name: Verify Android SDK/);
+  assert.match(workflow, /Android signing secrets are incomplete/);
+  assert.match(workflow, /\$HOME\/android-sdk/);
+  assert.match(workflow, /ANDROID_NDK_HOME=\$ndk_home/);
+  assert.match(workflow, /Android SDK not found/);
+});
+
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-github-release-assets-"));
   try {

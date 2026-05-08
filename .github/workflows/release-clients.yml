@@ -153,6 +153,57 @@ jobs:
           java -version
           javac -version
 
+      - name: Verify Android SDK
+        if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || '' }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || '' }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "Android SDK verification skipped because Android signing secrets are incomplete."
+            exit 0
+          fi
+
+          android_home="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "$android_home" && -d "$HOME/android-sdk" ]]; then
+            android_home="$HOME/android-sdk"
+          fi
+          if [[ -z "$android_home" && -d "/usr/local/lib/android/sdk" ]]; then
+            android_home="/usr/local/lib/android/sdk"
+          fi
+
+          if [[ -z "$android_home" || ! -d "$android_home" ]]; then
+            echo "::error::Android SDK not found. Set ANDROID_HOME/ANDROID_SDK_ROOT or install it at \$HOME/android-sdk."
+            exit 1
+          fi
+
+          ndk_home="${NDK_HOME:-${ANDROID_NDK_HOME:-}}"
+          if [[ -z "$ndk_home" && -d "$android_home/ndk" ]]; then
+            ndk_home="$(find "$android_home/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+
+          if [[ -z "$ndk_home" || ! -d "$ndk_home" ]]; then
+            echo "::error::Android NDK not found. Install one with sdkmanager \"ndk;<version>\" or set NDK_HOME."
+            exit 1
+          fi
+
+          if [[ ! -d "$android_home/platforms" ]]; then
+            echo "::error::Android SDK platforms are missing. Install at least one platforms;android-* package."
+            exit 1
+          fi
+
+          echo "ANDROID_HOME=$android_home" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$android_home" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ndk_home" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ndk_home" >> "$GITHUB_ENV"
+          echo "$android_home/platform-tools" >> "$GITHUB_PATH"
+          echo "$android_home/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+
       - name: Setup iOS Rust target
         if: ${{ matrix.target == 'ios' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
         shell: bash
