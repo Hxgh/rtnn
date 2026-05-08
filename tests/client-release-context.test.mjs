@@ -2064,8 +2064,9 @@ test("release-clients workflow constrains server-local Android build resources",
   assert.match(workflow, /ANDROID_BUILD_TARGETS: \$\{\{ vars\.ANDROID_BUILD_TARGETS \|\| 'aarch64' \}\}/);
   assert.match(workflow, /ANDROID_MIN_FREE_DISK_MB/);
   assert.match(workflow, /org\.gradle\.workers\.max/);
+  assert.match(workflow, /CARGO_BUILD_JOBS/);
   assert.match(workflow, /--target "\$target"/);
-  assert.match(workflow, /--max-workers "\$ANDROID_GRADLE_MAX_WORKERS"/);
+  assert.doesNotMatch(workflow, /tauri android build "\$\{build_args\[@\]\}" --/);
 });
 
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {

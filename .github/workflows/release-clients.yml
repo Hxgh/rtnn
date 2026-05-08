@@ -380,6 +380,7 @@ jobs:
           ANDROID_BUILD_TARGETS: ${{ vars.ANDROID_BUILD_TARGETS || 'aarch64' }}
           ANDROID_SPLIT_PER_ABI: ${{ vars.ANDROID_SPLIT_PER_ABI || 'false' }}
           ANDROID_GRADLE_MAX_WORKERS: ${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
+          CARGO_BUILD_JOBS: ${{ vars.ANDROID_CARGO_BUILD_JOBS || '2' }}
           ANDROID_MIN_FREE_DISK_MB: ${{ vars.ANDROID_MIN_FREE_DISK_MB || '4096' }}
           GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
           GRADLE_OPTS: -Dorg.gradle.internal.http.connectionTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.internal.http.socketTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.workers.max=${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
@@ -412,12 +413,7 @@ jobs:
             build_args+=(--aab)
           fi
 
-          runner_args=()
-          if [[ -n "$ANDROID_GRADLE_MAX_WORKERS" ]]; then
-            runner_args+=(--max-workers "$ANDROID_GRADLE_MAX_WORKERS")
-          fi
-
-          pnpm --filter "${{ matrix.package }}" tauri android build "${build_args[@]}" -- "${runner_args[@]}"
+          pnpm --filter "${{ matrix.package }}" tauri android build "${build_args[@]}"
 
       - name: Build signed iOS client
         if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
