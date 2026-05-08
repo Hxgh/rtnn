@@ -136,6 +136,8 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
 
       - name: Setup Java
         if: ${{ matrix.target == 'android' && needs.resolve-client-release-context.outputs.dry_run != 'true' && matrix.runner_kind == 'github-hosted' }}
