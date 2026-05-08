@@ -74,20 +74,6 @@ jobs:
     if: ${{ needs.detect-live-state-only.outputs.live_state_only != 'true' }}
     runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
     timeout-minutes: 45
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: rtnn
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 55432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d rtnn"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout
