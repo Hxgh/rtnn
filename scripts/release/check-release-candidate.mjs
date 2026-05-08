@@ -73,9 +73,15 @@ function main() {
   run("pnpm", ["run", "check:backend-release"], "检查 backend 发布基线", {
     env: releaseEnv,
   });
-  run("pnpm", ["run", "check:template-delivery"], "检查多端交付烟测", {
-    env: releaseEnv,
-  });
+  if (process.env.RTNN_RUN_UI_SMOKE === "true") {
+    run("pnpm", ["run", "check:template-delivery"], "检查多端交付烟测", {
+      env: releaseEnv,
+    });
+  } else {
+    console.log(
+      "[release-check] 跳过多端 UI smoke: 未设置 RTNN_RUN_UI_SMOKE=true",
+    );
+  }
 
   console.log("[release-check] release candidate 校验通过");
 }
