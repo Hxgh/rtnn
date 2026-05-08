@@ -22,6 +22,8 @@ on:
     paths-ignore:
       - ".github/**"
       - "docs/**"
+      - "tests/**"
+      - "tooling/playwright/**"
       - "**/*.md"
 
 permissions:
