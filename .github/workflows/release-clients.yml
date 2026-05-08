@@ -124,7 +124,14 @@ jobs:
         with:
           version: 10.17.0
 
-      - name: Setup Node.js
+      - name: Setup Node.js for server-local
+        if: ${{ matrix.runner_kind == 'self-hosted' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Setup Node.js for GitHub-hosted
+        if: ${{ matrix.runner_kind == 'github-hosted' }}
         uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -798,23 +805,83 @@ jobs:
       - name: Create or update GitHub Release
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           CLIENT_RELEASE_TAG: ${{ needs.resolve-client-release-context.outputs.release_tag }}
           CLIENT_RELEASE_VERSION: ${{ needs.resolve-client-release-context.outputs.release_version }}
         run: |
-          if ! gh release view "$CLIENT_RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$CLIENT_RELEASE_TAG" \
-              --target "$GITHUB_SHA" \
-              --title "$CLIENT_RELEASE_TAG" \
-              --notes "Client release $CLIENT_RELEASE_VERSION"
+          set -euo pipefail
+
+          api_base="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          upload_base="https://uploads.github.com/repos/${GITHUB_REPOSITORY}"
+          asset_dir="artifacts/client-release/github-release-assets"
+          asset_manifest="${asset_dir}/asset-files.json"
+          tag_path="$(jq -nr --arg value "$CLIENT_RELEASE_TAG" '$value | @uri')"
+          release_response="$(mktemp)"
+
+          release_status="$(curl --show-error --silent \
+            --output "$release_response" \
+            --write-out "%{http_code}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${api_base}/releases/tags/${tag_path}")"
+
+          if [[ "$release_status" == "404" ]]; then
+            payload="$(jq -n \
+              --arg tag_name "$CLIENT_RELEASE_TAG" \
+              --arg target_commitish "$GITHUB_SHA" \
+              --arg name "$CLIENT_RELEASE_TAG" \
+              --arg body "Client release ${CLIENT_RELEASE_VERSION}" \
+              '{ tag_name: $tag_name, target_commitish: $target_commitish, name: $name, body: $body }'
+            )"
+            curl --fail --show-error --silent \
+              --output "$release_response" \
+              -X POST "${api_base}/releases" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -d "$payload"
+          elif [[ ! "$release_status" =~ ^2 ]]; then
+            cat "$release_response" >&2
+            exit 1
           fi
 
-          find artifacts/client-release/github-release-assets \
-            -maxdepth 1 \
-            -type f \
-            ! -name asset-files.json \
-            -print0 \
-            | xargs -0 gh release upload "$CLIENT_RELEASE_TAG" --clobber
+          release_id="$(jq -er '.id' "$release_response")"
+
+          jq -er '.assets[].name' "$asset_manifest" | while IFS= read -r asset_name; do
+            asset_path="${asset_dir}/${asset_name}"
+            [[ -f "$asset_path" ]] || {
+              echo "::error::GitHub Release asset not found: ${asset_path}"
+              exit 1
+            }
+
+            asset_id="$(curl --fail --show-error --silent \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "${api_base}/releases/${release_id}/assets?per_page=100" \
+              | jq -r --arg name "$asset_name" '.[] | select(.name == $name) | .id' \
+              | head -n 1)"
+
+            if [[ -n "$asset_id" ]]; then
+              curl --fail --show-error --silent \
+                --output /dev/null \
+                -X DELETE "${api_base}/releases/assets/${asset_id}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28"
+            fi
+
+            encoded_asset_name="$(jq -nr --arg value "$asset_name" '$value | @uri')"
+            curl --fail --show-error --silent \
+              --output /dev/null \
+              -X POST "${upload_base}/releases/${release_id}/assets?name=${encoded_asset_name}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@${asset_path}"
+          done
 
   dispatch-client-release-facts:
     name: Dispatch Client Release Facts
@@ -861,7 +928,7 @@ jobs:
       - name: Dispatch deploy client release facts sync
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN || github.token }}
+          DISPATCH_TOKEN: ${{ secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN || github.token }}
           DEPLOY_REPOSITORY: ${{ steps.deploy.outputs.repository }}
           DEPLOY_EVENT_TYPE: ${{ steps.deploy.outputs.event_type }}
           CLIENT_RELEASE_CHANNEL: ${{ needs.resolve-client-release-context.outputs.release_channel }}
@@ -882,6 +949,10 @@ jobs:
           process.stdout.write(`${JSON.stringify(payload)}\n`);
           NODE
 
-          gh api "repos/${DEPLOY_REPOSITORY}/dispatches" \
-            --method POST \
-            --input /tmp/client-release-facts-dispatch.json
+          curl --fail --show-error --silent \
+            --output /dev/null \
+            -X POST "https://api.github.com/repos/${DEPLOY_REPOSITORY}/dispatches" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -d "@/tmp/client-release-facts-dispatch.json"

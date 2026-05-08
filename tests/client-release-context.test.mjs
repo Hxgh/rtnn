@@ -2069,6 +2069,22 @@ test("release-clients workflow constrains server-local Android build resources",
   assert.doesNotMatch(workflow, /tauri android build "\$\{build_args\[@\]\}" --/);
 });
 
+test("release-clients workflow avoids server-local gh and pnpm cache assumptions", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /name: Setup Node\.js for server-local/);
+  assert.match(workflow, /if: \$\{\{ matrix\.runner_kind == 'self-hosted' \}\}/);
+  assert.match(workflow, /name: Setup Node\.js for GitHub-hosted/);
+  assert.match(workflow, /if: \$\{\{ matrix\.runner_kind == 'github-hosted' \}\}/);
+  assert.match(workflow, /curl --fail --show-error --silent[\s\S]*repos\/\$\{DEPLOY_REPOSITORY\}\/dispatches/);
+  assert.match(workflow, /https:\/\/uploads\.github\.com\/repos\/\$\{GITHUB_REPOSITORY\}/);
+  assert.doesNotMatch(workflow, /\bgh api\b/);
+  assert.doesNotMatch(workflow, /\bgh release\b/);
+});
+
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-github-release-assets-"));
   try {
