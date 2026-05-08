@@ -159,6 +159,52 @@ async function expectBottomNavSafeAreaFilled(page: Page) {
   }).toPass();
 }
 
+async function expectContentClearsBottomNav(page: Page, selector: string) {
+  await expect(async () => {
+    const target = page.locator(selector).first();
+    const navSurface = page.locator("nav > div").first();
+    const scrollRoot = page.locator(".rtnn-app-scroll").first();
+
+    await scrollRoot.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(target).toBeVisible();
+    await expect(navSurface).toBeVisible();
+
+    const [targetBox, navBox] = await Promise.all([
+      target.boundingBox(),
+      navSurface.boundingBox(),
+    ]);
+
+    expect(targetBox).toBeTruthy();
+    expect(navBox).toBeTruthy();
+    expect(Math.round(targetBox!.y + targetBox!.height)).toBeLessThanOrEqual(
+      Math.round(navBox!.y) - 8,
+    );
+  }).toPass();
+}
+
+async function expectContentClearsViewportBottom(page: Page, selector: string) {
+  await expect(async () => {
+    const target = page.locator(selector).first();
+    const scrollRoot = page.locator(".rtnn-app-scroll").first();
+    const viewport = page.viewportSize();
+
+    await scrollRoot.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(target).toBeVisible();
+
+    const targetBox = await target.boundingBox();
+
+    expect(targetBox).toBeTruthy();
+    expect(viewport).toBeTruthy();
+    expect(Math.round(targetBox!.y + targetBox!.height)).toBeLessThanOrEqual(
+      viewport!.height - 8,
+    );
+  }).toPass();
+}
+
 test("app 客户端最小闭环验收", async ({ page }) => {
   await loginCustomer(page);
 
@@ -178,10 +224,13 @@ test("app 客户端最小闭环验收", async ({ page }) => {
   await expect(page.getByLabel(nextPasswordLabel)).toBeVisible();
   await expect(page.getByLabel(confirmPasswordLabel)).toBeVisible();
   await expect(page.getByRole("button", { name: changePasswordButton })).toBeVisible();
+  await expect(page.locator("nav")).toHaveCount(0);
+  await expectContentClearsViewportBottom(page, 'button[type="submit"]');
 
   await page.goto("/me");
   await expect(page.getByRole("heading", { name: meTitle })).toBeVisible();
   await expectBottomNavSafeAreaFilled(page);
+  await expectContentClearsBottomNav(page, 'button[type="submit"]');
 
   const logoutNavigation = page.waitForURL("**/login");
   await page.getByRole("button", { name: logoutButton }).click();

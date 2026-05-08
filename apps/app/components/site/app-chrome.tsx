@@ -16,8 +16,7 @@ export function AppChrome({
   return (
     <div
       className={cn(
-        "rtnn-app-viewport mx-auto flex w-full max-w-[28rem] flex-col bg-background",
-        "[--rtnn-bottom-nav-page-bottom:var(--rtnn-page-bottom)]",
+        "rtnn-app-viewport relative isolate mx-auto flex w-full max-w-[28rem] flex-col bg-background",
         className,
       )}
     >

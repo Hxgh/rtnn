@@ -131,13 +131,25 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  --rtnn-page-shell-bottom: var(--rtnn-page-bottom);
+}
+
+.rtnn-app-viewport:has(> nav) {
+  --rtnn-page-shell-bottom: var(--rtnn-bottom-nav-page-bottom);
 }
 
 .rtnn-app-scroll {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
+  scroll-padding-top: var(--rtnn-header-spacing);
+  scroll-padding-bottom: var(--rtnn-bottom-nav-page-bottom);
   -webkit-overflow-scrolling: touch;
+}
+
+.rtnn-app-scroll :is(a, button, input, select, textarea, [tabindex]) {
+  scroll-margin-top: var(--rtnn-header-spacing);
+  scroll-margin-bottom: var(--rtnn-bottom-nav-page-bottom);
 }
 
 @supports (-webkit-touch-callout: none) {
