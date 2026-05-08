@@ -885,6 +885,7 @@ test("prime-android-gradle patches wrapper timeout and primes distribution", () 
       encoding: "utf8",
       env: childProcessEnv({
         CLIENT_DIR: "clients/app-tauri",
+        GRADLE_DISTRIBUTION_BASE_URL: "https://mirrors.cloud.tencent.com/gradle",
         GRADLE_WRAPPER_NETWORK_TIMEOUT: "120000",
         GRADLE_WRAPPER_PRIME_ATTEMPTS: "1",
       }),
@@ -894,6 +895,10 @@ test("prime-android-gradle patches wrapper timeout and primes distribution", () 
     const properties = readFileSync(
       path.join(wrapperDir, "gradle-wrapper.properties"),
       "utf8",
+    );
+    assert.match(
+      properties,
+      /^distributionUrl=https\\:\/\/mirrors\.cloud\.tencent\.com\/gradle\/gradle-8\.14\.3-bin\.zip$/m,
     );
     assert.match(properties, /^networkTimeout=120000$/m);
     assert.equal(
@@ -1979,6 +1984,7 @@ test("release-clients workflow primes Android Gradle wrapper before signed build
 
   assert.match(workflow, /name: Prime Android Gradle wrapper/);
   assert.match(workflow, /prime-android-gradle\.mjs/);
+  assert.match(workflow, /GRADLE_DISTRIBUTION_BASE_URL/);
   assert.match(workflow, /GRADLE_WRAPPER_NETWORK_TIMEOUT/);
   assert.match(workflow, /org\.gradle\.internal\.http\.socketTimeout/);
 });

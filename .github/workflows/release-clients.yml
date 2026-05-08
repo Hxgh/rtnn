@@ -269,6 +269,8 @@ jobs:
         shell: bash
         env:
           CLIENT_DIR: ${{ matrix.client_dir }}
+          GRADLE_DISTRIBUTION_URL: ${{ vars.GRADLE_DISTRIBUTION_URL || '' }}
+          GRADLE_DISTRIBUTION_BASE_URL: ${{ vars.GRADLE_DISTRIBUTION_BASE_URL || '' }}
           GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
           GRADLE_WRAPPER_PRIME_ATTEMPTS: ${{ vars.GRADLE_WRAPPER_PRIME_ATTEMPTS || '3' }}
         run: node scripts/release/prime-android-gradle.mjs

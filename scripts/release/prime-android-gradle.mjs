@@ -25,6 +25,51 @@ function patchNetworkTimeout(source, timeout) {
   return `${source.replace(/\s*$/, "\n")}${line}\n`;
 }
 
+function decodeGradleUrl(value) {
+  return value.replaceAll("\\:", ":").replaceAll("\\/", "/");
+}
+
+function encodeGradleUrl(value) {
+  return value.replace(/^([a-z][a-z0-9+.-]*):/i, "$1\\:");
+}
+
+function getDistributionUrl(source) {
+  const line = source
+    .split(/\r?\n/)
+    .find((item) => item.startsWith("distributionUrl="));
+  if (!line) {
+    return "";
+  }
+  return decodeGradleUrl(line.slice("distributionUrl=".length));
+}
+
+function resolveDistributionUrl(source) {
+  const current = getDistributionUrl(source);
+  const explicit = normalizeString(process.env.GRADLE_DISTRIBUTION_URL);
+  if (explicit) {
+    return explicit;
+  }
+
+  const baseUrl = normalizeString(process.env.GRADLE_DISTRIBUTION_BASE_URL);
+  if (!baseUrl || !current) {
+    return current;
+  }
+
+  const fileName = path.posix.basename(new URL(current).pathname);
+  return `${baseUrl.replace(/\/+$/, "")}/${fileName}`;
+}
+
+function patchDistributionUrl(source, distributionUrl) {
+  if (!distributionUrl) {
+    return source;
+  }
+  const line = `distributionUrl=${encodeGradleUrl(distributionUrl)}`;
+  if (/^distributionUrl=/m.test(source)) {
+    return source.replace(/^distributionUrl=.*$/m, line);
+  }
+  return `${source.replace(/\s*$/, "\n")}${line}\n`;
+}
+
 function writeOutput(name, value) {
   const outputPath = process.env.GITHUB_OUTPUT;
   if (!outputPath) {
@@ -74,22 +119,21 @@ if (!existsSync(wrapperPropertiesPath)) {
 }
 
 const original = readFileSync(wrapperPropertiesPath, "utf8");
-const patched = patchNetworkTimeout(original, timeout);
+const distributionUrl = resolveDistributionUrl(original);
+const patched = patchNetworkTimeout(
+  patchDistributionUrl(original, distributionUrl),
+  timeout,
+);
 if (patched !== original) {
   writeFileSync(wrapperPropertiesPath, patched);
 }
-
-const distributionUrl =
-  patched
-    .split(/\r?\n/)
-    .find((line) => line.startsWith("distributionUrl="))
-    ?.slice("distributionUrl=".length) ?? "";
 
 console.log(
   `[android-gradle] wrapper ready; timeout=${timeout}; distribution=${distributionUrl}`,
 );
 writeOutput("configured", "true");
 writeOutput("network_timeout", String(timeout));
+writeOutput("distribution_url", distributionUrl);
 
 if (!shouldDownload) {
   console.log("[android-gradle] distribution download skipped by GRADLE_WRAPPER_PRIME_DOWNLOAD=false");
