@@ -12,6 +12,7 @@ import {
   type NativeCorePermissionResult,
   type NativeCorePickedFile,
   type NativeCoreService,
+  type NativeMediaSource,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -274,7 +275,7 @@ export function NativeCapabilitiesPanel({
     setPermissionState((current) => ({ ...current, [kind]: "opening" }));
 
     try {
-      const result = await nativeCore.ensurePermission(kind);
+      const result = await nativeCore.requestPermissionForDiagnostics(kind);
 
       setPermissions((current) => ({
         ...current,
@@ -289,42 +290,21 @@ export function NativeCapabilitiesPanel({
     }
   }
 
-  async function handlePickImages() {
+  async function handlePickMedia(source: NativeMediaSource) {
     setImageState("opening");
     setLastMessage(null);
 
     try {
-      const result = await nativeCore.pickMedia("album");
+      const result = await nativeCore.pickMedia(source);
 
       setLastMessage(result.reason ?? result.message ?? null);
 
       if (result.ok) {
         setImages(result.files);
         setImageState("opened");
-        void refreshPermissionsFor(["photo-library"]).catch(() => {});
-        return;
-      }
-
-      setImageState(isCancelled(result) ? "cancelled" : "failed");
-    } catch (error) {
-      setLastMessage(error instanceof Error ? error.message : String(error));
-      setImageState("failed");
-    }
-  }
-
-  async function handleCaptureImage() {
-    setImageState("opening");
-    setLastMessage(null);
-
-    try {
-      const result = await nativeCore.pickMedia("camera");
-
-      setLastMessage(result.reason ?? result.message ?? null);
-
-      if (result.ok) {
-        setImages(result.files);
-        setImageState("opened");
-        void refreshPermissionsFor(["photo-library", "camera"]).catch(() => {});
+        void refreshPermissionsFor(
+          nativeCore.getActionPermissionKinds(result.action) as VisiblePermissionKind[],
+        ).catch(() => {});
         return;
       }
 
@@ -449,14 +429,14 @@ export function NativeCapabilitiesPanel({
           <div className="grid grid-cols-2 gap-2">
             <Button
               disabled={!imagePickerAvailable || imageState === "opening"}
-              onClick={handlePickImages}
+              onClick={() => handlePickMedia("album")}
               variant="outline"
             >
               {imageState === "opening" ? messages.opening : messages.pickImages}
             </Button>
             <Button
               disabled={!imagePickerAvailable || imageState === "opening"}
-              onClick={handleCaptureImage}
+              onClick={() => handlePickMedia("camera")}
               variant="outline"
             >
               {imageState === "opening" ? messages.opening : messages.captureImage}

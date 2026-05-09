@@ -1,15 +1,17 @@
 "use client";
 
 import {
-  createNativeCapabilityCore,
+  createNativeBridge,
   hasNativeFeature,
+  NATIVE_MAP_APPS,
   type MapAppType,
   type NativeFeature,
+  type NativeBridge,
   type NativeClientUpdateQuery,
   type NativeBridgeActionResult,
-  type NativeCapabilityCore,
   type NativeClientInfo,
   type NativeMapOpenCandidate,
+  type NativeMapInstallResult,
   type NativePermissionKind,
   type NativePermissionResult,
   type NativePermissionTrigger,
@@ -38,9 +40,14 @@ export type NativePermissionAction =
   | "map.navigation"
   | "external.open"
   | "client-update.check";
+export type NativePermissionRequestTiming =
+  | "on-user-action"
+  | "manual-diagnostics"
+  | "never";
 
 export type NativePermissionPolicy = {
   action: NativePermissionAction;
+  requestTiming: NativePermissionRequestTiming;
   trigger: NativePermissionTrigger;
   permissions: Array<{
     kind: NativePermissionKind;
@@ -64,7 +71,9 @@ export type NativeRuntimeSnapshot = {
 };
 
 export type NativeMediaPickResult = NativeBridgeActionResult & {
+  action: Extract<NativePermissionAction, "media.pick-album" | "media.capture-camera">;
   files: NativePickedFile[];
+  permissions: NativePermissionResult[];
   source: NativeMediaSource;
 };
 
@@ -84,8 +93,11 @@ export type NativeCoreService = {
     name?: string;
   }): Promise<NativeBridgeActionResult & { appType?: MapAppType }>;
   checkPermissions(kinds: NativePermissionKind[]): Promise<NativePermissionSnapshot>;
-  ensurePermission(kind: NativePermissionKind): Promise<NativePermissionResult>;
+  requestPermissionForDiagnostics(
+    kind: NativePermissionKind,
+  ): Promise<NativePermissionResult>;
   getPermissionPolicy(action: NativePermissionAction): NativePermissionPolicy;
+  getActionPermissionKinds(action: NativePermissionAction): NativePermissionKind[];
   ensureActionPermissions(
     action: NativePermissionAction,
   ): Promise<NativeActionPermissionResult>;
@@ -102,6 +114,7 @@ export function installAppNativeViewportInsets() {
 const nativePermissionPolicies = {
   "media.pick-album": {
     action: "media.pick-album",
+    requestTiming: "on-user-action",
     trigger: "on-demand",
     permissions: [
       {
@@ -113,6 +126,7 @@ const nativePermissionPolicies = {
   },
   "media.capture-camera": {
     action: "media.capture-camera",
+    requestTiming: "on-user-action",
     trigger: "on-demand",
     permissions: [
       {
@@ -124,6 +138,7 @@ const nativePermissionPolicies = {
   },
   "notification.enable": {
     action: "notification.enable",
+    requestTiming: "on-user-action",
     trigger: "on-demand",
     permissions: [
       {
@@ -135,6 +150,7 @@ const nativePermissionPolicies = {
   },
   "location.use": {
     action: "location.use",
+    requestTiming: "on-user-action",
     trigger: "on-demand",
     permissions: [
       {
@@ -146,16 +162,19 @@ const nativePermissionPolicies = {
   },
   "map.navigation": {
     action: "map.navigation",
+    requestTiming: "never",
     trigger: "manual",
     permissions: [],
   },
   "external.open": {
     action: "external.open",
+    requestTiming: "never",
     trigger: "manual",
     permissions: [],
   },
   "client-update.check": {
     action: "client-update.check",
+    requestTiming: "never",
     trigger: "manual",
     permissions: [],
   },
@@ -168,12 +187,26 @@ function canUseNativeFeature(
   return info.runtime === "browser" || hasNativeFeature(info, feature);
 }
 
+function isMapCandidateAvailable(result: NativeMapInstallResult) {
+  return result.status === "installed" || result.status === "unknown";
+}
+
+function normalizeNativeError(error: unknown) {
+  return error instanceof Error
+    ? error.message || "native-action-failed"
+    : String(error || "native-action-failed");
+}
+
+function getMediaAction(source: NativeMediaSource) {
+  return source === "camera" ? "media.capture-camera" : "media.pick-album";
+}
+
 export function createAppNativeCore(
-  nativeCore: NativeCapabilityCore = createNativeCapabilityCore(),
+  nativeBridge: NativeBridge = createNativeBridge(),
 ): NativeCoreService {
   return {
     async getRuntimeSnapshot() {
-      const clientInfo = await nativeCore.getClientInfo();
+      const clientInfo = await nativeBridge.getClientInfo();
 
       return {
         clientInfo,
@@ -186,32 +219,89 @@ export function createAppNativeCore(
     },
 
     async getMapCandidates() {
-      return nativeCore.listMapOpenCandidates();
+      return Promise.all(
+        NATIVE_MAP_APPS.map(async (app) => {
+          try {
+            const status = await nativeBridge.checkMapInstalled({
+              appType: app.appType,
+            });
+
+            return {
+              ...app,
+              ...status,
+              available: isMapCandidateAvailable(status),
+            };
+          } catch (error) {
+            return {
+              ...app,
+              ok: true,
+              installed: null,
+              status: "unknown" as const,
+              available: true,
+              reason: normalizeNativeError(error),
+            };
+          }
+        }),
+      );
     },
 
     async openExternalUrl(url) {
-      return nativeCore.openExternal({ url });
+      return nativeBridge.openExternal({ url });
     },
 
     async openMapNavigation(input) {
-      return nativeCore.openPreferredMapNavigation(input);
+      const candidates = input.appType
+        ? NATIVE_MAP_APPS.filter((item) => item.appType === input.appType)
+        : NATIVE_MAP_APPS;
+      let lastReason = "";
+
+      for (const candidate of candidates) {
+        const status = await nativeBridge.checkMapInstalled({
+          appType: candidate.appType,
+        });
+
+        if (status.status === "not-installed" || status.status === "unsupported") {
+          lastReason = status.reason ?? status.status;
+          continue;
+        }
+
+        const result = await nativeBridge.openMapNavigation({
+          ...input,
+          appType: candidate.appType,
+        });
+
+        if (result.ok) {
+          return {
+            ...result,
+            appType: candidate.appType,
+          };
+        }
+
+        lastReason = result.reason ?? status.reason ?? "map-open-failed";
+      }
+
+      return {
+        ok: false,
+        reason: lastReason || "no-map-candidate",
+      };
     },
 
     async checkPermissions(kinds) {
       const pairs = await Promise.all(
         kinds.map(async (kind) => [
           kind,
-          await nativeCore.checkPermission({ kind, trigger: "manual" }),
+          await nativeBridge.checkPermission({ kind, trigger: "manual" }),
         ] as const),
       );
 
       return Object.fromEntries(pairs) as NativePermissionSnapshot;
     },
 
-    async ensurePermission(kind) {
-      return nativeCore.ensurePermission({
+    async requestPermissionForDiagnostics(kind) {
+      return nativeBridge.ensurePermission({
         kind,
-        trigger: "on-demand",
+        trigger: "manual",
+        purpose: "native-diagnostics",
       });
     },
 
@@ -219,12 +309,24 @@ export function createAppNativeCore(
       return nativePermissionPolicies[action];
     },
 
+    getActionPermissionKinds(action) {
+      return this.getPermissionPolicy(action).permissions.map((item) => item.kind);
+    },
+
     async ensureActionPermissions(action) {
       const policy = this.getPermissionPolicy(action);
-      const permissions = [];
+      const permissions: NativePermissionResult[] = [];
+
+      if (policy.requestTiming !== "on-user-action") {
+        return {
+          ok: true,
+          action,
+          permissions,
+        };
+      }
 
       for (const item of policy.permissions) {
-        const result = await nativeCore.ensurePermission({
+        const result = await nativeBridge.ensurePermission({
           kind: item.kind,
           trigger: policy.trigger,
           purpose: item.purpose,
@@ -250,7 +352,21 @@ export function createAppNativeCore(
     },
 
     async pickMedia(source) {
-      const result = await nativeCore.pickImages(
+      const action = getMediaAction(source);
+      const permissionResult = await this.ensureActionPermissions(action);
+
+      if (!permissionResult.ok) {
+        return {
+          ok: false,
+          action,
+          files: [],
+          permissions: permissionResult.permissions,
+          reason: permissionResult.reason,
+          source,
+        };
+      }
+
+      const result = await nativeBridge.pickImages(
         source === "camera"
           ? {
               accept: "image/*",
@@ -269,12 +385,14 @@ export function createAppNativeCore(
 
       return {
         ...result,
+        action,
+        permissions: permissionResult.permissions,
         source,
       };
     },
 
     async buildUpdateCheckQuery() {
-      const info = await nativeCore.getClientInfo();
+      const info = await nativeBridge.getClientInfo();
       return resolveNativeClientUpdateQuery(info);
     },
 
@@ -306,7 +424,7 @@ export function createAppNativeCore(
     },
 
     async openUrl(url) {
-      return nativeCore.openExternal({ url });
+      return nativeBridge.openExternal({ url });
     },
   };
 }
