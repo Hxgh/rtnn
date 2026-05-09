@@ -94,6 +94,10 @@ const checkAppTauriAndroidScriptPath = path.join(
   repoRoot,
   "scripts/client/check-app-tauri-android.mjs",
 );
+const checkAndroidApkPackageScriptPath = path.join(
+  repoRoot,
+  "scripts/client/check-android-apk-package.mjs",
+);
 const TEST_RGBA_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNgYGD4DwABBAEAghnFoQAAAABJRU5ErkJggg==",
   "base64",
@@ -1230,6 +1234,23 @@ test("check-app-tauri-android rejects generated shells without RTNN launcher ico
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("check-android-apk-package keeps map schemes as manifest checks", () => {
+  const source = readFileSync(checkAndroidApkPackageScriptPath, "utf8");
+  const binarySnippetsMatch = source.match(
+    /const REQUIRED_BINARY_SNIPPETS = Object\.freeze\(\[([\s\S]*?)\]\);/,
+  );
+
+  assert(binarySnippetsMatch, "缺少 REQUIRED_BINARY_SNIPPETS");
+  const binarySnippets = binarySnippetsMatch[1];
+
+  assert.match(source, /'android:scheme="androidamap"'/);
+  assert.match(source, /'android:scheme="baidumap"'/);
+  assert.match(source, /'android:scheme="qqmap"'/);
+  assert.doesNotMatch(binarySnippets, /androidamap:\/\//);
+  assert.doesNotMatch(binarySnippets, /baidumap:\/\//);
+  assert.doesNotMatch(binarySnippets, /qqmap:\/\//);
 });
 
 test("prepare-google-play-upload reports blocked upload without service account or artifact", () => {

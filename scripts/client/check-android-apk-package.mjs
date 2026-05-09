@@ -53,10 +53,6 @@ const REQUIRED_BINARY_SNIPPETS = Object.freeze([
   "openNavigation",
   "queryIntentActivities",
   "native-map-no-handler",
-  "https://uri.amap.com/navigation",
-  "androidamap://",
-  "baidumap://",
-  "qqmap://",
 ]);
 
 const BLOCKED_BINARY_SNIPPETS = Object.freeze([
