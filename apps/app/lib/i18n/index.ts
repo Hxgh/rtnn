@@ -162,6 +162,7 @@ export type AppMessages = {
     mapOpenWith: string;
     requestPermission: string;
     permissionActionDriven: string;
+    permissionActionDrivenShort: string;
     permissionRequestDone: string;
     openExternal: string;
     openMap: string;
@@ -368,6 +369,7 @@ const zhCN: AppMessages = {
     mapOpenWith: "打开",
     requestPermission: "请求权限",
     permissionActionDriven: "该权限会在对应操作时由系统按需询问，不单独弹窗。",
+    permissionActionDrivenShort: "操作时询问",
     permissionRequestDone: "权限请求已处理。",
     openExternal: "打开外链",
     openMap: "打开地图",
@@ -574,6 +576,7 @@ const enUS: AppMessages = {
     mapOpenWith: "Open",
     requestPermission: "Request permission",
     permissionActionDriven: "This permission is requested by the system when the related action runs, not as a standalone prompt.",
+    permissionActionDrivenShort: "On action",
     permissionRequestDone: "Permission request handled.",
     openExternal: "Open external link",
     openMap: "Open map",

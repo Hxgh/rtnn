@@ -10,18 +10,25 @@ import {
 import type { NativeMapNavigationInput } from "./types";
 
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return (
-    result.status === "installed" ||
-    result.status === "unknown" ||
-    result.reason === "map-app-not-installed-or-not-visible" ||
-    result.reason === "map-install-check-unavailable"
-  );
+  return result.status !== "unsupported";
 }
 
-function shouldSkipMapCandidate(result: NativeMapInstallResult) {
+function shouldSkipMapCandidate(
+  result: NativeMapInstallResult,
+  options: { userSelected?: boolean } = {},
+) {
+  if (result.status === "unsupported") {
+    return true;
+  }
+
+  if (options.userSelected) {
+    return false;
+  }
+
   return (
-    result.status === "unsupported" ||
-    (result.status === "not-installed" && !isMapCandidateAvailable(result))
+    result.status === "not-installed" &&
+    result.reason !== "map-app-not-installed-or-not-visible" &&
+    result.reason !== "map-install-check-unavailable"
   );
 }
 
@@ -74,7 +81,11 @@ export async function openMapNavigation(
       appType: candidate.appType,
     });
 
-    if (shouldSkipMapCandidate(status)) {
+    if (
+      shouldSkipMapCandidate(status, {
+        userSelected: Boolean(input.appType),
+      })
+    ) {
       lastReason = status.reason ?? status.status;
       continue;
     }

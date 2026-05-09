@@ -232,6 +232,55 @@ test("app native core requests only the permission needed by media action", asyn
   ]);
 });
 
+test("app native core keeps manually selected map apps actionable after negative detection", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(
+    createBridge(calls, {
+      async checkMapInstalled(input) {
+        calls.push(["checkMapInstalled", input.appType]);
+        return {
+          ok: false,
+          appType: input.appType,
+          installed: false,
+          status: "not-installed",
+          reason: "map-app-not-installed",
+        };
+      },
+      async openMapNavigation(input) {
+        calls.push(["openMapNavigation", input.appType, input.allowWebFallback]);
+        return { ok: true, message: "opened-native-map" };
+      },
+    }),
+  );
+
+  assert.equal(
+    (await core.getMapCandidates()).find((item) => item.appType === "amap")
+      ?.available,
+    true,
+  );
+  assert.deepEqual(
+    await core.openMapNavigation({
+      appType: "amap",
+      lat: 30.2741,
+      lng: 120.1551,
+      name: "杭州西湖",
+    }),
+    {
+      ok: true,
+      message: "opened-native-map",
+      appType: "amap",
+    },
+  );
+  assert.deepEqual(calls, [
+    ["checkMapInstalled", "amap"],
+    ["checkMapInstalled", "baidu"],
+    ["checkMapInstalled", "tencent"],
+    ["checkMapInstalled", "amap"],
+    ["openMapNavigation", "amap", false],
+  ]);
+});
+
 test("app native theme sync resolves system mode and calls Android bridge", async () => {
   const { syncAppNativeTheme } = await importAppNativeCore();
   const classState = new Map();

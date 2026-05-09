@@ -662,7 +662,7 @@ test("native capability core requests media permissions before image picking", a
   ]);
 });
 
-test("native capability core lists map candidates and skips unavailable apps", async () => {
+test("native capability core keeps manually selected unavailable map apps actionable", async () => {
   const calls = [];
   const bridge = {
     async getClientInfo() {
@@ -690,6 +690,7 @@ test("native capability core lists map candidates and skips unavailable apps", a
         appType: input.appType,
         installed: input.appType === "amap",
         status: input.appType === "baidu" ? "not-installed" : "installed",
+        reason: input.appType === "baidu" ? "map-app-not-installed" : undefined,
       };
     },
     async checkPermission(input) {
@@ -727,7 +728,7 @@ test("native capability core lists map candidates and skips unavailable apps", a
 
   const candidates = await core.listMapOpenCandidates();
   assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
-  assert.equal(candidates.find((item) => item.appType === "baidu")?.available, false);
+  assert.equal(candidates.find((item) => item.appType === "baidu")?.available, true);
   assert.deepEqual(
     await core.openPreferredMapNavigation({
       lat: 30.25,
@@ -735,8 +736,8 @@ test("native capability core lists map candidates and skips unavailable apps", a
       appType: "baidu",
     }),
     {
-      ok: false,
-      reason: "not-installed",
+      ok: true,
+      appType: "baidu",
     },
   );
   assert.deepEqual(
@@ -750,6 +751,57 @@ test("native capability core lists map candidates and skips unavailable apps", a
       appType: "amap",
     },
   );
+  assert.deepEqual(calls, [
+    ["checkMapInstalled", "amap"],
+    ["checkMapInstalled", "baidu"],
+    ["checkMapInstalled", "tencent"],
+    ["checkMapInstalled", "baidu"],
+    ["openMapNavigation", "baidu"],
+    ["checkMapInstalled", "amap"],
+    ["openMapNavigation", "amap"],
+  ]);
+});
+
+test("native capability core auto map open skips definitely unavailable apps", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {},
+    invoke: async (command, args) => {
+      calls.push([command, args?.appType]);
+
+      if (command === "check_map_installed") {
+        return {
+          ok: args.appType === "tencent",
+          appType: args.appType,
+          installed: args.appType === "tencent",
+          status: args.appType === "tencent" ? "installed" : "not-installed",
+          reason:
+            args.appType === "tencent" ? undefined : "map-app-not-installed",
+        };
+      }
+
+      return { ok: true, message: "opened-native-map" };
+    },
+  });
+  const core = createNativeCapabilityCore({ bridge });
+
+  assert.deepEqual(
+    await core.openPreferredMapNavigation({
+      lat: 30.25,
+      lng: 120.16,
+    }),
+    {
+      ok: true,
+      message: "opened-native-map",
+      appType: "tencent",
+    },
+  );
+  assert.deepEqual(calls, [
+    ["check_map_installed", "amap"],
+    ["check_map_installed", "baidu"],
+    ["check_map_installed", "tencent"],
+    ["open_map_navigation", "tencent"],
+  ]);
 });
 
 test("native viewport insets writes keyboard CSS variables from visual viewport", () => {

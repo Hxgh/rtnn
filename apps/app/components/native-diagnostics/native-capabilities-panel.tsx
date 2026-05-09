@@ -187,6 +187,10 @@ function getMapCandidateHint(
   return candidate.reason;
 }
 
+function isPickerManagedPermission(result: NativeCorePermissionResult | null) {
+  return result?.reason === "permission-managed-by-file-picker";
+}
+
 export function NativeCapabilitiesPanel({
   messages,
 }: {
@@ -624,7 +628,10 @@ export function NativeCapabilitiesPanel({
                   </dd>
                 </div>
                 <Button
-                  disabled={permissionState[kind] === "opening"}
+                  disabled={
+                    permissionState[kind] === "opening" ||
+                    isPickerManagedPermission(permissions[kind])
+                  }
                   onClick={() => handleRequestPermission(kind)}
                   size="sm"
                   type="button"
@@ -632,7 +639,9 @@ export function NativeCapabilitiesPanel({
                 >
                   {permissionState[kind] === "opening"
                     ? messages.opening
-                    : messages.requestPermission}
+                    : isPickerManagedPermission(permissions[kind])
+                      ? messages.permissionActionDrivenShort
+                      : messages.requestPermission}
                 </Button>
               </div>
             ))}
@@ -705,7 +714,6 @@ export function NativeCapabilitiesPanel({
                 const disabled =
                   mapState === "opening" ||
                   candidate.checking ||
-                  (candidate.status === "not-installed" && !candidate.available) ||
                   candidate.status === "unsupported";
 
                 return (

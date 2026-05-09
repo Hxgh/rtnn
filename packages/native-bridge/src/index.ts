@@ -1196,18 +1196,25 @@ function parseAndroidMapBridgeResult(
 }
 
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return (
-    result.status === "installed" ||
-    result.status === "unknown" ||
-    result.reason === "map-app-not-installed-or-not-visible" ||
-    result.reason === "map-install-check-unavailable"
-  );
+  return result.status !== "unsupported";
 }
 
-function shouldSkipNativeMapCandidate(result: NativeMapInstallResult) {
+function shouldSkipNativeMapCandidate(
+  result: NativeMapInstallResult,
+  options: { userSelected?: boolean } = {},
+) {
+  if (result.status === "unsupported") {
+    return true;
+  }
+
+  if (options.userSelected) {
+    return false;
+  }
+
   return (
-    result.status === "unsupported" ||
-    (result.status === "not-installed" && !isMapCandidateAvailable(result))
+    result.status === "not-installed" &&
+    result.reason !== "map-app-not-installed-or-not-visible" &&
+    result.reason !== "map-install-check-unavailable"
   );
 }
 
@@ -1776,7 +1783,11 @@ export function createNativeCapabilityCore(
           appType: candidate.appType,
         });
 
-        if (shouldSkipNativeMapCandidate(status)) {
+        if (
+          shouldSkipNativeMapCandidate(status, {
+            userSelected: Boolean(requestedAppType),
+          })
+        ) {
           lastReason = status.reason ?? status.status;
           continue;
         }
