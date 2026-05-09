@@ -507,8 +507,8 @@ class MainActivity : TauriActivity() {
     webView.evaluateJavascript(
       """
       (function() {
-        window.__RTNN_SYSTEM_THEME__ = '${resolveSystemTheme()}';
-        window.__ANDROID_SYSTEM_THEME__ = '${resolveSystemTheme()}';
+        window.__RTNN_SYSTEM_THEME__ = '\${resolveSystemTheme()}';
+        window.__ANDROID_SYSTEM_THEME__ = '\${resolveSystemTheme()}';
         try {
           window.dispatchEvent(new CustomEvent('rtnn:android-map-ready'));
         } catch (error) {
@@ -534,8 +534,8 @@ class MainActivity : TauriActivity() {
     webView.evaluateJavascript(
       """
       (function() {
-        window.__RTNN_SYSTEM_THEME__ = '${resolveSystemTheme()}';
-        window.__ANDROID_SYSTEM_THEME__ = '${resolveSystemTheme()}';
+        window.__RTNN_SYSTEM_THEME__ = '\${resolveSystemTheme()}';
+        window.__ANDROID_SYSTEM_THEME__ = '\${resolveSystemTheme()}';
         try {
           window.dispatchEvent(new CustomEvent('rtnn:native-theme-change'));
         } catch (error) {
