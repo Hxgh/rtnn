@@ -230,6 +230,25 @@ function assertSharedShellIcons(rootDir) {
   );
 }
 
+function assertSharedWebFavicons(rootDir) {
+  const shellIcon = readFileSync(
+    path.join(rootDir, "clients", "app-tauri", "src-tauri", "icons", "icon.ico"),
+  );
+  const appFavicon = readFileSync(path.join(rootDir, "apps", "app", "app", "favicon.ico"));
+  const adminFavicon = readFileSync(
+    path.join(rootDir, "apps", "admin", "app", "favicon.ico"),
+  );
+
+  assert(
+    appFavicon.equals(shellIcon),
+    "app favicon.ico 应与 RTNN 客户端壳 ICO 图标保持一致",
+  );
+  assert(
+    adminFavicon.equals(shellIcon),
+    "admin favicon.ico 应与 RTNN 客户端壳 ICO 图标保持一致",
+  );
+}
+
 function main() {
   const rootDir = findWorkspaceRoot(process.cwd());
   const requested = process.argv.slice(2);
@@ -245,6 +264,8 @@ function main() {
   if (clientNames.includes("admin-tauri") && clientNames.includes("app-tauri")) {
     assertSharedShellIcons(rootDir);
     console.log("[tauri-client-check] shell 图标一致性通过");
+    assertSharedWebFavicons(rootDir);
+    console.log("[tauri-client-check] web favicon 一致性通过");
   }
 }
 
