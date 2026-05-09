@@ -1015,6 +1015,17 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     const launcherIcon = readFileSync(
       path.join(mainDir, "res/drawable/rtnn_launcher_icon.png"),
     );
+    const launcherMipmapIcon = readFileSync(
+      path.join(mainDir, "res/mipmap-xxxhdpi/rtnn_launcher_icon.png"),
+    );
+    const launcherAdaptiveIcon = readFileSync(
+      path.join(mainDir, "res/mipmap-anydpi-v26/rtnn_launcher_icon.xml"),
+      "utf8",
+    );
+    const launcherIconColors = readFileSync(
+      path.join(mainDir, "res/values/rtnn_launcher_icon_colors.xml"),
+      "utf8",
+    );
     const filePaths = readFileSync(
       path.join(mainDir, "res/xml/file_paths.xml"),
       "utf8",
@@ -1027,6 +1038,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /isAppInstalled/);
     assert.match(mainActivity, /checkAppInstalled/);
     assert.match(mainActivity, /installed-by-launch-intent/);
+    assert.match(mainActivity, /map-app-not-installed-or-not-visible/);
     assert.match(mainActivity, /isCaptureEnabled/);
     assert.match(mainActivity, /launchImagePicker/);
     assert.match(mainActivity, /launchCameraCapture/);
@@ -1034,11 +1046,14 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(manifest, /android\.permission\.CAMERA/);
     assert.match(manifest, /com\.autonavi\.minimap/);
     assert.match(manifest, /androidamap/);
+    assert.match(manifest, /amapuri/);
     assert.match(manifest, /com\.baidu\.BaiduMap/);
     assert.match(manifest, /baidumap/);
     assert.match(manifest, /com\.tencent\.map/);
     assert.match(manifest, /qqmap/);
-    assert.match(manifest, /android:icon="@drawable\/rtnn_launcher_icon"/);
+    assert.match(manifest, /android:icon="@mipmap\/rtnn_launcher_icon"/);
+    assert.match(manifest, /android:roundIcon="@mipmap\/rtnn_launcher_icon"/);
+    assert.match(manifest, /android:scheme="geo"/);
     assert.match(manifest, /androidx\.core\.content\.FileProvider/);
     assert.match(gradle, /androidx\.activity:activity-ktx/);
     assert.match(gradle, /androidx\.core:core-ktx/);
@@ -1047,6 +1062,9 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
       launcherIcon,
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     );
+    assert.deepEqual(launcherMipmapIcon, launcherIcon);
+    assert.match(launcherAdaptiveIcon, /rtnn_launcher_icon_foreground/);
+    assert.match(launcherIconColors, /rtnn_launcher_icon_background/);
     assert.match(filePaths, /external-files-path/);
   } finally {
     rmSync(dir, { recursive: true, force: true });

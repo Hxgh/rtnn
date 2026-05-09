@@ -10,7 +10,19 @@ import {
 import type { NativeMapNavigationInput } from "./types";
 
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return result.status === "installed" || result.status === "unknown";
+  return (
+    result.status === "installed" ||
+    result.status === "unknown" ||
+    result.reason === "map-app-not-installed-or-not-visible"
+  );
+}
+
+function shouldSkipMapCandidate(result: NativeMapInstallResult) {
+  return (
+    result.status === "unsupported" ||
+    (result.status === "not-installed" &&
+      result.reason !== "map-app-not-installed-or-not-visible")
+  );
 }
 
 function normalizeNativeError(error: unknown) {
@@ -62,7 +74,7 @@ export async function openMapNavigation(
       appType: candidate.appType,
     });
 
-    if (status.status === "not-installed" || status.status === "unsupported") {
+    if (shouldSkipMapCandidate(status)) {
       lastReason = status.reason ?? status.status;
       continue;
     }

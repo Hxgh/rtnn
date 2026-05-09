@@ -49,6 +49,8 @@ const emptyPermissions: Record<
   notification: null,
 };
 const mediaPickerTimeoutMs = 12_000;
+const transientActionStateMs = 1_200;
+const nativeActionWatchdogMs = 4_000;
 
 function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
   return [
@@ -170,6 +172,21 @@ function getMapInstallLabel(
   return messages.mapUnknown;
 }
 
+function getMapCandidateHint(
+  candidate: NativeCoreMapCandidate,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (candidate.reason === "map-app-not-installed-or-not-visible") {
+    return messages.mapVisibilityLimited;
+  }
+
+  if (candidate.reason === "map-install-check-unavailable") {
+    return messages.mapCheckUnavailable;
+  }
+
+  return candidate.reason;
+}
+
 export function NativeCapabilitiesPanel({
   messages,
 }: {
@@ -203,6 +220,23 @@ export function NativeCapabilitiesPanel({
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
     );
+
+  useEffect(() => {
+    const entries: Array<[ActionState, (state: ActionState) => void]> = [
+      [externalState, setExternalState],
+      [mapState, setMapState],
+      [imageState, setImageState],
+    ];
+    const timers = entries
+      .filter(([state]) => state === "opened" || state === "cancelled" || state === "failed")
+      .map(([, setState]) =>
+        window.setTimeout(() => setState("idle"), transientActionStateMs),
+      );
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [externalState, mapState, imageState]);
 
   const refreshMapCandidates = useCallback(
     async (options: { silent?: boolean } = {}) => {
@@ -294,7 +328,19 @@ export function NativeCapabilitiesPanel({
     setLastMessage(null);
 
     try {
-      const result = await action();
+      const result = await Promise.race([
+        action(),
+        new Promise<NativeCoreActionResult>((resolve) => {
+          window.setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                reason: "native-action-dispatched",
+              }),
+            nativeActionWatchdogMs,
+          );
+        }),
+      ]);
       setLastMessage(result.message ?? result.reason ?? null);
       setState(isOpened(result) ? "opened" : isCancelled(result) ? "cancelled" : "failed");
     } catch (error) {
@@ -331,11 +377,19 @@ export function NativeCapabilitiesPanel({
       );
       setPermissionState((current) => ({
         ...current,
-        [kind]: result.ok ? "opened" : "failed",
+        [kind]: result.reason === "permission-managed-by-file-picker"
+          ? "cancelled"
+          : result.ok
+            ? "opened"
+            : "failed",
       }));
     } catch (error) {
       setLastMessage(error instanceof Error ? error.message : String(error));
       setPermissionState((current) => ({ ...current, [kind]: "failed" }));
+    } finally {
+      window.setTimeout(() => {
+        setPermissionState((current) => ({ ...current, [kind]: "idle" }));
+      }, transientActionStateMs);
     }
   }
 
@@ -457,10 +511,15 @@ export function NativeCapabilitiesPanel({
 
           <div className="rounded-xl border border-border/70 px-3 py-3 text-xs leading-5 text-muted-foreground">
             {mapCandidates.length > 0 ? (
-              <span>
-                {messages.mapDetected}: {installedMapCount} / {mapCandidates.length}
-                {unknownMapCount > 0 ? `, ${messages.mapUnknownCount}: ${unknownMapCount}` : ""}
-              </span>
+              <div className="space-y-1">
+                <p>
+                  {messages.mapDetected}: {installedMapCount} / {mapCandidates.length}
+                  {unknownMapCount > 0 ? `, ${messages.mapUnknownCount}: ${unknownMapCount}` : ""}
+                </p>
+                {mapCandidates.some((item) => item.reason === "map-app-not-installed-or-not-visible") ? (
+                  <p>{messages.mapVisibilityLimited}</p>
+                ) : null}
+              </div>
             ) : (
               <span>{messages.mapChecking}</span>
             )}
@@ -646,7 +705,7 @@ export function NativeCapabilitiesPanel({
                 const disabled =
                   mapState === "opening" ||
                   candidate.checking ||
-                  candidate.status === "not-installed" ||
+                  (candidate.status === "not-installed" && !candidate.available) ||
                   candidate.status === "unsupported";
 
                 return (
@@ -669,8 +728,8 @@ export function NativeCapabilitiesPanel({
                       <span className="block text-xs text-muted-foreground">
                         {candidate.checking
                           ? messages.mapChecking
-                          : candidate.reason
-                            ? `${getMapInstallLabel(candidate.status, messages)} · ${candidate.reason}`
+                          : getMapCandidateHint(candidate, messages)
+                            ? `${getMapInstallLabel(candidate.status, messages)} · ${getMapCandidateHint(candidate, messages)}`
                             : getMapInstallLabel(candidate.status, messages)}
                       </span>
                     </span>

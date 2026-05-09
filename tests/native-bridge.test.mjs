@@ -199,6 +199,7 @@ test("detected Tauri bridge uses native permission and map install commands", as
     status: "installed",
     message: undefined,
     reason: undefined,
+    diagnostic: undefined,
   });
   assert.deepEqual(
     calls.map((call) => call.command),
@@ -247,6 +248,30 @@ test("native bridge detects Android map apps through WebView bridge first", asyn
   ]);
 });
 
+test("native bridge preserves Android map diagnostics", async () => {
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {},
+    invoke: async () => ({
+      ok: false,
+      appType: "amap",
+      installed: false,
+      status: "not-installed",
+      reason: "map-app-not-installed-or-not-visible",
+      diagnostic: "com.autonavi.minimap:launch=false,package=false",
+    }),
+  });
+
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "amap" }), {
+    ok: false,
+    appType: "amap",
+    installed: false,
+    status: "not-installed",
+    message: undefined,
+    reason: "map-app-not-installed-or-not-visible",
+    diagnostic: "com.autonavi.minimap:launch=false,package=false",
+  });
+});
+
 test("native bridge parses structured Android map install diagnostics", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
@@ -281,6 +306,7 @@ test("native bridge parses structured Android map install diagnostics", async ()
     status: "installed",
     message: "installed-by-launch-intent",
     reason: undefined,
+    diagnostic: undefined,
   });
   assert.deepEqual(calls, [
     ["AndroidMap.checkAppInstalled", "com.autonavi.minimap"],
@@ -382,10 +408,14 @@ test("native bridge can be woken by Android map ready event", async () => {
 });
 
 test("browser bridge can use Android map install bridge when available", async () => {
+  const calls = [];
   const bridge = createBrowserNativeBridge({
     globalScope: {
       AndroidMap: {
-        isAppInstalled: (packageName) => packageName === "com.tencent.map",
+        isAppInstalled(packageName) {
+          calls.push(packageName);
+          return packageName === "com.tencent.maplite";
+        },
       },
     },
   });
@@ -397,6 +427,7 @@ test("browser bridge can use Android map install bridge when available", async (
     status: "installed",
     reason: undefined,
   });
+  assert.deepEqual(calls, ["com.tencent.map", "com.tencent.maplite"]);
 });
 
 test("createNativeBridge falls back to browser without Tauri", async () => {

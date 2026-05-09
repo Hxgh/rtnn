@@ -124,6 +124,7 @@ export type NativeMapInstallResult = NativeBridgeActionResult & {
   appType: MapAppType;
   installed: boolean | null;
   status: NativeMapInstallStatus;
+  diagnostic?: string;
 };
 
 export type NativeImagePickInput = {
@@ -326,10 +327,10 @@ export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
 const NATIVE_FILE_PICKER_CLOSED_EVENT = "rtnn:native-file-picker-closed";
 const NATIVE_ANDROID_MAP_READY_EVENT = "rtnn:android-map-ready";
 
-const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string> = {
-  amap: "com.autonavi.minimap",
-  baidu: "com.baidu.BaiduMap",
-  tencent: "com.tencent.map",
+const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string[]> = {
+  amap: ["com.autonavi.minimap"],
+  baidu: ["com.baidu.BaiduMap"],
+  tencent: ["com.tencent.map", "com.tencent.maplite"],
 };
 const ANDROID_MAP_BRIDGE_WAIT_MS = 1_600;
 const ANDROID_MAP_BRIDGE_POLL_MS = 100;
@@ -1148,7 +1149,12 @@ function normalizeMapInstallResult(
     status,
     message: result.message ?? undefined,
     reason: result.reason ?? undefined,
+    diagnostic: result.diagnostic ?? undefined,
   };
+}
+
+function joinAndroidMapPackages(appType: MapAppType) {
+  return (NATIVE_MAP_ANDROID_PACKAGES[appType] ?? []).join("|");
 }
 
 function parseAndroidMapBridgeResult(
@@ -1224,7 +1230,7 @@ function checkAndroidMapInstalledWithBridge(
   appType: MapAppType,
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): NativeMapInstallResult | null {
-  const packageName = NATIVE_MAP_ANDROID_PACKAGES[appType];
+  const packageName = joinAndroidMapPackages(appType);
   const androidMap = globalScope?.AndroidMap;
   const checkAppInstalled = androidMap?.checkAppInstalled;
   const isAppInstalled = androidMap?.isAppInstalled;
@@ -1260,7 +1266,10 @@ function checkAndroidMapInstalledWithBridge(
       };
     }
 
-    const installed = Boolean(isAppInstalled(packageName));
+    const installed = packageName
+      .split("|")
+      .filter(Boolean)
+      .some((candidatePackageName) => Boolean(isAppInstalled(candidatePackageName)));
 
     return {
       ok: installed,

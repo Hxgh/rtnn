@@ -105,11 +105,11 @@ function patchAndroidManifest(manifestPath) {
     '<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />',
   ];
 
-  for (const permission of [...permissions].reverse()) {
+  for (const permission of permissions) {
     if (!source.includes(permission)) {
       source = source.replace(
-        /<manifest[^>]*>\s*/,
-        (match) => `${match}    ${permission}\n`,
+        /\s*<application/,
+        (match) => `\n    ${permission}\n${match}`,
       );
     }
   }
@@ -127,11 +127,19 @@ function patchAndroidManifest(manifestPath) {
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="amapuri" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
             <data android:scheme="baidumap" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="qqmap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
         </intent>
     </queries>`;
     source = source.replace(/\s*<application/, `${queries}\n\n    <application`);
@@ -145,11 +153,19 @@ function patchAndroidManifest(manifestPath) {
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="amapuri" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
             <data android:scheme="baidumap" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="qqmap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
         </intent>`;
     source = source.replace(/\s*<\/queries>/, `${mapSchemeQueries}\n    </queries>`);
   }
@@ -161,19 +177,19 @@ function patchAndroidManifest(manifestPath) {
       if (/android:icon=/.test(nextAttributes)) {
         nextAttributes = nextAttributes.replace(
           /android:icon="[^"]*"/,
-          'android:icon="@drawable/rtnn_launcher_icon"',
+          'android:icon="@mipmap/rtnn_launcher_icon"',
         );
       } else {
-        nextAttributes += ' android:icon="@drawable/rtnn_launcher_icon"';
+        nextAttributes += ' android:icon="@mipmap/rtnn_launcher_icon"';
       }
 
       if (/android:roundIcon=/.test(nextAttributes)) {
         nextAttributes = nextAttributes.replace(
           /android:roundIcon="[^"]*"/,
-          'android:roundIcon="@drawable/rtnn_launcher_icon"',
+          'android:roundIcon="@mipmap/rtnn_launcher_icon"',
         );
       } else {
-        nextAttributes += ' android:roundIcon="@drawable/rtnn_launcher_icon"';
+        nextAttributes += ' android:roundIcon="@mipmap/rtnn_launcher_icon"';
       }
 
       return `<application${nextAttributes}>`;
@@ -267,17 +283,55 @@ function patchLauncherIcon(androidDir, iconPath) {
     throw new Error(`缺少 Android launcher 图标源文件: ${iconPath}`);
   }
 
+  const mainResDir = path.join(androidDir, "app", "src", "main", "res");
+  const mipmapDirs = [
+    "mipmap-mdpi",
+    "mipmap-hdpi",
+    "mipmap-xhdpi",
+    "mipmap-xxhdpi",
+    "mipmap-xxxhdpi",
+  ];
+
   copyFileIfChanged(
     iconPath,
     path.join(
-      androidDir,
-      "app",
-      "src",
-      "main",
-      "res",
+      mainResDir,
       "drawable",
       "rtnn_launcher_icon.png",
     ),
+  );
+
+  for (const mipmapDir of mipmapDirs) {
+    copyFileIfChanged(
+      iconPath,
+      path.join(mainResDir, mipmapDir, "rtnn_launcher_icon.png"),
+    );
+    copyFileIfChanged(
+      iconPath,
+      path.join(mainResDir, mipmapDir, "rtnn_launcher_icon_foreground.png"),
+    );
+  }
+
+  writeFileIfChanged(
+    path.join(mainResDir, "mipmap-anydpi-v26", "rtnn_launcher_icon.xml"),
+    [
+      '<?xml version="1.0" encoding="utf-8"?>',
+      '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">',
+      '    <background android:drawable="@color/rtnn_launcher_icon_background" />',
+      '    <foreground android:drawable="@mipmap/rtnn_launcher_icon_foreground" />',
+      "</adaptive-icon>",
+      "",
+    ].join("\n"),
+  );
+  writeFileIfChanged(
+    path.join(mainResDir, "values", "rtnn_launcher_icon_colors.xml"),
+    [
+      '<?xml version="1.0" encoding="utf-8"?>',
+      "<resources>",
+      '    <color name="rtnn_launcher_icon_background">#000000</color>',
+      "</resources>",
+      "",
+    ].join("\n"),
   );
 }
 
@@ -499,45 +553,56 @@ class MainActivity : TauriActivity() {
         return result
       }
 
-      try {
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-        if (launchIntent != null) {
+      val packageNames = packageName.split("|").map { it.trim() }.filter { it.isNotEmpty() }
+      for (candidatePackageName in packageNames) {
+        try {
+          val launchIntent = packageManager.getLaunchIntentForPackage(candidatePackageName)
+          if (launchIntent != null) {
+            result.put("ok", true)
+            result.put("installed", true)
+            result.put("status", "installed")
+            result.put("packageName", candidatePackageName)
+            result.put("message", "installed-by-launch-intent")
+            return result
+          }
+        } catch (error: Exception) {
+          result.put("launchIntentError", error.javaClass.simpleName)
+        }
+      }
+
+      var lastPackageVisibilityError: String? = null
+      for (candidatePackageName in packageNames) {
+        try {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageInfo(
+              candidatePackageName,
+              PackageManager.PackageInfoFlags.of(0)
+            )
+          } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(candidatePackageName, 0)
+          }
           result.put("ok", true)
           result.put("installed", true)
           result.put("status", "installed")
-          result.put("message", "installed-by-launch-intent")
+          result.put("packageName", candidatePackageName)
+          result.put("message", "installed-by-package-info")
+          return result
+        } catch (error: PackageManager.NameNotFoundException) {
+          lastPackageVisibilityError = "map-app-not-installed-or-not-visible"
+        } catch (error: Exception) {
+          result.put("ok", true)
+          result.put("installed", JSONObject.NULL)
+          result.put("status", "unknown")
+          result.put("reason", error.javaClass.simpleName)
           return result
         }
-      } catch (error: Exception) {
-        result.put("launchIntentError", error.javaClass.simpleName)
       }
 
-      try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-          packageManager.getPackageInfo(
-            packageName,
-            PackageManager.PackageInfoFlags.of(0)
-          )
-        } else {
-          @Suppress("DEPRECATION")
-          packageManager.getPackageInfo(packageName, 0)
-        }
-        result.put("ok", true)
-        result.put("installed", true)
-        result.put("status", "installed")
-        result.put("message", "installed-by-package-info")
-      } catch (error: PackageManager.NameNotFoundException) {
-        result.put("ok", false)
-        result.put("installed", false)
-        result.put("status", "not-installed")
-        result.put("reason", "map-app-not-installed")
-      } catch (error: Exception) {
-        result.put("ok", true)
-        result.put("installed", JSONObject.NULL)
-        result.put("status", "unknown")
-        result.put("reason", error.javaClass.simpleName)
-      }
-
+      result.put("ok", false)
+      result.put("installed", false)
+      result.put("status", "not-installed")
+      result.put("reason", lastPackageVisibilityError ?: "map-app-not-installed")
       return result
     }
   }

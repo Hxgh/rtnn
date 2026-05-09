@@ -1,5 +1,8 @@
 use tauri_plugin_opener::OpenerExt;
 
+#[cfg(target_os = "android")]
+use jni::objects::{JObject, JValue};
+
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct NativeClientInfo {
@@ -41,6 +44,15 @@ struct MapInstallResult {
     status: &'static str,
     message: Option<String>,
     reason: Option<String>,
+    diagnostic: Option<String>,
+}
+
+#[cfg(target_os = "android")]
+#[derive(Debug, Clone, Copy)]
+struct MapPackageDetection {
+    installed: bool,
+    launch_visible: bool,
+    package_visible: bool,
 }
 
 fn current_platform() -> &'static str {
@@ -195,6 +207,145 @@ fn encode_url_component(value: &str) -> String {
     output
 }
 
+#[cfg(target_os = "android")]
+fn map_android_packages(app_type: &str) -> Vec<&'static str> {
+    match app_type {
+        "amap" => vec!["com.autonavi.minimap"],
+        "baidu" => vec!["com.baidu.BaiduMap"],
+        "tencent" => vec!["com.tencent.map", "com.tencent.maplite"],
+        _ => Vec::new(),
+    }
+}
+
+#[cfg(target_os = "android")]
+fn detect_android_package(package_name: &str) -> Result<MapPackageDetection, String> {
+    let context = ndk_context::android_context();
+    let vm =
+        unsafe { jni::JavaVM::from_raw(context.vm().cast()) }.map_err(|error| error.to_string())?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|error| error.to_string())?;
+    let context_object = unsafe { JObject::from_raw(context.context().cast()) };
+    let package_manager = env
+        .call_method(
+            &context_object,
+            "getPackageManager",
+            "()Landroid/content/pm/PackageManager;",
+            &[],
+        )
+        .map_err(|error| error.to_string())?
+        .l()
+        .map_err(|error| error.to_string())?;
+    let package_name = env
+        .new_string(package_name)
+        .map_err(|error| error.to_string())?;
+    let package_name_object = JObject::from(package_name);
+    let launch_intent = env
+        .call_method(
+            &package_manager,
+            "getLaunchIntentForPackage",
+            "(Ljava/lang/String;)Landroid/content/Intent;",
+            &[JValue::Object(&package_name_object)],
+        )
+        .map_err(|error| error.to_string())?
+        .l()
+        .map_err(|error| error.to_string())?;
+
+    let launch_visible = !launch_intent.as_raw().is_null();
+    let package_visible = match env.call_method(
+        &package_manager,
+        "getPackageInfo",
+        "(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;",
+        &[JValue::Object(&package_name_object), JValue::Int(0)],
+    ) {
+        Ok(_) => true,
+        Err(error) => {
+            let reason = error.to_string();
+            let _ = env.exception_clear();
+            if reason.contains("NameNotFoundException") {
+                false
+            } else {
+                return Err(reason);
+            }
+        }
+    };
+
+    Ok(MapPackageDetection {
+        installed: launch_visible || package_visible,
+        launch_visible,
+        package_visible,
+    })
+}
+
+#[cfg(target_os = "android")]
+fn detect_android_map_installed(app_type: &str) -> MapInstallResult {
+    let packages = map_android_packages(app_type);
+
+    if packages.is_empty() {
+        return MapInstallResult {
+            ok: false,
+            app_type: app_type.to_string(),
+            installed: None,
+            status: "unsupported",
+            message: None,
+            reason: Some("unsupported-map-app".to_string()),
+            diagnostic: None,
+        };
+    }
+
+    let mut last_error = None;
+    for package_name in &packages {
+        match detect_android_package(package_name) {
+            Ok(detection) if detection.installed => {
+                return MapInstallResult {
+                    ok: true,
+                    app_type: app_type.to_string(),
+                    installed: Some(true),
+                    status: "installed",
+                    message: Some(if detection.launch_visible {
+                        format!("installed-by-launch-intent:{}", package_name)
+                    } else {
+                        format!("installed-by-package-info:{}", package_name)
+                    }),
+                    reason: None,
+                    diagnostic: Some(package_name.to_string()),
+                };
+            }
+            Ok(detection) => {
+                let visibility = format!(
+                    "{}:launch={},package={}",
+                    package_name, detection.launch_visible, detection.package_visible
+                );
+                last_error = Some("map-app-not-installed-or-not-visible".to_string());
+                if packages.len() == 1 {
+                    return MapInstallResult {
+                        ok: false,
+                        app_type: app_type.to_string(),
+                        installed: Some(false),
+                        status: "not-installed",
+                        message: None,
+                        reason: last_error,
+                        diagnostic: Some(visibility),
+                    };
+                }
+            }
+            Err(error) => {
+                last_error = Some(error);
+            }
+        }
+    }
+
+    MapInstallResult {
+        ok: false,
+        app_type: app_type.to_string(),
+        installed: Some(false),
+        status: "not-installed",
+        message: None,
+        reason: last_error.or_else(|| Some("map-app-not-installed".to_string())),
+        diagnostic: Some(packages.join("|")),
+    }
+}
+
 #[tauri::command]
 fn get_client_info() -> NativeClientInfo {
     NativeClientInfo {
@@ -243,14 +394,14 @@ fn open_map_navigation(
     name: Option<String>,
     app_type: Option<String>,
     direct_nav: Option<bool>,
-    allow_web_fallback: Option<bool>,
+    _allow_web_fallback: Option<bool>,
 ) -> Result<CommandResult, String> {
     let app_type = app_type.unwrap_or_else(|| "amap".to_string());
     let direct_nav = direct_nav.unwrap_or_else(|| lat.is_some() && lng.is_some());
-    let allow_web_fallback = allow_web_fallback.unwrap_or(true);
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
+        let allow_web_fallback = _allow_web_fallback.unwrap_or(true);
         let scheme_url = build_map_url(&app_type, lat, lng, name.as_deref(), true, direct_nav)?;
 
         if app.opener().open_url(&scheme_url, None::<&str>).is_ok() {
@@ -285,6 +436,11 @@ fn open_map_navigation(
 
 #[tauri::command]
 fn check_map_installed(app_type: String) -> MapInstallResult {
+    #[cfg(target_os = "android")]
+    {
+        return detect_android_map_installed(&app_type);
+    }
+
     MapInstallResult {
         ok: true,
         app_type,
@@ -292,6 +448,7 @@ fn check_map_installed(app_type: String) -> MapInstallResult {
         status: "unknown",
         message: None,
         reason: Some("map-install-check-unavailable".to_string()),
+        diagnostic: None,
     }
 }
 

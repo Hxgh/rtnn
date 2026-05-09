@@ -29,12 +29,14 @@ const CLIENTS = {
     capability: "mobile.json",
     permissions: ["core:default", "opener:default"],
     requiredCargoDependencies: ["serde_json", "tauri-plugin-opener"],
+    requiredAndroidCargoDependencies: ["jni", "ndk-context"],
     requiredSourceSnippets: [
       "get_client_info",
       "open_external",
       "open_map_navigation",
       "opened-native-map",
       "check_map_installed",
+      "detect_android_map_installed",
       "check_permission",
       "request_permission",
       "file.pick",
@@ -54,6 +56,7 @@ const CLIENTS = {
         "launchCameraCapture",
         "launchImagePicker",
         "rtnn:native-theme-change",
+        "rtnn_launcher_icon_foreground",
       ],
     },
   },
@@ -165,6 +168,13 @@ function validateClient(rootDir, clientName, expected) {
     assert(
       cargoToml.includes(`${dependency} =`),
       `${clientName} Cargo.toml 缺少 ${dependency}`,
+    );
+  }
+
+  for (const dependency of expected.requiredAndroidCargoDependencies ?? []) {
+    assert(
+      cargoToml.includes(`${dependency} =`),
+      `${clientName} Cargo.toml 缺少 Android 依赖 ${dependency}`,
     );
   }
 

@@ -155,6 +155,8 @@ export type AppMessages = {
     mapChecking: string;
     mapPickerTitle: string;
     mapPickerDescription: string;
+    mapVisibilityLimited: string;
+    mapCheckUnavailable: string;
     mapRefresh: string;
     mapTryOpen: string;
     mapOpenWith: string;
@@ -359,6 +361,8 @@ const zhCN: AppMessages = {
     mapChecking: "正在检测地图应用",
     mapPickerTitle: "选择地图应用",
     mapPickerDescription: "未安装的地图会禁用；无法检测时可点击尝试，由系统决定是否能打开。",
+    mapVisibilityLimited: "Android 11+ 需要壳声明应用可见性；若已安装仍显示未安装，可直接尝试打开或安装新包后重试。",
+    mapCheckUnavailable: "当前环境无法读取已安装应用，只能尝试打开。",
     mapRefresh: "重新检测",
     mapTryOpen: "尝试打开",
     mapOpenWith: "打开",
@@ -563,6 +567,8 @@ const enUS: AppMessages = {
     mapChecking: "Checking map apps",
     mapPickerTitle: "Choose map app",
     mapPickerDescription: "Not installed apps are disabled. Unknown apps can be tried and the system decides whether they open.",
+    mapVisibilityLimited: "Android 11+ requires package visibility declarations. If an installed app is not detected, try opening it or install the latest shell.",
+    mapCheckUnavailable: "This runtime cannot read installed apps, so it can only try opening.",
     mapRefresh: "Refresh",
     mapTryOpen: "Try",
     mapOpenWith: "Open",
