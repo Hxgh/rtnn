@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ClientUpdateCheckInfo } from "@rtnn/shared-types";
 import {
   createAppNativeCore,
+  runNativeActionWithWatchdog,
   type NativeCoreClientInfo,
   type NativeCoreService,
 } from "@/lib/native-core";
@@ -13,8 +14,6 @@ import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type NativeUpdateMessages = AppMessages["nativeUpdate"];
-
-const nativeOpenWatchdogMs = 4_000;
 
 function resolveDownloadsUrl() {
   return new URL("/download", window.location.href).toString();
@@ -123,15 +122,9 @@ export function NativeUpdatePanel({
     setOpenFailed(false);
 
     try {
-      const result = await Promise.race([
+      const result = await runNativeActionWithWatchdog(() =>
         nativeCore.openUrl(resolveDownloadsUrl()),
-        new Promise<{ ok: boolean; reason: string }>((resolve) => {
-          window.setTimeout(
-            () => resolve({ ok: true, reason: "native-action-dispatched" }),
-            nativeOpenWatchdogMs,
-          );
-        }),
-      ]);
+      );
       setOpened(result.ok);
       setOpenFailed(!result.ok);
     } catch {

@@ -232,7 +232,7 @@ test("app native core requests only the permission needed by media action", asyn
   ]);
 });
 
-test("app native core keeps manually selected map apps actionable after negative detection", async () => {
+test("app native core keeps manually selected map apps actionable after uncertain detection", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const core = createAppNativeCore(
@@ -244,7 +244,7 @@ test("app native core keeps manually selected map apps actionable after negative
           appType: input.appType,
           installed: false,
           status: "not-installed",
-          reason: "map-app-not-installed",
+          reason: "map-app-not-installed-or-not-visible",
         };
       },
       async openMapNavigation(input) {
@@ -278,6 +278,46 @@ test("app native core keeps manually selected map apps actionable after negative
     ["checkMapInstalled", "tencent"],
     ["checkMapInstalled", "amap"],
     ["openMapNavigation", "amap", false],
+  ]);
+});
+
+test("app native core skips clearly missing map apps during automatic open", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(
+    createBridge(calls, {
+      async checkMapInstalled(input) {
+        calls.push(["checkMapInstalled", input.appType]);
+        return {
+          ok: false,
+          appType: input.appType,
+          installed: false,
+          status: "not-installed",
+          reason: "map-app-not-installed",
+        };
+      },
+      async openMapNavigation(input) {
+        calls.push(["openMapNavigation", input.appType, input.allowWebFallback]);
+        return { ok: true };
+      },
+    }),
+  );
+
+  assert.deepEqual(
+    await core.openMapNavigation({
+      lat: 30.2741,
+      lng: 120.1551,
+      name: "杭州西湖",
+    }),
+    {
+      ok: false,
+      reason: "map-app-not-installed",
+    },
+  );
+  assert.deepEqual(calls, [
+    ["checkMapInstalled", "amap"],
+    ["checkMapInstalled", "baidu"],
+    ["checkMapInstalled", "tencent"],
   ]);
 });
 

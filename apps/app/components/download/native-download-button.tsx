@@ -2,10 +2,8 @@
 
 import type { MouseEvent } from "react";
 import { useState } from "react";
-import { createAppNativeCore } from "@/lib/native-core";
+import { createAppNativeCore, runNativeActionWithWatchdog } from "@/lib/native-core";
 import { buttonVariants } from "@/components/ui/button";
-
-const nativeOpenWatchdogMs = 4_000;
 
 type NativeDownloadButtonProps = {
   url: string;
@@ -24,15 +22,9 @@ export function NativeDownloadButton({
     event.preventDefault();
     setFailed(false);
     const nativeCore = createAppNativeCore();
-    const result = await Promise.race([
+    const result = await runNativeActionWithWatchdog(() =>
       nativeCore.openExternalUrl(url),
-      new Promise<{ ok: boolean; reason: string }>((resolve) => {
-        window.setTimeout(
-          () => resolve({ ok: true, reason: "native-action-dispatched" }),
-          nativeOpenWatchdogMs,
-        );
-      }),
-    ]);
+    );
 
     if (!result.ok) {
       const snapshot = await nativeCore.getRuntimeSnapshot().catch(() => null);

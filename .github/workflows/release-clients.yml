@@ -287,6 +287,7 @@ jobs:
             pnpm --filter "${{ matrix.package }}" tauri android init
             if [[ "${{ matrix.client }}" == "appMobile" ]]; then
               CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
+              CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run check:android
             fi
           fi
 
@@ -406,6 +407,7 @@ jobs:
         run: |
           if [[ "${{ matrix.client }}" == "appMobile" ]]; then
             CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
+            CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run check:android
           fi
 
           free_mb="$(df -Pm . | awk 'NR==2 { print $4 }')"
@@ -433,6 +435,9 @@ jobs:
           fi
 
           pnpm --filter "${{ matrix.package }}" tauri android build "${build_args[@]}"
+          if [[ "${{ matrix.client }}" == "appMobile" ]]; then
+            CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run check:android
+          fi
 
       - name: Build signed iOS client
         if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}

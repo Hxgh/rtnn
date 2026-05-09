@@ -8,6 +8,7 @@
     "dev": "tauri dev",
     "build": "tauri build",
     "prepare:android": "node ../../scripts/client/prepare-app-tauri-android.mjs",
+    "check:android": "node ../../scripts/client/check-app-tauri-android.mjs",
     "validate": "node ../../scripts/client/check-tauri-clients.mjs app-tauri"
   },
   "devDependencies": {

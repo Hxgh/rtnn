@@ -65,6 +65,16 @@ const CLIENTS = {
         "patchTauriAndroidVersionCode",
         "CLIENT_ANDROID_VERSION_CODE",
       ],
+      "../../scripts/client/check-app-tauri-android.mjs": [
+        'android:icon="@mipmap/rtnn_launcher_icon"',
+        'android:roundIcon="@mipmap/rtnn_launcher_icon"',
+        "com.autonavi.minimap",
+        "com.baidu.BaiduMap",
+        "com.tencent.map",
+        "com.tencent.maplite",
+        "rtnn:native-file-picker-closed",
+        "rtnn:android-map-ready",
+      ],
     },
   },
 };
@@ -134,6 +144,9 @@ function validateClient(rootDir, clientName, expected) {
 
   assert(packageJson.name === expected.packageName, `${clientName} package name 不匹配`);
   assert(packageJson.scripts?.validate, `${clientName} 缺少 validate 脚本`);
+  if (clientName === "app-tauri") {
+    assert(packageJson.scripts?.["check:android"], `${clientName} 缺少 check:android 脚本`);
+  }
   assert(
     packageJson.devDependencies?.["@tauri-apps/cli"],
     `${clientName} 缺少 @tauri-apps/cli`,

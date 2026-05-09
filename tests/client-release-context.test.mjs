@@ -90,6 +90,14 @@ const prepareAppTauriAndroidScriptPath = path.join(
   repoRoot,
   "scripts/client/prepare-app-tauri-android.mjs",
 );
+const checkAppTauriAndroidScriptPath = path.join(
+  repoRoot,
+  "scripts/client/check-app-tauri-android.mjs",
+);
+const TEST_RGBA_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNgYGD4DwABBAEAghnFoQAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 function withTempProject(metadata, fn) {
   const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-release-"));
@@ -936,7 +944,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     mkdirSync(path.join(srcTauriDir, "icons"), { recursive: true });
     writeFileSync(
       path.join(srcTauriDir, "icons/icon.png"),
-      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      TEST_RGBA_PNG,
     );
     writeFileSync(
       path.join(javaDir, "MainActivity.kt"),
@@ -1065,12 +1073,27 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.equal(tauriConfig.bundle.android.versionCode, 123);
     assert.deepEqual(
       launcherIcon,
-      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      TEST_RGBA_PNG,
     );
     assert.deepEqual(launcherMipmapIcon, launcherIcon);
     assert.match(launcherAdaptiveIcon, /rtnn_launcher_icon_foreground/);
     assert.match(launcherIconColors, /rtnn_launcher_icon_background/);
     assert.match(filePaths, /external-files-path/);
+
+    const checkResult = spawnSync(
+      process.execPath,
+      [checkAppTauriAndroidScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+        },
+      },
+    );
+
+    assert.equal(checkResult.status, 0, checkResult.stderr);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -1094,7 +1117,7 @@ test("prepare-app-tauri-android resolves CLIENT_DIR when package script cwd is c
     mkdirSync(path.join(srcTauriDir, "icons"), { recursive: true });
     writeFileSync(
       path.join(srcTauriDir, "icons/icon.png"),
-      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      TEST_RGBA_PNG,
     );
     writeFileSync(
       path.join(javaDir, "MainActivity.kt"),
@@ -1140,6 +1163,67 @@ test("prepare-app-tauri-android resolves CLIENT_DIR when package script cwd is c
       readFileSync(path.join(javaDir, "MainActivity.kt"), "utf8"),
       /onShowFileChooser/,
     );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-app-tauri-android rejects generated shells without RTNN launcher icon", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-app-tauri-android-check-"));
+  try {
+    const clientDir = path.join(dir, "clients/app-tauri");
+    const srcTauriDir = path.join(clientDir, "src-tauri");
+    const androidDir = path.join(srcTauriDir, "gen/android");
+    const mainDir = path.join(androidDir, "app/src/main");
+    const javaDir = path.join(mainDir, "java/com/acme/app");
+
+    mkdirSync(javaDir, { recursive: true });
+    mkdirSync(path.join(srcTauriDir, "icons"), { recursive: true });
+    writeFileSync(
+      path.join(srcTauriDir, "tauri.conf.json"),
+      `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
+    );
+    writeFileSync(
+      path.join(srcTauriDir, "icons/icon.png"),
+      TEST_RGBA_PNG,
+    );
+    writeFileSync(
+      path.join(mainDir, "AndroidManifest.xml"),
+      [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+        '    <application android:icon="@mipmap/ic_launcher">',
+        "    </application>",
+        "</manifest>",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      path.join(javaDir, "MainActivity.kt"),
+      [
+        "package com.acme.app",
+        "",
+        "class MainActivity : TauriActivity() {",
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [checkAppTauriAndroidScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+        },
+      },
+    );
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /rtnn_launcher_icon/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAppNativeCore,
+  isMapDetectionUncertain,
+  isNativeActionCancelled,
+  runNativeActionWithWatchdog,
   type NativeCoreActionResult,
   type NativeCoreClientInfo,
   type NativeCoreMapCandidate,
@@ -50,7 +53,6 @@ const emptyPermissions: Record<
 };
 const mediaPickerTimeoutMs = 12_000;
 const transientActionStateMs = 1_200;
-const nativeActionWatchdogMs = 4_000;
 
 function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
   return [
@@ -92,7 +94,7 @@ function isOpened(result: NativeCoreActionResult) {
 }
 
 function isCancelled(result: NativeCoreActionResult) {
-  return result.reason === "file-picker-cancelled" || result.reason === "file-picker-timeout";
+  return isNativeActionCancelled(result);
 }
 
 function resolveExternalCheckUrl() {
@@ -185,6 +187,10 @@ function getMapCandidateHint(
   }
 
   return candidate.reason;
+}
+
+function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
+  return candidate.status !== "unsupported";
 }
 
 function isPickerManagedPermission(result: NativeCorePermissionResult | null) {
@@ -332,19 +338,7 @@ export function NativeCapabilitiesPanel({
     setLastMessage(null);
 
     try {
-      const result = await Promise.race([
-        action(),
-        new Promise<NativeCoreActionResult>((resolve) => {
-          window.setTimeout(
-            () =>
-              resolve({
-                ok: true,
-                reason: "native-action-dispatched",
-              }),
-            nativeActionWatchdogMs,
-          );
-        }),
-      ]);
+      const result = await runNativeActionWithWatchdog(action);
       setLastMessage(result.message ?? result.reason ?? null);
       setState(isOpened(result) ? "opened" : isCancelled(result) ? "cancelled" : "failed");
     } catch (error) {
@@ -435,7 +429,7 @@ export function NativeCapabilitiesPanel({
   }
 
   async function handleOpenMapCandidate(candidate: NativeCoreMapCandidate) {
-    if (!candidate.available) {
+    if (!isMapCandidateActionable(candidate)) {
       setLastMessage(candidate.reason ?? candidate.status);
       setMapState("failed");
       return;
@@ -714,7 +708,8 @@ export function NativeCapabilitiesPanel({
                 const disabled =
                   mapState === "opening" ||
                   candidate.checking ||
-                  candidate.status === "unsupported";
+                  !isMapCandidateActionable(candidate);
+                const uncertain = isMapDetectionUncertain(candidate);
 
                 return (
                   <button
@@ -748,7 +743,7 @@ export function NativeCapabilitiesPanel({
                         ? messages.mapTryOpen
                         : candidate.status === "installed"
                           ? messages.mapOpenWith
-                          : candidate.available
+                          : uncertain || isMapCandidateActionable(candidate)
                             ? messages.mapTryOpen
                           : "-"}
                     </span>

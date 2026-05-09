@@ -332,7 +332,7 @@ const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string[]> = {
   baidu: ["com.baidu.BaiduMap"],
   tencent: ["com.tencent.map", "com.tencent.maplite"],
 };
-const ANDROID_MAP_BRIDGE_WAIT_MS = 1_600;
+const ANDROID_MAP_BRIDGE_WAIT_MS = 3_000;
 const ANDROID_MAP_BRIDGE_POLL_MS = 100;
 
 const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
@@ -1199,6 +1199,14 @@ function isMapCandidateAvailable(result: NativeMapInstallResult) {
   return result.status !== "unsupported";
 }
 
+function isMapDetectionUncertain(result: NativeMapInstallResult) {
+  return (
+    result.status === "unknown" ||
+    result.reason === "map-app-not-installed-or-not-visible" ||
+    result.reason === "map-install-check-unavailable"
+  );
+}
+
 function shouldSkipNativeMapCandidate(
   result: NativeMapInstallResult,
   options: { userSelected?: boolean } = {},
@@ -1211,11 +1219,7 @@ function shouldSkipNativeMapCandidate(
     return false;
   }
 
-  return (
-    result.status === "not-installed" &&
-    result.reason !== "map-app-not-installed-or-not-visible" &&
-    result.reason !== "map-install-check-unavailable"
-  );
+  return result.status === "not-installed" && !isMapDetectionUncertain(result);
 }
 
 function normalizeClientInfo(

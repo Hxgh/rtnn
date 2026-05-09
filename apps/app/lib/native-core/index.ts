@@ -1,6 +1,12 @@
 "use client";
 
 export { createAppNativeCore } from "./service";
+export {
+  isNativeActionCancelled,
+  nativeActionWatchdogMs,
+  runNativeActionWithWatchdog,
+} from "./actions";
+export { isMapDetectionUncertain } from "./map";
 export { installAppNativeViewportInsets } from "./runtime";
 export {
   installAppNativeThemeListener,

@@ -290,6 +290,45 @@ test("native capability core keeps Android package visibility candidates actiona
   assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
 });
 
+test("native capability core skips clearly missing maps during automatic open", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {},
+    invoke: async (command, args) => {
+      calls.push([command, args?.appType]);
+
+      if (command === "check_map_installed") {
+        return {
+          ok: false,
+          appType: args.appType,
+          installed: false,
+          status: "not-installed",
+          reason: "map-app-not-installed",
+        };
+      }
+
+      return { ok: true };
+    },
+  });
+  const core = createNativeCapabilityCore({ bridge });
+
+  assert.deepEqual(
+    await core.openPreferredMapNavigation({
+      lat: 30.25,
+      lng: 120.16,
+    }),
+    {
+      ok: false,
+      reason: "map-app-not-installed",
+    },
+  );
+  assert.deepEqual(calls, [
+    ["check_map_installed", "amap"],
+    ["check_map_installed", "baidu"],
+    ["check_map_installed", "tencent"],
+  ]);
+});
+
 test("native capability core keeps unavailable Android map checks actionable", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
@@ -378,9 +417,11 @@ test("native bridge parses structured Android map install diagnostics", async ()
 
 test("native bridge waits briefly for Android map bridge injection", async () => {
   const calls = [];
+  const delays = [];
   const globalScope = {
     navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
-    setTimeout(callback) {
+    setTimeout(callback, delay) {
+      delays.push(delay);
       globalScope.AndroidMap = {
         isAppInstalled(packageName) {
           calls.push(["AndroidMap.isAppInstalled", packageName]);
@@ -415,6 +456,7 @@ test("native bridge waits briefly for Android map bridge injection", async () =>
   assert.deepEqual(calls, [
     ["AndroidMap.isAppInstalled", "com.tencent.map"],
   ]);
+  assert.deepEqual(delays, [100]);
 });
 
 test("native bridge can be woken by Android map ready event", async () => {
