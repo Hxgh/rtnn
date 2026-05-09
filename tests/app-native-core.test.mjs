@@ -100,7 +100,7 @@ function createBridge(calls, overrides = {}) {
       };
     },
     async pickImages(input) {
-      calls.push(["pickImages", input?.capture ?? null]);
+      calls.push(["pickImages", input?.capture ?? null, input?.timeoutMs ?? null]);
       return {
         ok: true,
         files: [
@@ -185,14 +185,51 @@ test("app native core requests only the permission needed by media action", asyn
   });
   assert.deepEqual(calls, [
     ["ensurePermission", "photo-library", "on-demand", "pick-image"],
-    ["pickImages", null],
+    ["pickImages", null, null],
   ]);
 
   calls.length = 0;
   await core.pickMedia("camera");
   assert.deepEqual(calls, [
     ["ensurePermission", "camera", "on-demand", "capture-image"],
-    ["pickImages", "environment"],
+    ["pickImages", "environment", null],
+  ]);
+});
+
+test("app native core passes media timeout and returns cancelled picker state", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(
+    createBridge(calls, {
+      async pickImages(input) {
+        calls.push(["pickImages", input?.capture ?? null, input?.timeoutMs ?? null]);
+        return {
+          ok: false,
+          files: [],
+          reason: "file-picker-cancelled",
+        };
+      },
+    }),
+  );
+
+  assert.deepEqual(await core.pickMedia("album", { timeoutMs: 12_000 }), {
+    ok: false,
+    action: "media.pick-album",
+    source: "album",
+    permissions: [
+      {
+        ok: true,
+        kind: "photo-library",
+        status: "granted",
+        requested: true,
+      },
+    ],
+    files: [],
+    reason: "file-picker-cancelled",
+  });
+  assert.deepEqual(calls, [
+    ["ensurePermission", "photo-library", "on-demand", "pick-image"],
+    ["pickImages", null, 12_000],
   ]);
 });
 

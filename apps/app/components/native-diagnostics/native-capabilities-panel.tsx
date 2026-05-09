@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAppNativeCore,
   type NativeCoreActionResult,
   type NativeCoreClientInfo,
-  type NativeCoreMapAppType,
   type NativeCoreMapCandidate,
   type NativeCorePermissionKind,
   type NativeCorePermissionResult,
@@ -46,6 +45,22 @@ const emptyPermissions: Record<
   camera: null,
   notification: null,
 };
+const mediaPickerTimeoutMs = 12_000;
+
+function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
+  return [
+    { appType: "amap" as const, label: "高德地图" },
+    { appType: "baidu" as const, label: "百度地图" },
+    { appType: "tencent" as const, label: "腾讯地图" },
+  ].map((item) => ({
+    ...item,
+    ok: true,
+    installed: null,
+    status: "unknown" as const,
+    available: true,
+    reason: "map-install-check-unavailable",
+  }));
+}
 
 function formatList(values?: string[]) {
   return values?.length ? values.join(", ") : "-";
@@ -147,9 +162,11 @@ export function NativeCapabilitiesPanel({
   const [externalState, setExternalState] = useState<ActionState>("idle");
   const [mapState, setMapState] = useState<ActionState>("idle");
   const [imageState, setImageState] = useState<ActionState>("idle");
+  const [activeMediaSource, setActiveMediaSource] =
+    useState<NativeMediaSource | null>(null);
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
-  const [selectedMapApp, setSelectedMapApp] =
-    useState<NativeCoreMapAppType>("amap");
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapRefreshing, setMapRefreshing] = useState(false);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
   const [permissionState, setPermissionState] = useState<
     Record<VisiblePermissionKind, ActionState>
@@ -163,6 +180,25 @@ export function NativeCapabilitiesPanel({
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
     );
+
+  const refreshMapCandidates = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      if (!options.silent) {
+        setMapRefreshing(true);
+      }
+
+      try {
+        setMapCandidates(await nativeCore.getMapCandidates());
+      } catch {
+        setMapCandidates(createFallbackMapCandidates());
+      } finally {
+        if (!options.silent) {
+          setMapRefreshing(false);
+        }
+      }
+    },
+    [nativeCore],
+  );
 
   useEffect(() => {
     let active = true;
@@ -184,32 +220,13 @@ export function NativeCapabilitiesPanel({
     nativeCore
       .getMapCandidates()
       .then((candidates: NativeCoreMapCandidate[]) => {
-        if (!active) {
-          return;
+        if (active) {
+          setMapCandidates(candidates);
         }
-
-        setMapCandidates(candidates);
-        setSelectedMapApp(
-          candidates.find((item) => item.available)?.appType ??
-            candidates[0]?.appType ??
-            "amap",
-        );
       })
       .catch(() => {
         if (active) {
-          const fallback = [
-            { appType: "amap" as const, label: "高德地图" },
-            { appType: "baidu" as const, label: "百度地图" },
-            { appType: "tencent" as const, label: "腾讯地图" },
-          ].map((item) => ({
-            ...item,
-            ok: true,
-            installed: null,
-            status: "unknown" as const,
-            available: true,
-            reason: "map-install-check-unavailable",
-          }));
-          setMapCandidates(fallback);
+          setMapCandidates(createFallbackMapCandidates());
         }
       });
 
@@ -239,11 +256,12 @@ export function NativeCapabilitiesPanel({
   const externalAvailable = capabilities.externalOpen;
   const mapAvailable = capabilities.mapNavigation;
   const imagePickerAvailable = capabilities.filePick;
-  const selectedCandidate = mapCandidates.find(
-    (item) => item.appType === selectedMapApp,
-  );
-  const canOpenSelectedMap =
-    mapAvailable && (!selectedCandidate || selectedCandidate.available);
+  const installedMapCount = mapCandidates.filter(
+    (item) => item.status === "installed",
+  ).length;
+  const unknownMapCount = mapCandidates.filter(
+    (item) => item.status === "unknown",
+  ).length;
 
   async function runAction(
     setState: (state: ActionState) => void,
@@ -292,10 +310,13 @@ export function NativeCapabilitiesPanel({
 
   async function handlePickMedia(source: NativeMediaSource) {
     setImageState("opening");
+    setActiveMediaSource(source);
     setLastMessage(null);
 
     try {
-      const result = await nativeCore.pickMedia(source);
+      const result = await nativeCore.pickMedia(source, {
+        timeoutMs: mediaPickerTimeoutMs,
+      });
 
       setLastMessage(result.reason ?? result.message ?? null);
 
@@ -312,7 +333,31 @@ export function NativeCapabilitiesPanel({
     } catch (error) {
       setLastMessage(error instanceof Error ? error.message : String(error));
       setImageState("failed");
+    } finally {
+      setActiveMediaSource(null);
     }
+  }
+
+  async function handleOpenMapPicker() {
+    setMapPickerOpen(true);
+    setLastMessage(null);
+    await refreshMapCandidates().catch(() => {});
+  }
+
+  async function handleOpenMapCandidate(candidate: NativeCoreMapCandidate) {
+    if (!candidate.available) {
+      setLastMessage(candidate.reason ?? candidate.status);
+      setMapState("failed");
+      return;
+    }
+
+    setMapPickerOpen(false);
+    await runAction(setMapState, () =>
+      nativeCore.openMapNavigation({
+        ...mapTarget,
+        appType: candidate.appType,
+      }),
+    );
   }
 
   return (
@@ -378,41 +423,20 @@ export function NativeCapabilitiesPanel({
             <p className="text-xs leading-5 text-muted-foreground">{messages.mapDescription}</p>
           </div>
 
-          <div className="grid gap-2">
-            {mapCandidates.length > 0
-              ? mapCandidates.map((candidate) => (
-                  <button
-                    className={cn(
-                      "flex items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
-                      candidate.appType === selectedMapApp
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-background text-foreground active:bg-secondary",
-                      !candidate.available && "opacity-55",
-                    )}
-                    disabled={!candidate.available}
-                    key={candidate.appType}
-                    onClick={() => setSelectedMapApp(candidate.appType)}
-                    type="button"
-                  >
-                    <span className="text-sm font-medium">{candidate.label}</span>
-                    <span className="text-xs opacity-80">
-                      {getMapInstallLabel(candidate.status, messages)}
-                    </span>
-                  </button>
-                ))
-              : null}
+          <div className="rounded-xl border border-border/70 px-3 py-3 text-xs leading-5 text-muted-foreground">
+            {mapCandidates.length > 0 ? (
+              <span>
+                {messages.mapDetected}: {installedMapCount} / {mapCandidates.length}
+                {unknownMapCount > 0 ? `, ${messages.mapUnknownCount}: ${unknownMapCount}` : ""}
+              </span>
+            ) : (
+              <span>{messages.mapChecking}</span>
+            )}
           </div>
 
           <Button
-            disabled={!canOpenSelectedMap || mapState === "opening"}
-            onClick={() =>
-              runAction(setMapState, () =>
-                nativeCore.openMapNavigation({
-                  ...mapTarget,
-                  appType: selectedMapApp,
-                }),
-              )
-            }
+            disabled={!mapAvailable || mapState === "opening"}
+            onClick={handleOpenMapPicker}
             variant="outline"
           >
             {mapState === "opening" ? messages.opening : messages.openMap}
@@ -432,14 +456,18 @@ export function NativeCapabilitiesPanel({
               onClick={() => handlePickMedia("album")}
               variant="outline"
             >
-              {imageState === "opening" ? messages.opening : messages.pickImages}
+              {imageState === "opening" && activeMediaSource === "album"
+                ? messages.opening
+                : messages.pickImages}
             </Button>
             <Button
               disabled={!imagePickerAvailable || imageState === "opening"}
               onClick={() => handlePickMedia("camera")}
               variant="outline"
             >
-              {imageState === "opening" ? messages.opening : messages.captureImage}
+              {imageState === "opening" && activeMediaSource === "camera"
+                ? messages.opening
+                : messages.captureImage}
             </Button>
           </div>
 
@@ -554,6 +582,92 @@ export function NativeCapabilitiesPanel({
         <p className="break-words rounded-lg bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
           {lastMessage}
         </p>
+      ) : null}
+
+      {mapPickerOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/45 px-0"
+          onClick={() => setMapPickerOpen(false)}
+          role="presentation"
+        >
+          <div
+            aria-modal="true"
+            className="w-full rounded-t-3xl border border-border/80 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">
+                {messages.mapPickerTitle}
+              </h3>
+              <p className="text-xs leading-5 text-muted-foreground">
+                {messages.mapPickerDescription}
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              {(mapCandidates.length > 0
+                ? mapCandidates
+                : createFallbackMapCandidates()
+              ).map((candidate) => {
+                const disabled =
+                  mapState === "opening" ||
+                  candidate.status === "not-installed" ||
+                  candidate.status === "unsupported";
+
+                return (
+                  <button
+                    className={cn(
+                      "flex min-h-14 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition-colors",
+                      disabled
+                        ? "border-border/60 bg-secondary/50 text-muted-foreground"
+                        : "border-border bg-background text-foreground active:bg-secondary",
+                    )}
+                    disabled={disabled}
+                    key={candidate.appType}
+                    onClick={() => handleOpenMapCandidate(candidate)}
+                    type="button"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">
+                        {candidate.label}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {getMapInstallLabel(candidate.status, messages)}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {candidate.status === "unknown"
+                        ? messages.mapTryOpen
+                        : candidate.status === "installed"
+                          ? messages.mapOpenWith
+                          : "-"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button
+                disabled={mapRefreshing}
+                onClick={() => refreshMapCandidates()}
+                type="button"
+                variant="outline"
+              >
+                {mapRefreshing ? messages.opening : messages.mapRefresh}
+              </Button>
+              <Button
+                onClick={() => setMapPickerOpen(false)}
+                type="button"
+                variant="ghost"
+              >
+                {messages.close}
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

@@ -314,6 +314,8 @@ export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
   { appType: "tencent", label: "腾讯地图" },
 ];
 
+const NATIVE_FILE_PICKER_CLOSED_EVENT = "rtnn:native-file-picker-closed";
+
 const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string> = {
   amap: "com.autonavi.minimap",
   baidu: "com.baidu.BaiduMap",
@@ -693,6 +695,7 @@ function pickImagesWithInput(
     let completed = false;
     let blurSeen = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
 
     element.type = "file";
     element.accept = input.accept ?? "image/*";
@@ -710,6 +713,15 @@ function pickImagesWithInput(
         timer = null;
       }
 
+      if (settleTimer) {
+        win?.clearTimeout?.(settleTimer);
+        settleTimer = null;
+      }
+
+      win?.removeEventListener?.(
+        NATIVE_FILE_PICKER_CLOSED_EVENT,
+        handleNativeFilePickerClosed,
+      );
       win?.removeEventListener?.("focus", handleWindowFocus);
       win?.removeEventListener?.("blur", handleWindowBlur);
       documentRef.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -739,11 +751,20 @@ function pickImagesWithInput(
         return;
       }
 
-      win?.setTimeout?.(() => {
+      if (settleTimer) {
+        win?.clearTimeout?.(settleTimer);
+      }
+
+      const run = () => {
         if (!completed && !element.files?.length) {
           cancel("file-picker-cancelled");
         }
-      }, 400);
+      };
+
+      settleTimer = win?.setTimeout?.(run, 400) ?? null;
+      if (!settleTimer) {
+        run();
+      }
     }
 
     function handleWindowBlur() {
@@ -760,6 +781,10 @@ function pickImagesWithInput(
       if (documentRef.visibilityState === "visible" && blurSeen) {
         scheduleCancelCheck();
       }
+    }
+
+    function handleNativeFilePickerClosed() {
+      scheduleCancelCheck();
     }
 
     element.addEventListener(
@@ -785,6 +810,10 @@ function pickImagesWithInput(
 
     win?.addEventListener?.("blur", handleWindowBlur);
     win?.addEventListener?.("focus", handleWindowFocus);
+    win?.addEventListener?.(
+      NATIVE_FILE_PICKER_CLOSED_EVENT,
+      handleNativeFilePickerClosed,
+    );
     documentRef.addEventListener("visibilitychange", handleVisibilityChange);
 
     timer = win?.setTimeout?.(() => {

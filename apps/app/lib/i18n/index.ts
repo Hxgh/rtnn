@@ -101,11 +101,18 @@ export type AppMessages = {
     checkUpdate: string;
     checkingUpdate: string;
     openUpdate: string;
+    openInstaller: string;
+    openDownloads: string;
     openingUpdate: string;
     updateAvailable: string;
+    latestInstallerAvailable: string;
     noUpdate: string;
     updateUnavailable: string;
+    downloadUnavailable: string;
     updateOpened: string;
+    openFailed: string;
+    packageFile: string;
+    packageSize: string;
   };
   nativeCapabilities: {
     title: string;
@@ -140,6 +147,14 @@ export type AppMessages = {
     mapNotInstalled: string;
     mapUnknown: string;
     mapUnsupported: string;
+    mapDetected: string;
+    mapUnknownCount: string;
+    mapChecking: string;
+    mapPickerTitle: string;
+    mapPickerDescription: string;
+    mapRefresh: string;
+    mapTryOpen: string;
+    mapOpenWith: string;
     requestPermission: string;
     openExternal: string;
     openMap: string;
@@ -155,6 +170,7 @@ export type AppMessages = {
     failed: string;
     selectedImages: string;
     noImages: string;
+    close: string;
   };
   security: {
     title: string;
@@ -284,11 +300,18 @@ const zhCN: AppMessages = {
     checkUpdate: "检查更新",
     checkingUpdate: "检查中...",
     openUpdate: "打开更新",
+    openInstaller: "打开安装包",
+    openDownloads: "打开下载页",
     openingUpdate: "打开中...",
     updateAvailable: "有可用更新",
+    latestInstallerAvailable: "可打开当前安装包",
     noUpdate: "已是最新版本",
     updateUnavailable: "更新检查不可用",
+    downloadUnavailable: "暂无可用安装包",
     updateOpened: "更新地址已打开，请按系统提示继续。",
+    openFailed: "更新地址打开失败，请前往下载页重试。",
+    packageFile: "安装包",
+    packageSize: "大小",
   },
   nativeCapabilities: {
     title: "客户端能力",
@@ -298,7 +321,7 @@ const zhCN: AppMessages = {
     externalTitle: "外链打开",
     externalDescription: "验证下载页、系统浏览器或外部应用打开能力。",
     mapTitle: "地图跳转",
-    mapDescription: "先选择地图应用，再跳转到测试目的地。若壳无法检测安装状态，会显示未知。",
+    mapDescription: "点击打开地图后选择已安装的地图应用；无法检测时可以尝试打开。",
     mediaTitle: "相机相册",
     mediaDescription: "选择或拍摄图片后会在当前页面回显，取消选择不会卡在打开中。",
     permissionDescription: "权限按需请求，模板只提供统一入口，业务页面自行决定触发时机。",
@@ -321,8 +344,16 @@ const zhCN: AppMessages = {
     permissionUnknown: "未知",
     mapInstalled: "已安装",
     mapNotInstalled: "未安装",
-    mapUnknown: "无法检测",
+    mapUnknown: "无法检测，可尝试",
     mapUnsupported: "不支持检测",
+    mapDetected: "已检测安装",
+    mapUnknownCount: "无法检测",
+    mapChecking: "正在检测地图应用",
+    mapPickerTitle: "选择地图应用",
+    mapPickerDescription: "未安装的地图会禁用；无法检测时可点击尝试，由系统决定是否能打开。",
+    mapRefresh: "重新检测",
+    mapTryOpen: "尝试打开",
+    mapOpenWith: "打开",
     requestPermission: "请求权限",
     openExternal: "打开外链",
     openMap: "打开地图",
@@ -338,6 +369,7 @@ const zhCN: AppMessages = {
     failed: "操作失败，请检查当前壳子能力或系统权限。",
     selectedImages: "已选择图片",
     noImages: "尚未选择图片",
+    close: "关闭",
   },
   security: {
     title: "账户安全",
@@ -467,11 +499,18 @@ const enUS: AppMessages = {
     checkUpdate: "Check update",
     checkingUpdate: "Checking...",
     openUpdate: "Open update",
+    openInstaller: "Open installer",
+    openDownloads: "Open downloads",
     openingUpdate: "Opening...",
     updateAvailable: "Update available",
+    latestInstallerAvailable: "Installer available",
     noUpdate: "Up to date",
     updateUnavailable: "Update check unavailable",
+    downloadUnavailable: "No installer available",
     updateOpened: "Update link opened. Follow the system prompts to continue.",
+    openFailed: "Failed to open the update link. Try the downloads page.",
+    packageFile: "Installer",
+    packageSize: "Size",
   },
   nativeCapabilities: {
     title: "Client capabilities",
@@ -481,7 +520,7 @@ const enUS: AppMessages = {
     externalTitle: "External links",
     externalDescription: "Verify opening downloads, system browsers, or external apps.",
     mapTitle: "Map navigation",
-    mapDescription: "Choose a map app before opening the test destination. Unknown means the shell cannot detect install state.",
+    mapDescription: "Tap open map, then choose an installed map app. Unknown apps can still be tried.",
     mediaTitle: "Camera and photos",
     mediaDescription: "Picked or captured images are previewed here. Cancelling will not leave the button busy.",
     permissionDescription: "Permissions are requested on demand. Business screens decide their own trigger timing.",
@@ -504,8 +543,16 @@ const enUS: AppMessages = {
     permissionUnknown: "Unknown",
     mapInstalled: "Installed",
     mapNotInstalled: "Not installed",
-    mapUnknown: "Unknown",
+    mapUnknown: "Unknown, can try",
     mapUnsupported: "Unsupported",
+    mapDetected: "Detected installed",
+    mapUnknownCount: "Unknown",
+    mapChecking: "Checking map apps",
+    mapPickerTitle: "Choose map app",
+    mapPickerDescription: "Not installed apps are disabled. Unknown apps can be tried and the system decides whether they open.",
+    mapRefresh: "Refresh",
+    mapTryOpen: "Try",
+    mapOpenWith: "Open",
     requestPermission: "Request permission",
     openExternal: "Open external link",
     openMap: "Open map",
@@ -521,6 +568,7 @@ const enUS: AppMessages = {
     failed: "Action failed. Check shell capabilities or system permissions.",
     selectedImages: "Selected images",
     noImages: "No images selected",
+    close: "Close",
   },
   security: {
     title: "Account Security",

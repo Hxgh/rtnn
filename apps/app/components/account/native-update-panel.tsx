@@ -14,6 +14,24 @@ import { cn } from "@/lib/utils";
 
 type NativeUpdateMessages = AppMessages["nativeUpdate"];
 
+type OpenTarget = "installer" | "download-page" | null;
+
+function resolveDownloadsUrl() {
+  return new URL("/download", window.location.href).toString();
+}
+
+function formatFileSize(value?: number | null) {
+  if (!value || value <= 0) {
+    return "-";
+  }
+
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export function NativeUpdatePanel({
   messages,
 }: {
@@ -26,6 +44,7 @@ export function NativeUpdatePanel({
   const [checking, setChecking] = useState(false);
   const [opening, setOpening] = useState(false);
   const [opened, setOpened] = useState(false);
+  const [openFailed, setOpenFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -57,14 +76,26 @@ export function NativeUpdatePanel({
   }
 
   const updateAvailable = Boolean(checkResult?.updateAvailable);
-  const canOpenUpdate = updateAvailable && Boolean(checkResult?.downloadUrl);
+  const canOpenInstaller = Boolean(checkResult?.downloadUrl);
+  const openTarget: OpenTarget = canOpenInstaller
+    ? "installer"
+    : checkResult
+      ? "download-page"
+      : null;
   const statusText = checkFailed
     ? messages.updateUnavailable
     : checkResult
       ? updateAvailable
         ? messages.updateAvailable
-        : messages.noUpdate
+        : canOpenInstaller
+          ? messages.latestInstallerAvailable
+          : messages.noUpdate
       : null;
+  const actionLabel = canOpenInstaller
+    ? updateAvailable
+      ? messages.openUpdate
+      : messages.openInstaller
+    : messages.openDownloads;
 
   async function handleCheckUpdate() {
     if (!clientInfo) {
@@ -73,6 +104,7 @@ export function NativeUpdatePanel({
 
     setChecking(true);
     setOpened(false);
+    setOpenFailed(false);
     setCheckFailed(false);
 
     try {
@@ -85,17 +117,28 @@ export function NativeUpdatePanel({
     }
   }
 
-  async function handleOpenUpdate() {
-    if (!checkResult?.downloadUrl) {
+  async function handleOpenUpdate(target: OpenTarget) {
+    const url =
+      target === "installer"
+        ? checkResult?.downloadUrl
+        : target === "download-page"
+          ? resolveDownloadsUrl()
+          : null;
+
+    if (!url) {
       return;
     }
 
     setOpening(true);
     setOpened(false);
+    setOpenFailed(false);
 
     try {
-      const result = await nativeCore.openUrl(checkResult.downloadUrl);
+      const result = await nativeCore.openUrl(url);
       setOpened(result.ok);
+      setOpenFailed(!result.ok);
+    } catch {
+      setOpenFailed(true);
     } finally {
       setOpening(false);
     }
@@ -143,17 +186,39 @@ export function NativeUpdatePanel({
             {clientInfo.appVersion ?? "-"} -&gt; {checkResult.shellVersion ?? checkResult.version}
           </p>
         ) : null}
+        {checkResult?.downloadUrl ? (
+          <dl className="grid gap-2 rounded-xl border border-border/70 px-3 py-3 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">{messages.packageFile}</dt>
+              <dd className="truncate text-right">{checkResult.fileName ?? "-"}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">{messages.packageSize}</dt>
+              <dd>{formatFileSize(checkResult.fileSize)}</dd>
+            </div>
+          </dl>
+        ) : checkResult?.reason ? (
+          <p className="text-xs leading-5 text-muted-foreground">
+            {messages.downloadUnavailable}: {checkResult.reason}
+          </p>
+        ) : null}
         {opened ? (
           <p className="text-xs leading-5 text-muted-foreground">{messages.updateOpened}</p>
+        ) : null}
+        {openFailed ? (
+          <p className="text-xs leading-5 text-destructive">{messages.openFailed}</p>
         ) : null}
 
         <div className="grid gap-2">
           <Button onClick={handleCheckUpdate} disabled={checking || opening} variant="outline">
             {checking ? messages.checkingUpdate : messages.checkUpdate}
           </Button>
-          {canOpenUpdate ? (
-            <Button onClick={handleOpenUpdate} disabled={checking || opening}>
-              {opening ? messages.openingUpdate : messages.openUpdate}
+          {openTarget ? (
+            <Button
+              onClick={() => handleOpenUpdate(openTarget)}
+              disabled={checking || opening}
+            >
+              {opening ? messages.openingUpdate : actionLabel}
             </Button>
           ) : null}
         </div>

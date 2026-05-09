@@ -77,6 +77,10 @@ export type NativeMediaPickResult = NativeBridgeActionResult & {
   source: NativeMediaSource;
 };
 
+export type NativeMediaPickOptions = {
+  timeoutMs?: number;
+};
+
 export type NativePermissionSnapshot = Record<
   NativePermissionKind,
   NativePermissionResult | null
@@ -101,7 +105,10 @@ export type NativeCoreService = {
   ensureActionPermissions(
     action: NativePermissionAction,
   ): Promise<NativeActionPermissionResult>;
-  pickMedia(source: NativeMediaSource): Promise<NativeMediaPickResult>;
+  pickMedia(
+    source: NativeMediaSource,
+    options?: NativeMediaPickOptions,
+  ): Promise<NativeMediaPickResult>;
   buildUpdateCheckQuery(): Promise<NativeClientUpdateQuery | null>;
   checkAppUpdate(): Promise<ClientUpdateCheckInfo | null>;
   openUrl(url: string): Promise<NativeBridgeActionResult>;
@@ -351,7 +358,7 @@ export function createAppNativeCore(
       };
     },
 
-    async pickMedia(source) {
+    async pickMedia(source, options = {}) {
       const action = getMediaAction(source);
       const permissionResult = await this.ensureActionPermissions(action);
 
@@ -374,12 +381,14 @@ export function createAppNativeCore(
               maxFiles: 1,
               multiple: false,
               readAsDataUrl: true,
+              timeoutMs: options.timeoutMs,
             }
           : {
               accept: "image/*",
               maxFiles: 3,
               multiple: true,
               readAsDataUrl: true,
+              timeoutMs: options.timeoutMs,
             },
       );
 

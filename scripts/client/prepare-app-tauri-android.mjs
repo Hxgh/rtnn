@@ -210,6 +210,7 @@ class MainActivity : TauriActivity() {
       callback?.onReceiveValue(uris)
     } else {
       callback?.onReceiveValue(null)
+      notifyFilePickerClosed("cancelled")
     }
 
     cameraPhotoUri = null
@@ -281,6 +282,7 @@ class MainActivity : TauriActivity() {
       android.util.Log.e("MainActivity", "Image picker failed", error)
       filePathCallback?.onReceiveValue(null)
       filePathCallback = null
+      notifyFilePickerClosed("image-picker-failed")
     }
   }
 
@@ -295,6 +297,7 @@ class MainActivity : TauriActivity() {
       filePathCallback?.onReceiveValue(null)
       filePathCallback = null
       cameraPhotoUri = null
+      notifyFilePickerClosed("camera-capture-failed")
     }
   }
 
@@ -373,6 +376,25 @@ class MainActivity : TauriActivity() {
         window.__RTNN_KEYBOARD_HEIGHT__ = \${heightDp};
         if (window.__RTNN_ON_KEYBOARD_CHANGE__) {
           window.__RTNN_ON_KEYBOARD_CHANGE__(\${heightDp});
+        }
+      })();
+      """.trimIndent(),
+      null
+    )
+  }
+
+  private fun notifyFilePickerClosed(reason: String) {
+    val webView = findWebView() ?: return
+    webView.evaluateJavascript(
+      """
+      (function() {
+        var detail = { reason: '\${reason}' };
+        try {
+          window.dispatchEvent(new CustomEvent('rtnn:native-file-picker-closed', { detail: detail }));
+        } catch (error) {
+          var event = document.createEvent('CustomEvent');
+          event.initCustomEvent('rtnn:native-file-picker-closed', false, false, detail);
+          window.dispatchEvent(event);
         }
       })();
       """.trimIndent(),
