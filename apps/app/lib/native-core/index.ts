@@ -2,6 +2,11 @@
 
 export { createAppNativeCore } from "./service";
 export { installAppNativeViewportInsets } from "./runtime";
+export {
+  installAppNativeThemeListener,
+  resolveAppResolvedTheme,
+  syncAppNativeTheme,
+} from "./theme";
 
 export type {
   NativeActionPermissionResult,

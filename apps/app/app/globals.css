@@ -124,6 +124,7 @@ body {
   text-rendering: optimizeLegibility;
   overflow: hidden;
   overscroll-behavior: none;
+  overscroll-behavior-y: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -142,9 +143,27 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
+  overscroll-behavior-y: none;
   scroll-padding-top: var(--rtnn-header-spacing);
   scroll-padding-bottom: var(--rtnn-bottom-nav-page-bottom);
   -webkit-overflow-scrolling: touch;
+}
+
+.rtnn-native-bottom-surface {
+  position: relative;
+  isolation: isolate;
+  background: var(--background);
+}
+
+.rtnn-native-bottom-surface::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(-1 * max(var(--rtnn-safe-bottom), var(--rtnn-keyboard-height)));
+  left: 0;
+  z-index: -1;
+  height: max(var(--rtnn-safe-bottom), var(--rtnn-keyboard-height));
+  background: var(--background);
+  content: "";
 }
 
 .rtnn-app-scroll :is(a, button, input, select, textarea, [tabindex]) {

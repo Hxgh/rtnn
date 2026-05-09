@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 import {
   buildWebMapNavigationUrl,
@@ -11,6 +13,8 @@ import {
   installNativeViewportInsets,
   resolveNativeClientUpdateQuery,
 } from "../packages/native-bridge/dist/index.js";
+
+const repoRoot = path.resolve(import.meta.dirname, "..");
 
 test("browser bridge reports browser client info and opens only http URLs", async () => {
   const opened = [];
@@ -657,6 +661,25 @@ test("native viewport insets writes keyboard CSS variables from visual viewport"
 
   cleanup();
   assert.equal(listeners.size, 0);
+});
+
+test("app Android prepare script includes theme bridge and system bar sync", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "scripts/client/prepare-app-tauri-android.mjs"),
+    "utf8",
+  );
+
+  for (const snippet of [
+    "webView.addJavascriptInterface(ThemeBridge(), \"AndroidTheme\")",
+    "WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS",
+    "WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS",
+    "window.__RTNN_SYSTEM_THEME__",
+    "rtnn:native-theme-change",
+    "android:configChanges",
+    "uiMode",
+  ]) {
+    assert.equal(source.includes(snippet), true, `missing ${snippet}`);
+  }
 });
 
 test("native bridge resolves backend update query from Tauri client info", () => {

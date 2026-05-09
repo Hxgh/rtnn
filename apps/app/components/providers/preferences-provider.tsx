@@ -9,6 +9,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  installAppNativeThemeListener,
+  syncAppNativeTheme,
+} from "@/lib/native-core";
+import {
   getMessagesByLocale,
   type AppMessages,
 } from "@/lib/i18n";
@@ -33,14 +37,6 @@ type PreferencesContextValue = {
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
 
-function applyThemeClass(theme: AppTheme) {
-  const root = document.documentElement;
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const resolved = theme === "system" ? (systemDark ? "dark" : "light") : theme;
-  root.classList.toggle("dark", resolved === "dark");
-  root.style.colorScheme = resolved;
-}
-
 function writeCookie(name: string, value: string) {
   const maxAge =
     name === APP_THEME_COOKIE
@@ -63,17 +59,21 @@ export function PreferencesProvider({
   const [theme, setThemeState] = useState<AppTheme>(normalizeAppTheme(initialTheme));
 
   useEffect(() => {
-    applyThemeClass(theme);
+    syncAppNativeTheme(theme);
     writeCookie(APP_THEME_COOKIE, theme);
   }, [theme]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const listener = () => {
-      applyThemeClass(theme);
+      syncAppNativeTheme(theme);
     };
+    const cleanupNativeTheme = installAppNativeThemeListener(listener);
     media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
+    return () => {
+      cleanupNativeTheme();
+      media.removeEventListener("change", listener);
+    };
   }, [theme]);
 
   const messages = getMessagesByLocale(locale);

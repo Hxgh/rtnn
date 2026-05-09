@@ -125,6 +125,20 @@ function patchAndroidManifest(manifestPath) {
     source = source.replace(/\s*<\/application>/, `${provider}\n    </application>`);
   }
 
+  source = source.replace(
+    /android:configChanges="([^"]*)"/,
+    (_match, value) => {
+      const parts = new Set(
+        String(value)
+          .split("|")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      );
+      parts.add("uiMode");
+      return `android:configChanges="${[...parts].join("|")}"`;
+    },
+  );
+
   writeFileIfChanged(manifestPath, source);
 }
 
@@ -151,12 +165,14 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
+import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -177,6 +193,8 @@ class MainActivity : TauriActivity() {
   private var filePathCallback: ValueCallback<Array<Uri>>? = null
   private var cameraPhotoUri: Uri? = null
   private var pendingFileChooser = false
+  private var currentTheme = "light"
+  private var currentThemeMode = "system"
 
   private val cameraPermissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestPermission()
@@ -226,8 +244,19 @@ class MainActivity : TauriActivity() {
       window.isStatusBarContrastEnforced = false
     }
 
+    currentTheme = resolveSystemTheme()
+    applySystemBars(currentTheme)
     setupKeyboardListener()
     setupWebViewWithRetry()
+  }
+
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    if (currentThemeMode == "system") {
+      currentTheme = resolveSystemTheme()
+      applySystemBars(currentTheme)
+      notifyNativeThemeChanged()
+    }
   }
 
   private fun setupWebViewWithRetry(attempt: Int = 0) {
@@ -236,6 +265,7 @@ class MainActivity : TauriActivity() {
       if (webView != null) {
         webView.settings.allowFileAccess = true
         webView.settings.allowContentAccess = true
+        webView.addJavascriptInterface(ThemeBridge(), "AndroidTheme")
         webView.addJavascriptInterface(MapBridge(), "AndroidMap")
         webView.webChromeClient = object : WebChromeClient() {
           override fun onShowFileChooser(
@@ -267,7 +297,7 @@ class MainActivity : TauriActivity() {
             return true
           }
         }
-        notifyAndroidMapReady()
+        notifyAndroidBridgeReady()
       } else if (attempt < 30) {
         window.decorView.postDelayed({ setupWebViewWithRetry(attempt + 1) }, 50)
       }
@@ -334,6 +364,25 @@ class MainActivity : TauriActivity() {
     }
   }
 
+  inner class ThemeBridge {
+    @JavascriptInterface
+    fun setTheme(theme: String, mode: String) {
+      val normalizedTheme = if (theme == "dark") "dark" else "light"
+      val normalizedMode = if (mode == "light" || mode == "dark" || mode == "system") mode else "system"
+
+      runOnUiThread {
+        currentTheme = normalizedTheme
+        currentThemeMode = normalizedMode
+        applySystemBars(normalizedTheme)
+      }
+    }
+
+    @JavascriptInterface
+    fun getSystemTheme(): String {
+      return resolveSystemTheme()
+    }
+  }
+
   private fun findWebView(view: View): WebView? {
     if (view is WebView) {
       return view
@@ -365,6 +414,52 @@ class MainActivity : TauriActivity() {
       }
 
       ViewCompat.onApplyWindowInsets(view, insets)
+    }
+  }
+
+  private fun resolveSystemTheme(): String {
+    val nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    return if (nightMode == Configuration.UI_MODE_NIGHT_YES) "dark" else "light"
+  }
+
+  private fun applySystemBars(theme: String) {
+    val dark = theme == "dark"
+    val background = if (dark) android.graphics.Color.rgb(23, 23, 23) else android.graphics.Color.WHITE
+
+    window.statusBarColor = background
+    window.navigationBarColor = background
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      val controller = window.insetsController
+      if (controller != null) {
+        var appearance = 0
+        if (!dark) {
+          appearance = appearance or WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+          appearance = appearance or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+        }
+        controller.setSystemBarsAppearance(
+          appearance,
+          WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+        )
+      }
+    } else {
+      @Suppress("DEPRECATION")
+      var flags = window.decorView.systemUiVisibility
+      @Suppress("DEPRECATION")
+      var lightFlags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        @Suppress("DEPRECATION")
+        lightFlags = lightFlags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+      }
+      @Suppress("DEPRECATION")
+      flags = if (!dark) {
+        flags or lightFlags
+      } else {
+        flags and lightFlags.inv()
+      }
+      @Suppress("DEPRECATION")
+      window.decorView.systemUiVisibility = flags
     }
   }
 
@@ -407,16 +502,45 @@ class MainActivity : TauriActivity() {
     )
   }
 
-  private fun notifyAndroidMapReady() {
+  private fun notifyAndroidBridgeReady() {
     val webView = findWebView() ?: return
     webView.evaluateJavascript(
       """
       (function() {
+        window.__RTNN_SYSTEM_THEME__ = '${resolveSystemTheme()}';
+        window.__ANDROID_SYSTEM_THEME__ = '${resolveSystemTheme()}';
         try {
           window.dispatchEvent(new CustomEvent('rtnn:android-map-ready'));
         } catch (error) {
           var event = document.createEvent('Event');
           event.initEvent('rtnn:android-map-ready', false, false);
+          window.dispatchEvent(event);
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('rtnn:native-theme-change'));
+        } catch (error) {
+          var themeEvent = document.createEvent('Event');
+          themeEvent.initEvent('rtnn:native-theme-change', false, false);
+          window.dispatchEvent(themeEvent);
+        }
+      })();
+      """.trimIndent(),
+      null
+    )
+  }
+
+  private fun notifyNativeThemeChanged() {
+    val webView = findWebView() ?: return
+    webView.evaluateJavascript(
+      """
+      (function() {
+        window.__RTNN_SYSTEM_THEME__ = '${resolveSystemTheme()}';
+        window.__ANDROID_SYSTEM_THEME__ = '${resolveSystemTheme()}';
+        try {
+          window.dispatchEvent(new CustomEvent('rtnn:native-theme-change'));
+        } catch (error) {
+          var event = document.createEvent('Event');
+          event.initEvent('rtnn:native-theme-change', false, false);
           window.dispatchEvent(event);
         }
       })();

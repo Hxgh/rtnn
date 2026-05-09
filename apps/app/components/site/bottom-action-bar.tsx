@@ -9,7 +9,7 @@ export function BottomActionBar(props: {
       <div className="mx-auto w-full max-w-[28rem] bg-background">
         <div
           className={cn(
-            "pointer-events-auto border-t border-border/80 bg-background px-4 pt-3 pb-[var(--rtnn-bottom-nav-spacing)]",
+            "rtnn-native-bottom-surface pointer-events-auto border-t border-border/80 px-4 pt-3 pb-[var(--rtnn-bottom-nav-spacing)]",
             props.className,
           )}
         >

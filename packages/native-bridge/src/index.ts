@@ -219,6 +219,10 @@ type BrowserNotificationApi = {
 type AndroidMapBridge = {
   isAppInstalled?: (packageName: string) => boolean;
 };
+type AndroidThemeBridge = {
+  setTheme?: (theme: string, mode: string) => void;
+  getSystemTheme?: () => string;
+};
 
 type TauriGlobalScope = {
   navigator?: {
@@ -233,6 +237,9 @@ type TauriGlobalScope = {
   removeEventListener?: Window["removeEventListener"];
   Notification?: BrowserNotificationApi;
   AndroidMap?: AndroidMapBridge;
+  AndroidTheme?: AndroidThemeBridge;
+  __RTNN_SYSTEM_THEME__?: string;
+  __ANDROID_SYSTEM_THEME__?: string;
   __TAURI__?: {
     core?: {
       invoke?: TauriInvoke;

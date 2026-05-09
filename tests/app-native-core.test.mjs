@@ -232,6 +232,68 @@ test("app native core requests only the permission needed by media action", asyn
   ]);
 });
 
+test("app native theme sync resolves system mode and calls Android bridge", async () => {
+  const { syncAppNativeTheme } = await importAppNativeCore();
+  const classState = new Map();
+  const attrs = new Map();
+  const styles = new Map();
+  const meta = { name: "theme-color", content: "" };
+  const calls = [];
+  const root = {
+    classList: {
+      toggle(name, enabled) {
+        classState.set(name, enabled);
+      },
+    },
+    style: {
+      set colorScheme(value) {
+        styles.set("colorScheme", value);
+      },
+    },
+    setAttribute(name, value) {
+      attrs.set(name, value);
+    },
+  };
+  const doc = {
+    documentElement: root,
+    head: {
+      append(node) {
+        calls.push(["appendMeta", node.name]);
+      },
+    },
+    querySelector(selector) {
+      calls.push(["querySelector", selector]);
+      return meta;
+    },
+    createElement(tag) {
+      calls.push(["createElement", tag]);
+      return { name: "", content: "" };
+    },
+  };
+  const win = {
+    document: doc,
+    __RTNN_SYSTEM_THEME__: "dark",
+    matchMedia() {
+      return { matches: false };
+    },
+    AndroidTheme: {
+      setTheme(theme, mode) {
+        calls.push(["setTheme", theme, mode]);
+      },
+    },
+  };
+
+  assert.equal(syncAppNativeTheme("system", { window: win }), "dark");
+  assert.equal(classState.get("dark"), true);
+  assert.equal(styles.get("colorScheme"), "dark");
+  assert.equal(attrs.get("data-theme"), "dark");
+  assert.equal(meta.content, "#171717");
+  assert.deepEqual(calls, [
+    ["querySelector", 'meta[name="theme-color"]'],
+    ["setTheme", "dark", "system"],
+  ]);
+});
+
 test("app native core passes media timeout and returns cancelled picker state", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];

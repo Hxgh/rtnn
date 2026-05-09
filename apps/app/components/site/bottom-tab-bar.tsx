@@ -68,7 +68,7 @@ export function BottomTabBar({ enabled = true }: { enabled?: boolean }) {
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30">
       <div className="mx-auto w-full max-w-[28rem] bg-background">
-        <div className="pointer-events-auto border-t border-border/70 bg-background px-5 pt-1 pb-[var(--rtnn-bottom-nav-spacing)]">
+        <div className="rtnn-native-bottom-surface pointer-events-auto border-t border-border/70 px-5 pt-1 pb-[var(--rtnn-bottom-nav-spacing)]">
           <div className="grid h-[var(--rtnn-bottom-bar-height)] grid-cols-2">
             {tabs.map((tab) => {
               const Icon = tab.icon;

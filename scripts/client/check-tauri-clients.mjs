@@ -46,12 +46,14 @@ const CLIENTS = {
     requiredFileSnippets: {
       "../../scripts/client/prepare-app-tauri-android.mjs": [
         "AndroidMap",
+        "AndroidTheme",
         "com.autonavi.minimap",
         "com.baidu.BaiduMap",
         "com.tencent.map",
         "isCaptureEnabled",
         "launchCameraCapture",
         "launchImagePicker",
+        "rtnn:native-theme-change",
       ],
     },
   },
