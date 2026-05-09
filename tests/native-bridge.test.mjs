@@ -290,6 +290,51 @@ test("native capability core keeps Android package visibility candidates actiona
   assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
 });
 
+test("native capability core keeps unavailable Android map checks actionable", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {},
+    invoke: async (command, args) => {
+      calls.push([command, args?.appType]);
+
+      if (command === "check_map_installed") {
+        return {
+          ok: true,
+          appType: args.appType,
+          installed: null,
+          status: "unknown",
+          reason: "map-install-check-unavailable",
+        };
+      }
+
+      return { ok: true, message: "opened-native-map" };
+    },
+  });
+  const core = createNativeCapabilityCore({ bridge });
+  const candidates = await core.listMapOpenCandidates();
+
+  assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
+  assert.deepEqual(
+    await core.openPreferredMapNavigation({
+      lat: 30.25,
+      lng: 120.16,
+      appType: "amap",
+    }),
+    {
+      ok: true,
+      message: "opened-native-map",
+      appType: "amap",
+    },
+  );
+  assert.deepEqual(calls, [
+    ["check_map_installed", "amap"],
+    ["check_map_installed", "baidu"],
+    ["check_map_installed", "tencent"],
+    ["check_map_installed", "amap"],
+    ["open_map_navigation", "amap"],
+  ]);
+});
+
 test("native bridge parses structured Android map install diagnostics", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({

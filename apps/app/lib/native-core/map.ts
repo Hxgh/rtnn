@@ -13,15 +13,15 @@ function isMapCandidateAvailable(result: NativeMapInstallResult) {
   return (
     result.status === "installed" ||
     result.status === "unknown" ||
-    result.reason === "map-app-not-installed-or-not-visible"
+    result.reason === "map-app-not-installed-or-not-visible" ||
+    result.reason === "map-install-check-unavailable"
   );
 }
 
 function shouldSkipMapCandidate(result: NativeMapInstallResult) {
   return (
     result.status === "unsupported" ||
-    (result.status === "not-installed" &&
-      result.reason !== "map-app-not-installed-or-not-visible")
+    (result.status === "not-installed" && !isMapCandidateAvailable(result))
   );
 }
 

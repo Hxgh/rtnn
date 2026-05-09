@@ -740,6 +740,8 @@ export function NativeCapabilitiesPanel({
                         ? messages.mapTryOpen
                         : candidate.status === "installed"
                           ? messages.mapOpenWith
+                          : candidate.available
+                            ? messages.mapTryOpen
                           : "-"}
                     </span>
                   </button>

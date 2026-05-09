@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 
 type NativeUpdateMessages = AppMessages["nativeUpdate"];
 
+const nativeOpenWatchdogMs = 4_000;
+
 function resolveDownloadsUrl() {
   return new URL("/download", window.location.href).toString();
 }
@@ -121,7 +123,15 @@ export function NativeUpdatePanel({
     setOpenFailed(false);
 
     try {
-      const result = await nativeCore.openUrl(resolveDownloadsUrl());
+      const result = await Promise.race([
+        nativeCore.openUrl(resolveDownloadsUrl()),
+        new Promise<{ ok: boolean; reason: string }>((resolve) => {
+          window.setTimeout(
+            () => resolve({ ok: true, reason: "native-action-dispatched" }),
+            nativeOpenWatchdogMs,
+          );
+        }),
+      ]);
       setOpened(result.ok);
       setOpenFailed(!result.ok);
     } catch {

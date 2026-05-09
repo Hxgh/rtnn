@@ -1199,7 +1199,15 @@ function isMapCandidateAvailable(result: NativeMapInstallResult) {
   return (
     result.status === "installed" ||
     result.status === "unknown" ||
-    result.reason === "map-app-not-installed-or-not-visible"
+    result.reason === "map-app-not-installed-or-not-visible" ||
+    result.reason === "map-install-check-unavailable"
+  );
+}
+
+function shouldSkipNativeMapCandidate(result: NativeMapInstallResult) {
+  return (
+    result.status === "unsupported" ||
+    (result.status === "not-installed" && !isMapCandidateAvailable(result))
   );
 }
 
@@ -1768,7 +1776,7 @@ export function createNativeCapabilityCore(
           appType: candidate.appType,
         });
 
-        if (status.status === "not-installed" || status.status === "unsupported") {
+        if (shouldSkipNativeMapCandidate(status)) {
           lastReason = status.reason ?? status.status;
           continue;
         }
