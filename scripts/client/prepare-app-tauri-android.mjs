@@ -243,7 +243,10 @@ class MainActivity : TauriActivity() {
             filePathCallback: ValueCallback<Array<Uri>>?,
             fileChooserParams: FileChooserParams?
           ): Boolean {
-            this@MainActivity.filePathCallback?.onReceiveValue(null)
+            if (this@MainActivity.filePathCallback != null) {
+              this@MainActivity.filePathCallback?.onReceiveValue(null)
+              notifyFilePickerClosed("file-picker-replaced")
+            }
             this@MainActivity.filePathCallback = filePathCallback
             val wantsCamera = fileChooserParams?.isCaptureEnabled == true
 
@@ -264,6 +267,7 @@ class MainActivity : TauriActivity() {
             return true
           }
         }
+        notifyAndroidMapReady()
       } else if (attempt < 30) {
         window.decorView.postDelayed({ setupWebViewWithRetry(attempt + 1) }, 50)
       }
@@ -395,6 +399,24 @@ class MainActivity : TauriActivity() {
         } catch (error) {
           var event = document.createEvent('CustomEvent');
           event.initCustomEvent('rtnn:native-file-picker-closed', false, false, detail);
+          window.dispatchEvent(event);
+        }
+      })();
+      """.trimIndent(),
+      null
+    )
+  }
+
+  private fun notifyAndroidMapReady() {
+    val webView = findWebView() ?: return
+    webView.evaluateJavascript(
+      """
+      (function() {
+        try {
+          window.dispatchEvent(new CustomEvent('rtnn:android-map-ready'));
+        } catch (error) {
+          var event = document.createEvent('Event');
+          event.initEvent('rtnn:android-map-ready', false, false);
           window.dispatchEvent(event);
         }
       })();

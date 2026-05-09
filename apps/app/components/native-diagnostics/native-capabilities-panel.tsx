@@ -22,6 +22,9 @@ import { cn } from "@/lib/utils";
 type NativeCapabilitiesMessages = AppMessages["nativeCapabilities"];
 
 type ActionState = "idle" | "opening" | "opened" | "cancelled" | "failed";
+type MapCandidateView = NativeCoreMapCandidate & {
+  checking?: boolean;
+};
 type VisiblePermissionKind = Extract<
   NativeCorePermissionKind,
   "photo-library" | "camera" | "notification"
@@ -59,6 +62,22 @@ function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
     status: "unknown" as const,
     available: true,
     reason: "map-install-check-unavailable",
+  }));
+}
+
+function createCheckingMapCandidates(): MapCandidateView[] {
+  return [
+    { appType: "amap" as const, label: "高德地图" },
+    { appType: "baidu" as const, label: "百度地图" },
+    { appType: "tencent" as const, label: "腾讯地图" },
+  ].map((item) => ({
+    ...item,
+    ok: true,
+    installed: null,
+    status: "unknown" as const,
+    available: false,
+    checking: true,
+    reason: "map-install-checking",
   }));
 }
 
@@ -341,6 +360,7 @@ export function NativeCapabilitiesPanel({
   async function handleOpenMapPicker() {
     setMapPickerOpen(true);
     setLastMessage(null);
+    setMapCandidates(createCheckingMapCandidates());
     await refreshMapCandidates().catch(() => {});
   }
 
@@ -610,9 +630,10 @@ export function NativeCapabilitiesPanel({
               {(mapCandidates.length > 0
                 ? mapCandidates
                 : createFallbackMapCandidates()
-              ).map((candidate) => {
+              ).map((candidate: MapCandidateView) => {
                 const disabled =
                   mapState === "opening" ||
+                  candidate.checking ||
                   candidate.status === "not-installed" ||
                   candidate.status === "unsupported";
 
@@ -634,11 +655,15 @@ export function NativeCapabilitiesPanel({
                         {candidate.label}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {getMapInstallLabel(candidate.status, messages)}
+                        {candidate.checking
+                          ? messages.mapChecking
+                          : getMapInstallLabel(candidate.status, messages)}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {candidate.status === "unknown"
+                      {candidate.checking
+                        ? "-"
+                        : candidate.status === "unknown"
                         ? messages.mapTryOpen
                         : candidate.status === "installed"
                           ? messages.mapOpenWith

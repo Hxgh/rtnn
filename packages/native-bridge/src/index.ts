@@ -316,6 +316,7 @@ export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
 ];
 
 const NATIVE_FILE_PICKER_CLOSED_EVENT = "rtnn:native-file-picker-closed";
+const NATIVE_ANDROID_MAP_READY_EVENT = "rtnn:android-map-ready";
 
 const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string> = {
   amap: "com.autonavi.minimap",
@@ -1222,18 +1223,39 @@ function waitForAndroidMapBridge(
   }
 
   const setTimer = globalScope?.setTimeout ?? setTimeout;
+  const clearTimer = globalScope?.clearTimeout ?? clearTimeout;
   const deadline = Date.now() + ANDROID_MAP_BRIDGE_WAIT_MS;
 
   return new Promise((resolve) => {
-    const tick = () => {
-      if (globalScope?.AndroidMap?.isAppInstalled || Date.now() >= deadline) {
-        resolve();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let completed = false;
+
+    const finish = () => {
+      if (completed) {
         return;
       }
 
-      setTimer(tick, ANDROID_MAP_BRIDGE_POLL_MS);
+      completed = true;
+      if (timer) {
+        clearTimer(timer);
+      }
+      globalScope?.removeEventListener?.(
+        NATIVE_ANDROID_MAP_READY_EVENT,
+        finish,
+      );
+      resolve();
     };
 
+    const tick = () => {
+      if (globalScope?.AndroidMap?.isAppInstalled || Date.now() >= deadline) {
+        finish();
+        return;
+      }
+
+      timer = setTimer(tick, ANDROID_MAP_BRIDGE_POLL_MS);
+    };
+
+    globalScope?.addEventListener?.(NATIVE_ANDROID_MAP_READY_EVENT, finish);
     tick();
   });
 }

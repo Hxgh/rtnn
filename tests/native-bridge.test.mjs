@@ -284,6 +284,59 @@ test("native bridge waits briefly for Android map bridge injection", async () =>
   ]);
 });
 
+test("native bridge can be woken by Android map ready event", async () => {
+  const calls = [];
+  const listeners = new Map();
+  const globalScope = {
+    navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(name);
+    },
+    setTimeout() {
+      return 1;
+    },
+    clearTimeout() {},
+    AndroidMap: undefined,
+  };
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope,
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return {
+        ok: true,
+        appType: "amap",
+        installed: null,
+        status: "unknown",
+      };
+    },
+  });
+  const pending = bridge.checkMapInstalled({ appType: "amap" });
+
+  assert.equal(listeners.has("rtnn:android-map-ready"), true);
+  globalScope.AndroidMap = {
+    isAppInstalled(packageName) {
+      calls.push(["AndroidMap.isAppInstalled", packageName]);
+      return packageName === "com.autonavi.minimap";
+    },
+  };
+  listeners.get("rtnn:android-map-ready")();
+
+  assert.deepEqual(await pending, {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    reason: undefined,
+  });
+  assert.equal(listeners.has("rtnn:android-map-ready"), false);
+  assert.deepEqual(calls, [
+    ["AndroidMap.isAppInstalled", "com.autonavi.minimap"],
+  ]);
+});
+
 test("browser bridge can use Android map install bridge when available", async () => {
   const bridge = createBrowserNativeBridge({
     globalScope: {

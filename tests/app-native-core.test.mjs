@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import ts from "typescript";
@@ -11,27 +10,47 @@ const nativeBridgeDistPath = path
   .replaceAll(path.sep, "/");
 
 async function importAppNativeCore() {
-  const sourcePath = path.join(repoRoot, "apps/app/lib/native-core/index.ts");
-  const source = readFileSync(sourcePath, "utf8");
-  const transpiled = ts.transpileModule(source, {
-    compilerOptions: {
-      importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove,
-      jsx: ts.JsxEmit.ReactJSX,
-      module: ts.ModuleKind.ES2022,
-      target: ts.ScriptTarget.ES2022,
-    },
-  }).outputText;
+  const sourceDir = path.join(repoRoot, "apps/app/lib/native-core");
   const testModuleDir = path.join(repoRoot, ".tmp-tests");
-  const testModulePath = path.join(testModuleDir, "app-native-core.mjs");
-  const runnableSource = transpiled.replace(
-    /from "@rtnn\/native-bridge"/g,
-    `from "file://${nativeBridgeDistPath}"`,
-  );
 
   mkdirSync(testModuleDir, { recursive: true });
-  writeFileSync(testModulePath, runnableSource);
 
-  return import(`file://${testModulePath}?t=${Date.now()}`);
+  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".ts")) {
+      continue;
+    }
+
+    const sourcePath = path.join(sourceDir, entry.name);
+    const source = readFileSync(sourcePath, "utf8");
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: {
+        importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove,
+        jsx: ts.JsxEmit.ReactJSX,
+        module: ts.ModuleKind.ES2022,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText;
+    const runnableSource = transpiled
+      .replace(
+        /from "@rtnn\/native-bridge"/g,
+        `from "file://${nativeBridgeDistPath}"`,
+      )
+      .replace(
+        /from "@rtnn\/shared-types"/g,
+        `from "file://${path
+          .join(repoRoot, "packages/shared-types/src/index.ts")
+          .replaceAll(path.sep, "/")}"`,
+      )
+      .replace(/from "\.\/([^"]+)"/g, 'from "./$1.mjs"');
+    const testModulePath = path.join(
+      testModuleDir,
+      entry.name.replace(/\.ts$/, ".mjs"),
+    );
+
+    writeFileSync(testModulePath, runnableSource);
+  }
+
+  return import(`file://${path.join(testModuleDir, "index.mjs")}?t=${Date.now()}`);
 }
 
 function createBridge(calls, overrides = {}) {
