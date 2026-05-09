@@ -28,6 +28,7 @@ type ActionState = "idle" | "opening" | "opened" | "cancelled" | "failed";
 type MapCandidateView = NativeCoreMapCandidate & {
   checking?: boolean;
 };
+type BusyAction = "external" | "map" | "image" | null;
 type VisiblePermissionKind = Extract<
   NativeCorePermissionKind,
   "photo-library" | "camera" | "notification"
@@ -229,6 +230,7 @@ export function NativeCapabilitiesPanel({
   const [externalState, setExternalState] = useState<ActionState>("idle");
   const [mapState, setMapState] = useState<ActionState>("idle");
   const [imageState, setImageState] = useState<ActionState>("idle");
+  const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [activeMediaSource, setActiveMediaSource] =
     useState<NativeMediaSource | null>(null);
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
@@ -264,6 +266,63 @@ export function NativeCapabilitiesPanel({
       timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [externalState, mapState, imageState]);
+
+  useEffect(() => {
+    if (!busyAction) {
+      return;
+    }
+
+    let leftPage = false;
+
+    const clearBusyAction = () => {
+      if (!leftPage) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (busyAction === "external") {
+          setExternalState((state) => (state === "opening" ? "opened" : state));
+        } else if (busyAction === "map") {
+          setMapState((state) => (state === "opening" ? "opened" : state));
+        } else if (busyAction === "image") {
+          setImageState((state) => (state === "opening" ? "idle" : state));
+          setActiveMediaSource(null);
+        }
+        setBusyAction(null);
+      }, 500);
+    };
+
+    const handleLeave = () => {
+      leftPage = true;
+    };
+    const handleReturn = () => {
+      clearBusyAction();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleLeave();
+        return;
+      }
+
+      if (document.visibilityState === "visible") {
+        handleReturn();
+      }
+    };
+
+    window.addEventListener("blur", handleLeave);
+    window.addEventListener("focus", handleReturn);
+    window.addEventListener("pagehide", handleLeave);
+    window.addEventListener("pageshow", handleReturn);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("blur", handleLeave);
+      window.removeEventListener("focus", handleReturn);
+      window.removeEventListener("pagehide", handleLeave);
+      window.removeEventListener("pageshow", handleReturn);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [busyAction]);
 
   const refreshMapCandidates = useCallback(
     async (options: { silent?: boolean } = {}) => {
@@ -348,10 +407,12 @@ export function NativeCapabilitiesPanel({
   ).length;
 
   async function runAction(
+    actionType: Exclude<BusyAction, null>,
     setState: (state: ActionState) => void,
     action: () => Promise<NativeCoreActionResult>,
   ) {
     setState("opening");
+    setBusyAction(actionType);
     setLastMessage(null);
 
     try {
@@ -365,6 +426,8 @@ export function NativeCapabilitiesPanel({
     } catch (error) {
       setLastMessage(error instanceof Error ? error.message : String(error));
       setState("failed");
+    } finally {
+      setBusyAction((current) => (current === actionType ? null : current));
     }
   }
 
@@ -382,8 +445,11 @@ export function NativeCapabilitiesPanel({
 
     if (pickerSource) {
       setPermissionState((current) => ({ ...current, [kind]: "opening" }));
-      await handlePickMedia(pickerSource);
-      setPermissionState((current) => ({ ...current, [kind]: "idle" }));
+      try {
+        await handlePickMedia(pickerSource);
+      } finally {
+        setPermissionState((current) => ({ ...current, [kind]: "idle" }));
+      }
       return;
     }
 
@@ -415,6 +481,7 @@ export function NativeCapabilitiesPanel({
 
   async function handlePickMedia(source: NativeMediaSource) {
     setImageState("opening");
+    setBusyAction("image");
     setActiveMediaSource(source);
     setLastMessage(null);
 
@@ -440,6 +507,7 @@ export function NativeCapabilitiesPanel({
       setImageState("failed");
     } finally {
       setActiveMediaSource(null);
+      setBusyAction((current) => (current === "image" ? null : current));
     }
   }
 
@@ -458,7 +526,7 @@ export function NativeCapabilitiesPanel({
     }
 
     setMapPickerOpen(false);
-    await runAction(setMapState, () =>
+    await runAction("map", setMapState, () =>
       nativeCore.openMapNavigation({
         ...mapTarget,
         appType: candidate.appType,
@@ -512,7 +580,7 @@ export function NativeCapabilitiesPanel({
           <Button
             disabled={!externalAvailable || externalState === "opening"}
             onClick={() =>
-              runAction(setExternalState, () =>
+              runAction("external", setExternalState, () =>
                 nativeCore.openExternalUrl(resolveExternalCheckUrl()),
               )
             }

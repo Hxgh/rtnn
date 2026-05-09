@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createAppNativeCore, runNativeActionWithWatchdog } from "@/lib/native-core";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -18,6 +18,46 @@ export function NativeDownloadButton({
 }: NativeDownloadButtonProps) {
   const [failed, setFailed] = useState(false);
   const [opening, setOpening] = useState(false);
+
+  useEffect(() => {
+    if (!opening) {
+      return;
+    }
+
+    let leftPage = false;
+    const finish = () => {
+      if (leftPage) {
+        window.setTimeout(() => setOpening(false), 500);
+      }
+    };
+    const handleLeave = () => {
+      leftPage = true;
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleLeave();
+        return;
+      }
+
+      if (document.visibilityState === "visible") {
+        finish();
+      }
+    };
+
+    window.addEventListener("blur", handleLeave);
+    window.addEventListener("focus", finish);
+    window.addEventListener("pagehide", handleLeave);
+    window.addEventListener("pageshow", finish);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("blur", handleLeave);
+      window.removeEventListener("focus", finish);
+      window.removeEventListener("pagehide", handleLeave);
+      window.removeEventListener("pageshow", finish);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [opening]);
 
   async function handleDownload(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();

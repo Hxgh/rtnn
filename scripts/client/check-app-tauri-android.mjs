@@ -19,6 +19,9 @@ const REQUIRED_MANIFEST_SNIPPETS = Object.freeze([
   'android:scheme="qqmap"',
   'android:scheme="geo"',
 ]);
+const REQUIRED_MANIFEST_REGEXPS = Object.freeze([
+  /android:name="android\.intent\.category\.LAUNCHER"|<category[^>]+android:name="[^"]*android\.intent\.category\.LAUNCHER"/,
+]);
 
 const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "AndroidMap",
@@ -40,6 +43,7 @@ const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
 
 const REQUIRED_ICON_FILES = Object.freeze([
   "res/drawable/rtnn_launcher_icon.png",
+  "res/drawable/rtnn_launcher_icon_foreground.png",
   "res/mipmap-mdpi/rtnn_launcher_icon.png",
   "res/mipmap-hdpi/rtnn_launcher_icon.png",
   "res/mipmap-xhdpi/rtnn_launcher_icon.png",
@@ -176,6 +180,9 @@ function main() {
   const launcherIcon = readFileSync(launcherPath);
 
   assertIncludes(manifest, REQUIRED_MANIFEST_SNIPPETS, "AndroidManifest.xml");
+  for (const regexp of REQUIRED_MANIFEST_REGEXPS) {
+    assert(regexp.test(manifest), `AndroidManifest.xml 缺少匹配: ${regexp}`);
+  }
   assertIncludes(mainActivity, REQUIRED_MAIN_ACTIVITY_SNIPPETS, "MainActivity.kt");
 
   for (const relativePath of REQUIRED_ICON_FILES) {

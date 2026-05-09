@@ -55,6 +55,7 @@ const CLIENTS = {
         "com.baidu.BaiduMap",
         "com.tencent.map",
         "com.tencent.maplite",
+        "android.intent.category.LAUNCHER",
         'android:icon="@mipmap/rtnn_launcher_icon"',
         'android:roundIcon="@mipmap/rtnn_launcher_icon"',
         "isCaptureEnabled",
@@ -262,6 +263,8 @@ function assertBrandIconGuide(rootDir) {
     "clients/admin-tauri/src-tauri/icons/icon.png",
     "apps/app/app/favicon.ico",
     "apps/admin/app/favicon.ico",
+    "apps/app/public/brand/brand-mark.svg",
+    "apps/admin/public/brand/brand-mark.svg",
     "rtnn_launcher_icon",
   ];
 
@@ -289,6 +292,33 @@ function assertSharedWebFavicons(rootDir) {
   );
 }
 
+function assertSharedWebBrandMarks(rootDir) {
+  const appBrandMark = readFileSync(
+    path.join(rootDir, "apps", "app", "public", "brand", "brand-mark.svg"),
+  );
+  const adminBrandMark = readFileSync(
+    path.join(rootDir, "apps", "admin", "public", "brand", "brand-mark.svg"),
+  );
+  const appLayout = readFileSync(path.join(rootDir, "apps", "app", "app", "layout.tsx"), "utf8");
+  const adminLayout = readFileSync(
+    path.join(rootDir, "apps", "admin", "app", "layout.tsx"),
+    "utf8",
+  );
+
+  assert(
+    appBrandMark.equals(adminBrandMark),
+    "app 与 admin 应使用同一套 RTNN brand-mark.svg",
+  );
+  assert(
+    appLayout.includes('/brand/brand-mark.svg'),
+    "app metadata icons 应指向 /brand/brand-mark.svg",
+  );
+  assert(
+    adminLayout.includes('/brand/brand-mark.svg'),
+    "admin metadata icons 应指向 /brand/brand-mark.svg",
+  );
+}
+
 function main() {
   const rootDir = findWorkspaceRoot(process.cwd());
   const requested = process.argv.slice(2);
@@ -306,6 +336,8 @@ function main() {
     console.log("[tauri-client-check] shell 图标一致性通过");
     assertSharedWebFavicons(rootDir);
     console.log("[tauri-client-check] web favicon 一致性通过");
+    assertSharedWebBrandMarks(rootDir);
+    console.log("[tauri-client-check] web brand mark 一致性通过");
     assertBrandIconGuide(rootDir);
     console.log("[tauri-client-check] 图标体系说明通过");
   }

@@ -80,13 +80,18 @@ The web favicon files must stay aligned with the shell ICO:
 - `apps/app/app/favicon.ico`
 - `apps/admin/app/favicon.ico`
 
+The browser/PWA brand mark files must stay aligned across web apps:
+
+- `apps/app/public/brand/brand-mark.svg`
+- `apps/admin/public/brand/brand-mark.svg`
+
 For Android, `scripts/client/prepare-app-tauri-android.mjs` copies the app
 shell PNG into generated launcher resources and sets the manifest icon to
 `rtnn_launcher_icon`. The Android generated project is disposable; do not edit
 its generated icon files by hand.
 
 When a business project changes branding, update the shell icon files first,
-then regenerate matching favicon files and run:
+then regenerate matching favicon/brand mark files and run:
 
 ```bash
 pnpm run check:clients

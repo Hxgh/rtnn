@@ -31,6 +31,22 @@ function formatFileSize(value?: number | null) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export function NativeUpdatePanel({
   messages,
 }: {
@@ -87,6 +103,7 @@ export function NativeUpdatePanel({
           : messages.noUpdate
       : null;
   const actionLabel = updateAvailable ? messages.openUpdate : messages.openDownloads;
+  const updatedAt = checkResult?.syncedAt ?? checkResult?.generatedAt ?? null;
 
   async function handleCheckUpdate(options: { forceOutdated?: boolean } = {}) {
     if (!clientInfo) {
@@ -130,7 +147,7 @@ export function NativeUpdatePanel({
     } catch {
       setOpenFailed(true);
     } finally {
-      setOpening(false);
+      window.setTimeout(() => setOpening(false), 600);
     }
   }
 
@@ -190,6 +207,10 @@ export function NativeUpdatePanel({
             <div className="flex items-center justify-between gap-3">
               <dt className="text-muted-foreground">{messages.packageSize}</dt>
               <dd>{formatFileSize(checkResult.fileSize)}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">{messages.updatedAt}</dt>
+              <dd className="text-right">{formatDateTime(updatedAt)}</dd>
             </div>
           </dl>
         ) : checkResult?.reason ? (

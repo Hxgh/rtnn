@@ -1030,6 +1030,9 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     const launcherIcon = readFileSync(
       path.join(mainDir, "res/drawable/rtnn_launcher_icon.png"),
     );
+    const launcherDrawableForegroundIcon = readFileSync(
+      path.join(mainDir, "res/drawable/rtnn_launcher_icon_foreground.png"),
+    );
     const launcherMipmapIcon = readFileSync(
       path.join(mainDir, "res/mipmap-xxxhdpi/rtnn_launcher_icon.png"),
     );
@@ -1069,6 +1072,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(manifest, /baidumap/);
     assert.match(manifest, /com\.tencent\.map/);
     assert.match(manifest, /com\.tencent\.maplite/);
+    assert.match(manifest, /android\.intent\.category\.LAUNCHER/);
     assert.match(manifest, /qqmap/);
     assert.match(manifest, /android:icon="@mipmap\/rtnn_launcher_icon"/);
     assert.match(manifest, /android:roundIcon="@mipmap\/rtnn_launcher_icon"/);
@@ -1082,8 +1086,9 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
       launcherIcon,
       TEST_RGBA_PNG,
     );
+    assert.deepEqual(launcherDrawableForegroundIcon, launcherIcon);
     assert.deepEqual(launcherMipmapIcon, launcherIcon);
-    assert.match(launcherAdaptiveIcon, /rtnn_launcher_icon_foreground/);
+    assert.match(launcherAdaptiveIcon, /@drawable\/rtnn_launcher_icon_foreground/);
     assert.match(launcherIconColors, /rtnn_launcher_icon_background/);
     assert.match(filePaths, /external-files-path/);
 
@@ -1248,6 +1253,8 @@ test("check-android-apk-package keeps map schemes as manifest checks", () => {
   assert.match(source, /'android:scheme="androidamap"'/);
   assert.match(source, /'android:scheme="baidumap"'/);
   assert.match(source, /'android:scheme="qqmap"'/);
+  assert.match(source, /android\\\.intent\\\.category\\\.LAUNCHER/);
+  assert.match(source, /assertExtractedLauncherIconFiles/);
   assert.doesNotMatch(binarySnippets, /androidamap:\/\//);
   assert.doesNotMatch(binarySnippets, /baidumap:\/\//);
   assert.doesNotMatch(binarySnippets, /qqmap:\/\//);

@@ -36,10 +36,13 @@ const REQUIRED_MANIFEST_SNIPPETS = Object.freeze([
   "android:icon=",
   "android:roundIcon=",
 ]);
+const REQUIRED_MANIFEST_REGEXPS = Object.freeze([
+  /android:name="android\.intent\.category\.LAUNCHER"|<category[^>]+android:name="[^"]*android\.intent\.category\.LAUNCHER"/,
+]);
 
 const REQUIRED_RESOURCE_SNIPPETS = Object.freeze([
   "com.rtnn.app:mipmap/rtnn_launcher_icon",
-  "com.rtnn.app:mipmap/rtnn_launcher_icon_foreground",
+  "com.rtnn.app:drawable/rtnn_launcher_icon_foreground",
   "com.rtnn.app:color/rtnn_launcher_icon_background",
 ]);
 
@@ -220,6 +223,29 @@ function assertManifestUsesLauncherIcon(manifest, resources) {
   return iconRef;
 }
 
+function assertExtractedLauncherIconFiles(extractDir) {
+  const files = walkFiles(extractDir)
+    .map((filePath) => path.relative(extractDir, filePath).replaceAll(path.sep, "/"))
+    .filter((relativePath) => /rtnn_launcher_icon.*\.(png|xml)$/i.test(relativePath));
+
+  assert(
+    files.some((relativePath) => /res\/mipmap-[^/]+\/rtnn_launcher_icon\.png$/i.test(relativePath)),
+    "APK 解包后缺少 rtnn_launcher_icon.png launcher 资源",
+  );
+  assert(
+    files.some((relativePath) =>
+      /res\/drawable[^/]*\/rtnn_launcher_icon_foreground\.png$/i.test(relativePath),
+    ),
+    "APK 解包后缺少 rtnn_launcher_icon_foreground.png adaptive icon 前景资源",
+  );
+  assert(
+    files.some((relativePath) => /res\/mipmap-[^/]+\/rtnn_launcher_icon\.xml$/i.test(relativePath)),
+    "APK 解包后缺少 rtnn_launcher_icon.xml adaptive icon 资源",
+  );
+
+  return files;
+}
+
 function writeReport(outputPath, report) {
   mkdirSync(path.dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
@@ -249,8 +275,12 @@ function main() {
 
     assertIncludes(badging, REQUIRED_BADGING_SNIPPETS, "APK badging");
     assertIncludes(manifest, REQUIRED_MANIFEST_SNIPPETS, "APK manifest");
+    for (const regexp of REQUIRED_MANIFEST_REGEXPS) {
+      assert(regexp.test(manifest), `APK manifest 缺少匹配: ${regexp}`);
+    }
     assertIncludes(resources, REQUIRED_RESOURCE_SNIPPETS, "APK resources");
     const launcherIconRef = assertManifestUsesLauncherIcon(manifest, resources);
+    const launcherIconFiles = assertExtractedLauncherIconFiles(extractDir);
 
     const requiredBinarySnippets = [
       ...REQUIRED_BINARY_SNIPPETS,
@@ -277,6 +307,7 @@ function main() {
       package: "com.rtnn.app",
       iconResource: "rtnn_launcher_icon",
       iconRef: launcherIconRef,
+      iconFiles: launcherIconFiles,
       frontendDist: bundledTauriConfig?.build?.frontendDist ?? null,
       checked: {
         badging: REQUIRED_BADGING_SNIPPETS,

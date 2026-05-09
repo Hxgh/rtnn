@@ -115,6 +115,7 @@ export type AppMessages = {
     openFailed: string;
     packageFile: string;
     packageSize: string;
+    updatedAt: string;
     appStoreBoundary: string;
   };
   nativeCapabilities: {
@@ -322,6 +323,7 @@ const zhCN: AppMessages = {
     openFailed: "更新地址打开失败，请前往下载页重试。",
     packageFile: "安装包",
     packageSize: "大小",
+    updatedAt: "更新时间",
     appStoreBoundary: "移动端不做内置自更新，生产环境建议跳应用商店；当前 testing 包走下载页验证。",
   },
   nativeCapabilities: {
@@ -529,6 +531,7 @@ const enUS: AppMessages = {
     openFailed: "Failed to open the update link. Try the downloads page.",
     packageFile: "Installer",
     packageSize: "Size",
+    updatedAt: "Updated",
     appStoreBoundary: "Mobile clients do not use an embedded updater. Production should prefer app stores; testing packages are verified through downloads.",
   },
   nativeCapabilities: {

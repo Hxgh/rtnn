@@ -127,6 +127,10 @@ function patchAndroidManifest(manifestPath) {
         <package android:name="com.tencent.map" />
         <package android:name="com.tencent.maplite" />
         <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="androidamap" />
         </intent>
@@ -148,6 +152,15 @@ function patchAndroidManifest(manifestPath) {
         </intent>
     </queries>`;
     source = source.replace(/\s*<application/, `${queries}\n\n    <application`);
+  }
+
+  if (source.includes("</queries>") && !source.includes('android.intent.category.LAUNCHER')) {
+    const launcherQuery = `
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>`;
+    source = source.replace(/\s*<\/queries>/, `${launcherQuery}\n    </queries>`);
   }
 
   if (source.includes("</queries>") && !source.includes('android:scheme="androidamap"')) {
@@ -325,6 +338,14 @@ function patchLauncherIcon(androidDir, iconPath) {
       "rtnn_launcher_icon.png",
     ),
   );
+  copyFileIfChanged(
+    iconPath,
+    path.join(
+      mainResDir,
+      "drawable",
+      "rtnn_launcher_icon_foreground.png",
+    ),
+  );
 
   for (const mipmapDir of mipmapDirs) {
     copyFileIfChanged(
@@ -343,7 +364,7 @@ function patchLauncherIcon(androidDir, iconPath) {
       '<?xml version="1.0" encoding="utf-8"?>',
       '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">',
       '    <background android:drawable="@color/rtnn_launcher_icon_background" />',
-      '    <foreground android:drawable="@mipmap/rtnn_launcher_icon_foreground" />',
+      '    <foreground android:drawable="@drawable/rtnn_launcher_icon_foreground" />',
       "</adaptive-icon>",
       "",
     ].join("\n"),
