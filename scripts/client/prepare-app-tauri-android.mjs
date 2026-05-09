@@ -1,4 +1,5 @@
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -33,6 +34,20 @@ function writeFileIfChanged(filePath, content) {
 
   mkdirSync(path.dirname(filePath), { recursive: true });
   writeFileSync(filePath, content);
+  return true;
+}
+
+function copyFileIfChanged(fromPath, toPath) {
+  if (
+    existsSync(fromPath) &&
+    existsSync(toPath) &&
+    readFileSync(fromPath).equals(readFileSync(toPath))
+  ) {
+    return false;
+  }
+
+  mkdirSync(path.dirname(toPath), { recursive: true });
+  copyFileSync(fromPath, toPath);
   return true;
 }
 
@@ -106,9 +121,64 @@ function patchAndroidManifest(manifestPath) {
         <package android:name="com.autonavi.minimap" />
         <package android:name="com.baidu.BaiduMap" />
         <package android:name="com.tencent.map" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="androidamap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="baidumap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="qqmap" />
+        </intent>
     </queries>`;
     source = source.replace(/\s*<application/, `${queries}\n\n    <application`);
   }
+
+  if (source.includes("</queries>") && !source.includes('android:scheme="androidamap"')) {
+    const mapSchemeQueries = `
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="androidamap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="baidumap" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="qqmap" />
+        </intent>`;
+    source = source.replace(/\s*<\/queries>/, `${mapSchemeQueries}\n    </queries>`);
+  }
+
+  source = source.replace(
+    /<application\b([^>]*)>/,
+    (_match, attributes) => {
+      let nextAttributes = attributes;
+      if (/android:icon=/.test(nextAttributes)) {
+        nextAttributes = nextAttributes.replace(
+          /android:icon="[^"]*"/,
+          'android:icon="@drawable/rtnn_launcher_icon"',
+        );
+      } else {
+        nextAttributes += ' android:icon="@drawable/rtnn_launcher_icon"';
+      }
+
+      if (/android:roundIcon=/.test(nextAttributes)) {
+        nextAttributes = nextAttributes.replace(
+          /android:roundIcon="[^"]*"/,
+          'android:roundIcon="@drawable/rtnn_launcher_icon"',
+        );
+      } else {
+        nextAttributes += ' android:roundIcon="@drawable/rtnn_launcher_icon"';
+      }
+
+      return `<application${nextAttributes}>`;
+    },
+  );
 
   if (!source.includes("androidx.core.content.FileProvider")) {
     const provider = `
@@ -158,6 +228,59 @@ function patchGradle(buildGradlePath) {
   writeFileIfChanged(buildGradlePath, source);
 }
 
+function parsePositiveInt(value) {
+  const normalized = normalizeString(value);
+  if (!/^[0-9]+$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function resolveAndroidVersionCode() {
+  return (
+    parsePositiveInt(process.env.CLIENT_ANDROID_VERSION_CODE) ??
+    parsePositiveInt(process.env.GITHUB_RUN_NUMBER)
+  );
+}
+
+function patchAndroidVersionCode(buildGradlePath) {
+  const versionCode = resolveAndroidVersionCode();
+  if (!versionCode || !existsSync(buildGradlePath)) {
+    return;
+  }
+
+  const source = readFileSync(buildGradlePath, "utf8");
+  const nextSource = source.replace(
+    /versionCode\s*=\s*\d+/,
+    `versionCode = ${versionCode}`,
+  );
+
+  if (nextSource !== source) {
+    writeFileIfChanged(buildGradlePath, nextSource);
+  }
+}
+
+function patchLauncherIcon(androidDir, iconPath) {
+  if (!existsSync(iconPath)) {
+    throw new Error(`缺少 Android launcher 图标源文件: ${iconPath}`);
+  }
+
+  copyFileIfChanged(
+    iconPath,
+    path.join(
+      androidDir,
+      "app",
+      "src",
+      "main",
+      "res",
+      "drawable",
+      "rtnn_launcher_icon.png",
+    ),
+  );
+}
+
 function buildMainActivitySource(packageName) {
   return `package ${packageName}
 
@@ -187,6 +310,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.json.JSONObject
 
 class MainActivity : TauriActivity() {
   private var currentKeyboardHeight = 0
@@ -355,12 +479,66 @@ class MainActivity : TauriActivity() {
   inner class MapBridge {
     @JavascriptInterface
     fun isAppInstalled(packageName: String): Boolean {
-      return try {
-        packageManager.getPackageInfo(packageName, 0)
-        true
-      } catch (error: Exception) {
-        false
+      return detectAppInstalled(packageName).optBoolean("installed", false)
+    }
+
+    @JavascriptInterface
+    fun checkAppInstalled(packageName: String): String {
+      return detectAppInstalled(packageName).toString()
+    }
+
+    private fun detectAppInstalled(packageName: String): JSONObject {
+      val result = JSONObject()
+      result.put("packageName", packageName)
+
+      if (packageName.isBlank()) {
+        result.put("ok", true)
+        result.put("installed", JSONObject.NULL)
+        result.put("status", "unknown")
+        result.put("reason", "missing-package-name")
+        return result
       }
+
+      try {
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) {
+          result.put("ok", true)
+          result.put("installed", true)
+          result.put("status", "installed")
+          result.put("message", "installed-by-launch-intent")
+          return result
+        }
+      } catch (error: Exception) {
+        result.put("launchIntentError", error.javaClass.simpleName)
+      }
+
+      try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          packageManager.getPackageInfo(
+            packageName,
+            PackageManager.PackageInfoFlags.of(0)
+          )
+        } else {
+          @Suppress("DEPRECATION")
+          packageManager.getPackageInfo(packageName, 0)
+        }
+        result.put("ok", true)
+        result.put("installed", true)
+        result.put("status", "installed")
+        result.put("message", "installed-by-package-info")
+      } catch (error: PackageManager.NameNotFoundException) {
+        result.put("ok", false)
+        result.put("installed", false)
+        result.put("status", "not-installed")
+        result.put("reason", "map-app-not-installed")
+      } catch (error: Exception) {
+        result.put("ok", true)
+        result.put("installed", JSONObject.NULL)
+        result.put("status", "unknown")
+        result.put("reason", error.javaClass.simpleName)
+      }
+
+      return result
     }
   }
 
@@ -589,10 +767,13 @@ function main() {
   const manifestPath = path.join(androidDir, "app", "src", "main", "AndroidManifest.xml");
   const gradlePath = path.join(androidDir, "app", "build.gradle.kts");
   const filePathsPath = path.join(androidDir, "app", "src", "main", "res", "xml", "file_paths.xml");
+  const iconPath = path.join(srcTauriDir, "icons", "icon.png");
 
   writeFileIfChanged(mainActivityPath, buildMainActivitySource(packageName));
+  patchLauncherIcon(androidDir, iconPath);
   patchAndroidManifest(manifestPath);
   patchGradle(gradlePath);
+  patchAndroidVersionCode(gradlePath);
   writeFileIfChanged(
     filePathsPath,
     [

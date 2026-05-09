@@ -47,12 +47,28 @@ function shortHash(value?: string | null) {
   return value ? value.slice(0, 12) : "-";
 }
 
+function formatDateTime(value: string | null | undefined, locale: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export default async function DownloadPage({
   searchParams,
 }: {
   searchParams?: DownloadPageSearchParams;
 }) {
-  const { messages } = await getServerI18n();
+  const { locale, messages } = await getServerI18n();
   const params = searchParams ? await searchParams : undefined;
   const defaultChannel = resolveDefaultChannel();
   const channel = String(params?.channel ?? defaultChannel).trim() || defaultChannel;
@@ -118,6 +134,12 @@ export default async function DownloadPage({
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{messages.download.fileSize}</dt>
                       <dd className="text-right">{formatSize(info.fileSize)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">{messages.download.updatedAt}</dt>
+                      <dd className="text-right">
+                        {formatDateTime(info.syncedAt ?? info.generatedAt, locale)}
+                      </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-muted-foreground">{messages.download.sha256}</dt>

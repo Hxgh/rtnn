@@ -213,6 +213,7 @@ describe('ClientReleasesService', () => {
             id: 'rel_1',
             channel: 'production',
             releaseVersion: '1.2.3',
+            generatedAt: now,
             createdAt: now,
             updatedAt: now,
             packages: [
@@ -266,6 +267,8 @@ describe('ClientReleasesService', () => {
       channel: 'production',
       version: '1.2.3',
       shellVersion: '0.3.0',
+      generatedAt: now.toISOString(),
+      syncedAt: now.toISOString(),
       downloadType: 'direct',
       provider: 'self-hosted-static',
       downloadUrl: 'https://downloads.example.com/app.apk',

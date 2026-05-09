@@ -66,6 +66,7 @@ export type AppMessages = {
     provider: string;
     file: string;
     fileSize: string;
+    updatedAt: string;
     sha256: string;
     unavailable: string;
     download: string;
@@ -114,6 +115,7 @@ export type AppMessages = {
     openFailed: string;
     packageFile: string;
     packageSize: string;
+    appStoreBoundary: string;
   };
   nativeCapabilities: {
     title: string;
@@ -157,6 +159,8 @@ export type AppMessages = {
     mapTryOpen: string;
     mapOpenWith: string;
     requestPermission: string;
+    permissionActionDriven: string;
+    permissionRequestDone: string;
     openExternal: string;
     openMap: string;
     pickImages: string;
@@ -266,6 +270,7 @@ const zhCN: AppMessages = {
     provider: "分发源",
     file: "文件",
     fileSize: "文件大小",
+    updatedAt: "更新时间",
     sha256: "SHA256",
     unavailable: "暂无可下载客户端",
     download: "下载",
@@ -294,19 +299,19 @@ const zhCN: AppMessages = {
   },
   nativeUpdate: {
     title: "移动客户端",
-    description: "检查当前安装包是否需要更新。",
+    description: "检查当前安装包是否有新版本；移动端默认跳转下载页，正式分发优先应用商店。",
     platform: "平台",
     version: "壳版本",
     channel: "环境",
     checkUpdate: "检查更新",
     checkingUpdate: "检查中...",
     testUpdate: "模拟旧版本测试更新",
-    openUpdate: "打开更新",
-    openInstaller: "打开安装包",
+    openUpdate: "打开下载页",
+    openInstaller: "打开下载页",
     openDownloads: "打开下载页",
     openingUpdate: "打开中...",
     updateAvailable: "有可用更新",
-    latestInstallerAvailable: "可打开当前安装包",
+    latestInstallerAvailable: "当前安装包可下载",
     noUpdate: "已是最新版本",
     updateUnavailable: "更新检查不可用",
     downloadUnavailable: "暂无可用安装包",
@@ -314,6 +319,7 @@ const zhCN: AppMessages = {
     openFailed: "更新地址打开失败，请前往下载页重试。",
     packageFile: "安装包",
     packageSize: "大小",
+    appStoreBoundary: "移动端不做内置自更新，生产环境建议跳应用商店；当前 testing 包走下载页验证。",
   },
   nativeCapabilities: {
     title: "客户端能力",
@@ -357,6 +363,8 @@ const zhCN: AppMessages = {
     mapTryOpen: "尝试打开",
     mapOpenWith: "打开",
     requestPermission: "请求权限",
+    permissionActionDriven: "该权限会在对应操作时由系统按需询问，不单独弹窗。",
+    permissionRequestDone: "权限请求已处理。",
     openExternal: "打开外链",
     openMap: "打开地图",
     pickImages: "选择图片",
@@ -466,6 +474,7 @@ const enUS: AppMessages = {
     provider: "Provider",
     file: "File",
     fileSize: "File size",
+    updatedAt: "Updated",
     sha256: "SHA256",
     unavailable: "No client downloads are available.",
     download: "Download",
@@ -494,15 +503,15 @@ const enUS: AppMessages = {
   },
   nativeUpdate: {
     title: "Mobile Client",
-    description: "Check whether the installed client package needs an update.",
+    description: "Check whether a newer package is available. Mobile clients open the downloads page; production distribution should prefer app stores.",
     platform: "Platform",
     version: "Shell version",
     channel: "Channel",
     checkUpdate: "Check update",
     checkingUpdate: "Checking...",
     testUpdate: "Test as outdated",
-    openUpdate: "Open update",
-    openInstaller: "Open installer",
+    openUpdate: "Open downloads",
+    openInstaller: "Open downloads",
     openDownloads: "Open downloads",
     openingUpdate: "Opening...",
     updateAvailable: "Update available",
@@ -514,6 +523,7 @@ const enUS: AppMessages = {
     openFailed: "Failed to open the update link. Try the downloads page.",
     packageFile: "Installer",
     packageSize: "Size",
+    appStoreBoundary: "Mobile clients do not use an embedded updater. Production should prefer app stores; testing packages are verified through downloads.",
   },
   nativeCapabilities: {
     title: "Client capabilities",
@@ -557,6 +567,8 @@ const enUS: AppMessages = {
     mapTryOpen: "Try",
     mapOpenWith: "Open",
     requestPermission: "Request permission",
+    permissionActionDriven: "This permission is requested by the system when the related action runs, not as a standalone prompt.",
+    permissionRequestDone: "Permission request handled.",
     openExternal: "Open external link",
     openMap: "Open map",
     pickImages: "Pick images",

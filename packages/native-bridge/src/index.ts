@@ -218,6 +218,7 @@ type BrowserNotificationApi = {
 };
 type AndroidMapBridge = {
   isAppInstalled?: (packageName: string) => boolean;
+  checkAppInstalled?: (packageName: string) => string | NativeMapInstallResult | boolean;
 };
 type AndroidThemeBridge = {
   setTheme?: (theme: string, mode: string) => void;
@@ -1150,6 +1151,44 @@ function normalizeMapInstallResult(
   };
 }
 
+function parseAndroidMapBridgeResult(
+  value: unknown,
+  appType: MapAppType,
+): NativeMapInstallResult | null {
+  if (typeof value === "boolean") {
+    return {
+      ok: value,
+      appType,
+      installed: value,
+      status: value ? "installed" : "not-installed",
+      reason: value ? undefined : "map-app-not-installed",
+    };
+  }
+
+  if (typeof value === "string") {
+    try {
+      return normalizeMapInstallResult(JSON.parse(value), appType);
+    } catch {
+      return {
+        ok: true,
+        appType,
+        installed: null,
+        status: "unknown",
+        reason: value || "map-install-check-invalid-result",
+      };
+    }
+  }
+
+  if (value && typeof value === "object") {
+    return normalizeMapInstallResult(
+      value as NativeMapInstallResult,
+      appType,
+    );
+  }
+
+  return null;
+}
+
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
   return result.status === "installed" || result.status === "unknown";
 }
@@ -1186,13 +1225,41 @@ function checkAndroidMapInstalledWithBridge(
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): NativeMapInstallResult | null {
   const packageName = NATIVE_MAP_ANDROID_PACKAGES[appType];
-  const isAppInstalled = globalScope?.AndroidMap?.isAppInstalled;
+  const androidMap = globalScope?.AndroidMap;
+  const checkAppInstalled = androidMap?.checkAppInstalled;
+  const isAppInstalled = androidMap?.isAppInstalled;
 
-  if (!packageName || typeof isAppInstalled !== "function") {
+  if (
+    !packageName ||
+    (typeof checkAppInstalled !== "function" &&
+      typeof isAppInstalled !== "function")
+  ) {
     return null;
   }
 
   try {
+    if (typeof checkAppInstalled === "function") {
+      return (
+        parseAndroidMapBridgeResult(checkAppInstalled(packageName), appType) ?? {
+          ok: true,
+          appType,
+          installed: null,
+          status: "unknown",
+          reason: "map-install-check-invalid-result",
+        }
+      );
+    }
+
+    if (typeof isAppInstalled !== "function") {
+      return {
+        ok: true,
+        appType,
+        installed: null,
+        status: "unknown",
+        reason: "map-install-check-unavailable",
+      };
+    }
+
     const installed = Boolean(isAppInstalled(packageName));
 
     return {
@@ -1223,6 +1290,7 @@ function waitForAndroidMapBridge(
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): Promise<void> {
   if (
+    globalScope?.AndroidMap?.checkAppInstalled ||
     globalScope?.AndroidMap?.isAppInstalled ||
     !shouldWaitForAndroidMapBridge(globalScope)
   ) {
@@ -1254,7 +1322,11 @@ function waitForAndroidMapBridge(
     };
 
     const tick = () => {
-      if (globalScope?.AndroidMap?.isAppInstalled || Date.now() >= deadline) {
+      if (
+        globalScope?.AndroidMap?.checkAppInstalled ||
+        globalScope?.AndroidMap?.isAppInstalled ||
+        Date.now() >= deadline
+      ) {
         finish();
         return;
       }

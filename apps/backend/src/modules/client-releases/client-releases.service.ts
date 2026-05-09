@@ -504,6 +504,11 @@ export class ClientReleasesService {
       channel: selected.release.channel,
       version: selected.release.releaseVersion,
       shellVersion: selected.shellVersion,
+      generatedAt: selected.release.generatedAt?.toISOString() ?? null,
+      syncedAt:
+        selected.syncedAt?.toISOString() ??
+        selected.release.syncedAt?.toISOString() ??
+        null,
       downloadType: directUrl ? 'direct' : 'unavailable',
       provider,
       downloadUrl: directUrl,

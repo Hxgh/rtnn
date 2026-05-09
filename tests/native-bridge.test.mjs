@@ -247,6 +247,46 @@ test("native bridge detects Android map apps through WebView bridge first", asyn
   ]);
 });
 
+test("native bridge parses structured Android map install diagnostics", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      AndroidMap: {
+        checkAppInstalled(packageName) {
+          calls.push(["AndroidMap.checkAppInstalled", packageName]);
+          return JSON.stringify({
+            ok: true,
+            installed: true,
+            status: "installed",
+            message: "installed-by-launch-intent",
+          });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return {
+        ok: true,
+        appType: "amap",
+        installed: null,
+        status: "unknown",
+      };
+    },
+  });
+
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "amap" }), {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    message: "installed-by-launch-intent",
+    reason: undefined,
+  });
+  assert.deepEqual(calls, [
+    ["AndroidMap.checkAppInstalled", "com.autonavi.minimap"],
+  ]);
+});
+
 test("native bridge waits briefly for Android map bridge injection", async () => {
   const calls = [];
   const globalScope = {

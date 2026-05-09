@@ -512,6 +512,8 @@ export interface ClientDownloadInfo {
   channel: string;
   version?: string | null;
   shellVersion?: string | null;
+  generatedAt?: string | null;
+  syncedAt?: string | null;
   downloadType: ClientDownloadType;
   provider?: ClientReleaseDistributionProvider | null;
   downloadUrl?: string | null;

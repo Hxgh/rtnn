@@ -14,8 +14,6 @@ import { cn } from "@/lib/utils";
 
 type NativeUpdateMessages = AppMessages["nativeUpdate"];
 
-type OpenTarget = "installer" | "download-page" | null;
-
 function resolveDownloadsUrl() {
   return new URL("/download", window.location.href).toString();
 }
@@ -76,26 +74,18 @@ export function NativeUpdatePanel({
   }
 
   const updateAvailable = Boolean(checkResult?.updateAvailable);
-  const canOpenInstaller = Boolean(checkResult?.downloadUrl);
-  const openTarget: OpenTarget = canOpenInstaller
-    ? "installer"
-    : checkResult
-      ? "download-page"
-      : null;
+  const hasDownload = Boolean(checkResult?.downloadUrl);
+  const canOpenDownloads = Boolean(checkResult);
   const statusText = checkFailed
     ? messages.updateUnavailable
     : checkResult
       ? updateAvailable
         ? messages.updateAvailable
-        : canOpenInstaller
+        : hasDownload
           ? messages.latestInstallerAvailable
           : messages.noUpdate
       : null;
-  const actionLabel = canOpenInstaller
-    ? updateAvailable
-      ? messages.openUpdate
-      : messages.openInstaller
-    : messages.openDownloads;
+  const actionLabel = updateAvailable ? messages.openUpdate : messages.openDownloads;
 
   async function handleCheckUpdate(options: { forceOutdated?: boolean } = {}) {
     if (!clientInfo) {
@@ -121,15 +111,8 @@ export function NativeUpdatePanel({
     }
   }
 
-  async function handleOpenUpdate(target: OpenTarget) {
-    const url =
-      target === "installer"
-        ? checkResult?.downloadUrl
-        : target === "download-page"
-          ? resolveDownloadsUrl()
-          : null;
-
-    if (!url) {
+  async function handleOpenDownloads() {
+    if (!checkResult) {
       return;
     }
 
@@ -138,7 +121,7 @@ export function NativeUpdatePanel({
     setOpenFailed(false);
 
     try {
-      const result = await nativeCore.openUrl(url);
+      const result = await nativeCore.openUrl(resolveDownloadsUrl());
       setOpened(result.ok);
       setOpenFailed(!result.ok);
     } catch {
@@ -190,6 +173,11 @@ export function NativeUpdatePanel({
             {clientInfo.appVersion ?? "-"} -&gt; {checkResult.shellVersion ?? checkResult.version}
           </p>
         ) : null}
+        {checkResult ? (
+          <p className="text-xs leading-5 text-muted-foreground">
+            {messages.appStoreBoundary}
+          </p>
+        ) : null}
         {checkResult?.downloadUrl ? (
           <dl className="grid gap-2 rounded-xl border border-border/70 px-3 py-3 text-xs">
             <div className="flex items-center justify-between gap-3">
@@ -228,9 +216,9 @@ export function NativeUpdatePanel({
           >
             {checking ? messages.checkingUpdate : messages.testUpdate}
           </Button>
-          {openTarget ? (
+          {canOpenDownloads ? (
             <Button
-              onClick={() => handleOpenUpdate(openTarget)}
+              onClick={handleOpenDownloads}
               disabled={checking || opening}
             >
               {opening ? messages.openingUpdate : actionLabel}

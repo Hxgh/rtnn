@@ -124,6 +124,10 @@ function getPermissionStatusLabel(
   result: NativeCorePermissionResult | null,
   messages: NativeCapabilitiesMessages,
 ) {
+  if (result?.reason === "permission-managed-by-file-picker") {
+    return messages.permissionActionDriven;
+  }
+
   if (!result) {
     return messages.permissionUnknown;
   }
@@ -318,11 +322,19 @@ export function NativeCapabilitiesPanel({
         ...current,
         [kind]: result,
       }));
+      setLastMessage(
+        result.message ??
+          (result.reason === "permission-managed-by-file-picker"
+            ? messages.permissionActionDriven
+            : result.reason) ??
+          messages.permissionRequestDone,
+      );
       setPermissionState((current) => ({
         ...current,
         [kind]: result.ok ? "opened" : "failed",
       }));
-    } catch {
+    } catch (error) {
+      setLastMessage(error instanceof Error ? error.message : String(error));
       setPermissionState((current) => ({ ...current, [kind]: "failed" }));
     }
   }
@@ -657,7 +669,9 @@ export function NativeCapabilitiesPanel({
                       <span className="block text-xs text-muted-foreground">
                         {candidate.checking
                           ? messages.mapChecking
-                          : getMapInstallLabel(candidate.status, messages)}
+                          : candidate.reason
+                            ? `${getMapInstallLabel(candidate.status, messages)} · ${candidate.reason}`
+                            : getMapInstallLabel(candidate.status, messages)}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">

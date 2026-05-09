@@ -933,6 +933,11 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
       path.join(srcTauriDir, "tauri.conf.json"),
       `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
     );
+    mkdirSync(path.join(srcTauriDir, "icons"), { recursive: true });
+    writeFileSync(
+      path.join(srcTauriDir, "icons/icon.png"),
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
     writeFileSync(
       path.join(javaDir, "MainActivity.kt"),
       [
@@ -967,6 +972,12 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
         '    id("com.android.application")',
         "}",
         "",
+        "android {",
+        "    defaultConfig {",
+        "        versionCode = 1",
+        "    }",
+        "}",
+        "",
         "dependencies {",
         "}",
         "",
@@ -982,6 +993,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
         env: {
           ...process.env,
           CLIENT_DIR: "clients/app-tauri",
+          GITHUB_RUN_NUMBER: "123",
         },
       },
     );
@@ -1000,6 +1012,9 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
       path.join(androidDir, "app/build.gradle.kts"),
       "utf8",
     );
+    const launcherIcon = readFileSync(
+      path.join(mainDir, "res/drawable/rtnn_launcher_icon.png"),
+    );
     const filePaths = readFileSync(
       path.join(mainDir, "res/xml/file_paths.xml"),
       "utf8",
@@ -1010,17 +1025,28 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /FileProvider\.getUriForFile/);
     assert.match(mainActivity, /AndroidMap/);
     assert.match(mainActivity, /isAppInstalled/);
+    assert.match(mainActivity, /checkAppInstalled/);
+    assert.match(mainActivity, /installed-by-launch-intent/);
     assert.match(mainActivity, /isCaptureEnabled/);
     assert.match(mainActivity, /launchImagePicker/);
     assert.match(mainActivity, /launchCameraCapture/);
     assert.match(mainActivity, /camera-permission-denied/);
     assert.match(manifest, /android\.permission\.CAMERA/);
     assert.match(manifest, /com\.autonavi\.minimap/);
+    assert.match(manifest, /androidamap/);
     assert.match(manifest, /com\.baidu\.BaiduMap/);
+    assert.match(manifest, /baidumap/);
     assert.match(manifest, /com\.tencent\.map/);
+    assert.match(manifest, /qqmap/);
+    assert.match(manifest, /android:icon="@drawable\/rtnn_launcher_icon"/);
     assert.match(manifest, /androidx\.core\.content\.FileProvider/);
     assert.match(gradle, /androidx\.activity:activity-ktx/);
     assert.match(gradle, /androidx\.core:core-ktx/);
+    assert.match(gradle, /versionCode = 123/);
+    assert.deepEqual(
+      launcherIcon,
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
     assert.match(filePaths, /external-files-path/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -1041,6 +1067,11 @@ test("prepare-app-tauri-android resolves CLIENT_DIR when package script cwd is c
     writeFileSync(
       path.join(srcTauriDir, "tauri.conf.json"),
       `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
+    );
+    mkdirSync(path.join(srcTauriDir, "icons"), { recursive: true });
+    writeFileSync(
+      path.join(srcTauriDir, "icons/icon.png"),
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     );
     writeFileSync(
       path.join(javaDir, "MainActivity.kt"),
