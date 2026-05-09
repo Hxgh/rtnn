@@ -1196,7 +1196,11 @@ function parseAndroidMapBridgeResult(
 }
 
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return result.status === "installed" || result.status === "unknown";
+  return (
+    result.status === "installed" ||
+    result.status === "unknown" ||
+    result.reason === "map-app-not-installed-or-not-visible"
+  );
 }
 
 function normalizeClientInfo(

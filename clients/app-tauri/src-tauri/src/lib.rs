@@ -438,17 +438,20 @@ fn open_map_navigation(
 fn check_map_installed(app_type: String) -> MapInstallResult {
     #[cfg(target_os = "android")]
     {
-        return detect_android_map_installed(&app_type);
+        detect_android_map_installed(&app_type)
     }
 
-    MapInstallResult {
-        ok: true,
-        app_type,
-        installed: None,
-        status: "unknown",
-        message: None,
-        reason: Some("map-install-check-unavailable".to_string()),
-        diagnostic: None,
+    #[cfg(not(target_os = "android"))]
+    {
+        MapInstallResult {
+            ok: true,
+            app_type,
+            installed: None,
+            status: "unknown",
+            message: None,
+            reason: Some("map-install-check-unavailable".to_string()),
+            diagnostic: None,
+        }
     }
 }
 

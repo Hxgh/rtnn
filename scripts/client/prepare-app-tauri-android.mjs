@@ -27,6 +27,10 @@ function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, "utf8"));
 }
 
+function writeJsonIfChanged(filePath, value) {
+  return writeFileIfChanged(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
 function writeFileIfChanged(filePath, content) {
   if (existsSync(filePath) && readFileSync(filePath, "utf8") === content) {
     return false;
@@ -277,6 +281,26 @@ function patchAndroidVersionCode(buildGradlePath) {
   if (nextSource !== source) {
     writeFileIfChanged(buildGradlePath, nextSource);
   }
+}
+
+function patchTauriAndroidVersionCode(configPath, tauriConfig) {
+  const versionCode = resolveAndroidVersionCode();
+  if (!versionCode) {
+    return;
+  }
+
+  const nextConfig = {
+    ...tauriConfig,
+    bundle: {
+      ...(tauriConfig.bundle ?? {}),
+      android: {
+        ...(tauriConfig.bundle?.android ?? {}),
+        versionCode,
+      },
+    },
+  };
+
+  writeJsonIfChanged(configPath, nextConfig);
 }
 
 function patchLauncherIcon(androidDir, iconPath) {
@@ -823,7 +847,8 @@ function main() {
     return;
   }
 
-  const tauriConfig = readJson(path.join(srcTauriDir, "tauri.conf.json"));
+  const tauriConfigPath = path.join(srcTauriDir, "tauri.conf.json");
+  const tauriConfig = readJson(tauriConfigPath);
   const packageName = normalizeString(tauriConfig.identifier);
   if (!packageName) {
     throw new Error("clients/app-tauri/src-tauri/tauri.conf.json 缺少 identifier");
@@ -835,6 +860,7 @@ function main() {
   const filePathsPath = path.join(androidDir, "app", "src", "main", "res", "xml", "file_paths.xml");
   const iconPath = path.join(srcTauriDir, "icons", "icon.png");
 
+  patchTauriAndroidVersionCode(tauriConfigPath, tauriConfig);
   writeFileIfChanged(mainActivityPath, buildMainActivitySource(packageName));
   patchLauncherIcon(androidDir, iconPath);
   patchAndroidManifest(manifestPath);

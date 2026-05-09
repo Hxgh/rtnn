@@ -272,6 +272,24 @@ test("native bridge preserves Android map diagnostics", async () => {
   });
 });
 
+test("native capability core keeps Android package visibility candidates actionable", async () => {
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {},
+    invoke: async () => ({
+      ok: false,
+      appType: "amap",
+      installed: false,
+      status: "not-installed",
+      reason: "map-app-not-installed-or-not-visible",
+      diagnostic: "com.autonavi.minimap:launch=false,package=false",
+    }),
+  });
+  const core = createNativeCapabilityCore({ bridge });
+  const candidates = await core.listMapOpenCandidates();
+
+  assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
+});
+
 test("native bridge parses structured Android map install diagnostics", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({

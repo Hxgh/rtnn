@@ -276,6 +276,7 @@ jobs:
           CLIENT_SHELL: ${{ matrix.shell }}
           CLIENT_RELEASE_VERSION: ${{ matrix.release_version }}
           CLIENT_ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          CLIENT_ANDROID_VERSION_CODE: ${{ github.run_number }}
           ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || '' }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
@@ -393,6 +394,7 @@ jobs:
         env:
           RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
           RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
+          CLIENT_ANDROID_VERSION_CODE: ${{ github.run_number }}
           ANDROID_ARTIFACT_TYPE: ${{ vars.ANDROID_ARTIFACT_TYPE || 'aab' }}
           ANDROID_BUILD_TARGETS: ${{ vars.ANDROID_BUILD_TARGETS || 'aarch64' }}
           ANDROID_SPLIT_PER_ABI: ${{ vars.ANDROID_SPLIT_PER_ABI || 'false' }}

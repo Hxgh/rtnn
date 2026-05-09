@@ -58,6 +58,8 @@ const CLIENTS = {
         "launchImagePicker",
         "rtnn:native-theme-change",
         "rtnn_launcher_icon_foreground",
+        "patchTauriAndroidVersionCode",
+        "CLIENT_ANDROID_VERSION_CODE",
       ],
     },
   },

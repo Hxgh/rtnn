@@ -1012,6 +1012,9 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
       path.join(androidDir, "app/build.gradle.kts"),
       "utf8",
     );
+    const tauriConfig = JSON.parse(
+      readFileSync(path.join(srcTauriDir, "tauri.conf.json"), "utf8"),
+    );
     const launcherIcon = readFileSync(
       path.join(mainDir, "res/drawable/rtnn_launcher_icon.png"),
     );
@@ -1059,6 +1062,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(gradle, /androidx\.activity:activity-ktx/);
     assert.match(gradle, /androidx\.core:core-ktx/);
     assert.match(gradle, /versionCode = 123/);
+    assert.equal(tauriConfig.bundle.android.versionCode, 123);
     assert.deepEqual(
       launcherIcon,
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
