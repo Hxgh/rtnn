@@ -1050,6 +1050,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(manifest, /com\.baidu\.BaiduMap/);
     assert.match(manifest, /baidumap/);
     assert.match(manifest, /com\.tencent\.map/);
+    assert.match(manifest, /com\.tencent\.maplite/);
     assert.match(manifest, /qqmap/);
     assert.match(manifest, /android:icon="@mipmap\/rtnn_launcher_icon"/);
     assert.match(manifest, /android:roundIcon="@mipmap\/rtnn_launcher_icon"/);

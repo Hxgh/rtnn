@@ -121,6 +121,7 @@ function patchAndroidManifest(manifestPath) {
         <package android:name="com.autonavi.minimap" />
         <package android:name="com.baidu.BaiduMap" />
         <package android:name="com.tencent.map" />
+        <package android:name="com.tencent.maplite" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="androidamap" />

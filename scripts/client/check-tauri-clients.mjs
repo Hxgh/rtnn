@@ -52,6 +52,7 @@ const CLIENTS = {
         "com.autonavi.minimap",
         "com.baidu.BaiduMap",
         "com.tencent.map",
+        "com.tencent.maplite",
         "isCaptureEnabled",
         "launchCameraCapture",
         "launchImagePicker",
@@ -215,6 +216,20 @@ function validateClient(rootDir, clientName, expected) {
   assertIco(path.join(srcTauriDir, "icons/icon.ico"));
 }
 
+function assertSharedShellIcons(rootDir) {
+  const adminIcon = readFileSync(
+    path.join(rootDir, "clients", "admin-tauri", "src-tauri", "icons", "icon.png"),
+  );
+  const appIcon = readFileSync(
+    path.join(rootDir, "clients", "app-tauri", "src-tauri", "icons", "icon.png"),
+  );
+
+  assert(
+    adminIcon.equals(appIcon),
+    "admin-tauri 与 app-tauri 应使用同一套 RTNN 品牌 PNG 图标",
+  );
+}
+
 function main() {
   const rootDir = findWorkspaceRoot(process.cwd());
   const requested = process.argv.slice(2);
@@ -225,6 +240,11 @@ function main() {
     assert(expected, `未知 Tauri client: ${clientName}`);
     validateClient(rootDir, clientName, expected);
     console.log(`[tauri-client-check] ${clientName} 通过`);
+  }
+
+  if (clientNames.includes("admin-tauri") && clientNames.includes("app-tauri")) {
+    assertSharedShellIcons(rootDir);
+    console.log("[tauri-client-check] shell 图标一致性通过");
   }
 }
 
