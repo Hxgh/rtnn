@@ -110,6 +110,17 @@ export type AppMessages = {
   nativeCapabilities: {
     title: string;
     description: string;
+    runtimeTitle: string;
+    runtimeDescription: string;
+    externalTitle: string;
+    externalDescription: string;
+    mapTitle: string;
+    mapDescription: string;
+    mediaTitle: string;
+    mediaDescription: string;
+    permissionDescription: string;
+    keyboardTitle: string;
+    keyboardDescription: string;
     runtime: string;
     platform: string;
     shell: string;
@@ -125,6 +136,10 @@ export type AppMessages = {
     permissionPrompt: string;
     permissionUnsupported: string;
     permissionUnknown: string;
+    mapInstalled: string;
+    mapNotInstalled: string;
+    mapUnknown: string;
+    mapUnsupported: string;
     requestPermission: string;
     openExternal: string;
     openMap: string;
@@ -136,6 +151,7 @@ export type AppMessages = {
     openDownloads: string;
     opening: string;
     opened: string;
+    cancelled: string;
     failed: string;
     selectedImages: string;
     noImages: string;
@@ -276,7 +292,18 @@ const zhCN: AppMessages = {
   },
   nativeCapabilities: {
     title: "客户端能力",
-    description: "验证当前壳子的外链、地图、相机相册、键盘和下载入口。",
+    description: "独立验证当前壳子的外链、地图、相机相册、键盘和下载入口。",
+    runtimeTitle: "运行信息",
+    runtimeDescription: "确认当前页面是否运行在 Tauri 壳内，以及壳声明了哪些能力。",
+    externalTitle: "外链打开",
+    externalDescription: "验证下载页、系统浏览器或外部应用打开能力。",
+    mapTitle: "地图跳转",
+    mapDescription: "先选择地图应用，再跳转到测试目的地。若壳无法检测安装状态，会显示未知。",
+    mediaTitle: "相机相册",
+    mediaDescription: "选择或拍摄图片后会在当前页面回显，取消选择不会卡在打开中。",
+    permissionDescription: "权限按需请求，模板只提供统一入口，业务页面自行决定触发时机。",
+    keyboardTitle: "键盘与安全区",
+    keyboardDescription: "点击输入框后检查底部内容是否被键盘或安全区域遮挡。",
     runtime: "运行环境",
     platform: "平台",
     shell: "壳类型",
@@ -292,6 +319,10 @@ const zhCN: AppMessages = {
     permissionPrompt: "按需询问",
     permissionUnsupported: "不支持",
     permissionUnknown: "未知",
+    mapInstalled: "已安装",
+    mapNotInstalled: "未安装",
+    mapUnknown: "无法检测",
+    mapUnsupported: "不支持检测",
     requestPermission: "请求权限",
     openExternal: "打开外链",
     openMap: "打开地图",
@@ -303,6 +334,7 @@ const zhCN: AppMessages = {
     openDownloads: "客户端下载",
     opening: "打开中...",
     opened: "操作已触发，请查看系统响应。",
+    cancelled: "已取消，未选择文件。",
     failed: "操作失败，请检查当前壳子能力或系统权限。",
     selectedImages: "已选择图片",
     noImages: "尚未选择图片",
@@ -443,7 +475,18 @@ const enUS: AppMessages = {
   },
   nativeCapabilities: {
     title: "Client capabilities",
-    description: "Verify external links, map navigation, image picking, keyboard behavior, and downloads.",
+    description: "Verify shell capabilities separately from business screens.",
+    runtimeTitle: "Runtime",
+    runtimeDescription: "Check whether the page is running in the Tauri shell and which features it declares.",
+    externalTitle: "External links",
+    externalDescription: "Verify opening downloads, system browsers, or external apps.",
+    mapTitle: "Map navigation",
+    mapDescription: "Choose a map app before opening the test destination. Unknown means the shell cannot detect install state.",
+    mediaTitle: "Camera and photos",
+    mediaDescription: "Picked or captured images are previewed here. Cancelling will not leave the button busy.",
+    permissionDescription: "Permissions are requested on demand. Business screens decide their own trigger timing.",
+    keyboardTitle: "Keyboard and safe area",
+    keyboardDescription: "Focus the input to verify bottom content is not covered by the keyboard or safe area.",
     runtime: "Runtime",
     platform: "Platform",
     shell: "Shell",
@@ -459,6 +502,10 @@ const enUS: AppMessages = {
     permissionPrompt: "Ask when needed",
     permissionUnsupported: "Unsupported",
     permissionUnknown: "Unknown",
+    mapInstalled: "Installed",
+    mapNotInstalled: "Not installed",
+    mapUnknown: "Unknown",
+    mapUnsupported: "Unsupported",
     requestPermission: "Request permission",
     openExternal: "Open external link",
     openMap: "Open map",
@@ -470,6 +517,7 @@ const enUS: AppMessages = {
     openDownloads: "Client downloads",
     opening: "Opening...",
     opened: "Action started. Check the system response.",
+    cancelled: "Cancelled. No file was selected.",
     failed: "Action failed. Check shell capabilities or system permissions.",
     selectedImages: "Selected images",
     noImages: "No images selected",

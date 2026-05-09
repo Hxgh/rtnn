@@ -1008,7 +1008,15 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /onShowFileChooser/);
     assert.match(mainActivity, /--rtnn-keyboard-height/);
     assert.match(mainActivity, /FileProvider\.getUriForFile/);
+    assert.match(mainActivity, /AndroidMap/);
+    assert.match(mainActivity, /isAppInstalled/);
+    assert.match(mainActivity, /isCaptureEnabled/);
+    assert.match(mainActivity, /launchImagePicker/);
+    assert.match(mainActivity, /launchCameraCapture/);
     assert.match(manifest, /android\.permission\.CAMERA/);
+    assert.match(manifest, /com\.autonavi\.minimap/);
+    assert.match(manifest, /com\.baidu\.BaiduMap/);
+    assert.match(manifest, /com\.tencent\.map/);
     assert.match(manifest, /androidx\.core\.content\.FileProvider/);
     assert.match(gradle, /androidx\.activity:activity-ktx/);
     assert.match(gradle, /androidx\.core:core-ktx/);

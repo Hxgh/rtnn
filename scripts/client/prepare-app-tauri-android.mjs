@@ -99,6 +99,17 @@ function patchAndroidManifest(manifestPath) {
     }
   }
 
+  if (!source.includes("com.autonavi.minimap")) {
+    const queries = `
+
+    <queries>
+        <package android:name="com.autonavi.minimap" />
+        <package android:name="com.baidu.BaiduMap" />
+        <package android:name="com.tencent.map" />
+    </queries>`;
+    source = source.replace(/\s*<application/, `${queries}\n\n    <application`);
+  }
+
   if (!source.includes("androidx.core.content.FileProvider")) {
     const provider = `
 
@@ -146,6 +157,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -171,7 +183,12 @@ class MainActivity : TauriActivity() {
   ) { granted ->
     if (pendingFileChooser) {
       pendingFileChooser = false
-      launchFileChooser(includeCameraIntent = granted)
+      if (granted) {
+        launchCameraCapture()
+      } else {
+        filePathCallback?.onReceiveValue(null)
+        filePathCallback = null
+      }
     }
   }
 
@@ -217,6 +234,7 @@ class MainActivity : TauriActivity() {
       if (webView != null) {
         webView.settings.allowFileAccess = true
         webView.settings.allowContentAccess = true
+        webView.addJavascriptInterface(MapBridge(), "AndroidMap")
         webView.webChromeClient = object : WebChromeClient() {
           override fun onShowFileChooser(
             webView: WebView?,
@@ -225,14 +243,17 @@ class MainActivity : TauriActivity() {
           ): Boolean {
             this@MainActivity.filePathCallback?.onReceiveValue(null)
             this@MainActivity.filePathCallback = filePathCallback
+            val wantsCamera = fileChooserParams?.isCaptureEnabled == true
 
             val hasCameraPermission = ContextCompat.checkSelfPermission(
               this@MainActivity,
               Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
 
-            if (hasCameraPermission) {
-              launchFileChooser(includeCameraIntent = true)
+            if (!wantsCamera) {
+              launchImagePicker()
+            } else if (hasCameraPermission) {
+              launchCameraCapture()
             } else {
               pendingFileChooser = true
               cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -247,7 +268,7 @@ class MainActivity : TauriActivity() {
     }
   }
 
-  private fun launchFileChooser(includeCameraIntent: Boolean) {
+  private fun launchImagePicker() {
     try {
       val galleryIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
         type = "image/*"
@@ -255,16 +276,22 @@ class MainActivity : TauriActivity() {
       }
       val chooserIntent = Intent.createChooser(galleryIntent, "选择图片")
 
-      if (includeCameraIntent) {
-        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        cameraPhotoUri = createImageUri()
-        cameraPhotoUri?.let { cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, it) }
-        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
-      }
-
       fileChooserLauncher.launch(chooserIntent)
     } catch (error: Exception) {
-      android.util.Log.e("MainActivity", "File chooser failed", error)
+      android.util.Log.e("MainActivity", "Image picker failed", error)
+      filePathCallback?.onReceiveValue(null)
+      filePathCallback = null
+    }
+  }
+
+  private fun launchCameraCapture() {
+    try {
+      val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+      cameraPhotoUri = createImageUri()
+      cameraPhotoUri?.let { cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, it) }
+      fileChooserLauncher.launch(cameraIntent)
+    } catch (error: Exception) {
+      android.util.Log.e("MainActivity", "Camera capture failed", error)
       filePathCallback?.onReceiveValue(null)
       filePathCallback = null
       cameraPhotoUri = null
@@ -285,6 +312,18 @@ class MainActivity : TauriActivity() {
 
   private fun findWebView(): WebView? {
     return findWebView(window.decorView)
+  }
+
+  inner class MapBridge {
+    @JavascriptInterface
+    fun isAppInstalled(packageName: String): Boolean {
+      return try {
+        packageManager.getPackageInfo(packageName, 0)
+        true
+      } catch (error: Exception) {
+        false
+      }
+    }
   }
 
   private fun findWebView(view: View): WebView? {

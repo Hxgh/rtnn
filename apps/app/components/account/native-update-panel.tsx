@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  createNativeBridge,
-  resolveNativeClientUpdateQuery,
-  type NativeClientInfo,
-} from "@rtnn/native-bridge";
 import type { ClientUpdateCheckInfo } from "@rtnn/shared-types";
+import {
+  createAppNativeCore,
+  type NativeCoreClientInfo,
+  type NativeCoreService,
+} from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
@@ -14,48 +14,13 @@ import { cn } from "@/lib/utils";
 
 type NativeUpdateMessages = AppMessages["nativeUpdate"];
 
-function buildUpdateCheckUrl(info: NativeClientInfo) {
-  const query = resolveNativeClientUpdateQuery(info);
-
-  if (!query) {
-    return null;
-  }
-
-  const params = new URLSearchParams({
-    client: query.client,
-    target: query.target,
-    channel: query.channel,
-  });
-
-  if (query.currentVersion) {
-    params.set("currentVersion", query.currentVersion);
-  }
-
-  return `/api/client-updates/check?${params.toString()}`;
-}
-
-async function checkClientUpdate(info: NativeClientInfo) {
-  const url = buildUpdateCheckUrl(info);
-
-  if (!url) {
-    return null;
-  }
-
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error("client-update-check-failed");
-  }
-
-  return (await response.json()) as ClientUpdateCheckInfo;
-}
-
 export function NativeUpdatePanel({
   messages,
 }: {
   messages: NativeUpdateMessages;
 }) {
-  const bridge = useMemo(() => createNativeBridge(), []);
-  const [clientInfo, setClientInfo] = useState<NativeClientInfo | null>(null);
+  const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
+  const [clientInfo, setClientInfo] = useState<NativeCoreClientInfo | null>(null);
   const [checkResult, setCheckResult] = useState<ClientUpdateCheckInfo | null>(null);
   const [checkFailed, setCheckFailed] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -65,11 +30,15 @@ export function NativeUpdatePanel({
   useEffect(() => {
     let active = true;
 
-    bridge
-      .getClientInfo()
-      .then((info) => {
-        if (active && info.runtime === "tauri" && info.shell === "app-mobile") {
-          setClientInfo(info);
+    nativeCore
+      .getRuntimeSnapshot()
+      .then((snapshot) => {
+        if (
+          active &&
+          snapshot.clientInfo.runtime === "tauri" &&
+          snapshot.clientInfo.shell === "app-mobile"
+        ) {
+          setClientInfo(snapshot.clientInfo);
         }
       })
       .catch(() => {
@@ -81,7 +50,7 @@ export function NativeUpdatePanel({
     return () => {
       active = false;
     };
-  }, [bridge]);
+  }, [nativeCore]);
 
   if (!clientInfo || clientInfo.shell !== "app-mobile") {
     return null;
@@ -107,7 +76,7 @@ export function NativeUpdatePanel({
     setCheckFailed(false);
 
     try {
-      setCheckResult(await checkClientUpdate(clientInfo));
+      setCheckResult(await nativeCore.checkAppUpdate());
     } catch {
       setCheckResult(null);
       setCheckFailed(true);
@@ -125,7 +94,7 @@ export function NativeUpdatePanel({
     setOpened(false);
 
     try {
-      const result = await bridge.openExternal({ url: checkResult.downloadUrl });
+      const result = await nativeCore.openUrl(checkResult.downloadUrl);
       setOpened(result.ok);
     } finally {
       setOpening(false);

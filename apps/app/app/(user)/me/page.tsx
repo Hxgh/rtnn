@@ -1,7 +1,5 @@
 import { LocaleSwitcher } from "@/components/preferences/locale-switcher";
 import { ThemeToggle } from "@/components/preferences/theme-toggle";
-import { NativeCapabilitiesPanel } from "@/components/account/native-capabilities-panel";
-import { NativeUpdatePanel } from "@/components/account/native-update-panel";
 import { ActionRowLink, DetailRow } from "@/components/site/action-row";
 import { PageSection, PageShell } from "@/components/site/page-shell";
 import { buttonVariants } from "@/components/ui/button";
@@ -54,6 +52,27 @@ export default async function MePage() {
                 </svg>
               }
             />
+            <ActionRowLink
+              href="/native-diagnostics"
+              title={messages.nativeCapabilities.title}
+              description={messages.nativeCapabilities.description}
+              dataTestId="me-native-diagnostics-link"
+              icon={
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="7" y="2.75" width="10" height="18.5" rx="2.25" />
+                  <path d="M10.5 18.25h3" />
+                </svg>
+              }
+            />
             <dl className="divide-y divide-border/70">
               <DetailRow label={messages.profile.currentUser} value={session.displayName} />
               <DetailRow label={messages.common.labels.email} value={session.email} />
@@ -83,9 +102,6 @@ export default async function MePage() {
           </div>
         </SurfaceCard>
       </PageSection>
-
-      <NativeCapabilitiesPanel messages={messages.nativeCapabilities} />
-      <NativeUpdatePanel messages={messages.nativeUpdate} />
 
       <PageSection>
         <SurfaceCard className="px-4 py-4">

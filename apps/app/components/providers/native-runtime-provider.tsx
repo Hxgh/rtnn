@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { installNativeViewportInsets } from "@rtnn/native-bridge";
+import { installAppNativeViewportInsets } from "@/lib/native-core";
 
 export function NativeRuntimeProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  useEffect(() => installNativeViewportInsets(), []);
+  useEffect(() => installAppNativeViewportInsets(), []);
 
   return children;
 }

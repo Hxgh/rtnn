@@ -26,12 +26,15 @@ export function SiteHeader() {
   const pathname = usePathname();
   const { messages } = usePreferences();
   const isAccountPage = pathname.startsWith("/account");
+  const isNativeDiagnosticsPage = pathname.startsWith("/native-diagnostics");
   const isDownloadPage = pathname.startsWith("/download");
-  const isSubPage = isAccountPage || isDownloadPage;
-  const backHref = isAccountPage ? "/me" : "/";
+  const isSubPage = isAccountPage || isNativeDiagnosticsPage || isDownloadPage;
+  const backHref = isAccountPage || isNativeDiagnosticsPage ? "/me" : "/";
   const currentTitle =
     isAccountPage
       ? messages.security.title
+      : isNativeDiagnosticsPage
+          ? messages.nativeCapabilities.title
       : isDownloadPage
           ? messages.download.title
           : pathname.startsWith("/me")

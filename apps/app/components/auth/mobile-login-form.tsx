@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { BrandLogoMark } from "@/components/brand/brand-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,28 +20,6 @@ export function MobileLoginForm({
 }) {
   return (
     <main className="mx-auto flex min-h-full w-full max-w-[28rem] flex-col px-6 pt-[calc(var(--rtnn-safe-top)+0.875rem)] pb-[var(--rtnn-page-bottom)]">
-      <div className="flex h-11 items-center justify-between">
-        <Link
-          href="/"
-          className="flex size-10 items-center justify-center rounded-full text-foreground active:bg-secondary"
-          aria-label={messages.backHome}
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          >
-            <path d="M15 18 9 12l6-6" />
-          </svg>
-        </Link>
-        <span className="w-10" aria-hidden="true" />
-      </div>
-
       <section className="flex flex-1 flex-col justify-center py-8">
         <div className="space-y-8">
           <header className="space-y-5">

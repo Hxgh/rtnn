@@ -131,6 +131,7 @@ export type NativeImagePickInput = {
   maxFiles?: number;
   multiple?: boolean;
   readAsDataUrl?: boolean;
+  timeoutMs?: number;
 };
 
 export type NativePickedFile = {
@@ -143,6 +144,11 @@ export type NativePickedFile = {
 export type NativeImagePickResult = NativeBridgeActionResult & {
   files: NativePickedFile[];
 };
+
+export type NativeMapOpenCandidate = NativeMapAppInfo &
+  NativeMapInstallResult & {
+    available: boolean;
+  };
 
 export type NativeBridge = {
   getClientInfo(): Promise<NativeClientInfo>;
@@ -169,6 +175,10 @@ export type NativeBridge = {
 
 export type NativeCapabilityCore = NativeBridge & {
   listMapApps(): NativeMapAppInfo[];
+  listMapOpenCandidates(): Promise<NativeMapOpenCandidate[]>;
+  openPreferredMapNavigation(
+    input: Omit<MapNavigationInput, "appType"> & { appType?: MapAppType },
+  ): Promise<NativeBridgeActionResult & { appType?: MapAppType }>;
 };
 
 export type TauriInvoke = <TResult = unknown>(
@@ -192,12 +202,21 @@ type BrowserMediaDevicesApi = {
     constraints: Record<string, unknown>,
   ) => Promise<BrowserMediaStreamLike>;
 };
+type BrowserWindowLike = {
+  setTimeout?: typeof setTimeout;
+  clearTimeout?: typeof clearTimeout;
+  addEventListener?: Window["addEventListener"];
+  removeEventListener?: Window["removeEventListener"];
+};
 type BrowserNotificationApi = {
   permission?: NotificationPermission | "default";
   requestPermission?: () =>
     | Promise<NotificationPermission | "default">
     | NotificationPermission
     | "default";
+};
+type AndroidMapBridge = {
+  isAppInstalled?: (packageName: string) => boolean;
 };
 
 type TauriGlobalScope = {
@@ -207,7 +226,12 @@ type TauriGlobalScope = {
     mediaDevices?: BrowserMediaDevicesApi;
   };
   open?: BrowserOpen;
+  setTimeout?: typeof setTimeout;
+  clearTimeout?: typeof clearTimeout;
+  addEventListener?: Window["addEventListener"];
+  removeEventListener?: Window["removeEventListener"];
   Notification?: BrowserNotificationApi;
+  AndroidMap?: AndroidMapBridge;
   __TAURI__?: {
     core?: {
       invoke?: TauriInvoke;
@@ -247,6 +271,7 @@ export type CreateTauriNativeBridgeOptions = {
 export type CreateDetectedTauriNativeBridgeOptions = {
   invoke: TauriInvoke;
   fallback?: NativeBridge;
+  globalScope?: TauriGlobalScope;
   getClientInfoCommand?: string;
   openExternalCommand?: string;
   mapNavigationCommand?: string;
@@ -288,6 +313,12 @@ export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
   { appType: "baidu", label: "百度地图" },
   { appType: "tencent", label: "腾讯地图" },
 ];
+
+const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string> = {
+  amap: "com.autonavi.minimap",
+  baidu: "com.baidu.BaiduMap",
+  tencent: "com.tencent.map",
+};
 
 const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
   "camera",
@@ -359,6 +390,10 @@ function isHttpUrl(url: string) {
 
 function getDefaultDocument() {
   return typeof document === "undefined" ? null : document;
+}
+
+function getDefaultWindow(): BrowserWindowLike | null {
+  return typeof window === "undefined" ? null : window;
 }
 
 function fileToDataUrl(file: File): Promise<string | undefined> {
@@ -632,6 +667,7 @@ function pickImagesWithInput(
   input: NativeImagePickInput = {},
 ): Promise<NativeImagePickResult> {
   const doc = getDefaultDocument();
+  const win = getDefaultWindow();
 
   if (!doc?.body) {
     return Promise.resolve({
@@ -641,13 +677,22 @@ function pickImagesWithInput(
     });
   }
 
+  const documentRef = doc;
+
   return new Promise((resolve) => {
-    const element = doc.createElement("input");
+    const element = documentRef.createElement("input");
     const readAsDataUrl = input.readAsDataUrl ?? true;
+    const timeoutMs =
+      typeof input.timeoutMs === "number" && input.timeoutMs > 0
+        ? input.timeoutMs
+        : 60_000;
     const maxFiles =
       typeof input.maxFiles === "number" && input.maxFiles > 0
         ? Math.floor(input.maxFiles)
         : undefined;
+    let completed = false;
+    let blurSeen = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     element.type = "file";
     element.accept = input.accept ?? "image/*";
@@ -660,7 +705,61 @@ function pickImagesWithInput(
     }
 
     function cleanup() {
+      if (timer) {
+        win?.clearTimeout?.(timer);
+        timer = null;
+      }
+
+      win?.removeEventListener?.("focus", handleWindowFocus);
+      win?.removeEventListener?.("blur", handleWindowBlur);
+      documentRef.removeEventListener("visibilitychange", handleVisibilityChange);
       element.remove();
+    }
+
+    function finish(result: NativeImagePickResult) {
+      if (completed) {
+        return;
+      }
+
+      completed = true;
+      cleanup();
+      resolve(result);
+    }
+
+    function cancel(reason: string) {
+      finish({
+        ok: false,
+        reason,
+        files: [],
+      });
+    }
+
+    function scheduleCancelCheck() {
+      if (completed) {
+        return;
+      }
+
+      win?.setTimeout?.(() => {
+        if (!completed && !element.files?.length) {
+          cancel("file-picker-cancelled");
+        }
+      }, 400);
+    }
+
+    function handleWindowBlur() {
+      blurSeen = true;
+    }
+
+    function handleWindowFocus() {
+      if (blurSeen) {
+        scheduleCancelCheck();
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (documentRef.visibilityState === "visible" && blurSeen) {
+        scheduleCancelCheck();
+      }
     }
 
     element.addEventListener(
@@ -669,9 +768,12 @@ function pickImagesWithInput(
         const selectedFiles = Array.from(element.files ?? []);
         const files = maxFiles ? selectedFiles.slice(0, maxFiles) : selectedFiles;
 
-        cleanup();
+        if (files.length === 0) {
+          cancel("file-picker-cancelled");
+          return;
+        }
 
-        resolve({
+        finish({
           ok: true,
           files: await Promise.all(
             files.map((file) => normalizePickedFile(file, readAsDataUrl)),
@@ -681,7 +783,15 @@ function pickImagesWithInput(
       { once: true },
     );
 
-    doc.body.append(element);
+    win?.addEventListener?.("blur", handleWindowBlur);
+    win?.addEventListener?.("focus", handleWindowFocus);
+    documentRef.addEventListener("visibilitychange", handleVisibilityChange);
+
+    timer = win?.setTimeout?.(() => {
+      cancel("file-picker-timeout");
+    }, timeoutMs) ?? null;
+
+    documentRef.body.append(element);
     element.click();
   });
 }
@@ -816,6 +926,14 @@ export function createBrowserNativeBridge(
     },
 
     async checkMapInstalled(input) {
+      const androidResult = checkAndroidMapInstalledWithBridge(
+        input.appType,
+        globalScope,
+      );
+      if (androidResult) {
+        return androidResult;
+      }
+
       return {
         ok: true,
         appType: input.appType,
@@ -981,6 +1099,10 @@ function normalizeMapInstallResult(
   };
 }
 
+function isMapCandidateAvailable(result: NativeMapInstallResult) {
+  return result.status === "installed" || result.status === "unknown";
+}
+
 function normalizeClientInfo(
   value: NativeClientInfo | null | undefined,
 ): NativeClientInfo | null {
@@ -1008,10 +1130,43 @@ function normalizeClientInfo(
   };
 }
 
+function checkAndroidMapInstalledWithBridge(
+  appType: MapAppType,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): NativeMapInstallResult | null {
+  const packageName = NATIVE_MAP_ANDROID_PACKAGES[appType];
+  const isAppInstalled = globalScope?.AndroidMap?.isAppInstalled;
+
+  if (!packageName || typeof isAppInstalled !== "function") {
+    return null;
+  }
+
+  try {
+    const installed = Boolean(isAppInstalled(packageName));
+
+    return {
+      ok: installed,
+      appType,
+      installed,
+      status: installed ? "installed" : "not-installed",
+      reason: installed ? undefined : "map-app-not-installed",
+    };
+  } catch (error) {
+    return {
+      ok: true,
+      appType,
+      installed: null,
+      status: "unknown",
+      reason: normalizeErrorReason(error),
+    };
+  }
+}
+
 export function createDetectedTauriNativeBridge(
   options: CreateDetectedTauriNativeBridgeOptions,
 ): NativeBridge {
   const fallback = options.fallback ?? createBrowserNativeBridge();
+  const globalScope = options.globalScope ?? getDefaultGlobalScope();
 
   return {
     async getClientInfo() {
@@ -1069,6 +1224,14 @@ export function createDetectedTauriNativeBridge(
     },
 
     async checkMapInstalled(input) {
+      const androidResult = checkAndroidMapInstalledWithBridge(
+        input.appType,
+        globalScope,
+      );
+      if (androidResult) {
+        return androidResult;
+      }
+
       try {
         return normalizeMapInstallResult(
           await options.invoke<NativeMapInstallResult>(
@@ -1334,6 +1497,7 @@ export function createNativeBridge(
   return createDetectedTauriNativeBridge({
     invoke,
     fallback,
+    globalScope: options.globalScope,
     getClientInfoCommand: options.getClientInfoCommand,
     openExternalCommand: options.openExternalCommand,
     mapNavigationCommand: options.mapNavigationCommand,
@@ -1357,39 +1521,92 @@ export function createNativeCapabilityCore(
       return [...NATIVE_MAP_APPS];
     },
 
+    async listMapOpenCandidates() {
+      const results = await Promise.all(
+        NATIVE_MAP_APPS.map(async (app) => {
+          try {
+            const status = await bridge.checkMapInstalled({ appType: app.appType });
+            return {
+              ...app,
+              ...status,
+              available: isMapCandidateAvailable(status),
+            };
+          } catch (error) {
+            return {
+              ...app,
+              ok: false,
+              appType: app.appType,
+              installed: null,
+              status: "unknown" as const,
+              available: true,
+              reason: normalizeErrorReason(error),
+            };
+          }
+        }),
+      );
+
+      return results;
+    },
+
+    async openPreferredMapNavigation(input) {
+      const requestedAppType = input.appType;
+      const candidates = requestedAppType
+        ? [{ appType: requestedAppType, label: requestedAppType }]
+        : NATIVE_MAP_APPS;
+
+      let lastReason = "";
+
+      for (const candidate of candidates) {
+        const status = await bridge.checkMapInstalled({
+          appType: candidate.appType,
+        });
+
+        if (status.status === "not-installed" || status.status === "unsupported") {
+          lastReason = status.reason ?? status.status;
+          continue;
+        }
+
+        const result = await bridge.openMapNavigation({
+          ...input,
+          appType: candidate.appType,
+        });
+
+        if (result.ok) {
+          return {
+            ...result,
+            appType: candidate.appType,
+          };
+        }
+
+        lastReason = result.reason ?? status.reason ?? "map-open-failed";
+      }
+
+      return {
+        ok: false,
+        reason: lastReason || "no-map-candidate",
+      };
+    },
+
     async ensurePermission(input) {
       return bridge.ensurePermission(input);
     },
 
     async pickImages(input) {
-      const photoPermission = await bridge.ensurePermission({
-        kind: "photo-library",
+      const requiredPermission = input?.capture ? "camera" : "photo-library";
+      const permission = await bridge.ensurePermission({
+        kind: requiredPermission,
         trigger: "on-demand",
-        purpose: "pick-image",
+        purpose: input?.capture ? "capture-image" : "pick-image",
       });
 
-      if (!photoPermission.ok) {
+      if (!permission.ok) {
         return {
           ok: false,
-          reason: photoPermission.reason ?? "photo-library-permission-denied",
+          reason:
+            permission.reason ??
+            `${requiredPermission}-permission-denied`,
           files: [],
         };
-      }
-
-      if (input?.capture) {
-        const cameraPermission = await bridge.ensurePermission({
-          kind: "camera",
-          trigger: "on-demand",
-          purpose: "capture-image",
-        });
-
-        if (!cameraPermission.ok) {
-          return {
-            ok: false,
-            reason: cameraPermission.reason ?? "camera-permission-denied",
-            files: [],
-          };
-        }
       }
 
       return bridge.pickImages(input);

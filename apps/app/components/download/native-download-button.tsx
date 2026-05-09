@@ -2,7 +2,7 @@
 
 import type { MouseEvent } from "react";
 import { useState } from "react";
-import { createNativeBridge } from "@rtnn/native-bridge";
+import { createAppNativeCore } from "@/lib/native-core";
 import { buttonVariants } from "@/components/ui/button";
 
 type NativeDownloadButtonProps = {
@@ -21,11 +21,12 @@ export function NativeDownloadButton({
   async function handleDownload(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
     setFailed(false);
-    const bridge = createNativeBridge();
-    const result = await bridge.openExternal({ url });
+    const nativeCore = createAppNativeCore();
+    const result = await nativeCore.openExternalUrl(url);
 
     if (!result.ok) {
-      const info = await bridge.getClientInfo().catch(() => null);
+      const snapshot = await nativeCore.getRuntimeSnapshot().catch(() => null);
+      const info = snapshot?.clientInfo ?? null;
       if (info?.runtime === "browser") {
         window.location.assign(url);
         return;

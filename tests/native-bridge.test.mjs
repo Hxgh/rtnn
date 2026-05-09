@@ -202,6 +202,65 @@ test("detected Tauri bridge uses native permission and map install commands", as
   );
 });
 
+test("native bridge detects Android map apps through WebView bridge first", async () => {
+  const calls = [];
+  const globalScope = {
+    AndroidMap: {
+      isAppInstalled(packageName) {
+        calls.push(["AndroidMap.isAppInstalled", packageName]);
+        return packageName === "com.autonavi.minimap";
+      },
+    },
+  };
+  const invoke = async (command) => {
+    calls.push(["invoke", command]);
+    return {
+      ok: true,
+      appType: "amap",
+      installed: null,
+      status: "unknown",
+    };
+  };
+  const bridge = createDetectedTauriNativeBridge({ invoke, globalScope });
+
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "amap" }), {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    reason: undefined,
+  });
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "baidu" }), {
+    ok: false,
+    appType: "baidu",
+    installed: false,
+    status: "not-installed",
+    reason: "map-app-not-installed",
+  });
+  assert.deepEqual(calls, [
+    ["AndroidMap.isAppInstalled", "com.autonavi.minimap"],
+    ["AndroidMap.isAppInstalled", "com.baidu.BaiduMap"],
+  ]);
+});
+
+test("browser bridge can use Android map install bridge when available", async () => {
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      AndroidMap: {
+        isAppInstalled: (packageName) => packageName === "com.tencent.map",
+      },
+    },
+  });
+
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "tencent" }), {
+    ok: true,
+    appType: "tencent",
+    installed: true,
+    status: "installed",
+    reason: undefined,
+  });
+});
+
 test("createNativeBridge falls back to browser without Tauri", async () => {
   const bridge = createNativeBridge({
     globalScope: {},
@@ -355,15 +414,110 @@ test("native capability core requests media permissions before image picking", a
     "baidu",
     "tencent",
   ]);
+  assert.deepEqual(await core.pickImages(), {
+    ok: true,
+    files: [],
+  });
   assert.deepEqual(await core.pickImages({ capture: "environment" }), {
     ok: true,
     files: [],
   });
   assert.deepEqual(calls, [
     ["ensurePermission", "photo-library", "pick-image"],
+    ["pickImages", null],
     ["ensurePermission", "camera", "capture-image"],
     ["pickImages", "environment"],
   ]);
+});
+
+test("native capability core lists map candidates and skips unavailable apps", async () => {
+  const calls = [];
+  const bridge = {
+    async getClientInfo() {
+      return {
+        runtime: "browser",
+        shell: null,
+        platform: "android",
+        appVersion: null,
+        bridgeVersion: "0.1.0",
+        channel: "testing",
+        features: [],
+      };
+    },
+    async openExternal() {
+      return { ok: true };
+    },
+    async openMapNavigation(input) {
+      calls.push(["openMapNavigation", input.appType]);
+      return { ok: true };
+    },
+    async checkMapInstalled(input) {
+      calls.push(["checkMapInstalled", input.appType]);
+      return {
+        ok: input.appType !== "baidu",
+        appType: input.appType,
+        installed: input.appType === "amap",
+        status: input.appType === "baidu" ? "not-installed" : "installed",
+      };
+    },
+    async checkPermission(input) {
+      return {
+        ok: true,
+        kind: input.kind ?? input,
+        status: "granted",
+      };
+    },
+    async requestPermission(input) {
+      return {
+        ok: true,
+        kind: input.kind ?? input,
+        status: "granted",
+      };
+    },
+    async ensurePermission(input) {
+      return {
+        ok: true,
+        kind: input.kind ?? input,
+        status: "granted",
+      };
+    },
+    async pickImages() {
+      return { ok: true, files: [] };
+    },
+    async checkUpdate() {
+      return { ok: false, update: { available: false } };
+    },
+    async installUpdate() {
+      return { ok: false };
+    },
+  };
+  const core = createNativeCapabilityCore({ bridge });
+
+  const candidates = await core.listMapOpenCandidates();
+  assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
+  assert.equal(candidates.find((item) => item.appType === "baidu")?.available, false);
+  assert.deepEqual(
+    await core.openPreferredMapNavigation({
+      lat: 30.25,
+      lng: 120.16,
+      appType: "baidu",
+    }),
+    {
+      ok: false,
+      reason: "not-installed",
+    },
+  );
+  assert.deepEqual(
+    await core.openPreferredMapNavigation({
+      lat: 30.25,
+      lng: 120.16,
+      appType: "amap",
+    }),
+    {
+      ok: true,
+      appType: "amap",
+    },
+  );
 });
 
 test("native viewport insets writes keyboard CSS variables from visual viewport", () => {

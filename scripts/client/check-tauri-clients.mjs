@@ -43,6 +43,17 @@ const CLIENTS = {
       "keyboard",
     ],
     requiredFiles: ["../../scripts/client/prepare-app-tauri-android.mjs"],
+    requiredFileSnippets: {
+      "../../scripts/client/prepare-app-tauri-android.mjs": [
+        "AndroidMap",
+        "com.autonavi.minimap",
+        "com.baidu.BaiduMap",
+        "com.tencent.map",
+        "isCaptureEnabled",
+        "launchCameraCapture",
+        "launchImagePicker",
+      ],
+    },
   },
 };
 
@@ -164,6 +175,17 @@ function validateClient(rootDir, clientName, expected) {
 
   for (const relativeFilePath of expected.requiredFiles ?? []) {
     assertFile(path.resolve(clientDir, relativeFilePath));
+  }
+
+  for (const [relativeFilePath, snippets] of Object.entries(
+    expected.requiredFileSnippets ?? {},
+  )) {
+    const filePath = path.resolve(clientDir, relativeFilePath);
+    assertFile(filePath);
+    const source = readFileSync(filePath, "utf8");
+    for (const snippet of snippets) {
+      assert(source.includes(snippet), `${clientName} ${relativeFilePath} 缺少 ${snippet}`);
+    }
   }
 
   for (const filePath of [

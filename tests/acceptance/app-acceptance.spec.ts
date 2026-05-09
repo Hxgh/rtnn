@@ -35,6 +35,9 @@ const nextPasswordLabel = either("新密码", "New password");
 const confirmPasswordLabel = either("确认新密码", "Confirm new password");
 const logoutButton = either("退出登录", "Sign out");
 const forbiddenTitle = either("无权限访问", "Access denied");
+const nativeCapabilitiesTitle = either("客户端能力", "Client capabilities");
+const nativeMediaTitle = either("相机相册", "Camera and photos");
+const nativeMapTitle = either("地图跳转", "Map navigation");
 
 const refreshTokenCookieName = cookieKeys.customerRefreshToken;
 
@@ -231,6 +234,19 @@ test("app 客户端最小闭环验收", async ({ page }) => {
   await expect(page.getByRole("heading", { name: meTitle })).toBeVisible();
   await expectBottomNavSafeAreaFilled(page);
   await expectContentClearsBottomNav(page, 'button[type="submit"]');
+
+  const nativeDiagnosticsLink = page.getByTestId("me-native-diagnostics-link");
+  await expect(nativeDiagnosticsLink).toBeVisible();
+  await nativeDiagnosticsLink.click();
+  await page.waitForURL((url) => url.pathname === "/native-diagnostics");
+  await expect(page.getByRole("heading", { name: nativeCapabilitiesTitle }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: nativeMediaTitle })).toBeVisible();
+  await expect(page.getByRole("heading", { name: nativeMapTitle })).toBeVisible();
+  await expect(page.locator("nav")).toHaveCount(0);
+  await expectContentClearsViewportBottom(page, 'a[href="/download"]');
+
+  await page.goto("/me");
+  await expect(page.getByRole("heading", { name: meTitle })).toBeVisible();
 
   const logoutNavigation = page.waitForURL("**/login");
   await page.getByRole("button", { name: logoutButton }).click();
