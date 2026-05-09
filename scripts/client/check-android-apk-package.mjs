@@ -16,7 +16,6 @@ const REQUIRED_BADGING_SNIPPETS = Object.freeze([
   "package: name='com.rtnn.app'",
   "application-label:'RTNN App'",
   "application-icon-",
-  "rtnn_launcher_icon",
   "application: label='RTNN App'",
 ]);
 
@@ -230,8 +229,8 @@ function assertExtractedLauncherIconFiles(extractDir) {
     .filter((relativePath) => /rtnn_launcher_icon.*\.(png|xml)$/i.test(relativePath));
 
   // Android packaging can compile, deduplicate, or rename raw res files in the APK.
-  // The authoritative checks are the manifest icon refs, aapt badging, and the
-  // resource table checks above. Keep extracted filenames only as diagnostic data.
+  // The authoritative checks are the manifest icon refs and the resource table
+  // checks above. Keep extracted filenames only as diagnostic data.
   if (files.length > 0) {
     assert(
       files.some((relativePath) => /rtnn_launcher_icon\.(png|xml)$/i.test(relativePath)),
@@ -305,6 +304,7 @@ function main() {
       iconRef: launcherIconRef,
       iconFiles: launcherIconFiles,
       rawIconFileNamesPreserved: launcherIconFiles.length > 0,
+      badgingMentionsLauncherIcon: badging.includes("rtnn_launcher_icon"),
       frontendDist: bundledTauriConfig?.build?.frontendDist ?? null,
       checked: {
         badging: REQUIRED_BADGING_SNIPPETS,

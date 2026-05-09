@@ -1256,7 +1256,9 @@ test("check-android-apk-package keeps map schemes as manifest checks", () => {
   assert.match(source, /android\\\.intent\\\.category\\\.LAUNCHER/);
   assert.match(source, /assertExtractedLauncherIconFiles/);
   assert.match(source, /rawIconFileNamesPreserved/);
+  assert.match(source, /badgingMentionsLauncherIcon/);
   assert.match(source, /rtnn_launcher_icon.*diagnostic data/s);
+  assert.doesNotMatch(binarySnippets, /rtnn_launcher_icon/);
   assert.doesNotMatch(binarySnippets, /androidamap:\/\//);
   assert.doesNotMatch(binarySnippets, /baidumap:\/\//);
   assert.doesNotMatch(binarySnippets, /qqmap:\/\//);
