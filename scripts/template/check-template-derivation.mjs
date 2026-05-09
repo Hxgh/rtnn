@@ -66,6 +66,8 @@ function main() {
   run("node", ["--check", "scripts/release/merge-tauri-updater-fragments.mjs"], "校验 Tauri updater merge 脚本语法");
   run("node", ["--check", "scripts/release/collect-client-github-release-assets.mjs"], "校验 client GitHub Release asset 收集脚本语法");
   run("node", ["--check", "scripts/release/write-mobile-release-boundary.mjs"], "校验 mobile release boundary 脚本语法");
+  run("node", ["--check", "scripts/release/check-client-build-capacity.mjs"], "校验 client build 容量检查脚本语法");
+  run("node", ["--check", "scripts/release/cleanup-client-build-artifacts.mjs"], "校验 client build 清理脚本语法");
   run("node", ["--check", "scripts/release/sync-client-release-state.mjs"], "校验 client liveState 同步脚本语法");
   run("node", ["--check", "scripts/release/check-client-release-github-prereqs.mjs"], "校验 client release GitHub 前置条件脚本语法");
   run("node", ["--check", "scripts/release/run-client-release-github-dry-run.mjs"], "校验 client release GitHub dry-run 触发脚本语法");

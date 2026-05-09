@@ -74,6 +74,14 @@ const collectGithubReleaseAssetsScriptPath = path.join(
   repoRoot,
   "scripts/release/collect-client-github-release-assets.mjs",
 );
+const checkClientBuildCapacityScriptPath = path.join(
+  repoRoot,
+  "scripts/release/check-client-build-capacity.mjs",
+);
+const cleanupClientBuildArtifactsScriptPath = path.join(
+  repoRoot,
+  "scripts/release/cleanup-client-build-artifacts.mjs",
+);
 const mobileBoundaryScriptPath = path.join(
   repoRoot,
   "scripts/release/write-mobile-release-boundary.mjs",
@@ -2061,6 +2069,9 @@ test("release-clients workflow constrains server-local Android build resources",
     "utf8",
   );
 
+  assert.match(workflow, /name: Check server-local client build disk capacity/);
+  assert.match(workflow, /CLIENT_BUILD_MIN_FREE_DISK_MB/);
+  assert.match(workflow, /check-client-build-capacity\.mjs/);
   assert.match(workflow, /ANDROID_BUILD_TARGETS: \$\{\{ vars\.ANDROID_BUILD_TARGETS \|\| 'aarch64' \}\}/);
   assert.match(workflow, /ANDROID_MIN_FREE_DISK_MB/);
   assert.match(workflow, /org\.gradle\.workers\.max/);
@@ -2083,6 +2094,18 @@ test("release-clients workflow avoids server-local gh and pnpm cache assumptions
   assert.match(workflow, /https:\/\/uploads\.github\.com\/repos\/\$\{GITHUB_REPOSITORY\}/);
   assert.doesNotMatch(workflow, /\bgh api\b/);
   assert.doesNotMatch(workflow, /\bgh release\b/);
+});
+
+test("release-clients workflow cleans generated build artifacts on self-hosted runners", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /name: Cleanup server-local client build artifacts/);
+  assert.match(workflow, /always\(\) && matrix\.runner_kind == 'self-hosted'/);
+  assert.match(workflow, /CLIENT_DIR: \$\{\{ matrix\.client_dir \}\}/);
+  assert.match(workflow, /cleanup-client-build-artifacts\.mjs/);
 });
 
 test("collect-client-github-release-assets copies desktop bundles and updater manifests", () => {
@@ -2337,6 +2360,79 @@ test("collect-client-artifacts copies bundle outputs and writes file manifest", 
         size: 6,
       },
     ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-client-build-capacity allows healthy workspaces", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-capacity-"));
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [checkClientBuildCapacityScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_BUILD_MIN_FREE_DISK_MB: "1",
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /client-build-capacity/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("cleanup-client-build-artifacts removes only generated client build outputs", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "rtnn-client-cleanup-"));
+  try {
+    const clientDir = path.join(dir, "clients/app-tauri");
+    const runnerTemp = path.join(dir, "runner-temp");
+    const keepFile = path.join(
+      clientDir,
+      "src-tauri/gen/android/app/src/main/AndroidManifest.xml",
+    );
+    const removeFiles = [
+      path.join(clientDir, "src-tauri/target/release/bundle/app.apk"),
+      path.join(clientDir, "src-tauri/gen/android/app/build/output.apk"),
+      path.join(clientDir, "src-tauri/gen/android/app/.cxx/state.bin"),
+      path.join(clientDir, "src-tauri/gen/android/build/cache.bin"),
+      path.join(clientDir, "src-tauri/gen/android/.gradle/cache.bin"),
+      path.join(clientDir, "src-tauri/gen/android/.kotlin/cache.bin"),
+      path.join(runnerTemp, "rtnn-tauri-target/release/check.bin"),
+    ];
+
+    mkdirSync(path.dirname(keepFile), { recursive: true });
+    writeFileSync(keepFile, "keep");
+    for (const filePath of removeFiles) {
+      mkdirSync(path.dirname(filePath), { recursive: true });
+      writeFileSync(filePath, "remove");
+    }
+
+    const result = spawnSync(
+      process.execPath,
+      [cleanupClientBuildArtifactsScriptPath],
+      {
+        cwd: dir,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CLIENT_DIR: "clients/app-tauri",
+          RUNNER_TEMP: runnerTemp,
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(keepFile, "utf8"), "keep");
+    for (const filePath of removeFiles) {
+      assert.equal(existsSync(filePath), false, filePath);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

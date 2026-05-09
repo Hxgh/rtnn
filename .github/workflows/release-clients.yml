@@ -141,6 +141,13 @@ jobs:
             pnpm-workspace.yaml
             clients/*/package.json
 
+      - name: Check server-local client build disk capacity
+        if: ${{ matrix.runner_kind == 'self-hosted' }}
+        shell: bash
+        env:
+          CLIENT_BUILD_MIN_FREE_DISK_MB: ${{ vars.CLIENT_BUILD_MIN_FREE_DISK_MB || '2048' }}
+        run: node scripts/release/check-client-build-capacity.mjs
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -728,6 +735,13 @@ jobs:
           name: ${{ matrix.artifact_name }}-manifest
           path: artifacts/client-release/${{ matrix.artifact_name }}.json
           if-no-files-found: error
+
+      - name: Cleanup server-local client build artifacts
+        if: ${{ always() && matrix.runner_kind == 'self-hosted' }}
+        shell: bash
+        env:
+          CLIENT_DIR: ${{ matrix.client_dir }}
+        run: node scripts/release/cleanup-client-build-artifacts.mjs
 
   merge-tauri-updater-manifests:
     name: Merge Tauri Updater Manifests
