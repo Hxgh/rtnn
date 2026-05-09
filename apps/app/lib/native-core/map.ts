@@ -97,7 +97,7 @@ export async function openMapNavigation(
     const result = await nativeBridge.openMapNavigation({
       ...input,
       appType: candidate.appType,
-      allowWebFallback: !input.appType,
+      allowWebFallback: input.allowWebFallback ?? !input.appType,
     });
 
     if (result.ok) {

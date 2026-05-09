@@ -48,6 +48,8 @@ const CLIENTS = {
     requiredFileSnippets: {
       "../../scripts/client/prepare-app-tauri-android.mjs": [
         "AndroidMap",
+        "openNavigation",
+        "queryIntentActivities",
         "AndroidTheme",
         "com.autonavi.minimap",
         "com.baidu.BaiduMap",
@@ -74,6 +76,8 @@ const CLIENTS = {
         "com.tencent.maplite",
         "rtnn:native-file-picker-closed",
         "rtnn:android-map-ready",
+        "openNavigation",
+        "native-map-no-handler",
       ],
     },
   },
@@ -249,6 +253,23 @@ function assertSharedShellIcons(rootDir) {
   );
 }
 
+function assertBrandIconGuide(rootDir) {
+  const docPath = path.join(rootDir, "docs", "architecture", "client-shell-release-distribution.md");
+  const doc = readFileSync(docPath, "utf8");
+  const requiredSnippets = [
+    "图标体系",
+    "clients/app-tauri/src-tauri/icons/icon.png",
+    "clients/admin-tauri/src-tauri/icons/icon.png",
+    "apps/app/app/favicon.ico",
+    "apps/admin/app/favicon.ico",
+    "rtnn_launcher_icon",
+  ];
+
+  for (const snippet of requiredSnippets) {
+    assert(doc.includes(snippet), `客户端发布文档缺少图标维护说明: ${snippet}`);
+  }
+}
+
 function assertSharedWebFavicons(rootDir) {
   const shellIcon = readFileSync(
     path.join(rootDir, "clients", "app-tauri", "src-tauri", "icons", "icon.ico"),
@@ -285,6 +306,8 @@ function main() {
     console.log("[tauri-client-check] shell 图标一致性通过");
     assertSharedWebFavicons(rootDir);
     console.log("[tauri-client-check] web favicon 一致性通过");
+    assertBrandIconGuide(rootDir);
+    console.log("[tauri-client-check] 图标体系说明通过");
   }
 }
 

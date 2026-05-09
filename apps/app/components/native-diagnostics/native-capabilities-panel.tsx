@@ -53,6 +53,7 @@ const emptyPermissions: Record<
 };
 const mediaPickerTimeoutMs = 12_000;
 const transientActionStateMs = 1_200;
+const nativeActionDispatchStateMs = 1_800;
 
 function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
   return [
@@ -91,6 +92,10 @@ function formatList(values?: string[]) {
 
 function isOpened(result: NativeCoreActionResult) {
   return result.ok;
+}
+
+function isDispatched(result: NativeCoreActionResult) {
+  return Boolean("dispatched" in result && result.dispatched);
 }
 
 function isCancelled(result: NativeCoreActionResult) {
@@ -195,6 +200,18 @@ function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
 
 function isPickerManagedPermission(result: NativeCorePermissionResult | null) {
   return result?.reason === "permission-managed-by-file-picker";
+}
+
+function getPickerManagedPermissionSource(kind: VisiblePermissionKind) {
+  if (kind === "photo-library") {
+    return "album" as const;
+  }
+
+  if (kind === "camera") {
+    return "camera" as const;
+  }
+
+  return null;
 }
 
 export function NativeCapabilitiesPanel({
@@ -341,6 +358,10 @@ export function NativeCapabilitiesPanel({
       const result = await runNativeActionWithWatchdog(action);
       setLastMessage(result.message ?? result.reason ?? null);
       setState(isOpened(result) ? "opened" : isCancelled(result) ? "cancelled" : "failed");
+
+      if (isDispatched(result)) {
+        window.setTimeout(() => setState("idle"), nativeActionDispatchStateMs);
+      }
     } catch (error) {
       setLastMessage(error instanceof Error ? error.message : String(error));
       setState("failed");
@@ -357,6 +378,15 @@ export function NativeCapabilitiesPanel({
   }
 
   async function handleRequestPermission(kind: VisiblePermissionKind) {
+    const pickerSource = getPickerManagedPermissionSource(kind);
+
+    if (pickerSource) {
+      setPermissionState((current) => ({ ...current, [kind]: "opening" }));
+      await handlePickMedia(pickerSource);
+      setPermissionState((current) => ({ ...current, [kind]: "idle" }));
+      return;
+    }
+
     setPermissionState((current) => ({ ...current, [kind]: "opening" }));
 
     try {
@@ -367,19 +397,11 @@ export function NativeCapabilitiesPanel({
         [kind]: result,
       }));
       setLastMessage(
-        result.message ??
-          (result.reason === "permission-managed-by-file-picker"
-            ? messages.permissionActionDriven
-            : result.reason) ??
-          messages.permissionRequestDone,
+        result.message ?? result.reason ?? messages.permissionRequestDone,
       );
       setPermissionState((current) => ({
         ...current,
-        [kind]: result.reason === "permission-managed-by-file-picker"
-          ? "cancelled"
-          : result.ok
-            ? "opened"
-            : "failed",
+        [kind]: result.ok ? "opened" : "failed",
       }));
     } catch (error) {
       setLastMessage(error instanceof Error ? error.message : String(error));
@@ -440,6 +462,7 @@ export function NativeCapabilitiesPanel({
       nativeCore.openMapNavigation({
         ...mapTarget,
         appType: candidate.appType,
+        allowWebFallback: false,
       }),
     );
   }
@@ -624,7 +647,7 @@ export function NativeCapabilitiesPanel({
                 <Button
                   disabled={
                     permissionState[kind] === "opening" ||
-                    isPickerManagedPermission(permissions[kind])
+                    (imageState === "opening" && Boolean(getPickerManagedPermissionSource(kind)))
                   }
                   onClick={() => handleRequestPermission(kind)}
                   size="sm"
@@ -708,7 +731,7 @@ export function NativeCapabilitiesPanel({
                 const disabled =
                   mapState === "opening" ||
                   candidate.checking ||
-                  !isMapCandidateActionable(candidate);
+                  candidate.status === "unsupported";
                 const uncertain = isMapDetectionUncertain(candidate);
 
                 return (

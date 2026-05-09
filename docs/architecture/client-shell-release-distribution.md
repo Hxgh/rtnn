@@ -61,6 +61,42 @@ The static server maps:
 
 Installer files should live outside the deploy repository and outside git.
 
+## Icon System
+
+图标体系由同一组 shell brand assets 统一维护。
+
+RTNN treats the brand mark as one client-shell asset set, not as separate
+per-platform decorations.
+
+The canonical shell icon files are:
+
+- `clients/app-tauri/src-tauri/icons/icon.png`
+- `clients/app-tauri/src-tauri/icons/icon.ico`
+- `clients/admin-tauri/src-tauri/icons/icon.png`
+- `clients/admin-tauri/src-tauri/icons/icon.ico`
+
+The web favicon files must stay aligned with the shell ICO:
+
+- `apps/app/app/favicon.ico`
+- `apps/admin/app/favicon.ico`
+
+For Android, `scripts/client/prepare-app-tauri-android.mjs` copies the app
+shell PNG into generated launcher resources and sets the manifest icon to
+`rtnn_launcher_icon`. The Android generated project is disposable; do not edit
+its generated icon files by hand.
+
+When a business project changes branding, update the shell icon files first,
+then regenerate matching favicon files and run:
+
+```bash
+pnpm run check:clients
+```
+
+For a built APK, verify the final package with `aapt dump badging` and confirm
+that `application-icon-*` resolves to the RTNN launcher resource. On Android
+devices, uninstall the old package before reinstalling if the launcher still
+shows a stale cached icon.
+
 ## Retention
 
 Self-hosted distribution files are pruned per `client + target + channel`.

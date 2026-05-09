@@ -84,6 +84,7 @@ export type NativeMapNavigationInput = {
   lat?: number;
   lng?: number;
   name?: string;
+  allowWebFallback?: boolean;
 };
 
 export type NativeCoreService = {

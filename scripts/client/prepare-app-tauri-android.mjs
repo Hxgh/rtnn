@@ -566,6 +566,76 @@ class MainActivity : TauriActivity() {
       return detectAppInstalled(packageName).toString()
     }
 
+    @JavascriptInterface
+    fun openNavigation(appType: String, url: String): String {
+      val result = JSONObject()
+      result.put("appType", appType)
+
+      if (url.isBlank()) {
+        result.put("ok", false)
+        result.put("reason", "missing-map-target")
+        return result.toString()
+      }
+
+      return try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+          addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val preferredPackage = findInstalledMapPackage(appType)
+
+        if (preferredPackage != null) {
+          intent.setPackage(preferredPackage)
+        }
+
+        val canOpen = canResolveIntent(intent)
+        if (!canOpen && preferredPackage != null) {
+          intent.setPackage(null)
+        }
+
+        if (!canResolveIntent(intent)) {
+          result.put("ok", false)
+          result.put("reason", "native-map-no-handler")
+          return result.toString()
+        }
+
+        startActivity(intent)
+        result.put("ok", true)
+        result.put("message", "opened-native-map")
+        result.toString()
+      } catch (error: Exception) {
+        result.put("ok", false)
+        result.put("reason", error.javaClass.simpleName)
+        result.toString()
+      }
+    }
+
+    private fun canResolveIntent(intent: Intent): Boolean {
+      return try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          packageManager.queryIntentActivities(
+            intent,
+            PackageManager.ResolveInfoFlags.of(0)
+          ).isNotEmpty()
+        } else {
+          @Suppress("DEPRECATION")
+          packageManager.queryIntentActivities(intent, 0).isNotEmpty()
+        }
+      } catch (_: Exception) {
+        false
+      }
+    }
+
+    private fun findInstalledMapPackage(appType: String): String? {
+      val packages = when (appType) {
+        "amap" -> listOf("com.autonavi.minimap")
+        "baidu" -> listOf("com.baidu.BaiduMap")
+        "tencent" -> listOf("com.tencent.map", "com.tencent.maplite")
+        else -> emptyList()
+      }
+
+      return packages.firstOrNull { detectAppInstalled(it).optBoolean("installed", false) }
+    }
+
     private fun detectAppInstalled(packageName: String): JSONObject {
       val result = JSONObject()
       result.put("packageName", packageName)

@@ -1048,6 +1048,9 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /AndroidMap/);
     assert.match(mainActivity, /isAppInstalled/);
     assert.match(mainActivity, /checkAppInstalled/);
+    assert.match(mainActivity, /openNavigation/);
+    assert.match(mainActivity, /queryIntentActivities/);
+    assert.match(mainActivity, /native-map-no-handler/);
     assert.match(mainActivity, /installed-by-launch-intent/);
     assert.match(mainActivity, /map-app-not-installed-or-not-visible/);
     assert.match(mainActivity, /isCaptureEnabled/);

@@ -483,6 +483,20 @@ jobs:
           CLIENT_ARTIFACT_SCAN_DIR: artifacts/client-release/${{ matrix.artifact_name }}/mobile
         run: node scripts/release/check-client-artifact-urls.mjs
 
+      - name: Check Android APK package
+        if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' && (vars.ANDROID_ARTIFACT_TYPE == 'apk' || vars.ANDROID_ARTIFACT_TYPE == '') }}
+        shell: bash
+        env:
+          CLIENT_WEB_URL: ${{ matrix.web_url }}
+          APK_CHECK_REPORT_PATH: artifacts/client-release/${{ matrix.artifact_name }}/android-apk-check.json
+        run: |
+          apk_path="$(find "artifacts/client-release/${{ matrix.artifact_name }}/mobile" -type f -name '*.apk' | sort | head -n 1)"
+          if [[ -z "$apk_path" ]]; then
+            echo "::error::No APK found for Android package check."
+            exit 1
+          fi
+          node scripts/client/check-android-apk-package.mjs "$apk_path"
+
       - name: Collect iOS bundle artifacts
         if: ${{ matrix.target == 'ios' && steps.ios_signing.outputs.configured == 'true' }}
         shell: bash

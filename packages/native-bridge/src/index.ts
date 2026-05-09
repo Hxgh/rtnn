@@ -39,6 +39,7 @@ export type NativeBridgeActionResult = {
   ok: boolean;
   message?: string;
   reason?: string;
+  dispatched?: boolean;
 };
 
 export type NativePermissionKind =
@@ -220,6 +221,7 @@ type BrowserNotificationApi = {
 type AndroidMapBridge = {
   isAppInstalled?: (packageName: string) => boolean;
   checkAppInstalled?: (packageName: string) => string | NativeMapInstallResult | boolean;
+  openNavigation?: (appType: string, url: string) => string | NativeBridgeActionResult | boolean;
 };
 type AndroidThemeBridge = {
   setTheme?: (theme: string, mode: string) => void;
@@ -233,6 +235,10 @@ type TauriGlobalScope = {
     mediaDevices?: BrowserMediaDevicesApi;
   };
   open?: BrowserOpen;
+  location?: {
+    assign?: (url: string) => void;
+    href?: string;
+  };
   setTimeout?: typeof setTimeout;
   clearTimeout?: typeof clearTimeout;
   addEventListener?: Window["addEventListener"];
@@ -392,6 +398,38 @@ function openBrowserUrl(
 
   opener(url, target, "noopener,noreferrer");
   return true;
+}
+
+function openBrowserLocationUrl(
+  url: string,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+) {
+  try {
+    if (typeof globalScope?.location?.assign === "function") {
+      globalScope.location.assign(url);
+      return true;
+    }
+
+    if (globalScope?.location && typeof globalScope.location.href === "string") {
+      globalScope.location.href = url;
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+function dispatchAndroidIntentUrl(
+  url: string,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+) {
+  if (detectBrowserPlatform(globalScope?.navigator?.userAgent) !== "android") {
+    return false;
+  }
+
+  return openBrowserLocationUrl(url, globalScope);
 }
 
 function isHttpUrl(url: string) {
@@ -933,6 +971,46 @@ export function buildWebMapNavigationUrl(input: MapNavigationInput) {
   return `https://uri.amap.com/navigation?to=${encodedName}&mode=car`;
 }
 
+function buildNativeMapNavigationUrl(input: MapNavigationInput) {
+  const hasCoords =
+    typeof input.lat === "number" && typeof input.lng === "number";
+  const name = input.name?.trim();
+
+  if (!hasCoords && !name) {
+    return null;
+  }
+
+  const appType = input.appType ?? "amap";
+  const encodedName = encodeURIComponent(name || "目的地");
+  const directNav = input.directNav ?? hasCoords;
+
+  if (appType === "baidu") {
+    if (hasCoords) {
+      return `baidumap://map/direction?destination=latlng:${input.lat},${input.lng}|name:${encodedName}&coord_type=gcj02&mode=driving`;
+    }
+
+    return `baidumap://map/direction?destination=${encodedName}&mode=driving`;
+  }
+
+  if (appType === "tencent") {
+    if (hasCoords) {
+      return `qqmap://map/routeplan?type=drive&tocoord=${input.lat},${input.lng}&to=${encodedName}`;
+    }
+
+    return `qqmap://map/routeplan?type=drive&to=${encodedName}`;
+  }
+
+  if (hasCoords && directNav) {
+    return `androidamap://navi?sourceApplication=rtnn&lat=${input.lat}&lon=${input.lng}&poiname=${encodedName}&dev=0&style=2`;
+  }
+
+  if (hasCoords) {
+    return `androidamap://route/plan?sourceApplication=rtnn&dlat=${input.lat}&dlon=${input.lng}&dname=${encodedName}&dev=0&t=0`;
+  }
+
+  return `androidamap://route/plan?sourceApplication=rtnn&dname=${encodedName}&dev=0&t=0`;
+}
+
 export function createBrowserNativeBridge(
   options: CreateBrowserNativeBridgeOptions = {},
 ): NativeBridge {
@@ -966,6 +1044,22 @@ export function createBrowserNativeBridge(
     },
 
     async openMapNavigation(input) {
+      const androidResult = openAndroidMapWithBridge(input, globalScope);
+      if (androidResult) {
+        return androidResult;
+      }
+
+      if (detectBrowserPlatform(globalScope?.navigator?.userAgent) === "android") {
+        const nativeUrl = buildNativeMapNavigationUrl(input);
+
+        if (nativeUrl && openBrowserLocationUrl(nativeUrl, globalScope)) {
+          return {
+            ok: true,
+            message: "opened-native-map",
+          };
+        }
+      }
+
       const url = buildWebMapNavigationUrl(input);
 
       if (!url) {
@@ -1195,6 +1289,39 @@ function parseAndroidMapBridgeResult(
   return null;
 }
 
+function parseAndroidMapOpenBridgeResult(
+  value: unknown,
+  appType: MapAppType,
+): NativeBridgeActionResult | null {
+  if (typeof value === "boolean") {
+    return {
+      ok: value,
+      message: value ? "opened-native-map" : undefined,
+      reason: value ? undefined : "native-map-open-failed",
+    };
+  }
+
+  if (typeof value === "string") {
+    try {
+      return normalizeActionResult(JSON.parse(value));
+    } catch {
+      return {
+        ok: false,
+        reason: value || "native-map-open-invalid-result",
+      };
+    }
+  }
+
+  if (value && typeof value === "object") {
+    return normalizeActionResult(value as NativeBridgeActionResult);
+  }
+
+  return {
+    ok: false,
+    reason: `${appType}-native-map-open-invalid-result`,
+  };
+}
+
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
   return result.status !== "unsupported";
 }
@@ -1312,6 +1439,54 @@ function checkAndroidMapInstalledWithBridge(
   }
 }
 
+function openAndroidMapWithBridge(
+  input: MapNavigationInput,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): NativeBridgeActionResult | null {
+  const appType = input.appType ?? "amap";
+  const androidMap = globalScope?.AndroidMap;
+
+  if (typeof androidMap?.openNavigation !== "function") {
+    return null;
+  }
+
+  const nativeUrl = buildNativeMapNavigationUrl({
+    ...input,
+    appType,
+  });
+
+  if (!nativeUrl) {
+    return { ok: false, reason: "missing-map-target" };
+  }
+
+  try {
+    const result = parseAndroidMapOpenBridgeResult(
+      androidMap.openNavigation(appType, nativeUrl),
+      appType,
+    );
+
+    if (
+      !result?.ok &&
+      input.allowWebFallback === false &&
+      result?.reason === "native-map-no-handler" &&
+      dispatchAndroidIntentUrl(nativeUrl, globalScope)
+    ) {
+      return {
+        ok: true,
+        dispatched: true,
+        message: "opened-native-map",
+      };
+    }
+
+    return result;
+  } catch (error) {
+    return {
+      ok: false,
+      reason: normalizeErrorReason(error),
+    };
+  }
+}
+
 function shouldWaitForAndroidMapBridge(
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ) {
@@ -1406,6 +1581,15 @@ export function createDetectedTauriNativeBridge(
     },
 
     async openMapNavigation(input) {
+      const androidResult = openAndroidMapWithBridge(input, globalScope);
+      if (androidResult?.ok) {
+        return androidResult;
+      }
+
+      if (androidResult && input.allowWebFallback === false) {
+        return androidResult;
+      }
+
       try {
         return normalizeActionResult(
           await options.invoke<NativeBridgeActionResult>(
@@ -1596,6 +1780,15 @@ export function createTauriNativeBridge(
     },
 
     async openMapNavigation(input) {
+      const androidResult = openAndroidMapWithBridge(input);
+      if (androidResult?.ok) {
+        return androidResult;
+      }
+
+      if (androidResult && input.allowWebFallback === false) {
+        return androidResult;
+      }
+
       const result = await options.invoke<NativeBridgeActionResult>(
         options.mapNavigationCommand ?? "open_map_navigation",
         {

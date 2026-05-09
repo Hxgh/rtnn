@@ -169,6 +169,7 @@ test("app native core keeps permission timing action driven", async () => {
     lat: 30.2741,
     lng: 120.1551,
     name: "杭州西湖",
+    allowWebFallback: false,
   });
   assert.deepEqual(calls, [
     ["checkMapInstalled", "amap"],
@@ -265,6 +266,7 @@ test("app native core keeps manually selected map apps actionable after uncertai
       lat: 30.2741,
       lng: 120.1551,
       name: "杭州西湖",
+      allowWebFallback: false,
     }),
     {
       ok: true,

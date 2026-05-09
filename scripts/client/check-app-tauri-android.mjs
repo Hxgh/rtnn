@@ -23,6 +23,9 @@ const REQUIRED_MANIFEST_SNIPPETS = Object.freeze([
 const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "AndroidMap",
   "checkAppInstalled",
+  "openNavigation",
+  "queryIntentActivities",
+  "native-map-no-handler",
   "getLaunchIntentForPackage",
   "getPackageInfo",
   "map-app-not-installed-or-not-visible",

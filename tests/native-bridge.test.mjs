@@ -535,6 +535,133 @@ test("browser bridge can use Android map install bridge when available", async (
   assert.deepEqual(calls, ["com.tencent.map", "com.tencent.maplite"]);
 });
 
+test("browser bridge opens Android map through injected WebView bridge first", async () => {
+  const calls = [];
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+      AndroidMap: {
+        openNavigation(appType, url) {
+          calls.push(["AndroidMap.openNavigation", appType, url]);
+          return JSON.stringify({
+            ok: true,
+            message: "opened-native-map",
+          });
+        },
+      },
+      location: {
+        assign(url) {
+          calls.push(["location.assign", url]);
+        },
+        href: "",
+      },
+    },
+  });
+
+  assert.deepEqual(
+    await bridge.openMapNavigation({
+      appType: "amap",
+      lat: 30.25,
+      lng: 120.16,
+      name: "杭州",
+      allowWebFallback: false,
+    }),
+    {
+      ok: true,
+      message: "opened-native-map",
+    },
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], "AndroidMap.openNavigation");
+  assert.equal(calls[0][1], "amap");
+  assert.match(calls[0][2], /^androidamap:\/\//);
+});
+
+test("browser bridge dispatches Android map scheme when injected open reports no handler", async () => {
+  const calls = [];
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+      AndroidMap: {
+        openNavigation(appType, url) {
+          calls.push(["AndroidMap.openNavigation", appType, url]);
+          return JSON.stringify({
+            ok: false,
+            reason: "native-map-no-handler",
+          });
+        },
+      },
+      location: {
+        assign(url) {
+          calls.push(["location.assign", url]);
+        },
+        href: "",
+      },
+    },
+  });
+
+  assert.deepEqual(
+    await bridge.openMapNavigation({
+      appType: "amap",
+      lat: 30.25,
+      lng: 120.16,
+      name: "杭州",
+      allowWebFallback: false,
+    }),
+    {
+      ok: true,
+      dispatched: true,
+      message: "opened-native-map",
+    },
+  );
+  assert.deepEqual(calls.map((call) => call[0]), [
+    "AndroidMap.openNavigation",
+    "location.assign",
+  ]);
+  assert.match(calls[1][1], /^androidamap:\/\//);
+});
+
+test("detected Tauri bridge returns Android map bridge failure when web fallback is disabled", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+      AndroidMap: {
+        openNavigation(appType, url) {
+          calls.push(["AndroidMap.openNavigation", appType, url]);
+          return JSON.stringify({
+            ok: false,
+            reason: "native-map-open-failed",
+          });
+        },
+      },
+      location: {
+        assign(url) {
+          calls.push(["location.assign", url]);
+        },
+        href: "",
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return { ok: true };
+    },
+  });
+
+  assert.deepEqual(
+    await bridge.openMapNavigation({
+      appType: "baidu",
+      name: "杭州",
+      allowWebFallback: false,
+    }),
+    {
+      ok: false,
+      reason: "native-map-open-failed",
+    },
+  );
+  assert.deepEqual(calls.map((call) => call[0]), ["AndroidMap.openNavigation"]);
+});
+
 test("createNativeBridge falls back to browser without Tauri", async () => {
   const bridge = createNativeBridge({
     globalScope: {},
