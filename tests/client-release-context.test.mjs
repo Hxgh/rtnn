@@ -1013,6 +1013,7 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /isCaptureEnabled/);
     assert.match(mainActivity, /launchImagePicker/);
     assert.match(mainActivity, /launchCameraCapture/);
+    assert.match(mainActivity, /camera-permission-denied/);
     assert.match(manifest, /android\.permission\.CAMERA/);
     assert.match(manifest, /com\.autonavi\.minimap/);
     assert.match(manifest, /com\.baidu\.BaiduMap/);

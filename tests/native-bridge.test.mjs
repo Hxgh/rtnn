@@ -243,6 +243,47 @@ test("native bridge detects Android map apps through WebView bridge first", asyn
   ]);
 });
 
+test("native bridge waits briefly for Android map bridge injection", async () => {
+  const calls = [];
+  const globalScope = {
+    navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+    setTimeout(callback) {
+      globalScope.AndroidMap = {
+        isAppInstalled(packageName) {
+          calls.push(["AndroidMap.isAppInstalled", packageName]);
+          return packageName === "com.tencent.map";
+        },
+      };
+      callback();
+      return 1;
+    },
+    AndroidMap: undefined,
+  };
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope,
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return {
+        ok: true,
+        appType: "tencent",
+        installed: null,
+        status: "unknown",
+      };
+    },
+  });
+
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "tencent" }), {
+    ok: true,
+    appType: "tencent",
+    installed: true,
+    status: "installed",
+    reason: undefined,
+  });
+  assert.deepEqual(calls, [
+    ["AndroidMap.isAppInstalled", "com.tencent.map"],
+  ]);
+});
+
 test("browser bridge can use Android map install bridge when available", async () => {
   const bridge = createBrowserNativeBridge({
     globalScope: {

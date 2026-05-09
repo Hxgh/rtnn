@@ -97,7 +97,7 @@ export function NativeUpdatePanel({
       : messages.openInstaller
     : messages.openDownloads;
 
-  async function handleCheckUpdate() {
+  async function handleCheckUpdate(options: { forceOutdated?: boolean } = {}) {
     if (!clientInfo) {
       return;
     }
@@ -108,7 +108,11 @@ export function NativeUpdatePanel({
     setCheckFailed(false);
 
     try {
-      setCheckResult(await nativeCore.checkAppUpdate());
+      setCheckResult(
+        await nativeCore.checkAppUpdate(
+          options.forceOutdated ? { currentVersion: "0.0.0" } : undefined,
+        ),
+      );
     } catch {
       setCheckResult(null);
       setCheckFailed(true);
@@ -210,8 +214,19 @@ export function NativeUpdatePanel({
         ) : null}
 
         <div className="grid gap-2">
-          <Button onClick={handleCheckUpdate} disabled={checking || opening} variant="outline">
+          <Button
+            onClick={() => handleCheckUpdate()}
+            disabled={checking || opening}
+            variant="outline"
+          >
             {checking ? messages.checkingUpdate : messages.checkUpdate}
+          </Button>
+          <Button
+            onClick={() => handleCheckUpdate({ forceOutdated: true })}
+            disabled={checking || opening}
+            variant="ghost"
+          >
+            {checking ? messages.checkingUpdate : messages.testUpdate}
           </Button>
           {openTarget ? (
             <Button

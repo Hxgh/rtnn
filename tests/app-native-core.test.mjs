@@ -60,7 +60,7 @@ function createBridge(calls, overrides = {}) {
       return { ok: true };
     },
     async openMapNavigation(input) {
-      calls.push(["openMapNavigation", input.appType]);
+      calls.push(["openMapNavigation", input.appType, input.allowWebFallback]);
       return { ok: true };
     },
     async checkMapInstalled(input) {
@@ -153,7 +153,24 @@ test("app native core keeps permission timing action driven", async () => {
   });
   assert.deepEqual(calls, [
     ["checkMapInstalled", "amap"],
-    ["openMapNavigation", "amap"],
+    ["openMapNavigation", "amap", false],
+  ]);
+});
+
+test("app native core still allows web fallback for preferred map auto open", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(createBridge(calls));
+
+  await core.openMapNavigation({
+    lat: 30.2741,
+    lng: 120.1551,
+    name: "杭州西湖",
+  });
+
+  assert.deepEqual(calls, [
+    ["checkMapInstalled", "amap"],
+    ["openMapNavigation", "amap", true],
   ]);
 });
 
@@ -285,5 +302,44 @@ test("app native core keeps manual permission requests in diagnostics only", asy
   });
   assert.deepEqual(calls, [
     ["ensurePermission", "notification", "manual", "native-diagnostics"],
+  ]);
+});
+
+test("app native core can override update check current version for diagnostics", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  const core = createAppNativeCore(createBridge(calls));
+
+  globalThis.fetch = async (url) => {
+    calls.push(["fetch", String(url)]);
+    return {
+      ok: true,
+      async json() {
+        return {
+          updateAvailable: true,
+          version: "testing-a1b2c3d",
+          shellVersion: "0.1.0",
+          downloadUrl: "https://downloads.example.test/app.apk",
+        };
+      },
+    };
+  };
+
+  try {
+    assert.equal(
+      (await core.checkAppUpdate({ currentVersion: "0.0.0" }))?.updateAvailable,
+      true,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.deepEqual(calls, [
+    ["getClientInfo"],
+    [
+      "fetch",
+      "/api/client-updates/check?client=appMobile&target=android&channel=testing&currentVersion=0.0.0",
+    ],
   ]);
 });

@@ -243,9 +243,11 @@ fn open_map_navigation(
     name: Option<String>,
     app_type: Option<String>,
     direct_nav: Option<bool>,
+    allow_web_fallback: Option<bool>,
 ) -> Result<CommandResult, String> {
     let app_type = app_type.unwrap_or_else(|| "amap".to_string());
     let direct_nav = direct_nav.unwrap_or_else(|| lat.is_some() && lng.is_some());
+    let allow_web_fallback = allow_web_fallback.unwrap_or(true);
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
@@ -256,6 +258,14 @@ fn open_map_navigation(
                 ok: true,
                 message: Some("opened-native-map".to_string()),
                 reason: None,
+            });
+        }
+
+        if !allow_web_fallback {
+            return Ok(CommandResult {
+                ok: false,
+                message: None,
+                reason: Some("native-map-open-failed".to_string()),
             });
         }
     }

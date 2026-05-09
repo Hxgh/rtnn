@@ -188,6 +188,7 @@ class MainActivity : TauriActivity() {
       } else {
         filePathCallback?.onReceiveValue(null)
         filePathCallback = null
+        notifyFilePickerClosed("camera-permission-denied")
       }
     }
   }

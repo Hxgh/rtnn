@@ -110,7 +110,7 @@ export type NativeCoreService = {
     options?: NativeMediaPickOptions,
   ): Promise<NativeMediaPickResult>;
   buildUpdateCheckQuery(): Promise<NativeClientUpdateQuery | null>;
-  checkAppUpdate(): Promise<ClientUpdateCheckInfo | null>;
+  checkAppUpdate(options?: { currentVersion?: string }): Promise<ClientUpdateCheckInfo | null>;
   openUrl(url: string): Promise<NativeBridgeActionResult>;
 };
 
@@ -275,6 +275,7 @@ export function createAppNativeCore(
         const result = await nativeBridge.openMapNavigation({
           ...input,
           appType: candidate.appType,
+          allowWebFallback: !input.appType,
         });
 
         if (result.ok) {
@@ -405,7 +406,7 @@ export function createAppNativeCore(
       return resolveNativeClientUpdateQuery(info);
     },
 
-    async checkAppUpdate() {
+    async checkAppUpdate(options = {}) {
       const query = await this.buildUpdateCheckQuery();
 
       if (!query) {
@@ -418,8 +419,10 @@ export function createAppNativeCore(
         channel: query.channel,
       });
 
-      if (query.currentVersion) {
-        params.set("currentVersion", query.currentVersion);
+      const currentVersion = options.currentVersion ?? query.currentVersion;
+
+      if (currentVersion) {
+        params.set("currentVersion", currentVersion);
       }
 
       const response = await fetch(`/api/client-updates/check?${params.toString()}`, {

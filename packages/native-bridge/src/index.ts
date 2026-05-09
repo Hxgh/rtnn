@@ -107,6 +107,7 @@ export type MapNavigationInput = {
   name?: string;
   appType?: MapAppType;
   directNav?: boolean;
+  allowWebFallback?: boolean;
 };
 
 export type NativeMapInstallInput = {
@@ -321,6 +322,8 @@ const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string> = {
   baidu: "com.baidu.BaiduMap",
   tencent: "com.tencent.map",
 };
+const ANDROID_MAP_BRIDGE_WAIT_MS = 1_600;
+const ANDROID_MAP_BRIDGE_POLL_MS = 100;
 
 const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
   "camera",
@@ -431,6 +434,14 @@ function normalizeCapture(value?: NativeImagePickInput["capture"]) {
   }
 
   return value === "camera" ? "environment" : value;
+}
+
+function normalizeFilePickerClosedReason(reason: unknown) {
+  if (typeof reason !== "string" || !reason.trim() || reason === "cancelled") {
+    return "file-picker-cancelled";
+  }
+
+  return reason;
 }
 
 function normalizePermissionInput(
@@ -783,8 +794,11 @@ function pickImagesWithInput(
       }
     }
 
-    function handleNativeFilePickerClosed() {
-      scheduleCancelCheck();
+    function handleNativeFilePickerClosed(event: Event) {
+      const reason = normalizeFilePickerClosedReason(
+        (event as CustomEvent<{ reason?: unknown }>).detail?.reason,
+      );
+      cancel(reason);
     }
 
     element.addEventListener(
@@ -1191,6 +1205,39 @@ function checkAndroidMapInstalledWithBridge(
   }
 }
 
+function shouldWaitForAndroidMapBridge(
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+) {
+  return detectBrowserPlatform(globalScope?.navigator?.userAgent) === "android";
+}
+
+function waitForAndroidMapBridge(
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): Promise<void> {
+  if (
+    globalScope?.AndroidMap?.isAppInstalled ||
+    !shouldWaitForAndroidMapBridge(globalScope)
+  ) {
+    return Promise.resolve();
+  }
+
+  const setTimer = globalScope?.setTimeout ?? setTimeout;
+  const deadline = Date.now() + ANDROID_MAP_BRIDGE_WAIT_MS;
+
+  return new Promise((resolve) => {
+    const tick = () => {
+      if (globalScope?.AndroidMap?.isAppInstalled || Date.now() >= deadline) {
+        resolve();
+        return;
+      }
+
+      setTimer(tick, ANDROID_MAP_BRIDGE_POLL_MS);
+    };
+
+    tick();
+  });
+}
+
 export function createDetectedTauriNativeBridge(
   options: CreateDetectedTauriNativeBridgeOptions,
 ): NativeBridge {
@@ -1238,6 +1285,7 @@ export function createDetectedTauriNativeBridge(
               directNav:
                 input.directNav ??
                 (typeof input.lat === "number" && typeof input.lng === "number"),
+              allowWebFallback: input.allowWebFallback ?? true,
             },
           ),
         );
@@ -1259,6 +1307,16 @@ export function createDetectedTauriNativeBridge(
       );
       if (androidResult) {
         return androidResult;
+      }
+
+      await waitForAndroidMapBridge(globalScope);
+
+      const delayedAndroidResult = checkAndroidMapInstalledWithBridge(
+        input.appType,
+        globalScope,
+      );
+      if (delayedAndroidResult) {
+        return delayedAndroidResult;
       }
 
       try {
@@ -1415,6 +1473,7 @@ export function createTauriNativeBridge(
           directNav:
             input.directNav ??
             (typeof input.lat === "number" && typeof input.lng === "number"),
+          allowWebFallback: input.allowWebFallback ?? true,
         },
       );
 
@@ -1422,6 +1481,11 @@ export function createTauriNativeBridge(
     },
 
     async checkMapInstalled(input) {
+      const androidResult = checkAndroidMapInstalledWithBridge(input.appType);
+      if (androidResult) {
+        return androidResult;
+      }
+
       return normalizeMapInstallResult(
         await options.invoke<NativeMapInstallResult>(
           options.checkMapInstalledCommand ?? "check_map_installed",
@@ -1598,6 +1662,7 @@ export function createNativeCapabilityCore(
         const result = await bridge.openMapNavigation({
           ...input,
           appType: candidate.appType,
+          allowWebFallback: input.allowWebFallback ?? true,
         });
 
         if (result.ok) {

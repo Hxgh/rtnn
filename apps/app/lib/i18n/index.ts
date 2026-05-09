@@ -100,6 +100,7 @@ export type AppMessages = {
     channel: string;
     checkUpdate: string;
     checkingUpdate: string;
+    testUpdate: string;
     openUpdate: string;
     openInstaller: string;
     openDownloads: string;
@@ -299,6 +300,7 @@ const zhCN: AppMessages = {
     channel: "环境",
     checkUpdate: "检查更新",
     checkingUpdate: "检查中...",
+    testUpdate: "模拟旧版本测试更新",
     openUpdate: "打开更新",
     openInstaller: "打开安装包",
     openDownloads: "打开下载页",
@@ -498,6 +500,7 @@ const enUS: AppMessages = {
     channel: "Channel",
     checkUpdate: "Check update",
     checkingUpdate: "Checking...",
+    testUpdate: "Test as outdated",
     openUpdate: "Open update",
     openInstaller: "Open installer",
     openDownloads: "Open downloads",
