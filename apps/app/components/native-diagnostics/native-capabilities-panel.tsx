@@ -332,7 +332,7 @@ export function NativeCapabilitiesPanel({
   const [images, setImages] = useState<NativeCorePickedFile[]>([]);
   const [barcodes, setBarcodes] = useState<NativeCoreBarcode[]>([]);
   const [webViewDiagnostics, setWebViewDiagnostics] =
-    useState<WebViewDiagnosticsState | null>(null);
+    useState<WebViewDiagnosticsState>(inspectWebViewDiagnostics);
   const [permissions, setPermissions] =
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
@@ -497,8 +497,6 @@ export function NativeCapabilitiesPanel({
   }, []);
 
   useEffect(() => {
-    refreshWebViewDiagnostics();
-
     const handleReady = () => {
       refreshWebViewDiagnostics();
     };
