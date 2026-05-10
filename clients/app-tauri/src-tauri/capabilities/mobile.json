@@ -6,5 +6,10 @@
   "remote": {
     "urls": ["http://localhost:5102", "https://app.rtnn.invalid"]
   },
-  "permissions": ["core:default", "opener:default"]
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "barcode-scanner:default",
+    "notification:default"
+  ]
 }

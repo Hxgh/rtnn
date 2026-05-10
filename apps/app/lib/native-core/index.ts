@@ -1,6 +1,7 @@
 "use client";
 
 export { createAppNativeCore } from "./service";
+export type { NativePermissionStartupMode } from "./permissions";
 export {
   isNativeActionCancelled,
   nativeActionWatchdogMs,

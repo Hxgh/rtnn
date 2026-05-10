@@ -9,6 +9,12 @@ const RUNTIME_ENV = {
   NEXT_PUBLIC_TEMPLATE_BRAND_NAME: process.env.NEXT_PUBLIC_TEMPLATE_BRAND_NAME,
   TARO_APP_TEMPLATE_BRAND_NAME: process.env.TARO_APP_TEMPLATE_BRAND_NAME,
   TEMPLATE_BRAND_NAME: process.env.TEMPLATE_BRAND_NAME,
+  NEXT_PUBLIC_RTNN_ADMIN_DESKTOP_NAME: process.env.NEXT_PUBLIC_RTNN_ADMIN_DESKTOP_NAME,
+  RTNN_ADMIN_DESKTOP_NAME: process.env.RTNN_ADMIN_DESKTOP_NAME,
+  NEXT_PUBLIC_RTNN_APP_MOBILE_NAME: process.env.NEXT_PUBLIC_RTNN_APP_MOBILE_NAME,
+  RTNN_APP_MOBILE_NAME: process.env.RTNN_APP_MOBILE_NAME,
+  NEXT_PUBLIC_RTNN_APP_ICON_TEXT: process.env.NEXT_PUBLIC_RTNN_APP_ICON_TEXT,
+  RTNN_APP_ICON_TEXT: process.env.RTNN_APP_ICON_TEXT,
   NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX: process.env.NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX,
   TARO_APP_TEMPLATE_COOKIE_PREFIX: process.env.TARO_APP_TEMPLATE_COOKIE_PREFIX,
   TEMPLATE_COOKIE_PREFIX: process.env.TEMPLATE_COOKIE_PREFIX,
@@ -52,6 +58,18 @@ const templateProjectId = readEnv(
 const templateBrandName = readEnv(
   ["NEXT_PUBLIC_TEMPLATE_BRAND_NAME", "TARO_APP_TEMPLATE_BRAND_NAME", "TEMPLATE_BRAND_NAME"],
   "RTNN",
+);
+const adminDesktopName = readEnv(
+  ["NEXT_PUBLIC_RTNN_ADMIN_DESKTOP_NAME", "RTNN_ADMIN_DESKTOP_NAME"],
+  `${templateBrandName} Admin`,
+);
+const appMobileName = readEnv(
+  ["NEXT_PUBLIC_RTNN_APP_MOBILE_NAME", "RTNN_APP_MOBILE_NAME"],
+  `${templateBrandName} App`,
+);
+const appIconText = readEnv(
+  ["NEXT_PUBLIC_RTNN_APP_ICON_TEXT", "RTNN_APP_ICON_TEXT"],
+  templateBrandName,
 );
 const templateCookiePrefix = readEnv(
   ["NEXT_PUBLIC_TEMPLATE_COOKIE_PREFIX", "TARO_APP_TEMPLATE_COOKIE_PREFIX", "TEMPLATE_COOKIE_PREFIX"],
@@ -170,6 +188,9 @@ export const TEMPLATE_DISPLAY = {
   adminAppEn: `${templateBrandName} Admin`,
   appZh: `${templateBrandName} 客户端`,
   appEn: `${templateBrandName} App`,
+  adminDesktopName,
+  appMobileName,
+  appIconText,
 } as const;
 
 export const UI_COOKIE_KEYS = {

@@ -257,6 +257,7 @@ function patchGradle(buildGradlePath) {
     'implementation("androidx.activity:activity-ktx:1.10.1")',
     'implementation("androidx.core:core-ktx:1.15.0")',
     'implementation("androidx.core:core:1.15.0")',
+    'implementation("com.google.mlkit:barcode-scanning:17.3.0")',
   ];
 
   for (const dependency of dependencies) {
@@ -397,11 +398,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Base64
 import android.view.View
 import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
@@ -414,7 +417,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
 import java.io.File
+import java.io.InputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -424,8 +432,13 @@ class MainActivity : TauriActivity() {
   private var currentKeyboardHeight = 0
   private var filePathCallback: ValueCallback<Array<Uri>>? = null
   private var cameraPhotoUri: Uri? = null
+  private var nativeMediaMode: String? = null
+  private var nativeMediaReadAsDataUrl = true
+  private var nativeMediaMaxFiles = 3
+  private var nativeMediaResultJson: String? = null
   private var pendingFileChooser = false
   private var pendingPermissionKind: String? = null
+  private var nativePermissionResultJson: String? = null
   private var currentTheme = "light"
   private var currentThemeMode = "system"
 
@@ -449,6 +462,8 @@ class MainActivity : TauriActivity() {
   ) { result ->
     val callback = filePathCallback
     filePathCallback = null
+    val mode = nativeMediaMode
+    nativeMediaMode = null
 
     if (result.resultCode == Activity.RESULT_OK) {
       val clipData = result.data?.clipData
@@ -459,8 +474,14 @@ class MainActivity : TauriActivity() {
         cameraPhotoUri != null -> arrayOf(cameraPhotoUri!!)
         else -> null
       }
+      if (mode != null) {
+        nativeMediaResultJson = buildMediaResult(uris, null)
+      }
       callback?.onReceiveValue(uris)
     } else {
+      if (mode != null) {
+        nativeMediaResultJson = buildMediaResult(null, "file-picker-cancelled")
+      }
       callback?.onReceiveValue(null)
       notifyFilePickerClosed("cancelled")
     }
@@ -473,6 +494,7 @@ class MainActivity : TauriActivity() {
   ) { granted ->
     val kind = pendingPermissionKind ?: "unknown"
     pendingPermissionKind = null
+    nativePermissionResultJson = permissionResult(kind, granted, true, false).toString()
     notifyPermissionChanged(kind, granted)
   }
 
@@ -509,7 +531,10 @@ class MainActivity : TauriActivity() {
         webView.addJavascriptInterface(ThemeBridge(), "AndroidTheme")
         webView.addJavascriptInterface(MapBridge(), "AndroidMap")
         webView.addJavascriptInterface(PermissionBridge(), "AndroidPermission")
+        webView.addJavascriptInterface(MediaBridge(), "AndroidMedia")
+        webView.addJavascriptInterface(BarcodeBridge(), "AndroidBarcode")
         webView.addJavascriptInterface(NotificationBridge(), "AndroidNotification")
+        webView.addJavascriptInterface(DiagnosticsBridge(), "AndroidDiagnostics")
         webView.webChromeClient = object : WebChromeClient() {
           override fun onShowFileChooser(
             webView: WebView?,
@@ -587,6 +612,114 @@ class MainActivity : TauriActivity() {
       FileProvider.getUriForFile(this, "\${packageName}.fileprovider", imageFile)
     } catch (error: Exception) {
       android.util.Log.e("MainActivity", "Failed to create image Uri", error)
+      null
+    }
+  }
+
+  private fun parseMediaOptions(optionsJson: String?) {
+    try {
+      val options = if (optionsJson.isNullOrBlank()) JSONObject() else JSONObject(optionsJson)
+      nativeMediaReadAsDataUrl = options.optBoolean("readAsDataUrl", true)
+      nativeMediaMaxFiles = options.optInt("maxFiles", 3).coerceIn(1, 9)
+    } catch (_: Exception) {
+      nativeMediaReadAsDataUrl = true
+      nativeMediaMaxFiles = 3
+    }
+  }
+
+  private fun awaitNativeMediaResult(action: () -> Unit): String {
+    nativeMediaResultJson = null
+    action()
+
+    val deadline = System.currentTimeMillis() + 60_000
+    while (nativeMediaResultJson == null && System.currentTimeMillis() < deadline) {
+      try {
+        Thread.sleep(80)
+      } catch (_: InterruptedException) {
+        break
+      }
+    }
+
+    val result = nativeMediaResultJson ?: buildMediaResult(null, "file-picker-timeout")
+    nativeMediaResultJson = null
+    return result
+  }
+
+  private fun awaitNativePermissionResult(kind: String, action: () -> Unit): String {
+    nativePermissionResultJson = null
+    action()
+
+    val deadline = System.currentTimeMillis() + 30_000
+    while (nativePermissionResultJson == null && System.currentTimeMillis() < deadline) {
+      try {
+        Thread.sleep(80)
+      } catch (_: InterruptedException) {
+        break
+      }
+    }
+
+    val result = nativePermissionResultJson ?: permissionResult(
+      kind,
+      isPermissionGranted(kind),
+      true,
+      true,
+      "permission-request-dispatched"
+    ).toString()
+    nativePermissionResultJson = null
+    return result
+  }
+
+  private fun buildMediaResult(uris: Array<Uri>?, reason: String?): String {
+    val result = JSONObject()
+    val files = org.json.JSONArray()
+    val limitedUris = uris?.take(nativeMediaMaxFiles) ?: emptyList()
+
+    for ((index, uri) in limitedUris.withIndex()) {
+      val file = JSONObject()
+      file.put("name", queryDisplayName(uri) ?: "image-\${index + 1}.jpg")
+      file.put("type", contentResolver.getType(uri) ?: "image/jpeg")
+      file.put("size", querySize(uri) ?: 0)
+      if (nativeMediaReadAsDataUrl) {
+        file.put("dataUrl", uriToDataUrl(uri, file.optString("type", "image/jpeg")))
+      }
+      files.put(file)
+    }
+
+    result.put("ok", files.length() > 0)
+    result.put("files", files)
+    if (reason != null) result.put("reason", reason)
+    return result.toString()
+  }
+
+  private fun queryDisplayName(uri: Uri): String? {
+    return try {
+      contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+          if (cursor.moveToFirst()) cursor.getString(0) else null
+        }
+    } catch (_: Exception) {
+      uri.lastPathSegment
+    }
+  }
+
+  private fun querySize(uri: Uri): Long? {
+    return try {
+      contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)
+        ?.use { cursor ->
+          if (cursor.moveToFirst()) cursor.getLong(0) else null
+        }
+    } catch (_: Exception) {
+      null
+    }
+  }
+
+  private fun uriToDataUrl(uri: Uri, mimeType: String): String? {
+    return try {
+      val stream: InputStream = contentResolver.openInputStream(uri) ?: return null
+      val bytes = stream.use { it.readBytes() }
+      "data:\${mimeType};base64,\${Base64.encodeToString(bytes, Base64.NO_WRAP)}"
+    } catch (error: Exception) {
+      android.util.Log.e("MainActivity", "Failed to read selected image", error)
       null
     }
   }
@@ -750,18 +883,175 @@ class MainActivity : TauriActivity() {
 
     @JavascriptInterface
     fun requestPermission(kind: String, purpose: String?): String {
-      val permission = permissionNameForKind(kind)
+      val normalizedKind = if (kind == "barcode") "camera" else kind
+      if (isPermissionGranted(normalizedKind)) {
+        return permissionResult(normalizedKind, true, false, false).toString()
+      }
+
+      val permission = permissionNameForKind(normalizedKind)
       if (permission == null) {
-        return permissionResult(kind, false, true, false, "permission-unavailable").toString()
+        return permissionResult(normalizedKind, false, true, false, "permission-unavailable").toString()
       }
 
-      if (isPermissionGranted(kind)) {
-        return permissionResult(kind, true, false, false).toString()
+      return awaitNativePermissionResult(normalizedKind) {
+        runOnUiThread {
+          pendingPermissionKind = normalizedKind
+          nativePermissionLauncher.launch(permission)
+        }
+      }
+    }
+  }
+
+  inner class MediaBridge {
+    @JavascriptInterface
+    fun pickImages(optionsJson: String?): String {
+      parseMediaOptions(optionsJson)
+      nativeMediaMode = "album"
+      return awaitNativeMediaResult {
+        runOnUiThread { launchImagePicker() }
+      }
+    }
+
+    @JavascriptInterface
+    fun captureImage(optionsJson: String?): String {
+      parseMediaOptions(optionsJson)
+      if (!isPermissionGranted("camera")) {
+        val requested = PermissionBridge().requestPermission("camera", "capture-image")
+        val permission = JSONObject(requested)
+        if (!permission.optBoolean("ok", false) || permission.optString("status") != "granted") {
+          return permissionDeniedMediaResult(permission.optString("reason", "camera-permission-denied"))
+        }
       }
 
-      pendingPermissionKind = kind
-      nativePermissionLauncher.launch(permission)
-      return permissionResult(kind, false, true, true, "permission-request-dispatched").toString()
+      nativeMediaMode = "camera"
+      return awaitNativeMediaResult {
+        runOnUiThread { launchCameraCapture() }
+      }
+    }
+
+    private fun permissionDeniedMediaResult(reason: String): String {
+      val result = JSONObject()
+      result.put("ok", false)
+      result.put("reason", reason)
+      result.put("files", org.json.JSONArray())
+      return result.toString()
+    }
+  }
+
+  inner class BarcodeBridge {
+    @JavascriptInterface
+    fun scanBarcode(optionsJson: String?): String {
+      parseMediaOptions(optionsJson)
+      if (!isPermissionGranted("camera")) {
+        val requested = PermissionBridge().requestPermission("camera", "scan-barcode")
+        val permission = JSONObject(requested)
+        if (!permission.optBoolean("ok", false) || permission.optString("status") != "granted") {
+          return barcodeError(permission.optString("reason", "camera-permission-denied"))
+        }
+      }
+
+      nativeMediaMode = "barcode"
+      val mediaResult = awaitNativeMediaResult {
+        runOnUiThread { launchCameraCapture() }
+      }
+
+      val result = JSONObject(mediaResult)
+      if (!result.optBoolean("ok", false)) {
+        result.put("codes", org.json.JSONArray())
+        return result.toString()
+      }
+
+      val files = result.optJSONArray("files")
+      val dataUrl = files?.optJSONObject(0)?.optString("dataUrl", "") ?: ""
+      val bitmap = dataUrlToBitmap(dataUrl)
+      if (bitmap == null) {
+        return barcodeError("barcode-image-decoder-unavailable")
+      }
+
+      val decoded = decodeBarcode(bitmap)
+      bitmap.recycle()
+      return decoded
+    }
+
+    private fun barcodeError(reason: String): String {
+      val result = JSONObject()
+      result.put("ok", false)
+      result.put("reason", reason)
+      result.put("codes", org.json.JSONArray())
+      return result.toString()
+    }
+
+    private fun dataUrlToBitmap(dataUrl: String): Bitmap? {
+      return try {
+        val base64 = dataUrl.substringAfter(",", "")
+        if (base64.isBlank()) return null
+        val bytes = Base64.decode(base64, Base64.DEFAULT)
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+      } catch (error: Exception) {
+        android.util.Log.e("MainActivity", "Failed to decode barcode image", error)
+        null
+      }
+    }
+
+    private fun decodeBarcode(bitmap: Bitmap): String {
+      val latch = CountDownLatch(1)
+      val output = JSONObject()
+      val inputImage = InputImage.fromBitmap(bitmap, 0)
+
+      BarcodeScanning.getClient()
+        .process(inputImage)
+        .addOnSuccessListener { barcodes ->
+          val codes = org.json.JSONArray()
+          for (barcode in barcodes) {
+            val rawValue = barcode.rawValue
+            if (!rawValue.isNullOrBlank()) {
+              val code = JSONObject()
+              code.put("rawValue", rawValue)
+              code.put("format", barcode.format.toString())
+              codes.put(code)
+            }
+          }
+          output.put("ok", codes.length() > 0)
+          output.put("codes", codes)
+          if (codes.length() == 0) {
+            output.put("reason", "barcode-not-found")
+          }
+        }
+        .addOnFailureListener { error ->
+          output.put("ok", false)
+          output.put("reason", error.javaClass.simpleName)
+          output.put("codes", org.json.JSONArray())
+        }
+        .addOnCompleteListener {
+          latch.countDown()
+        }
+
+      if (!latch.await(10, TimeUnit.SECONDS)) {
+        output.put("ok", false)
+        output.put("reason", "barcode-scan-timeout")
+        output.put("codes", org.json.JSONArray())
+      }
+
+      return output.toString()
+    }
+  }
+
+  inner class DiagnosticsBridge {
+    @JavascriptInterface
+    fun getBridgeStatus(): String {
+      val result = JSONObject()
+      result.put("ok", true)
+      result.put("platform", "android")
+      result.put("androidSdk", Build.VERSION.SDK_INT)
+      result.put("media", true)
+      result.put("barcode", true)
+      result.put("permission", true)
+      result.put("notification", true)
+      result.put("map", true)
+      result.put("amap", MapBridge().checkAppInstalled("com.autonavi.minimap"))
+      result.put("baidu", MapBridge().checkAppInstalled("com.baidu.BaiduMap"))
+      result.put("tencent", MapBridge().checkAppInstalled("com.tencent.map|com.tencent.maplite"))
+      return result.toString()
     }
   }
 
@@ -835,9 +1125,12 @@ class MainActivity : TauriActivity() {
   ): JSONObject {
     val result = JSONObject()
     result.put("ok", granted || dispatched)
-        val normalizedKind = if (kind == "barcode") "camera" else kind
-        result.put("kind", normalizedKind)
-    result.put("status", if (granted) "granted" else if (reason == "permission-unavailable") "unsupported" else "prompt")
+    val normalizedKind = if (kind == "barcode") "camera" else kind
+    result.put("kind", normalizedKind)
+    result.put(
+      "status",
+      if (granted) "granted" else if (reason == "permission-unavailable") "unsupported" else if (requested) "denied" else "prompt"
+    )
     result.put("requested", requested)
     result.put("canAskAgain", !granted)
     if (dispatched) result.put("dispatched", true)

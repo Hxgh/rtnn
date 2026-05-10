@@ -739,6 +739,181 @@ test("browser bridge exposes a unified permission contract", async () => {
   assert.equal(requested, true);
 });
 
+test("browser bridge prefers Android media bridge over web file input", async () => {
+  const calls = [];
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      AndroidMedia: {
+        pickImages(optionsJson) {
+          calls.push(["AndroidMedia.pickImages", JSON.parse(optionsJson)]);
+          return JSON.stringify({
+            ok: true,
+            files: [
+              {
+                name: "native.jpg",
+                type: "image/jpeg",
+                size: 2048,
+                dataUrl: "data:image/jpeg;base64,AA==",
+              },
+            ],
+          });
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(await bridge.pickImages({ maxFiles: 1 }), {
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    files: [
+      {
+        name: "native.jpg",
+        type: "image/jpeg",
+        size: 2048,
+        dataUrl: "data:image/jpeg;base64,AA==",
+      },
+    ],
+  });
+  assert.deepEqual(calls, [["AndroidMedia.pickImages", { maxFiles: 1 }]]);
+});
+
+test("detected Tauri bridge prefers barcode plugin before Android bridge and commands", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      AndroidBarcode: {
+        scanBarcode() {
+          calls.push(["AndroidBarcode.scanBarcode"]);
+          return JSON.stringify({ ok: true, codes: [{ rawValue: "android" }] });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      if (command === "plugin:barcode-scanner|scan") {
+        return {
+          content: "plugin",
+          format: { name: "qr_code" },
+        };
+      }
+
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode(), {
+    ok: true,
+    reason: undefined,
+    codes: [
+      {
+        rawValue: "plugin",
+        format: "qr_code",
+      },
+    ],
+  });
+  assert.deepEqual(calls, [["invoke", "plugin:barcode-scanner|scan"]]);
+});
+
+test("detected Tauri bridge falls back to Android barcode bridge when plugin is unavailable", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      AndroidBarcode: {
+        scanBarcode(optionsJson) {
+          calls.push(["AndroidBarcode.scanBarcode", JSON.parse(optionsJson)]);
+          return JSON.stringify({
+            ok: true,
+            codes: [{ rawValue: "android", format: "qr_code" }],
+          });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      if (command === "plugin:barcode-scanner|scan") {
+        throw new Error("plugin:barcode-scanner not initialized");
+      }
+
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode({ source: "image", timeoutMs: 2000 }), {
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    codes: [
+      {
+        rawValue: "android",
+        format: "qr_code",
+      },
+    ],
+    files: undefined,
+  });
+  assert.deepEqual(calls, [
+    ["invoke", "plugin:barcode-scanner|scan"],
+    ["AndroidBarcode.scanBarcode", { source: "image", timeoutMs: 2000 }],
+  ]);
+});
+
+test("browser bridge waits for Android permission change after dispatched request", async () => {
+  const listeners = new Map();
+  const timers = [];
+  const globalScope = {
+    AndroidPermission: {
+      requestPermission(kind) {
+        assert.equal(kind, "camera");
+        return JSON.stringify({
+          ok: true,
+          kind: "camera",
+          status: "prompt",
+          requested: true,
+          dispatched: true,
+        });
+      },
+    },
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(name);
+    },
+    setTimeout(callback, delay) {
+      timers.push([callback, delay]);
+      return 1;
+    },
+    clearTimeout() {},
+  };
+  const bridge = createBrowserNativeBridge({ globalScope });
+  const pending = bridge.requestPermission({
+    kind: "camera",
+    trigger: "manual",
+    purpose: "native-diagnostics",
+  });
+
+  assert.equal(listeners.has("rtnn:android-permission-change"), true);
+  listeners.get("rtnn:android-permission-change")(
+    new CustomEvent("rtnn:android-permission-change", {
+      detail: { kind: "camera", granted: true },
+    }),
+  );
+
+  assert.deepEqual(await pending, {
+    ok: true,
+    kind: "camera",
+    status: "granted",
+    requested: true,
+    canAskAgain: false,
+    message: undefined,
+    reason: undefined,
+  });
+  assert.equal(listeners.has("rtnn:android-permission-change"), false);
+  assert.equal(timers[0][1], 30_000);
+});
+
 test("native capability core requests media permissions before image picking", async () => {
   const calls = [];
   const bridge = {

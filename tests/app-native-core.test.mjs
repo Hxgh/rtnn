@@ -223,8 +223,8 @@ test("app native core requests only the permission needed by media action", asyn
       {
         ok: true,
         kind: "photo-library",
-        status: "granted",
-        requested: true,
+        status: "prompt",
+        requested: false,
       },
     ],
     files: [
@@ -237,7 +237,7 @@ test("app native core requests only the permission needed by media action", asyn
     ],
   });
   assert.deepEqual(calls, [
-    ["ensurePermission", "photo-library", "on-demand", "pick-image"],
+    ["checkPermission", "photo-library", "on-demand"],
     ["pickImages", null, null],
   ]);
 
@@ -281,6 +281,21 @@ test("app native core keeps barcode and notification behind core service actions
     ["scanBarcode", 1234],
     ["ensurePermission", "notification", "on-demand", "enable-notification"],
     ["showNotification", "RTNN"],
+  ]);
+});
+
+test("app native core can scan barcode from an image source for diagnostics", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(createBridge(calls));
+
+  assert.equal(
+    (await core.scanBarcode({ source: "image", timeoutMs: 2000 })).codes[0].rawValue,
+    "rtnn-test",
+  );
+  assert.deepEqual(calls, [
+    ["ensurePermission", "camera", "on-demand", "scan-barcode"],
+    ["scanBarcode", 2000],
   ]);
 });
 
@@ -460,15 +475,15 @@ test("app native core passes media timeout and returns cancelled picker state", 
       {
         ok: true,
         kind: "photo-library",
-        status: "granted",
-        requested: true,
+        status: "prompt",
+        requested: false,
       },
     ],
     files: [],
     reason: "file-picker-cancelled",
   });
   assert.deepEqual(calls, [
-    ["ensurePermission", "photo-library", "on-demand", "pick-image"],
+    ["checkPermission", "photo-library", "on-demand"],
     ["pickImages", null, 12_000],
   ]);
 });
@@ -524,7 +539,7 @@ test("app native core keeps manual permission requests in diagnostics only", asy
     requested: true,
   });
   assert.deepEqual(calls, [
-    ["ensurePermission", "notification", "manual", "native-diagnostics"],
+    ["requestPermission", "notification", "manual", "native-diagnostics"],
   ]);
 });
 

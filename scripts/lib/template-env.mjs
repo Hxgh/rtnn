@@ -7,6 +7,9 @@ export const TEMPLATE_ENV_EXAMPLE_FILE = ".env.example";
 export const TEMPLATE_ENV_KEYS = [
   "TEMPLATE_PROJECT_ID",
   "TEMPLATE_BRAND_NAME",
+  "RTNN_ADMIN_DESKTOP_NAME",
+  "RTNN_APP_MOBILE_NAME",
+  "RTNN_APP_ICON_TEXT",
   "TEMPLATE_COOKIE_PREFIX",
   "TEMPLATE_DATABASE_HOST",
   "TEMPLATE_DATABASE_PORT",
@@ -43,6 +46,9 @@ const TEMPLATE_ENV_SECTIONS = [
     keys: [
       "TEMPLATE_PROJECT_ID",
       "TEMPLATE_BRAND_NAME",
+      "RTNN_ADMIN_DESKTOP_NAME",
+      "RTNN_APP_MOBILE_NAME",
+      "RTNN_APP_ICON_TEXT",
       "TEMPLATE_COOKIE_PREFIX",
     ],
   },
@@ -125,6 +131,9 @@ const DERIVED_KEYS = [
 const DEFAULT_TEMPLATE_ENV = {
   TEMPLATE_PROJECT_ID: "rtnn",
   TEMPLATE_BRAND_NAME: "RTNN",
+  RTNN_ADMIN_DESKTOP_NAME: "",
+  RTNN_APP_MOBILE_NAME: "",
+  RTNN_APP_ICON_TEXT: "",
   TEMPLATE_COOKIE_PREFIX: "rtnn",
   TEMPLATE_DATABASE_HOST: "localhost",
   TEMPLATE_DATABASE_PORT: "55432",
@@ -219,12 +228,20 @@ function deriveTemplateEnv(values) {
     normalized.TEMPLATE_PROJECT_ID ?? DEFAULT_TEMPLATE_ENV.TEMPLATE_PROJECT_ID;
   const brandName =
     normalized.TEMPLATE_BRAND_NAME ?? DEFAULT_TEMPLATE_ENV.TEMPLATE_BRAND_NAME;
+  const adminDesktopName =
+    normalized.RTNN_ADMIN_DESKTOP_NAME ?? `${brandName} Admin`;
+  const appMobileName =
+    normalized.RTNN_APP_MOBILE_NAME ?? `${brandName} App`;
+  const appIconText = normalized.RTNN_APP_ICON_TEXT ?? brandName;
 
   return {
     ...DEFAULT_TEMPLATE_ENV,
     ...normalized,
     TEMPLATE_PROJECT_ID: projectId,
     TEMPLATE_BRAND_NAME: brandName,
+    RTNN_ADMIN_DESKTOP_NAME: adminDesktopName,
+    RTNN_APP_MOBILE_NAME: appMobileName,
+    RTNN_APP_ICON_TEXT: appIconText,
     TEMPLATE_COOKIE_PREFIX:
       normalized.TEMPLATE_COOKIE_PREFIX ?? projectId,
     TEMPLATE_DATABASE_NAME:

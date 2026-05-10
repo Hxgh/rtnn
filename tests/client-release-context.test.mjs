@@ -1225,6 +1225,18 @@ test("check-app-tauri-android rejects generated shells without RTNN launcher ico
         "",
       ].join("\n"),
     );
+    writeFileSync(
+      path.join(androidDir, "app/build.gradle.kts"),
+      [
+        "dependencies {",
+        '    implementation("androidx.activity:activity-ktx:1.10.1")',
+        '    implementation("androidx.core:core-ktx:1.15.0")',
+        '    implementation("androidx.core:core:1.15.0")',
+        '    implementation("com.google.mlkit:barcode-scanning:17.3.0")',
+        "}",
+        "",
+      ].join("\n"),
+    );
 
     const result = spawnSync(
       process.execPath,

@@ -29,6 +29,20 @@ type ActionState = "idle" | "opening" | "opened" | "cancelled" | "failed";
 type MapCandidateView = NativeCoreMapCandidate & {
   checking?: boolean;
 };
+type AndroidBridgeName =
+  | "AndroidMap"
+  | "AndroidPermission"
+  | "AndroidMedia"
+  | "AndroidBarcode"
+  | "AndroidNotification"
+  | "AndroidDiagnostics"
+  | "AndroidTheme";
+type WebViewDiagnosticsState = {
+  ready: boolean;
+  bridges: Record<AndroidBridgeName, boolean>;
+  nativeStatus: Record<string, unknown> | null;
+  checkedAt: string;
+};
 type BusyAction =
   | "external"
   | "map"
@@ -40,6 +54,7 @@ type VisiblePermissionKind = Extract<
   NativeCorePermissionKind,
   "photo-library" | "camera" | "notification"
 >;
+type PermissionActionSource = Extract<NativeMediaSource, "album"> | "camera-permission";
 
 const mapTarget = {
   lat: 30.2741,
@@ -63,6 +78,15 @@ const mediaPickerTimeoutMs = 12_000;
 const barcodeScanTimeoutMs = 18_000;
 const transientActionStateMs = 1_200;
 const nativeActionDispatchStateMs = 1_800;
+const androidBridgeNames: AndroidBridgeName[] = [
+  "AndroidMap",
+  "AndroidPermission",
+  "AndroidMedia",
+  "AndroidBarcode",
+  "AndroidNotification",
+  "AndroidDiagnostics",
+  "AndroidTheme",
+];
 
 function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
   return [
@@ -215,16 +239,60 @@ function isPickerManagedPermission(result: NativeCorePermissionResult | null) {
   return result?.reason === "permission-managed-by-file-picker";
 }
 
-function getPickerManagedPermissionSource(kind: VisiblePermissionKind) {
+function getPickerManagedPermissionSource(kind: VisiblePermissionKind): PermissionActionSource | null {
   if (kind === "photo-library") {
     return "album" as const;
   }
 
   if (kind === "camera") {
-    return "camera" as const;
+    return "camera-permission";
   }
 
   return null;
+}
+
+function parseBridgeStatusResult(value: unknown) {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object"
+        ? (parsed as Record<string, unknown>)
+        : null;
+    } catch {
+      return { raw: value };
+    }
+  }
+
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getWindowBridge(name: AndroidBridgeName) {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  return (window as unknown as Record<AndroidBridgeName, unknown>)[name];
+}
+
+function inspectWebViewDiagnostics(): WebViewDiagnosticsState {
+  const bridges = Object.fromEntries(
+    androidBridgeNames.map((name) => [name, Boolean(getWindowBridge(name))]),
+  ) as Record<AndroidBridgeName, boolean>;
+  const diagnostics = getWindowBridge("AndroidDiagnostics") as
+    | { getBridgeStatus?: () => unknown }
+    | undefined;
+
+  return {
+    ready: Object.values(bridges).some(Boolean),
+    bridges,
+    nativeStatus:
+      typeof diagnostics?.getBridgeStatus === "function"
+        ? parseBridgeStatusResult(diagnostics.getBridgeStatus())
+        : null,
+    checkedAt: new Date().toLocaleTimeString(),
+  };
 }
 
 export function NativeCapabilitiesPanel({
@@ -263,6 +331,8 @@ export function NativeCapabilitiesPanel({
   });
   const [images, setImages] = useState<NativeCorePickedFile[]>([]);
   const [barcodes, setBarcodes] = useState<NativeCoreBarcode[]>([]);
+  const [webViewDiagnostics, setWebViewDiagnostics] =
+    useState<WebViewDiagnosticsState | null>(null);
   const [permissions, setPermissions] =
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
@@ -422,6 +492,26 @@ export function NativeCapabilitiesPanel({
     };
   }, [nativeCore]);
 
+  const refreshWebViewDiagnostics = useCallback(() => {
+    setWebViewDiagnostics(inspectWebViewDiagnostics());
+  }, []);
+
+  useEffect(() => {
+    refreshWebViewDiagnostics();
+
+    const handleReady = () => {
+      refreshWebViewDiagnostics();
+    };
+
+    window.addEventListener("rtnn:android-native-ready", handleReady);
+    window.addEventListener("rtnn:android-map-ready", handleReady);
+
+    return () => {
+      window.removeEventListener("rtnn:android-native-ready", handleReady);
+      window.removeEventListener("rtnn:android-map-ready", handleReady);
+    };
+  }, [refreshWebViewDiagnostics]);
+
   const externalAvailable = capabilities.externalOpen;
   const mapAvailable = capabilities.mapNavigation;
   const imagePickerAvailable = capabilities.filePick;
@@ -474,7 +564,19 @@ export function NativeCapabilitiesPanel({
     if (pickerSource) {
       setPermissionState((current) => ({ ...current, [kind]: "opening" }));
       try {
-        await handlePickMedia(pickerSource);
+        if (pickerSource === "album") {
+          await handlePickMedia("album");
+        } else {
+          const result = await nativeCore.requestPermissionForDiagnostics("camera");
+
+          setPermissions((current) => ({
+            ...current,
+            camera: result,
+          }));
+          setLastMessage(
+            result.message ?? result.reason ?? messages.permissionRequestDone,
+          );
+        }
       } finally {
         setPermissionState((current) => ({ ...current, [kind]: "idle" }));
       }
@@ -539,13 +641,14 @@ export function NativeCapabilitiesPanel({
     }
   }
 
-  async function handleScanBarcode() {
+  async function handleScanBarcode(source: "camera" | "image" = "camera") {
     setBarcodeState("opening");
     setBusyAction("barcode");
     setLastMessage(null);
 
     try {
       const result = await nativeCore.scanBarcode({
+        source,
         timeoutMs: barcodeScanTimeoutMs,
       });
 
@@ -626,6 +729,60 @@ export function NativeCapabilitiesPanel({
 
           {clientInfo?.runtime !== "tauri" ? (
             <p className="text-xs leading-5 text-muted-foreground">{messages.unavailable}</p>
+          ) : null}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="overflow-hidden">
+        <div className="space-y-4 px-4 py-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground">{messages.webviewDiagnostics}</h2>
+            <p className="text-xs leading-5 text-muted-foreground">{messages.webviewDiagnosticsDescription}</p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 text-xs">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground">
+                {webViewDiagnostics?.ready
+                  ? messages.webviewBridgeReady
+                  : messages.webviewBridgeMissing}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {messages.webviewBridgeCheckedAt}: {webViewDiagnostics?.checkedAt ?? "-"}
+              </p>
+            </div>
+            <Button onClick={refreshWebViewDiagnostics} size="sm" variant="ghost">
+              {messages.webviewBridgeCheck}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {androidBridgeNames.map((name) => (
+              <div
+                className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2"
+                key={name}
+              >
+                <span className="truncate text-muted-foreground" title={messages.webviewBridgeObject}>{name}</span>
+                <span className="font-medium text-foreground" title={messages.webviewBridgeState}>
+                  {webViewDiagnostics?.bridges[name] ? "OK" : "-"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {webViewDiagnostics?.nativeStatus ? (
+            <div className="space-y-1 rounded-xl border border-border/70 px-3 py-3 text-xs leading-5">
+              {Object.entries(webViewDiagnostics.nativeStatus)
+                .filter(([key]) => key !== "ok")
+                .map(([key, value]) => (
+                  <div className="grid grid-cols-[6rem_1fr] gap-2" key={key}>
+                    <span className="text-muted-foreground">{key}</span>
+                    <span className="min-w-0 break-words text-foreground">
+                      {typeof value === "string" ? value : JSON.stringify(value)}
+                    </span>
+                  </div>
+                ))}
+            </div>
           ) : null}
         </div>
       </SurfaceCard>
@@ -761,13 +918,22 @@ export function NativeCapabilitiesPanel({
             <p className="text-xs leading-5 text-muted-foreground">{messages.barcodeDescription}</p>
           </div>
 
-          <Button
-            disabled={!barcodeAvailable || barcodeState === "opening"}
-            onClick={handleScanBarcode}
-            variant="outline"
-          >
-            {barcodeState === "opening" ? messages.opening : messages.barcodeScan}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              disabled={!barcodeAvailable || barcodeState === "opening"}
+              onClick={() => handleScanBarcode("camera")}
+              variant="outline"
+            >
+              {barcodeState === "opening" ? messages.opening : messages.barcodeScan}
+            </Button>
+            <Button
+              disabled={!barcodeAvailable || barcodeState === "opening"}
+              onClick={() => handleScanBarcode("image")}
+              variant="outline"
+            >
+              {messages.barcodeScanFromImage}
+            </Button>
+          </div>
 
           <div className="rounded-xl border border-border/70 px-3 py-3 text-xs leading-5">
             <p className="font-medium text-muted-foreground">

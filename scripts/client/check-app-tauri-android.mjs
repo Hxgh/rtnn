@@ -27,7 +27,10 @@ const REQUIRED_MANIFEST_REGEXPS = Object.freeze([
 const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "AndroidMap",
   "AndroidPermission",
+  "AndroidMedia",
+  "AndroidBarcode",
   "AndroidNotification",
+  "AndroidDiagnostics",
   "checkAppInstalled",
   "openNavigation",
   "queryIntentActivities",
@@ -37,6 +40,12 @@ const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "map-app-not-installed-or-not-visible",
   "notifyFilePickerClosed",
   "onShowFileChooser",
+  "pickImages",
+  "captureImage",
+  "scanBarcode",
+  "BarcodeScanning",
+  "buildMediaResult",
+  "barcode-not-found",
   "launchImagePicker",
   "launchCameraCapture",
   "camera-permission-denied",
@@ -46,6 +55,12 @@ const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "rtnn:native-file-picker-closed",
   "rtnn:android-map-ready",
   "rtnn:android-native-ready",
+]);
+const REQUIRED_GRADLE_SNIPPETS = Object.freeze([
+  "androidx.activity:activity-ktx",
+  "androidx.core:core-ktx",
+  "androidx.core:core",
+  "com.google.mlkit:barcode-scanning",
 ]);
 
 const REQUIRED_ICON_FILES = Object.freeze([
@@ -179,10 +194,12 @@ function main() {
   const mainDir = path.join(androidDir, "app", "src", "main");
   const manifestPath = path.join(mainDir, "AndroidManifest.xml");
   const mainActivityPath = findMainActivity(androidDir, packageName);
+  const gradlePath = path.join(androidDir, "app", "build.gradle.kts");
   const iconSourcePath = path.join(srcTauriDir, "icons", "icon.png");
   const launcherPath = path.join(mainDir, "res", "drawable", "rtnn_launcher_icon.png");
   const manifest = readFileSync(manifestPath, "utf8");
   const mainActivity = readFileSync(mainActivityPath, "utf8");
+  const gradle = readFileSync(gradlePath, "utf8");
   const sourceIcon = readFileSync(iconSourcePath);
   const launcherIcon = readFileSync(launcherPath);
 
@@ -191,6 +208,7 @@ function main() {
     assert(regexp.test(manifest), `AndroidManifest.xml 缺少匹配: ${regexp}`);
   }
   assertIncludes(mainActivity, REQUIRED_MAIN_ACTIVITY_SNIPPETS, "MainActivity.kt");
+  assertIncludes(gradle, REQUIRED_GRADLE_SNIPPETS, "app/build.gradle.kts");
 
   for (const relativePath of REQUIRED_ICON_FILES) {
     const filePath = path.join(mainDir, relativePath);

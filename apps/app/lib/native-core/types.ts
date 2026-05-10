@@ -29,6 +29,7 @@ export type NativePermissionAction =
   | "client-update.check";
 
 export type NativePermissionRequestTiming =
+  | "startup"
   | "on-user-action"
   | "manual-diagnostics"
   | "never";
@@ -80,6 +81,7 @@ export type NativeMediaPickOptions = {
 export type NativeBarcodeScanOptions = {
   timeoutMs?: number;
   formats?: string[];
+  source?: "camera" | "image";
 };
 
 export type NativeBarcodeScanActionResult = NativeBarcodeScanResult & {
@@ -121,6 +123,9 @@ export type NativeCoreService = {
   ensureActionPermissions(
     action: NativePermissionAction,
   ): Promise<NativeActionPermissionResult>;
+  prepareStartupPermissions(
+    mode?: "disabled" | "check-only" | "request",
+  ): Promise<NativePermissionSnapshot>;
   pickMedia(
     source: NativeMediaSource,
     options?: NativeMediaPickOptions,

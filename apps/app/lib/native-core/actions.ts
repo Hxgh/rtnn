@@ -12,7 +12,11 @@ export type NativeActionRunResult = NativeBridgeActionResult & {
 export function isNativeActionCancelled(result: NativeBridgeActionResult) {
   return (
     result.reason === "file-picker-cancelled" ||
-    result.reason === "file-picker-timeout"
+    result.reason === "file-picker-timeout" ||
+    result.reason === "barcode-scan-cancelled" ||
+    result.reason === "scan-cancelled" ||
+    result.reason === "cancelled" ||
+    result.reason === "canceled"
   );
 }
 

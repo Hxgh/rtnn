@@ -132,6 +132,7 @@ export type AppMessages = {
     barcodeTitle: string;
     barcodeDescription: string;
     barcodeScan: string;
+    barcodeScanFromImage: string;
     barcodeResult: string;
     barcodeNoResult: string;
     notificationTitle: string;
@@ -144,6 +145,14 @@ export type AppMessages = {
     platform: string;
     shell: string;
     features: string;
+    webviewDiagnostics: string;
+    webviewDiagnosticsDescription: string;
+    webviewBridgeReady: string;
+    webviewBridgeMissing: string;
+    webviewBridgeCheck: string;
+    webviewBridgeCheckedAt: string;
+    webviewBridgeObject: string;
+    webviewBridgeState: string;
     browserRuntime: string;
     unavailable: string;
     permissions: string;
@@ -348,6 +357,7 @@ const zhCN: AppMessages = {
     barcodeTitle: "扫码",
     barcodeDescription: "按用户动作请求相机权限；当前壳子不支持原生扫码时会给出明确原因。",
     barcodeScan: "扫码",
+    barcodeScanFromImage: "识别图片",
     barcodeResult: "扫码结果",
     barcodeNoResult: "暂无扫码结果",
     notificationTitle: "通知",
@@ -360,6 +370,14 @@ const zhCN: AppMessages = {
     platform: "平台",
     shell: "壳类型",
     features: "能力",
+    webviewDiagnostics: "WebView 自检",
+    webviewDiagnosticsDescription: "检测 Android 原生桥接对象是否已注入，用于定位相册、扫码、地图检测是否走到壳层。",
+    webviewBridgeReady: "桥接已注入",
+    webviewBridgeMissing: "桥接未注入",
+    webviewBridgeCheck: "重新自检",
+    webviewBridgeCheckedAt: "检测时间",
+    webviewBridgeObject: "桥接对象",
+    webviewBridgeState: "状态",
     browserRuntime: "浏览器",
     unavailable: "当前在浏览器中运行，原生能力会降级为 Web 行为。",
     permissions: "权限状态",
@@ -564,6 +582,7 @@ const enUS: AppMessages = {
     barcodeTitle: "Scan",
     barcodeDescription: "Camera permission is requested only after user action. Unsupported native scan paths return a clear reason.",
     barcodeScan: "Scan",
+    barcodeScanFromImage: "Scan image",
     barcodeResult: "Scan result",
     barcodeNoResult: "No scan result",
     notificationTitle: "Notifications",
@@ -576,6 +595,14 @@ const enUS: AppMessages = {
     platform: "Platform",
     shell: "Shell",
     features: "Features",
+    webviewDiagnostics: "WebView diagnostics",
+    webviewDiagnosticsDescription: "Check whether Android bridge objects are injected, useful for diagnosing photos, scanning, and map detection.",
+    webviewBridgeReady: "Bridge injected",
+    webviewBridgeMissing: "Bridge missing",
+    webviewBridgeCheck: "Check again",
+    webviewBridgeCheckedAt: "Checked",
+    webviewBridgeObject: "Bridge",
+    webviewBridgeState: "State",
     browserRuntime: "Browser",
     unavailable: "The current runtime is a browser, so native actions fall back to web behavior.",
     permissions: "Permissions",

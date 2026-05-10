@@ -25,7 +25,7 @@ export async function scanBarcode(
   }
 
   const result = await nativeBridge.scanBarcode({
-    source: "camera",
+    source: options.source ?? "camera",
     formats: options.formats,
     timeoutMs: options.timeoutMs,
   });

@@ -13,6 +13,7 @@ import {
   ensureActionPermissions,
   getActionPermissionKinds,
   getPermissionPolicy,
+  prepareStartupPermissions,
   requestPermissionForDiagnostics,
 } from "./permissions";
 import { getRuntimeSnapshot } from "./runtime";
@@ -53,6 +54,10 @@ export function createAppNativeCore(
 
     ensureActionPermissions(action) {
       return ensureActionPermissions(nativeBridge, action);
+    },
+
+    prepareStartupPermissions(mode) {
+      return prepareStartupPermissions(nativeBridge, mode);
     },
 
     pickMedia(source, options) {

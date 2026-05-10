@@ -12,6 +12,18 @@ import type {
   NativePermissionSnapshot,
 } from "./types";
 
+export type NativePermissionStartupMode = "disabled" | "check-only" | "request";
+
+const startupPermissionKinds: NativePermissionKind[] = [
+  "camera",
+  "photo-library",
+  "notification",
+];
+const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
+  "photo-library",
+  "file-picker",
+]);
+
 export const nativePermissionPolicies = {
   "media.pick-album": {
     action: "media.pick-album",
@@ -93,6 +105,10 @@ export const nativePermissionPolicies = {
   },
 } satisfies Record<NativePermissionAction, NativePermissionPolicy>;
 
+export function getStartupPermissionKinds() {
+  return [...startupPermissionKinds];
+}
+
 export function getPermissionPolicy(action: NativePermissionAction) {
   return nativePermissionPolicies[action];
 }
@@ -122,7 +138,7 @@ export function requestPermissionForDiagnostics(
   nativeBridge: NativeBridge,
   kind: NativePermissionKind,
 ): Promise<NativePermissionResult> {
-  return nativeBridge.ensurePermission({
+  return nativeBridge.requestPermission({
     kind,
     trigger: "manual",
     purpose: "native-diagnostics",
@@ -145,6 +161,17 @@ export async function ensureActionPermissions(
   }
 
   for (const item of policy.permissions) {
+    if (pickerManagedPermissionKinds.has(item.kind)) {
+      const result = await nativeBridge.checkPermission({
+        kind: item.kind,
+        trigger: policy.trigger,
+        purpose: item.purpose,
+      });
+
+      permissions.push(result);
+      continue;
+    }
+
     const result = await nativeBridge.ensurePermission({
       kind: item.kind,
       trigger: policy.trigger,
@@ -168,4 +195,34 @@ export async function ensureActionPermissions(
     action,
     permissions,
   };
+}
+
+export async function prepareStartupPermissions(
+  nativeBridge: NativeBridge,
+  mode: NativePermissionStartupMode = "check-only",
+): Promise<NativePermissionSnapshot> {
+  if (mode === "disabled") {
+    return {} as NativePermissionSnapshot;
+  }
+
+  const pairs = await Promise.all(
+    startupPermissionKinds.map(async (kind) => {
+      const result =
+        mode === "request"
+          ? await nativeBridge.ensurePermission({
+              kind,
+              trigger: "startup",
+              purpose: "app-startup",
+            })
+          : await nativeBridge.checkPermission({
+              kind,
+              trigger: "startup",
+              purpose: "app-startup-check",
+            });
+
+      return [kind, result] as const;
+    }),
+  );
+
+  return Object.fromEntries(pairs) as NativePermissionSnapshot;
 }
