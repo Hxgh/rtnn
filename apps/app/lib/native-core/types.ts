@@ -4,6 +4,8 @@ import type {
   MapAppType,
   NativeBridge,
   NativeBridgeActionResult,
+  NativeBarcode,
+  NativeBarcodeScanResult,
   NativeClientInfo,
   NativeClientUpdateQuery,
   NativeMapOpenCandidate,
@@ -20,6 +22,7 @@ export type NativePermissionAction =
   | "media.pick-album"
   | "media.capture-camera"
   | "notification.enable"
+  | "barcode.scan"
   | "location.use"
   | "map.navigation"
   | "external.open"
@@ -74,6 +77,17 @@ export type NativeMediaPickOptions = {
   timeoutMs?: number;
 };
 
+export type NativeBarcodeScanOptions = {
+  timeoutMs?: number;
+  formats?: string[];
+};
+
+export type NativeBarcodeScanActionResult = NativeBarcodeScanResult & {
+  action: Extract<NativePermissionAction, "barcode.scan">;
+  permissions: NativePermissionResult[];
+  codes: NativeBarcode[];
+};
+
 export type NativePermissionSnapshot = Record<
   NativePermissionKind,
   NativePermissionResult | null
@@ -111,6 +125,10 @@ export type NativeCoreService = {
     source: NativeMediaSource,
     options?: NativeMediaPickOptions,
   ): Promise<NativeMediaPickResult>;
+  scanBarcode(
+    options?: NativeBarcodeScanOptions,
+  ): Promise<NativeBarcodeScanActionResult>;
+  showTestNotification(): Promise<NativeBridgeActionResult>;
   buildUpdateCheckQuery(): Promise<NativeClientUpdateQuery | null>;
   checkAppUpdate(options?: {
     currentVersion?: string;

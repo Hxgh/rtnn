@@ -132,6 +132,22 @@ function createBridge(calls, overrides = {}) {
         ],
       };
     },
+    async scanBarcode(input) {
+      calls.push(["scanBarcode", input?.timeoutMs ?? null]);
+      return {
+        ok: true,
+        codes: [
+          {
+            rawValue: "rtnn-test",
+            format: "qr_code",
+          },
+        ],
+      };
+    },
+    async showNotification(input) {
+      calls.push(["showNotification", input.title]);
+      return { ok: true, message: "notification-dispatched" };
+    },
     async checkUpdate() {
       calls.push(["checkUpdate"]);
       return { ok: false, update: { available: false } };
@@ -230,6 +246,41 @@ test("app native core requests only the permission needed by media action", asyn
   assert.deepEqual(calls, [
     ["ensurePermission", "camera", "on-demand", "capture-image"],
     ["pickImages", "environment", null],
+  ]);
+});
+
+test("app native core keeps barcode and notification behind core service actions", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(createBridge(calls));
+
+  assert.deepEqual(await core.scanBarcode({ timeoutMs: 1234 }), {
+    ok: true,
+    action: "barcode.scan",
+    permissions: [
+      {
+        ok: true,
+        kind: "camera",
+        status: "granted",
+        requested: true,
+      },
+    ],
+    codes: [
+      {
+        rawValue: "rtnn-test",
+        format: "qr_code",
+      },
+    ],
+  });
+  assert.deepEqual(await core.showTestNotification(), {
+    ok: true,
+    message: "notification-dispatched",
+  });
+  assert.deepEqual(calls, [
+    ["ensurePermission", "camera", "on-demand", "scan-barcode"],
+    ["scanBarcode", 1234],
+    ["ensurePermission", "notification", "on-demand", "enable-notification"],
+    ["showNotification", "RTNN"],
   ]);
 });
 

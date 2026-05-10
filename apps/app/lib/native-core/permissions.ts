@@ -49,6 +49,18 @@ export const nativePermissionPolicies = {
       },
     ],
   },
+  "barcode.scan": {
+    action: "barcode.scan",
+    requestTiming: "on-user-action",
+    trigger: "on-demand",
+    permissions: [
+      {
+        kind: "camera",
+        purpose: "scan-barcode",
+        required: true,
+      },
+    ],
+  },
   "location.use": {
     action: "location.use",
     requestTiming: "on-user-action",

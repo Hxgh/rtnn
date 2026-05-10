@@ -1053,6 +1053,8 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /--rtnn-keyboard-height/);
     assert.match(mainActivity, /FileProvider\.getUriForFile/);
     assert.match(mainActivity, /AndroidMap/);
+    assert.match(mainActivity, /AndroidPermission/);
+    assert.match(mainActivity, /AndroidNotification/);
     assert.match(mainActivity, /isAppInstalled/);
     assert.match(mainActivity, /checkAppInstalled/);
     assert.match(mainActivity, /openNavigation/);
@@ -1064,7 +1066,10 @@ test("prepare-app-tauri-android patches generated Android shell capabilities", (
     assert.match(mainActivity, /launchImagePicker/);
     assert.match(mainActivity, /launchCameraCapture/);
     assert.match(mainActivity, /camera-permission-denied/);
+    assert.match(mainActivity, /permission-request-dispatched/);
+    assert.match(mainActivity, /notification-dispatched/);
     assert.match(manifest, /android\.permission\.CAMERA/);
+    assert.match(manifest, /android\.permission\.POST_NOTIFICATIONS/);
     assert.match(manifest, /com\.autonavi\.minimap/);
     assert.match(manifest, /androidamap/);
     assert.match(manifest, /amapuri/);

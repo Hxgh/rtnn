@@ -4,8 +4,10 @@ import {
   createNativeBridge,
   type NativeBridge,
 } from "@rtnn/native-bridge";
+import { scanBarcode } from "./barcode";
 import { getMapCandidates, openMapNavigation } from "./map";
 import { pickMedia } from "./media";
+import { showTestNotification } from "./notifications";
 import {
   checkPermissions,
   ensureActionPermissions,
@@ -55,6 +57,14 @@ export function createAppNativeCore(
 
     pickMedia(source, options) {
       return pickMedia(nativeBridge, source, options);
+    },
+
+    scanBarcode(options) {
+      return scanBarcode(nativeBridge, options);
+    },
+
+    showTestNotification() {
+      return showTestNotification(nativeBridge);
     },
 
     buildUpdateCheckQuery() {

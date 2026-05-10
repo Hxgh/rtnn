@@ -5,6 +5,7 @@ const REQUIRED_MANIFEST_SNIPPETS = Object.freeze([
   'android:icon="@mipmap/rtnn_launcher_icon"',
   'android:roundIcon="@mipmap/rtnn_launcher_icon"',
   "android.permission.CAMERA",
+  "android.permission.POST_NOTIFICATIONS",
   "android.permission.READ_MEDIA_IMAGES",
   "android.permission.READ_EXTERNAL_STORAGE",
   "android.hardware.camera",
@@ -25,6 +26,8 @@ const REQUIRED_MANIFEST_REGEXPS = Object.freeze([
 
 const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "AndroidMap",
+  "AndroidPermission",
+  "AndroidNotification",
   "checkAppInstalled",
   "openNavigation",
   "queryIntentActivities",
@@ -37,8 +40,12 @@ const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "launchImagePicker",
   "launchCameraCapture",
   "camera-permission-denied",
+  "POST_NOTIFICATIONS",
+  "permission-request-dispatched",
+  "notification-dispatched",
   "rtnn:native-file-picker-closed",
   "rtnn:android-map-ready",
+  "rtnn:android-native-ready",
 ]);
 
 const REQUIRED_ICON_FILES = Object.freeze([

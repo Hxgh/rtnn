@@ -22,6 +22,7 @@ const REQUIRED_BADGING_SNIPPETS = Object.freeze([
 const REQUIRED_MANIFEST_SNIPPETS = Object.freeze([
   'package="com.rtnn.app"',
   'android:name="android.permission.CAMERA"',
+  'android:name="android.permission.POST_NOTIFICATIONS"',
   'android:name="android.permission.READ_MEDIA_IMAGES"',
   'android:name="android.permission.READ_EXTERNAL_STORAGE"',
   'android:name="com.autonavi.minimap"',
@@ -52,10 +53,14 @@ const REQUIRED_BINARY_SNIPPETS = Object.freeze([
   "com.tencent.map",
   "com.tencent.maplite",
   "AndroidMap",
+  "AndroidPermission",
+  "AndroidNotification",
   "checkAppInstalled",
   "openNavigation",
   "queryIntentActivities",
   "native-map-no-handler",
+  "permission-request-dispatched",
+  "notification-dispatched",
 ]);
 
 const BLOCKED_BINARY_SNIPPETS = Object.freeze([

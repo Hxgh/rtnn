@@ -16,6 +16,8 @@ export {
 
 export type {
   NativeActionPermissionResult,
+  NativeBarcodeScanActionResult,
+  NativeBarcodeScanOptions,
   NativeCoreService,
   NativeMapNavigationInput,
   NativeMediaPickOptions,
@@ -31,6 +33,7 @@ export type {
 export type {
   MapAppType as NativeCoreMapAppType,
   NativeBridgeActionResult as NativeCoreActionResult,
+  NativeBarcode as NativeCoreBarcode,
   NativeClientInfo as NativeCoreClientInfo,
   NativeMapOpenCandidate as NativeCoreMapCandidate,
   NativePermissionKind as NativeCorePermissionKind,

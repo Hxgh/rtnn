@@ -9,6 +9,7 @@ import {
   runNativeActionWithWatchdog,
   type NativeCoreActionResult,
   type NativeCoreClientInfo,
+  type NativeCoreBarcode,
   type NativeCoreMapCandidate,
   type NativeCorePermissionKind,
   type NativeCorePermissionResult,
@@ -28,7 +29,13 @@ type ActionState = "idle" | "opening" | "opened" | "cancelled" | "failed";
 type MapCandidateView = NativeCoreMapCandidate & {
   checking?: boolean;
 };
-type BusyAction = "external" | "map" | "image" | null;
+type BusyAction =
+  | "external"
+  | "map"
+  | "image"
+  | "barcode"
+  | "notification"
+  | null;
 type VisiblePermissionKind = Extract<
   NativeCorePermissionKind,
   "photo-library" | "camera" | "notification"
@@ -53,6 +60,7 @@ const emptyPermissions: Record<
   notification: null,
 };
 const mediaPickerTimeoutMs = 12_000;
+const barcodeScanTimeoutMs = 18_000;
 const transientActionStateMs = 1_200;
 const nativeActionDispatchStateMs = 1_800;
 
@@ -196,7 +204,11 @@ function getMapCandidateHint(
 }
 
 function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
-  return candidate.status !== "unsupported";
+  return (
+    candidate.status === "installed" ||
+    candidate.status === "unknown" ||
+    isMapDetectionUncertain(candidate)
+  );
 }
 
 function isPickerManagedPermission(result: NativeCorePermissionResult | null) {
@@ -226,10 +238,15 @@ export function NativeCapabilitiesPanel({
     externalOpen: true,
     mapNavigation: true,
     filePick: true,
+    notification: true,
+    barcodeScan: true,
   });
   const [externalState, setExternalState] = useState<ActionState>("idle");
   const [mapState, setMapState] = useState<ActionState>("idle");
   const [imageState, setImageState] = useState<ActionState>("idle");
+  const [barcodeState, setBarcodeState] = useState<ActionState>("idle");
+  const [notificationState, setNotificationState] =
+    useState<ActionState>("idle");
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [activeMediaSource, setActiveMediaSource] =
     useState<NativeMediaSource | null>(null);
@@ -245,6 +262,7 @@ export function NativeCapabilitiesPanel({
     notification: "idle",
   });
   const [images, setImages] = useState<NativeCorePickedFile[]>([]);
+  const [barcodes, setBarcodes] = useState<NativeCoreBarcode[]>([]);
   const [permissions, setPermissions] =
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
@@ -255,6 +273,8 @@ export function NativeCapabilitiesPanel({
       [externalState, setExternalState],
       [mapState, setMapState],
       [imageState, setImageState],
+      [barcodeState, setBarcodeState],
+      [notificationState, setNotificationState],
     ];
     const timers = entries
       .filter(([state]) => state === "opened" || state === "cancelled" || state === "failed")
@@ -265,7 +285,7 @@ export function NativeCapabilitiesPanel({
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [externalState, mapState, imageState]);
+  }, [externalState, mapState, imageState, barcodeState, notificationState]);
 
   useEffect(() => {
     if (!busyAction) {
@@ -287,6 +307,12 @@ export function NativeCapabilitiesPanel({
         } else if (busyAction === "image") {
           setImageState((state) => (state === "opening" ? "idle" : state));
           setActiveMediaSource(null);
+        } else if (busyAction === "barcode") {
+          setBarcodeState((state) => (state === "opening" ? "idle" : state));
+        } else if (busyAction === "notification") {
+          setNotificationState((state) =>
+            state === "opening" ? "opened" : state,
+          );
         }
         setBusyAction(null);
       }, 500);
@@ -399,6 +425,8 @@ export function NativeCapabilitiesPanel({
   const externalAvailable = capabilities.externalOpen;
   const mapAvailable = capabilities.mapNavigation;
   const imagePickerAvailable = capabilities.filePick;
+  const barcodeAvailable = capabilities.barcodeScan;
+  const notificationAvailable = capabilities.notification;
   const installedMapCount = mapCandidates.filter(
     (item) => item.status === "installed",
   ).length;
@@ -509,6 +537,37 @@ export function NativeCapabilitiesPanel({
       setActiveMediaSource(null);
       setBusyAction((current) => (current === "image" ? null : current));
     }
+  }
+
+  async function handleScanBarcode() {
+    setBarcodeState("opening");
+    setBusyAction("barcode");
+    setLastMessage(null);
+
+    try {
+      const result = await nativeCore.scanBarcode({
+        timeoutMs: barcodeScanTimeoutMs,
+      });
+
+      setLastMessage(result.message ?? result.reason ?? null);
+      setBarcodes(result.codes);
+      setBarcodeState(
+        result.ok ? "opened" : isCancelled(result) ? "cancelled" : "failed",
+      );
+      void refreshPermissionsFor(["camera"]).catch(() => {});
+    } catch (error) {
+      setLastMessage(error instanceof Error ? error.message : String(error));
+      setBarcodeState("failed");
+    } finally {
+      setBusyAction((current) => (current === "barcode" ? null : current));
+    }
+  }
+
+  async function handleSendNotification() {
+    await runAction("notification", setNotificationState, () =>
+      nativeCore.showTestNotification(),
+    );
+    void refreshPermissionsFor(["notification"]).catch(() => {});
   }
 
   async function handleOpenMapPicker() {
@@ -698,6 +757,60 @@ export function NativeCapabilitiesPanel({
       <SurfaceCard className="overflow-hidden">
         <div className="space-y-4 px-4 py-4">
           <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground">{messages.barcodeTitle}</h2>
+            <p className="text-xs leading-5 text-muted-foreground">{messages.barcodeDescription}</p>
+          </div>
+
+          <Button
+            disabled={!barcodeAvailable || barcodeState === "opening"}
+            onClick={handleScanBarcode}
+            variant="outline"
+          >
+            {barcodeState === "opening" ? messages.opening : messages.barcodeScan}
+          </Button>
+
+          <div className="rounded-xl border border-border/70 px-3 py-3 text-xs leading-5">
+            <p className="font-medium text-muted-foreground">
+              {barcodes.length > 0 ? messages.barcodeResult : messages.barcodeNoResult}
+            </p>
+            {barcodes.length > 0 ? (
+              <div className="mt-2 grid gap-1">
+                {barcodes.map((code, index) => (
+                  <p
+                    className="break-words text-foreground"
+                    key={`${code.rawValue}:${code.format ?? "unknown"}:${index}`}
+                  >
+                    {code.format ? `${code.format}: ` : ""}
+                    {code.rawValue}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="overflow-hidden">
+        <div className="space-y-4 px-4 py-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground">{messages.notificationTitle}</h2>
+            <p className="text-xs leading-5 text-muted-foreground">{messages.notificationDescription}</p>
+          </div>
+          <Button
+            disabled={!notificationAvailable || notificationState === "opening"}
+            onClick={handleSendNotification}
+            variant="outline"
+          >
+            {notificationState === "opening"
+              ? messages.opening
+              : messages.notificationSend}
+          </Button>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="overflow-hidden">
+        <div className="space-y-4 px-4 py-4">
+          <div className="space-y-1">
             <h2 className="text-sm font-semibold text-foreground">{messages.permissions}</h2>
             <p className="text-xs leading-5 text-muted-foreground">{messages.permissionDescription}</p>
           </div>
@@ -754,13 +867,21 @@ export function NativeCapabilitiesPanel({
         </Link>
       </div>
 
-      {externalState === "opened" || mapState === "opened" || imageState === "opened" ? (
+      {externalState === "opened" ||
+      mapState === "opened" ||
+      imageState === "opened" ||
+      barcodeState === "opened" ||
+      notificationState === "opened" ? (
         <p className="text-xs leading-5 text-muted-foreground">{messages.opened}</p>
       ) : null}
-      {imageState === "cancelled" ? (
+      {imageState === "cancelled" || barcodeState === "cancelled" ? (
         <p className="text-xs leading-5 text-muted-foreground">{messages.cancelled}</p>
       ) : null}
-      {externalState === "failed" || mapState === "failed" || imageState === "failed" ? (
+      {externalState === "failed" ||
+      mapState === "failed" ||
+      imageState === "failed" ||
+      barcodeState === "failed" ||
+      notificationState === "failed" ? (
         <p className="text-xs leading-5 text-destructive">{messages.failed}</p>
       ) : null}
       {lastMessage ? (
@@ -799,7 +920,7 @@ export function NativeCapabilitiesPanel({
                 const disabled =
                   mapState === "opening" ||
                   candidate.checking ||
-                  candidate.status === "unsupported";
+                  !isMapCandidateActionable(candidate);
                 const uncertain = isMapDetectionUncertain(candidate);
 
                 return (

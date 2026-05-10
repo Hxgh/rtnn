@@ -1,5 +1,4 @@
 import {
-  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -41,18 +40,23 @@ function writeFileIfChanged(filePath, content) {
   return true;
 }
 
-function copyFileIfChanged(fromPath, toPath) {
-  if (
-    existsSync(fromPath) &&
-    existsSync(toPath) &&
-    readFileSync(fromPath).equals(readFileSync(toPath))
-  ) {
+function writeBinaryFileIfChanged(filePath, content) {
+  const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
+
+  if (existsSync(filePath) && readFileSync(filePath).equals(buffer)) {
     return false;
   }
 
-  mkdirSync(path.dirname(toPath), { recursive: true });
-  copyFileSync(fromPath, toPath);
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, buffer);
   return true;
+}
+
+function buildAdaptiveForegroundIcon(sourceIcon) {
+  // The checked-in icon is already the centered RTNN adaptive foreground.
+  // Keeping this seam makes generated Android resources explicit without
+  // forcing CI to depend on image tooling.
+  return sourceIcon;
 }
 
 function findMainActivity(androidDir, packageName) {
@@ -103,6 +107,7 @@ function patchAndroidManifest(manifestPath) {
 
   const permissions = [
     '<uses-permission android:name="android.permission.CAMERA" />',
+    '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
     '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />',
     '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />',
     '<uses-feature android:name="android.hardware.camera" android:required="false" />',
@@ -251,6 +256,7 @@ function patchGradle(buildGradlePath) {
   const dependencies = [
     'implementation("androidx.activity:activity-ktx:1.10.1")',
     'implementation("androidx.core:core-ktx:1.15.0")',
+    'implementation("androidx.core:core:1.15.0")',
   ];
 
   for (const dependency of dependencies) {
@@ -330,31 +336,30 @@ function patchLauncherIcon(androidDir, iconPath) {
     "mipmap-xxxhdpi",
   ];
 
-  copyFileIfChanged(
-    iconPath,
-    path.join(
-      mainResDir,
-      "drawable",
-      "rtnn_launcher_icon.png",
-    ),
+  const sourceIcon = readFileSync(iconPath);
+  const foregroundIcon = buildAdaptiveForegroundIcon(sourceIcon);
+
+  writeBinaryFileIfChanged(
+    path.join(mainResDir, "drawable", "rtnn_launcher_icon.png"),
+    sourceIcon,
   );
-  copyFileIfChanged(
-    iconPath,
+  writeBinaryFileIfChanged(
     path.join(
       mainResDir,
       "drawable",
       "rtnn_launcher_icon_foreground.png",
     ),
+    foregroundIcon,
   );
 
   for (const mipmapDir of mipmapDirs) {
-    copyFileIfChanged(
-      iconPath,
+    writeBinaryFileIfChanged(
       path.join(mainResDir, mipmapDir, "rtnn_launcher_icon.png"),
+      sourceIcon,
     );
-    copyFileIfChanged(
-      iconPath,
+    writeBinaryFileIfChanged(
       path.join(mainResDir, mipmapDir, "rtnn_launcher_icon_foreground.png"),
+      foregroundIcon,
     );
   }
 
@@ -374,7 +379,7 @@ function patchLauncherIcon(androidDir, iconPath) {
     [
       '<?xml version="1.0" encoding="utf-8"?>',
       "<resources>",
-      '    <color name="rtnn_launcher_icon_background">#000000</color>',
+      '    <color name="rtnn_launcher_icon_background">#F6F6F6</color>',
       "</resources>",
       "",
     ].join("\n"),
@@ -385,7 +390,10 @@ function buildMainActivitySource(packageName) {
   return `package ${packageName}
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -417,6 +425,7 @@ class MainActivity : TauriActivity() {
   private var filePathCallback: ValueCallback<Array<Uri>>? = null
   private var cameraPhotoUri: Uri? = null
   private var pendingFileChooser = false
+  private var pendingPermissionKind: String? = null
   private var currentTheme = "light"
   private var currentThemeMode = "system"
 
@@ -459,6 +468,14 @@ class MainActivity : TauriActivity() {
     cameraPhotoUri = null
   }
 
+  private val nativePermissionLauncher = registerForActivityResult(
+    ActivityResultContracts.RequestPermission()
+  ) { granted ->
+    val kind = pendingPermissionKind ?: "unknown"
+    pendingPermissionKind = null
+    notifyPermissionChanged(kind, granted)
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
@@ -491,6 +508,8 @@ class MainActivity : TauriActivity() {
         webView.settings.allowContentAccess = true
         webView.addJavascriptInterface(ThemeBridge(), "AndroidTheme")
         webView.addJavascriptInterface(MapBridge(), "AndroidMap")
+        webView.addJavascriptInterface(PermissionBridge(), "AndroidPermission")
+        webView.addJavascriptInterface(NotificationBridge(), "AndroidNotification")
         webView.webChromeClient = object : WebChromeClient() {
           override fun onShowFileChooser(
             webView: WebView?,
@@ -723,6 +742,109 @@ class MainActivity : TauriActivity() {
     }
   }
 
+  inner class PermissionBridge {
+    @JavascriptInterface
+    fun checkPermission(kind: String): String {
+      return permissionResult(kind, isPermissionGranted(kind), false, false).toString()
+    }
+
+    @JavascriptInterface
+    fun requestPermission(kind: String, purpose: String?): String {
+      val permission = permissionNameForKind(kind)
+      if (permission == null) {
+        return permissionResult(kind, false, true, false, "permission-unavailable").toString()
+      }
+
+      if (isPermissionGranted(kind)) {
+        return permissionResult(kind, true, false, false).toString()
+      }
+
+      pendingPermissionKind = kind
+      nativePermissionLauncher.launch(permission)
+      return permissionResult(kind, false, true, true, "permission-request-dispatched").toString()
+    }
+  }
+
+  inner class NotificationBridge {
+    @JavascriptInterface
+    fun showNotification(title: String, body: String?, tag: String?): String {
+      val result = JSONObject()
+
+      if (!isPermissionGranted("notification")) {
+        result.put("ok", false)
+        result.put("reason", "notification-permission-denied")
+        return result.toString()
+      }
+
+      return try {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channelId = "rtnn-default"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          val channel = NotificationChannel(
+            channelId,
+            "RTNN",
+            NotificationManager.IMPORTANCE_DEFAULT
+          )
+          notificationManager.createNotificationChannel(channel)
+        }
+
+        val notification = androidx.core.app.NotificationCompat.Builder(this@MainActivity, channelId)
+          .setSmallIcon(android.R.drawable.ic_dialog_info)
+          .setContentTitle(title.ifBlank { "RTNN" })
+          .setContentText(body ?: "")
+          .setAutoCancel(true)
+          .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+          .build()
+
+        notificationManager.notify((tag ?: "rtnn-native").hashCode(), notification)
+        result.put("ok", true)
+        result.put("message", "notification-dispatched")
+        result.toString()
+      } catch (error: Exception) {
+        result.put("ok", false)
+        result.put("reason", error.javaClass.simpleName)
+        result.toString()
+      }
+    }
+  }
+
+  private fun permissionNameForKind(kind: String): String? {
+    return when (kind) {
+      "camera", "barcode" -> Manifest.permission.CAMERA
+      "notification" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.POST_NOTIFICATIONS
+      } else {
+        null
+      }
+      else -> null
+    }
+  }
+
+  private fun isPermissionGranted(kind: String): Boolean {
+    val permission = permissionNameForKind(kind) ?: return kind == "notification" && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+    return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+  }
+
+  private fun permissionResult(
+    kind: String,
+    granted: Boolean,
+    requested: Boolean,
+    dispatched: Boolean,
+    reason: String? = null
+  ): JSONObject {
+    val result = JSONObject()
+    result.put("ok", granted || dispatched)
+        val normalizedKind = if (kind == "barcode") "camera" else kind
+        result.put("kind", normalizedKind)
+    result.put("status", if (granted) "granted" else if (reason == "permission-unavailable") "unsupported" else "prompt")
+    result.put("requested", requested)
+    result.put("canAskAgain", !granted)
+    if (dispatched) result.put("dispatched", true)
+    if (reason != null) result.put("reason", reason)
+    return result
+  }
+
   inner class ThemeBridge {
     @JavascriptInterface
     fun setTheme(theme: String, mode: String) {
@@ -876,11 +998,37 @@ class MainActivity : TauriActivity() {
           window.dispatchEvent(event);
         }
         try {
+          window.dispatchEvent(new CustomEvent('rtnn:android-native-ready'));
+        } catch (error) {
+          var nativeEvent = document.createEvent('Event');
+          nativeEvent.initEvent('rtnn:android-native-ready', false, false);
+          window.dispatchEvent(nativeEvent);
+        }
+        try {
           window.dispatchEvent(new CustomEvent('rtnn:native-theme-change'));
         } catch (error) {
           var themeEvent = document.createEvent('Event');
           themeEvent.initEvent('rtnn:native-theme-change', false, false);
           window.dispatchEvent(themeEvent);
+        }
+      })();
+      """.trimIndent(),
+      null
+    )
+  }
+
+  private fun notifyPermissionChanged(kind: String, granted: Boolean) {
+    val webView = findWebView() ?: return
+    webView.evaluateJavascript(
+      """
+      (function() {
+        var detail = { kind: '\${kind}', granted: \${granted} };
+        try {
+          window.dispatchEvent(new CustomEvent('rtnn:android-permission-change', { detail: detail }));
+        } catch (error) {
+          var event = document.createEvent('CustomEvent');
+          event.initCustomEvent('rtnn:android-permission-change', false, false, detail);
+          window.dispatchEvent(event);
         }
       })();
       """.trimIndent(),

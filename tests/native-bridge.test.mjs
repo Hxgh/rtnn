@@ -831,7 +831,7 @@ test("native capability core requests media permissions before image picking", a
   ]);
 });
 
-test("native capability core keeps manually selected unavailable map apps actionable", async () => {
+test("native capability core disables manually selected clearly missing map apps", async () => {
   const calls = [];
   const bridge = {
     async getClientInfo() {
@@ -897,7 +897,7 @@ test("native capability core keeps manually selected unavailable map apps action
 
   const candidates = await core.listMapOpenCandidates();
   assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
-  assert.equal(candidates.find((item) => item.appType === "baidu")?.available, true);
+  assert.equal(candidates.find((item) => item.appType === "baidu")?.available, false);
   assert.deepEqual(
     await core.openPreferredMapNavigation({
       lat: 30.25,
@@ -905,8 +905,8 @@ test("native capability core keeps manually selected unavailable map apps action
       appType: "baidu",
     }),
     {
-      ok: true,
-      appType: "baidu",
+      ok: false,
+      reason: "map-app-not-installed",
     },
   );
   assert.deepEqual(
@@ -925,7 +925,6 @@ test("native capability core keeps manually selected unavailable map apps action
     ["checkMapInstalled", "baidu"],
     ["checkMapInstalled", "tencent"],
     ["checkMapInstalled", "baidu"],
-    ["openMapNavigation", "baidu"],
     ["checkMapInstalled", "amap"],
     ["openMapNavigation", "amap"],
   ]);

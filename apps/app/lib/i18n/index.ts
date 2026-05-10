@@ -129,6 +129,14 @@ export type AppMessages = {
     mapDescription: string;
     mediaTitle: string;
     mediaDescription: string;
+    barcodeTitle: string;
+    barcodeDescription: string;
+    barcodeScan: string;
+    barcodeResult: string;
+    barcodeNoResult: string;
+    notificationTitle: string;
+    notificationDescription: string;
+    notificationSend: string;
     permissionDescription: string;
     keyboardTitle: string;
     keyboardDescription: string;
@@ -337,6 +345,14 @@ const zhCN: AppMessages = {
     mapDescription: "点击打开地图后选择已安装的地图应用；无法检测时可以尝试打开。",
     mediaTitle: "相机相册",
     mediaDescription: "选择或拍摄图片后会在当前页面回显，取消选择不会卡在打开中。",
+    barcodeTitle: "扫码",
+    barcodeDescription: "按用户动作请求相机权限；当前壳子不支持原生扫码时会给出明确原因。",
+    barcodeScan: "扫码",
+    barcodeResult: "扫码结果",
+    barcodeNoResult: "暂无扫码结果",
+    notificationTitle: "通知",
+    notificationDescription: "按用户动作请求通知权限，并发送一条本地测试通知。",
+    notificationSend: "发送测试通知",
     permissionDescription: "权限按需请求，模板只提供统一入口，业务页面自行决定触发时机。",
     keyboardTitle: "键盘与安全区",
     keyboardDescription: "点击输入框后检查底部内容是否被键盘或安全区域遮挡。",
@@ -363,7 +379,7 @@ const zhCN: AppMessages = {
     mapUnknownCount: "无法检测",
     mapChecking: "正在检测地图应用",
     mapPickerTitle: "选择地图应用",
-    mapPickerDescription: "检测结果仅作参考；无法检测或疑似未安装时仍可点击尝试，由系统决定是否能打开。",
+    mapPickerDescription: "已安装的地图可直接打开；明确未安装的地图会禁用，无法确认时保留尝试入口。",
     mapVisibilityLimited: "Android 11+ 需要壳声明应用可见性；若已安装仍显示未安装，可直接尝试打开或安装新包后重试。",
     mapCheckUnavailable: "当前环境无法读取已安装应用，只能尝试打开。",
     mapRefresh: "重新检测",
@@ -545,6 +561,14 @@ const enUS: AppMessages = {
     mapDescription: "Tap open map, then choose an installed map app. Unknown apps can still be tried.",
     mediaTitle: "Camera and photos",
     mediaDescription: "Picked or captured images are previewed here. Cancelling will not leave the button busy.",
+    barcodeTitle: "Scan",
+    barcodeDescription: "Camera permission is requested only after user action. Unsupported native scan paths return a clear reason.",
+    barcodeScan: "Scan",
+    barcodeResult: "Scan result",
+    barcodeNoResult: "No scan result",
+    notificationTitle: "Notifications",
+    notificationDescription: "Request notification permission on user action and send a local test notification.",
+    notificationSend: "Send test notification",
     permissionDescription: "Permissions are requested on demand. Business screens decide their own trigger timing.",
     keyboardTitle: "Keyboard and safe area",
     keyboardDescription: "Focus the input to verify bottom content is not covered by the keyboard or safe area.",
@@ -571,7 +595,7 @@ const enUS: AppMessages = {
     mapUnknownCount: "Unknown",
     mapChecking: "Checking map apps",
     mapPickerTitle: "Choose map app",
-    mapPickerDescription: "Detection is only a hint. Unknown or possibly missing apps can still be tried and the system decides whether they open.",
+    mapPickerDescription: "Installed map apps can be opened directly. Definitely missing apps are disabled; uncertain apps can still be tried.",
     mapVisibilityLimited: "Android 11+ requires package visibility declarations. If an installed app is not detected, try opening it or install the latest shell.",
     mapCheckUnavailable: "This runtime cannot read installed apps, so it can only try opening.",
     mapRefresh: "Refresh",

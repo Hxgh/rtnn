@@ -148,6 +148,32 @@ export type NativeImagePickResult = NativeBridgeActionResult & {
   files: NativePickedFile[];
 };
 
+export type NativeBarcodeScanInput = {
+  source?: "camera" | "image";
+  formats?: string[];
+  timeoutMs?: number;
+};
+
+export type NativeBarcode = {
+  rawValue: string;
+  format?: string;
+};
+
+export type NativeBarcodeScanResult = NativeBridgeActionResult & {
+  codes: NativeBarcode[];
+  files?: NativePickedFile[];
+};
+
+export type NativeNotificationInput = {
+  title: string;
+  body?: string;
+  tag?: string;
+};
+
+export type NativeNotificationResult = NativeBridgeActionResult & {
+  permission?: NativePermissionResult;
+};
+
 export type NativeMapOpenCandidate = NativeMapAppInfo &
   NativeMapInstallResult & {
     available: boolean;
@@ -172,6 +198,12 @@ export type NativeBridge = {
     input: NativePermissionTarget,
   ): Promise<NativePermissionResult>;
   pickImages(input?: NativeImagePickInput): Promise<NativeImagePickResult>;
+  scanBarcode(
+    input?: NativeBarcodeScanInput,
+  ): Promise<NativeBarcodeScanResult>;
+  showNotification(
+    input: NativeNotificationInput,
+  ): Promise<NativeNotificationResult>;
   checkUpdate(): Promise<NativeUpdateCheckResult>;
   installUpdate(): Promise<NativeBridgeActionResult>;
 };
@@ -212,16 +244,38 @@ type BrowserWindowLike = {
   removeEventListener?: Window["removeEventListener"];
 };
 type BrowserNotificationApi = {
+  new (title: string, options?: { body?: string; tag?: string }): unknown;
   permission?: NotificationPermission | "default";
   requestPermission?: () =>
     | Promise<NotificationPermission | "default">
     | NotificationPermission
     | "default";
 };
+type BrowserBarcodeDetector = {
+  detect?: (source: unknown) => Promise<Array<{ rawValue?: string; format?: string }>>;
+};
+type BrowserBarcodeDetectorConstructor = {
+  new (options?: { formats?: string[] }): BrowserBarcodeDetector;
+  getSupportedFormats?: () => Promise<string[]>;
+};
 type AndroidMapBridge = {
   isAppInstalled?: (packageName: string) => boolean;
   checkAppInstalled?: (packageName: string) => string | NativeMapInstallResult | boolean;
   openNavigation?: (appType: string, url: string) => string | NativeBridgeActionResult | boolean;
+};
+type AndroidPermissionBridge = {
+  checkPermission?: (kind: string) => string | NativePermissionResult | boolean;
+  requestPermission?: (
+    kind: string,
+    purpose?: string,
+  ) => string | NativePermissionResult | boolean;
+};
+type AndroidNotificationBridge = {
+  showNotification?: (
+    title: string,
+    body?: string,
+    tag?: string,
+  ) => string | NativeBridgeActionResult | boolean;
 };
 type AndroidThemeBridge = {
   setTheme?: (theme: string, mode: string) => void;
@@ -244,7 +298,11 @@ type TauriGlobalScope = {
   addEventListener?: Window["addEventListener"];
   removeEventListener?: Window["removeEventListener"];
   Notification?: BrowserNotificationApi;
+  BarcodeDetector?: BrowserBarcodeDetectorConstructor;
+  createImageBitmap?: (source: Blob) => Promise<unknown>;
   AndroidMap?: AndroidMapBridge;
+  AndroidPermission?: AndroidPermissionBridge;
+  AndroidNotification?: AndroidNotificationBridge;
   AndroidTheme?: AndroidThemeBridge;
   __RTNN_SYSTEM_THEME__?: string;
   __ANDROID_SYSTEM_THEME__?: string;
@@ -280,6 +338,8 @@ export type CreateTauriNativeBridgeOptions = {
   checkMapInstalledCommand?: string;
   checkPermissionCommand?: string;
   requestPermissionCommand?: string;
+  scanBarcodeCommand?: string;
+  showNotificationCommand?: string;
   checkUpdateCommand?: string;
   installUpdateCommand?: string;
 };
@@ -294,6 +354,8 @@ export type CreateDetectedTauriNativeBridgeOptions = {
   checkMapInstalledCommand?: string;
   checkPermissionCommand?: string;
   requestPermissionCommand?: string;
+  scanBarcodeCommand?: string;
+  showNotificationCommand?: string;
   checkUpdateCommand?: string;
   installUpdateCommand?: string;
 };
@@ -308,6 +370,8 @@ export type CreateNativeBridgeOptions = CreateBrowserNativeBridgeOptions & {
   checkMapInstalledCommand?: string;
   checkPermissionCommand?: string;
   requestPermissionCommand?: string;
+  scanBarcodeCommand?: string;
+  showNotificationCommand?: string;
   checkUpdateCommand?: string;
   installUpdateCommand?: string;
 };
@@ -569,6 +633,115 @@ function makePickerManagedPermissionResult(
   });
 }
 
+function normalizeAndroidPermissionKind(kind: NativePermissionKind) {
+  return kind === "barcode" ? "camera" : kind;
+}
+
+function parseAndroidPermissionBridgeResult(
+  value: unknown,
+  input: NativePermissionInput,
+): NativePermissionResult | null {
+  if (typeof value === "boolean") {
+    return makePermissionResult(input, value ? "granted" : "denied", {
+      requested: false,
+      canAskAgain: !value,
+    });
+  }
+
+  if (typeof value === "string") {
+    try {
+      return normalizePermissionResult(
+        JSON.parse(value) as NativePermissionResult,
+        input,
+      );
+    } catch {
+      return makePermissionResult(input, "unknown", {
+        ok: false,
+        reason: value || "permission-bridge-invalid-result",
+      });
+    }
+  }
+
+  if (value && typeof value === "object") {
+    return normalizePermissionResult(
+      value as NativePermissionResult,
+      input,
+    );
+  }
+
+  return null;
+}
+
+function checkAndroidPermissionWithBridge(
+  input: NativePermissionTarget,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): NativePermissionResult | null {
+  const normalized = normalizePermissionInput(input);
+  const androidPermission = globalScope?.AndroidPermission;
+
+  if (typeof androidPermission?.checkPermission !== "function") {
+    return null;
+  }
+
+  try {
+    return (
+      parseAndroidPermissionBridgeResult(
+        androidPermission.checkPermission(
+          normalizeAndroidPermissionKind(normalized.kind),
+        ),
+        normalized,
+      ) ?? makePermissionResult(normalized, "unknown", {
+        ok: false,
+        reason: "permission-bridge-invalid-result",
+      })
+    );
+  } catch (error) {
+    return makePermissionResult(normalized, "unknown", {
+      ok: false,
+      reason: normalizeErrorReason(error),
+    });
+  }
+}
+
+function requestAndroidPermissionWithBridge(
+  input: NativePermissionTarget,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): NativePermissionResult | null {
+  const normalized = normalizePermissionInput(input);
+  const androidPermission = globalScope?.AndroidPermission;
+
+  if (typeof androidPermission?.requestPermission !== "function") {
+    return null;
+  }
+
+  try {
+    const result = parseAndroidPermissionBridgeResult(
+      androidPermission.requestPermission(
+        normalizeAndroidPermissionKind(normalized.kind),
+        normalized.purpose,
+      ),
+      normalized,
+    );
+
+    return result
+      ? {
+          ...result,
+          requested: result.requested ?? true,
+        }
+      : makePermissionResult(normalized, "unknown", {
+          ok: false,
+          requested: true,
+          reason: "permission-bridge-invalid-result",
+        });
+  } catch (error) {
+    return makePermissionResult(normalized, "unknown", {
+      ok: false,
+      requested: true,
+      reason: normalizeErrorReason(error),
+    });
+  }
+}
+
 async function queryBrowserPermission(
   kind: NativePermissionKind,
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
@@ -605,6 +778,11 @@ async function checkBrowserPermission(
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): Promise<NativePermissionResult> {
   const normalized = normalizePermissionInput(input);
+  const androidResult = checkAndroidPermissionWithBridge(normalized, globalScope);
+
+  if (androidResult) {
+    return androidResult;
+  }
 
   if (pickerManagedPermissionKinds.has(normalized.kind)) {
     const queried = await queryBrowserPermission(normalized.kind, globalScope);
@@ -642,6 +820,14 @@ async function requestBrowserPermission(
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): Promise<NativePermissionResult> {
   const normalized = normalizePermissionInput(input);
+  const androidResult = requestAndroidPermissionWithBridge(
+    normalized,
+    globalScope,
+  );
+
+  if (androidResult) {
+    return androidResult;
+  }
 
   if (
     pickerManagedPermissionKinds.has(normalized.kind) &&
@@ -722,6 +908,190 @@ async function ensureBrowserPermission(
     },
     globalScope,
   );
+}
+
+function normalizeBarcodeScanResult(
+  result: NativeBarcodeScanResult | null | undefined,
+): NativeBarcodeScanResult {
+  if (!result || typeof result !== "object") {
+    return {
+      ok: false,
+      reason: "barcode-scan-invalid-result",
+      codes: [],
+    };
+  }
+
+  return {
+    ok: Boolean(result.ok),
+    message: result.message ?? undefined,
+    reason: result.reason ?? undefined,
+    dispatched: result.dispatched,
+    codes: Array.isArray(result.codes)
+      ? result.codes
+          .filter((item) => item && typeof item.rawValue === "string")
+          .map((item) => ({
+            rawValue: item.rawValue,
+            format: item.format,
+          }))
+      : [],
+    files: Array.isArray(result.files) ? result.files : undefined,
+  };
+}
+
+async function scanBarcodeWithBrowser(
+  input: NativeBarcodeScanInput = {},
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): Promise<NativeBarcodeScanResult> {
+  const permission = await ensureBrowserPermission(
+    {
+      kind: "camera",
+      trigger: "on-demand",
+      purpose: "scan-barcode",
+    },
+    globalScope,
+  );
+
+  if (!permission.ok) {
+    return {
+      ok: false,
+      reason: permission.reason ?? "camera-permission-denied",
+      codes: [],
+    };
+  }
+
+  if (typeof globalScope?.BarcodeDetector !== "function") {
+    const picked = await pickBarcodeImageFile(input);
+
+    return {
+      ok: false,
+      reason: picked.ok
+        ? "barcode-detector-unavailable"
+        : (picked.reason ?? "barcode-scan-unavailable"),
+      codes: [],
+      files: picked.pickedFile ? [picked.pickedFile] : [],
+    };
+  }
+
+  if (typeof globalScope.createImageBitmap !== "function") {
+    return {
+      ok: false,
+      reason: "barcode-image-decoder-unavailable",
+      codes: [],
+    };
+  }
+
+  const picked = await pickBarcodeImageFile(input);
+
+  if (!picked.ok || !picked.file) {
+    return {
+      ok: false,
+      reason: picked.reason ?? "barcode-scan-cancelled",
+      codes: [],
+      files: picked.pickedFile ? [picked.pickedFile] : [],
+    };
+  }
+
+  try {
+    const image = await globalScope.createImageBitmap(picked.file);
+    const detector = new globalScope.BarcodeDetector({
+      formats: input.formats,
+    });
+    const detected = await detector.detect?.(image);
+    const codes =
+      detected
+        ?.filter((item) => typeof item.rawValue === "string" && item.rawValue)
+        .map((item) => ({
+          rawValue: item.rawValue as string,
+          format: item.format,
+        })) ?? [];
+
+    return {
+      ok: codes.length > 0,
+      reason: codes.length > 0 ? undefined : "barcode-not-found",
+      codes,
+      files: picked.pickedFile ? [picked.pickedFile] : [],
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: normalizeErrorReason(error),
+      codes: [],
+      files: picked.pickedFile ? [picked.pickedFile] : [],
+    };
+  }
+}
+
+async function showBrowserNotification(
+  input: NativeNotificationInput,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): Promise<NativeNotificationResult> {
+  const permission = await ensureBrowserPermission(
+    {
+      kind: "notification",
+      trigger: "on-demand",
+      purpose: "show-notification",
+    },
+    globalScope,
+  );
+
+  if (!permission.ok || permission.status !== "granted") {
+    return {
+      ok: false,
+      permission,
+      reason: permission.reason ?? "notification-permission-denied",
+    };
+  }
+
+  const androidNotification = globalScope?.AndroidNotification;
+  if (typeof androidNotification?.showNotification === "function") {
+    try {
+      return {
+        ...normalizeActionResult(
+          parseAndroidActionBridgeResult(
+            androidNotification.showNotification(
+              input.title,
+              input.body,
+              input.tag,
+            ),
+            "notification-dispatch-failed",
+          ),
+        ),
+        permission,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        permission,
+        reason: normalizeErrorReason(error),
+      };
+    }
+  }
+
+  if (typeof globalScope?.Notification === "function") {
+    try {
+      new globalScope.Notification(input.title, {
+        body: input.body,
+        tag: input.tag,
+      });
+      return {
+        ok: true,
+        permission,
+        message: "notification-dispatched",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        permission,
+        reason: normalizeErrorReason(error),
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    permission,
+    reason: "notification-unavailable",
+  };
 }
 
 function pickImagesWithInput(
@@ -865,6 +1235,169 @@ function pickImagesWithInput(
           files: await Promise.all(
             files.map((file) => normalizePickedFile(file, readAsDataUrl)),
           ),
+        });
+      },
+      { once: true },
+    );
+
+    win?.addEventListener?.("blur", handleWindowBlur);
+    win?.addEventListener?.("focus", handleWindowFocus);
+    win?.addEventListener?.(
+      NATIVE_FILE_PICKER_CLOSED_EVENT,
+      handleNativeFilePickerClosed,
+    );
+    documentRef.addEventListener("visibilitychange", handleVisibilityChange);
+
+    timer = win?.setTimeout?.(() => {
+      cancel("file-picker-timeout");
+    }, timeoutMs) ?? null;
+
+    documentRef.body.append(element);
+    element.click();
+  });
+}
+
+function pickBarcodeImageFile(
+  input: NativeBarcodeScanInput = {},
+): Promise<{
+  ok: boolean;
+  reason?: string;
+  file?: File;
+  pickedFile?: NativePickedFile;
+}> {
+  const doc = getDefaultDocument();
+  const win = getDefaultWindow();
+
+  if (!doc?.body) {
+    return Promise.resolve({
+      ok: false,
+      reason: "file-picker-unavailable",
+    });
+  }
+
+  const documentRef = doc;
+
+  return new Promise((resolve) => {
+    const element = documentRef.createElement("input");
+    const timeoutMs =
+      typeof input.timeoutMs === "number" && input.timeoutMs > 0
+        ? input.timeoutMs
+        : 60_000;
+    let completed = false;
+    let blurSeen = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    element.type = "file";
+    element.accept = "image/*";
+    element.multiple = false;
+    element.style.display = "none";
+
+    if (input.source !== "image") {
+      element.setAttribute("capture", "environment");
+    }
+
+    function cleanup() {
+      if (timer) {
+        win?.clearTimeout?.(timer);
+        timer = null;
+      }
+
+      if (settleTimer) {
+        win?.clearTimeout?.(settleTimer);
+        settleTimer = null;
+      }
+
+      win?.removeEventListener?.(
+        NATIVE_FILE_PICKER_CLOSED_EVENT,
+        handleNativeFilePickerClosed,
+      );
+      win?.removeEventListener?.("focus", handleWindowFocus);
+      win?.removeEventListener?.("blur", handleWindowBlur);
+      documentRef.removeEventListener("visibilitychange", handleVisibilityChange);
+      element.remove();
+    }
+
+    function finish(result: {
+      ok: boolean;
+      reason?: string;
+      file?: File;
+      pickedFile?: NativePickedFile;
+    }) {
+      if (completed) {
+        return;
+      }
+
+      completed = true;
+      cleanup();
+      resolve(result);
+    }
+
+    function cancel(reason: string) {
+      finish({
+        ok: false,
+        reason,
+      });
+    }
+
+    function scheduleCancelCheck() {
+      if (completed) {
+        return;
+      }
+
+      if (settleTimer) {
+        win?.clearTimeout?.(settleTimer);
+      }
+
+      const run = () => {
+        if (!completed && !element.files?.length) {
+          cancel("file-picker-cancelled");
+        }
+      };
+
+      settleTimer = win?.setTimeout?.(run, 400) ?? null;
+      if (!settleTimer) {
+        run();
+      }
+    }
+
+    function handleWindowBlur() {
+      blurSeen = true;
+    }
+
+    function handleWindowFocus() {
+      if (blurSeen) {
+        scheduleCancelCheck();
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (documentRef.visibilityState === "visible" && blurSeen) {
+        scheduleCancelCheck();
+      }
+    }
+
+    function handleNativeFilePickerClosed(event: Event) {
+      const reason = normalizeFilePickerClosedReason(
+        (event as CustomEvent<{ reason?: unknown }>).detail?.reason,
+      );
+      cancel(reason);
+    }
+
+    element.addEventListener(
+      "change",
+      async () => {
+        const file = element.files?.[0];
+
+        if (!file) {
+          cancel("file-picker-cancelled");
+          return;
+        }
+
+        finish({
+          ok: true,
+          file,
+          pickedFile: await normalizePickedFile(file, true),
         });
       },
       { once: true },
@@ -1106,6 +1639,14 @@ export function createBrowserNativeBridge(
       return pickImagesWithInput(input);
     },
 
+    async scanBarcode(input) {
+      return scanBarcodeWithBrowser(input, globalScope);
+    },
+
+    async showNotification(input) {
+      return showBrowserNotification(input, globalScope);
+    },
+
     async checkUpdate() {
       return {
         ok: false,
@@ -1322,8 +1863,41 @@ function parseAndroidMapOpenBridgeResult(
   };
 }
 
+function parseAndroidActionBridgeResult(
+  value: unknown,
+  fallbackReason: string,
+): NativeBridgeActionResult | null {
+  if (typeof value === "boolean") {
+    return {
+      ok: value,
+      reason: value ? undefined : fallbackReason,
+    };
+  }
+
+  if (typeof value === "string") {
+    try {
+      return normalizeActionResult(JSON.parse(value));
+    } catch {
+      return {
+        ok: false,
+        reason: value || fallbackReason,
+      };
+    }
+  }
+
+  if (value && typeof value === "object") {
+    return normalizeActionResult(value as NativeBridgeActionResult);
+  }
+
+  return null;
+}
+
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return result.status !== "unsupported";
+  return (
+    result.status === "installed" ||
+    result.status === "unknown" ||
+    isMapDetectionUncertain(result)
+  );
 }
 
 function isMapDetectionUncertain(result: NativeMapInstallResult) {
@@ -1343,7 +1917,7 @@ function shouldSkipNativeMapCandidate(
   }
 
   if (options.userSelected) {
-    return false;
+    return result.status === "not-installed" && !isMapDetectionUncertain(result);
   }
 
   return result.status === "not-installed" && !isMapDetectionUncertain(result);
@@ -1653,6 +2227,14 @@ export function createDetectedTauriNativeBridge(
 
     async checkPermission(input) {
       const normalized = normalizePermissionInput(input);
+      const androidResult = checkAndroidPermissionWithBridge(
+        normalized,
+        globalScope,
+      );
+
+      if (androidResult) {
+        return androidResult;
+      }
 
       try {
         return normalizePermissionResult(
@@ -1673,6 +2255,14 @@ export function createDetectedTauriNativeBridge(
 
     async requestPermission(input) {
       const normalized = normalizePermissionInput(input);
+      const androidResult = requestAndroidPermissionWithBridge(
+        normalized,
+        globalScope,
+      );
+
+      if (androidResult) {
+        return androidResult;
+      }
 
       try {
         return normalizePermissionResult(
@@ -1711,6 +2301,48 @@ export function createDetectedTauriNativeBridge(
 
     async pickImages(input) {
       return fallback.pickImages(input);
+    },
+
+    async scanBarcode(input) {
+      try {
+        return normalizeBarcodeScanResult(
+          await options.invoke<NativeBarcodeScanResult>(
+            options.scanBarcodeCommand ?? "scan_barcode",
+            {
+              source: input?.source ?? "camera",
+              formats: input?.formats ?? null,
+              timeoutMs: input?.timeoutMs ?? null,
+            },
+          ),
+        );
+      } catch {
+        return fallback.scanBarcode(input);
+      }
+    },
+
+    async showNotification(input) {
+      const androidResult = await showBrowserNotification(input, globalScope);
+      if (androidResult.ok || androidResult.reason !== "notification-unavailable") {
+        return androidResult;
+      }
+
+      try {
+        return {
+          ...normalizeActionResult(
+            await options.invoke<NativeBridgeActionResult>(
+              options.showNotificationCommand ?? "show_notification",
+              {
+                title: input.title,
+                body: input.body ?? null,
+                tag: input.tag ?? null,
+              },
+            ),
+          ),
+          permission: androidResult.permission,
+        };
+      } catch {
+        return fallback.showNotification(input);
+      }
     },
 
     async checkUpdate() {
@@ -1825,6 +2457,11 @@ export function createTauriNativeBridge(
 
     async checkPermission(input) {
       const normalized = normalizePermissionInput(input);
+      const androidResult = checkAndroidPermissionWithBridge(normalized);
+
+      if (androidResult) {
+        return androidResult;
+      }
 
       return normalizePermissionResult(
         await options.invoke<NativePermissionResult>(
@@ -1841,6 +2478,11 @@ export function createTauriNativeBridge(
 
     async requestPermission(input) {
       const normalized = normalizePermissionInput(input);
+      const androidResult = requestAndroidPermissionWithBridge(normalized);
+
+      if (androidResult) {
+        return androidResult;
+      }
 
       return normalizePermissionResult(
         await options.invoke<NativePermissionResult>(
@@ -1875,6 +2517,44 @@ export function createTauriNativeBridge(
 
     async pickImages(input) {
       return pickImagesWithInput(input);
+    },
+
+    async scanBarcode(input) {
+      try {
+        return normalizeBarcodeScanResult(
+          await options.invoke<NativeBarcodeScanResult>(
+            options.scanBarcodeCommand ?? "scan_barcode",
+            {
+              source: input?.source ?? "camera",
+              formats: input?.formats ?? null,
+              timeoutMs: input?.timeoutMs ?? null,
+            },
+          ),
+        );
+      } catch {
+        return scanBarcodeWithBrowser(input);
+      }
+    },
+
+    async showNotification(input) {
+      const androidResult = await showBrowserNotification(input);
+      if (androidResult.ok || androidResult.reason !== "notification-unavailable") {
+        return androidResult;
+      }
+
+      return {
+        ...normalizeActionResult(
+          await options.invoke<NativeBridgeActionResult>(
+            options.showNotificationCommand ?? "show_notification",
+            {
+              title: input.title,
+              body: input.body ?? null,
+              tag: input.tag ?? null,
+            },
+          ),
+        ),
+        permission: androidResult.permission,
+      };
     },
 
     async checkUpdate() {
@@ -1923,6 +2603,8 @@ export function createNativeBridge(
     checkMapInstalledCommand: options.checkMapInstalledCommand,
     checkPermissionCommand: options.checkPermissionCommand,
     requestPermissionCommand: options.requestPermissionCommand,
+    scanBarcodeCommand: options.scanBarcodeCommand,
+    showNotificationCommand: options.showNotificationCommand,
     checkUpdateCommand: options.checkUpdateCommand,
     installUpdateCommand: options.installUpdateCommand,
   });
@@ -2034,6 +2716,28 @@ export function createNativeCapabilityCore(
       }
 
       return bridge.pickImages(input);
+    },
+
+    async scanBarcode(input) {
+      const permission = await bridge.ensurePermission({
+        kind: "camera",
+        trigger: "on-demand",
+        purpose: "scan-barcode",
+      });
+
+      if (!permission.ok) {
+        return {
+          ok: false,
+          reason: permission.reason ?? "camera-permission-denied",
+          codes: [],
+        };
+      }
+
+      return bridge.scanBarcode(input);
+    },
+
+    async showNotification(input) {
+      return bridge.showNotification(input);
     },
   };
 }

@@ -10,7 +10,11 @@ import {
 import type { NativeMapNavigationInput } from "./types";
 
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return result.status !== "unsupported";
+  return (
+    result.status === "installed" ||
+    result.status === "unknown" ||
+    isMapDetectionUncertain(result)
+  );
 }
 
 export function isMapDetectionUncertain(result: NativeMapInstallResult) {
@@ -30,7 +34,7 @@ function shouldSkipMapCandidate(
   }
 
   if (options.userSelected) {
-    return false;
+    return result.status === "not-installed" && !isMapDetectionUncertain(result);
   }
 
   return result.status === "not-installed" && !isMapDetectionUncertain(result);

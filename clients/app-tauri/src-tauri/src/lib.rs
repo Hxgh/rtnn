@@ -81,7 +81,7 @@ fn current_platform() -> &'static str {
 }
 
 fn picker_managed_permission(kind: &str) -> bool {
-    matches!(kind, "camera" | "photo-library" | "file-picker")
+    matches!(kind, "camera" | "photo-library" | "file-picker" | "barcode")
 }
 
 fn permission_result(
@@ -360,6 +360,8 @@ fn get_client_info() -> NativeClientInfo {
             "external.open",
             "map.navigation",
             "file.pick",
+            "notification",
+            "barcode.scan",
             "permission",
             "safe-area",
             "keyboard",
@@ -500,6 +502,26 @@ fn request_permission(
     )
 }
 
+#[tauri::command]
+fn scan_barcode() -> CommandResult {
+    CommandResult {
+        ok: false,
+        message: None,
+        reason: Some("barcode-scan-native-unavailable".to_string()),
+    }
+}
+
+#[tauri::command]
+fn show_notification(title: String, body: Option<String>, tag: Option<String>) -> CommandResult {
+    let _ = (title, body, tag);
+
+    CommandResult {
+        ok: false,
+        message: None,
+        reason: Some("notification-native-unavailable".to_string()),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -511,6 +533,8 @@ pub fn run() {
             check_map_installed,
             check_permission,
             request_permission,
+            scan_barcode,
+            show_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running rtnn app tauri shell");
