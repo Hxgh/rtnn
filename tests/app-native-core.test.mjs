@@ -133,7 +133,12 @@ function createBridge(calls, overrides = {}) {
       };
     },
     async scanBarcode(input) {
-      calls.push(["scanBarcode", input?.timeoutMs ?? null]);
+      calls.push([
+        "scanBarcode",
+        input?.timeoutMs ?? null,
+        input?.source ?? null,
+        input?.formats ?? null,
+      ]);
       return {
         ok: true,
         codes: [
@@ -278,7 +283,26 @@ test("app native core keeps barcode and notification behind core service actions
   });
   assert.deepEqual(calls, [
     ["ensurePermission", "camera", "on-demand", "scan-barcode"],
-    ["scanBarcode", 1234],
+    [
+      "scanBarcode",
+      1234,
+      "camera",
+      [
+        "qr_code",
+        "aztec",
+        "codabar",
+        "code_39",
+        "code_93",
+        "code_128",
+        "data_matrix",
+        "ean_8",
+        "ean_13",
+        "itf",
+        "pdf417",
+        "upc_a",
+        "upc_e",
+      ],
+    ],
     ["ensurePermission", "notification", "on-demand", "enable-notification"],
     ["showNotification", "RTNN"],
   ]);
@@ -295,7 +319,26 @@ test("app native core can scan barcode from an image source for diagnostics", as
   );
   assert.deepEqual(calls, [
     ["ensurePermission", "camera", "on-demand", "scan-barcode"],
-    ["scanBarcode", 2000],
+    [
+      "scanBarcode",
+      2000,
+      "image",
+      [
+        "qr_code",
+        "aztec",
+        "codabar",
+        "code_39",
+        "code_93",
+        "code_128",
+        "data_matrix",
+        "ean_8",
+        "ean_13",
+        "itf",
+        "pdf417",
+        "upc_a",
+        "upc_e",
+      ],
+    ],
   ]);
 });
 

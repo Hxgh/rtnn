@@ -672,10 +672,10 @@ export function NativeCapabilitiesPanel({
   }
 
   async function handleOpenMapPicker() {
-    setMapPickerOpen(true);
     setLastMessage(null);
     setMapCandidates(createCheckingMapCandidates());
     await refreshMapCandidates().catch(() => {});
+    setMapPickerOpen(true);
   }
 
   async function handleOpenMapCandidate(candidate: NativeCoreMapCandidate) {
@@ -829,11 +829,15 @@ export function NativeCapabilitiesPanel({
           </div>
 
           <Button
-            disabled={!mapAvailable || mapState === "opening"}
+            disabled={!mapAvailable || mapState === "opening" || mapRefreshing}
             onClick={handleOpenMapPicker}
             variant="outline"
           >
-            {mapState === "opening" ? messages.opening : messages.openMap}
+            {mapRefreshing
+              ? messages.mapChecking
+              : mapState === "opening"
+                ? messages.opening
+                : messages.openMap}
           </Button>
         </div>
       </SurfaceCard>
