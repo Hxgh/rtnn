@@ -690,6 +690,36 @@ test("browser bridge does not dispatch Android map scheme when injected open rep
   assert.deepEqual(calls.map((call) => call[0]), ["AndroidMap.openNavigation"]);
 });
 
+test("browser bridge does not assign Android map scheme without injected native opener", async () => {
+  const calls = [];
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+      location: {
+        assign(url) {
+          calls.push(["location.assign", url]);
+        },
+        href: "",
+      },
+    },
+  });
+
+  assert.deepEqual(
+    await bridge.openMapNavigation({
+      appType: "amap",
+      lat: 30.25,
+      lng: 120.16,
+      name: "杭州",
+      allowWebFallback: false,
+    }),
+    {
+      ok: false,
+      reason: "native-map-open-unavailable",
+    },
+  );
+  assert.deepEqual(calls, []);
+});
+
 test("detected Tauri bridge returns Android map bridge failure when web fallback is disabled", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({

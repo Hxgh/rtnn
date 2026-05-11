@@ -366,9 +366,7 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
   }
 
   async function handleOpenInAppWebView() {
-    await runAction("webview", setWebViewState, () =>
-      nativeCore.openInAppWebView("/download"),
-    );
+    await runAction("webview", setWebViewState, () => nativeCore.openUrl("/download"));
   }
 
   const clientInfo = snapshot?.clientInfo;
@@ -415,10 +413,7 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
 
       <SurfaceCard className="overflow-hidden">
         <div className="space-y-4 px-4 py-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-foreground">{messages.externalTitle}</h2>
-            <p className="text-xs leading-5 text-muted-foreground">{messages.externalDescription}</p>
-          </div>
+          <h2 className="text-sm font-semibold text-foreground">{messages.externalTitle}</h2>
           <div className="grid grid-cols-2 gap-2">
             <Button
               disabled={webViewState === "opening"}
@@ -439,9 +434,6 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
               {externalState === "opening" ? messages.opening : messages.openExternal}
             </Button>
           </div>
-          <p className="text-xs leading-5 text-muted-foreground">
-            {messages.webviewDescription}
-          </p>
         </div>
       </SurfaceCard>
 

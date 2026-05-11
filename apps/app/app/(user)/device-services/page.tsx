@@ -12,7 +12,6 @@ export default async function DeviceServicesPage() {
     <PageShell className="space-y-6 pt-5">
       <PageSection
         title={messages.nativeCapabilities.title}
-        description={messages.nativeCapabilities.description}
       >
         <DeviceServicesPanel messages={messages.nativeCapabilities} />
       </PageSection>

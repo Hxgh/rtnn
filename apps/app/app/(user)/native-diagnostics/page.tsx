@@ -11,7 +11,6 @@ export default async function NativeDiagnosticsPage() {
     <PageShell className="space-y-5 pt-5">
       <PageSection
         title={messages.nativeCapabilities.diagnosticsTitle}
-        description={messages.nativeCapabilities.diagnosticsDescription}
       >
         <NativeDiagnosticsPanel messages={messages.nativeCapabilities} />
       </PageSection>

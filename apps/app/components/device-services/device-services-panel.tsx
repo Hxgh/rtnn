@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 type Messages = AppMessages["nativeCapabilities"];
 type MapPickerState = "idle" | "checking" | "ready" | "failed";
-type ActionState = "idle" | "opening";
+type ActionState = "idle" | "checking" | "opening";
 type DeviceFeatureIconKind = "scan" | "map" | "download";
 
 const mapTarget = {
@@ -23,7 +23,7 @@ const mapTarget = {
   lng: 120.1551,
   name: "杭州西湖",
 };
-const mapDetectionTimeoutMs = 3_000;
+const mapDetectionTimeoutMs = 2_500;
 const mapStatusOrder: Record<NativeCoreMapCandidate["status"], number> = {
   installed: 0,
   unknown: 1,
@@ -113,11 +113,7 @@ function getMapCandidateHint(
     return messages.mapUnsupported;
   }
 
-  if (candidate.reason === "map-app-not-installed-or-not-visible") {
-    return messages.mapVisibilityLimited;
-  }
-
-  return messages.mapCheckUnavailable;
+  return messages.mapUnavailable;
 }
 
 function getMapPickerDescription(
@@ -227,11 +223,15 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
   const [lastMessage, setLastMessage] = useState<string | null>(null);
 
   async function detectMaps() {
+    if (mapActionState !== "idle") {
+      return;
+    }
+
     setLastMessage(null);
-    setMapActionState("opening");
+    setMapActionState("checking");
     setMapPickerState("checking");
-    setMapCandidates(createFallbackMapCandidates("map-install-checking"));
-    setMapPickerOpen(true);
+    setMapCandidates([]);
+    setMapPickerOpen(false);
 
     try {
       const candidates = await withTimeout(
@@ -241,6 +241,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
       );
       setMapCandidates(candidates);
       setMapPickerState("ready");
+      setMapPickerOpen(true);
     } catch (error) {
       const reason =
         error instanceof Error && error.message
@@ -250,6 +251,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
       setMapCandidates(createFallbackMapCandidates(reason));
       setMapPickerState("failed");
       setLastMessage(reason);
+      setMapPickerOpen(true);
     } finally {
       setMapActionState("idle");
     }
@@ -296,7 +298,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
           />
           <button
             className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
-            disabled={mapActionState === "opening"}
+            disabled={mapActionState !== "idle"}
             onClick={detectMaps}
             type="button"
           >
@@ -310,7 +312,11 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
               </div>
             </div>
             <span className="text-sm text-muted-foreground">
-              {mapActionState === "opening" ? messages.opening : "›"}
+              {mapActionState === "checking"
+                ? messages.mapChecking
+                : mapActionState === "opening"
+                  ? messages.opening
+                  : "›"}
             </span>
           </button>
           <ActionRowLink
@@ -323,7 +329,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
       </SurfaceCard>
 
       <ActionRowLink
-        className="rounded-2xl border border-dashed border-border/80 bg-card px-4 py-3"
+        className="rounded-2xl border border-border/70 bg-card px-4 py-3"
         description={messages.diagnosticsEntryDescription}
         href="/native-diagnostics"
         title={messages.openDiagnostics}
@@ -389,10 +395,10 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 rounded-full px-2 py-1 text-[11px]",
+                        "shrink-0 rounded-full border px-2 py-1 text-[11px]",
                         isMapCandidateActionable(candidate)
-                          ? "bg-secondary text-foreground"
-                          : "bg-transparent text-muted-foreground",
+                          ? "border-border bg-secondary text-foreground"
+                          : "border-transparent bg-transparent text-muted-foreground",
                       )}
                     >
                       {mapPickerState === "checking"

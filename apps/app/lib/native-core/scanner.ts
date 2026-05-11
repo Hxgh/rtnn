@@ -13,6 +13,7 @@ export type ScannerContentType =
   | "sms"
   | "wifi"
   | "geo"
+  | "product"
   | "text";
 
 export type WebBarcodeScanResult = {
@@ -49,6 +50,10 @@ function normalizeContentType(value: string): ScannerContentType {
 
   if (/^geo:/i.test(text)) {
     return "geo";
+  }
+
+  if (/^\d{8,14}$/.test(text)) {
+    return "product";
   }
 
   return "text";

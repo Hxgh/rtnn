@@ -10,6 +10,7 @@ export {
 export { isMapDetectionUncertain } from "./map";
 export {
   buildInAppWebViewUrl,
+  navigateToInAppWebView,
 } from "./webview";
 export {
   clearScanner,

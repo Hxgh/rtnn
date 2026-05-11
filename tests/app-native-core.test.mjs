@@ -255,9 +255,13 @@ test("app native core opens generic app URL inside the shell", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const originalWindow = globalThis.window;
+  const assigned = [];
   globalThis.window = {
     location: {
       href: "https://app.testing.rtnn.soolan.xyz/me",
+      assign(url) {
+        assigned.push(url);
+      },
     },
   };
   const core = createAppNativeCore(createBridge(calls));
@@ -267,12 +271,37 @@ test("app native core opens generic app URL inside the shell", async () => {
       ok: true,
       message: "opened-in-app-webview",
     });
-    assert.deepEqual(calls, [
-      [
-        "openInAppWebView",
-        "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
-      ],
+    assert.deepEqual(calls, []);
+    assert.deepEqual(assigned, [
+      "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
     ]);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test("app native core rejects cross-origin shell navigation", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const assigned = [];
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    location: {
+      href: "https://app.testing.rtnn.soolan.xyz/me",
+      assign(url) {
+        assigned.push(url);
+      },
+    },
+  };
+  const core = createAppNativeCore(createBridge(calls));
+
+  try {
+    assert.deepEqual(await core.openUrl("https://example.com/download"), {
+      ok: false,
+      reason: "webview-url-not-allowed",
+    });
+    assert.deepEqual(calls, []);
+    assert.deepEqual(assigned, []);
   } finally {
     globalThis.window = originalWindow;
   }
@@ -307,6 +336,13 @@ test("app native core accepts same-origin relative in-app webview URLs", async (
   } finally {
     globalThis.window = originalWindow;
   }
+});
+
+test("app barcode scanner classifies product-length numeric codes", async () => {
+  const { normalizeWebBarcodeResult } = await importAppNativeCore();
+
+  assert.equal(normalizeWebBarcodeResult("6901234567890").contentType, "product");
+  assert.equal(normalizeWebBarcodeResult("https://rtnn.dev").contentType, "url");
 });
 
 test("app native core requests only the permission needed by media action", async () => {

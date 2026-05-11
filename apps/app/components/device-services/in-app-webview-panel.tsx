@@ -74,7 +74,7 @@ export function InAppWebViewPanel({
             {messages.mapRefresh}
           </Button>
         </div>
-        <div className="h-[68vh] min-h-[28rem] bg-background">
+        <div className="h-[calc(100dvh-10.5rem-var(--rtnn-safe-top)-var(--rtnn-safe-bottom))] min-h-[30rem] bg-background">
           <iframe
             className="h-full w-full border-0"
             referrerPolicy="same-origin"

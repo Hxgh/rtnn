@@ -25,6 +25,8 @@ type ScannerMessages = AppMessages["nativeCapabilities"];
 type ScannerState = "idle" | "starting" | "scanning" | "stopping" | "failed";
 type ImageScanState = "idle" | "opening" | "scanning";
 
+const imagePickerResetDelayMs = 900;
+
 function getResultTypeLabel(
   type: WebBarcodeScanResult["contentType"],
   messages: ScannerMessages,
@@ -152,6 +154,9 @@ export function BarcodeScannerPanel({
     setErrorReason(null);
     setImageScanState("opening");
     fileInputRef.current?.click();
+    window.setTimeout(() => {
+      setImageScanState((current) => (current === "opening" ? "idle" : current));
+    }, imagePickerResetDelayMs);
   }
 
   async function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -215,11 +220,6 @@ export function BarcodeScannerPanel({
     <div className="space-y-5">
       <SurfaceCard className="overflow-hidden">
         <div className="space-y-4 px-4 py-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-foreground">{messages.barcodeCameraTitle}</h2>
-            <p className="text-xs leading-5 text-muted-foreground">{messages.barcodeCameraDescription}</p>
-          </div>
-
           <div className="overflow-hidden rounded-2xl border border-border bg-black">
             <div
               className="relative aspect-square w-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover"

@@ -2452,6 +2452,13 @@ function openAndroidMapWithBridge(
   const androidMap = globalScope?.AndroidMap;
 
   if (typeof androidMap?.openNavigation !== "function") {
+    if (input.allowWebFallback === false && shouldWaitForAndroidMapBridge(globalScope)) {
+      return {
+        ok: false,
+        reason: "native-map-open-unavailable",
+      };
+    }
+
     return null;
   }
 
