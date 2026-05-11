@@ -808,6 +808,50 @@ test("browser bridge exposes a unified permission contract", async () => {
   assert.equal(requested, true);
 });
 
+test("browser bridge requests standalone camera through media devices", async () => {
+  let openedCamera = false;
+  const bridge = createBrowserNativeBridge({
+    globalScope: {
+      navigator: {
+        mediaDevices: {
+          async getUserMedia(constraints) {
+            openedCamera = constraints.video === true;
+            return {
+              getTracks() {
+                return [
+                  {
+                    stop() {
+                      openedCamera = openedCamera && true;
+                    },
+                  },
+                ];
+              },
+            };
+          },
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(
+    await bridge.requestPermission({
+      kind: "camera",
+      trigger: "on-demand",
+      purpose: "scan-barcode",
+    }),
+    {
+      ok: true,
+      kind: "camera",
+      status: "granted",
+      requested: true,
+      canAskAgain: false,
+      message: undefined,
+      reason: undefined,
+    },
+  );
+  assert.equal(openedCamera, true);
+});
+
 test("browser bridge prefers Android media bridge over web file input", async () => {
   const calls = [];
   const bridge = createBrowserNativeBridge({

@@ -40,6 +40,8 @@ const REQUIRED_MAIN_ACTIVITY_SNIPPETS = Object.freeze([
   "map-app-not-installed-or-not-visible",
   "notifyFilePickerClosed",
   "onShowFileChooser",
+  "onPermissionRequest",
+  "PermissionRequest.RESOURCE_VIDEO_CAPTURE",
   "pickImages",
   "captureImage",
   "scanBarcode",

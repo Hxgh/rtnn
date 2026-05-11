@@ -133,8 +133,20 @@ export type AppMessages = {
     barcodeScan: string;
     barcodeScanCamera: string;
     barcodeScanFromImage: string;
+    barcodeOpenScanner: string;
+    barcodeCameraTitle: string;
+    barcodeCameraDescription: string;
+    barcodeCameraIdle: string;
+    barcodeStart: string;
+    barcodeStop: string;
     barcodeResult: string;
     barcodeNoResult: string;
+    barcodeContent: string;
+    barcodeContentType: string;
+    barcodeFormat: string;
+    barcodeCameraDenied: string;
+    barcodeImageUnsupported: string;
+    barcodeContentTypeLabels: Record<"url" | "email" | "phone" | "sms" | "wifi" | "geo" | "text", string>;
     notificationTitle: string;
     notificationDescription: string;
     notificationSend: string;
@@ -179,6 +191,10 @@ export type AppMessages = {
     permissionActionDrivenShort: string;
     permissionRequestDone: string;
     openInAppWebView: string;
+    webviewDescription: string;
+    webviewCurrentPage: string;
+    webviewUnavailable: string;
+    webviewLoadFailed: string;
     openExternal: string;
     openMap: string;
     pickImages: string;
@@ -193,6 +209,7 @@ export type AppMessages = {
     failed: string;
     selectedImages: string;
     noImages: string;
+    backToDeviceServices: string;
     close: string;
   };
   security: {
@@ -341,26 +358,46 @@ const zhCN: AppMessages = {
   },
   nativeCapabilities: {
     title: "设备服务",
-    description: "管理地图、相机、相册、扫码、通知和下载等客户端能力。",
+    description: "地图、相机、相册、扫码、通知和下载等能力统一从这里进入。",
     runtimeTitle: "设备信息",
     runtimeDescription: "查看当前客户端环境与已启用的系统能力。",
     externalTitle: "外链打开",
-    externalDescription: "使用系统浏览器或外部应用打开链接。",
-    mapTitle: "地图跳转",
+    externalDescription: "按场景选择应用内页面或系统浏览器打开链接。",
+    mapTitle: "地图导航",
     mapDescription: "选择已安装的地图应用并打开导航。",
     mediaTitle: "相机相册",
     mediaDescription: "从相册选择图片，或调用相机拍摄图片。",
     barcodeTitle: "扫码",
-    barcodeDescription: "支持二维码和常见一维码；可直接扫码，也可识别相册图片。",
+    barcodeDescription: "打开独立扫码页，支持二维码和常见一维码。",
     barcodeScan: "扫码",
     barcodeScanCamera: "相机扫码",
     barcodeScanFromImage: "识别图片",
+    barcodeOpenScanner: "进入扫码",
+    barcodeCameraTitle: "相机扫码",
+    barcodeCameraDescription: "将二维码或条形码放入取景框内，识别成功后会自动停止。",
+    barcodeCameraIdle: "点击开始后开启相机",
+    barcodeStart: "开始扫码",
+    barcodeStop: "停止扫码",
     barcodeResult: "扫码结果",
     barcodeNoResult: "暂无扫码结果",
+    barcodeContent: "内容",
+    barcodeContentType: "类型",
+    barcodeFormat: "码制",
+    barcodeCameraDenied: "相机权限未开启，请允许访问相机后重试。",
+    barcodeImageUnsupported: "当前环境不支持图片识别，请使用相机扫码。",
+    barcodeContentTypeLabels: {
+      url: "网页链接",
+      email: "邮箱",
+      phone: "电话",
+      sms: "短信",
+      wifi: "Wi-Fi",
+      geo: "地理位置",
+      text: "文本",
+    },
     notificationTitle: "通知",
-    notificationDescription: "按需请求通知权限，并发送本地通知。",
+    notificationDescription: "按需请求通知权限，并发送一条本地通知。",
     notificationSend: "发送通知",
-    permissionDescription: "权限按能力动作触发，业务页面可按场景复用同一套核心接口。",
+    permissionDescription: "权限默认在相关动作触发时申请，也可以在这里提前处理。",
     keyboardTitle: "键盘与安全区",
     keyboardDescription: "输入内容时页面会适配键盘和底部安全区域。",
     runtime: "运行环境",
@@ -389,18 +426,22 @@ const zhCN: AppMessages = {
     mapReadyHint: "可用于导航",
     mapUnknownCount: "无法检测",
     mapChecking: "正在检测地图应用",
-    mapPickerTitle: "选择地图应用",
-    mapPickerDescription: "应用会先确认设备上可用的地图，未安装或暂时无法确认的应用不可选择。",
+    mapPickerTitle: "选择导航应用",
+    mapPickerDescription: "已安装的地图应用可直接打开，未安装或无法确认的应用不可选择。",
     mapPickerCheckingDescription: "正在确认设备上可用的地图应用。",
     mapVisibilityLimited: "暂时无法确认该地图是否可用，请刷新状态或更新客户端后重试。",
     mapCheckUnavailable: "暂时无法读取地图应用状态，请刷新状态或更新客户端后重试。",
     mapRefresh: "重新检测",
     mapOpenWith: "打开",
     requestPermission: "请求权限",
-    permissionActionDriven: "该权限会在对应操作时由系统按需询问，不单独弹窗。",
+    permissionActionDriven: "该权限会在对应操作时由系统询问。",
     permissionActionDrivenShort: "按操作询问",
     permissionRequestDone: "权限请求已处理。",
     openInAppWebView: "应用内打开",
+    webviewDescription: "应用内打开会进入内嵌页面，不会替换当前业务主流程。",
+    webviewCurrentPage: "当前页面",
+    webviewUnavailable: "该链接暂不支持应用内打开。",
+    webviewLoadFailed: "页面加载失败，请返回后重试或使用外部浏览器打开。",
     openExternal: "外部打开",
     openMap: "打开地图",
     pickImages: "选择图片",
@@ -412,9 +453,10 @@ const zhCN: AppMessages = {
     opening: "打开中...",
     opened: "操作已触发，请根据系统提示继续。",
     cancelled: "已取消，未选择文件。",
-    failed: "操作失败，请检查客户端状态或系统权限。",
+    failed: "操作未完成，请检查客户端状态或系统权限。",
     selectedImages: "已选择图片",
     noImages: "尚未选择图片",
+    backToDeviceServices: "返回设备服务",
     close: "关闭",
   },
   security: {
@@ -563,26 +605,46 @@ const enUS: AppMessages = {
   },
   nativeCapabilities: {
     title: "Device Services",
-    description: "Manage client capabilities such as maps, camera, photos, scanning, notifications, and downloads.",
+    description: "Access maps, camera, photos, scanning, notifications, and downloads from one place.",
     runtimeTitle: "Device information",
     runtimeDescription: "View the current client environment and enabled system capabilities.",
     externalTitle: "External links",
-    externalDescription: "Open links with the system browser or external apps.",
+    externalDescription: "Open links either in app or through the system browser.",
     mapTitle: "Map navigation",
     mapDescription: "Choose an installed map app and open navigation.",
     mediaTitle: "Camera and photos",
     mediaDescription: "Choose images from photos, or capture a new image with the camera.",
     barcodeTitle: "Scan",
-    barcodeDescription: "Scan QR codes and common 1D barcodes with the camera, or read them from an image.",
+    barcodeDescription: "Open the dedicated scanner for QR codes and common 1D barcodes.",
     barcodeScan: "Scan",
     barcodeScanCamera: "Camera scan",
     barcodeScanFromImage: "Scan image",
+    barcodeOpenScanner: "Open scanner",
+    barcodeCameraTitle: "Camera scan",
+    barcodeCameraDescription: "Place a QR code or barcode inside the frame. Scanning stops after a match.",
+    barcodeCameraIdle: "Start scanning to open the camera",
+    barcodeStart: "Start scan",
+    barcodeStop: "Stop scan",
     barcodeResult: "Scan result",
     barcodeNoResult: "No scan result",
+    barcodeContent: "Content",
+    barcodeContentType: "Type",
+    barcodeFormat: "Format",
+    barcodeCameraDenied: "Camera permission is not enabled. Allow camera access and retry.",
+    barcodeImageUnsupported: "Image scanning is not supported in this environment. Use camera scan instead.",
+    barcodeContentTypeLabels: {
+      url: "Web URL",
+      email: "Email",
+      phone: "Phone",
+      sms: "SMS",
+      wifi: "Wi-Fi",
+      geo: "Location",
+      text: "Text",
+    },
     notificationTitle: "Notifications",
-    notificationDescription: "Request notification permission when needed and send a local notification.",
+    notificationDescription: "Request notification permission when needed and send one local notification.",
     notificationSend: "Send notification",
-    permissionDescription: "Permissions are requested by capability action, so business screens can reuse the same core API.",
+    permissionDescription: "Permissions are requested by related actions, and can also be handled here.",
     keyboardTitle: "Keyboard and safe area",
     keyboardDescription: "The page adapts to the keyboard and bottom safe area while editing.",
     runtime: "Runtime",
@@ -611,18 +673,22 @@ const enUS: AppMessages = {
     mapReadyHint: "Ready for navigation",
     mapUnknownCount: "Unknown",
     mapChecking: "Checking map apps",
-    mapPickerTitle: "Choose Map App",
-    mapPickerDescription: "The app checks available map apps first. Missing or uncertain apps cannot be selected.",
+    mapPickerTitle: "Choose Navigation App",
+    mapPickerDescription: "Installed map apps can be opened directly. Missing or uncertain apps cannot be selected.",
     mapPickerCheckingDescription: "Checking available map apps on this device.",
     mapVisibilityLimited: "This map app cannot be confirmed right now. Refresh status or update the client and retry.",
     mapCheckUnavailable: "Map app status cannot be read right now. Refresh status or update the client and retry.",
     mapRefresh: "Refresh",
     mapOpenWith: "Open",
     requestPermission: "Request permission",
-    permissionActionDriven: "This permission is requested by the system when the related action runs, not as a standalone prompt.",
+    permissionActionDriven: "This permission is requested by the system when the related action runs.",
     permissionActionDrivenShort: "On action",
     permissionRequestDone: "Permission request handled.",
     openInAppWebView: "Open in app",
+    webviewDescription: "In-app opening uses an embedded page and does not replace the main app flow.",
+    webviewCurrentPage: "Current page",
+    webviewUnavailable: "This link cannot be opened in app.",
+    webviewLoadFailed: "The page failed to load. Go back and retry or open it externally.",
     openExternal: "Open externally",
     openMap: "Open map",
     pickImages: "Pick images",
@@ -634,9 +700,10 @@ const enUS: AppMessages = {
     opening: "Opening...",
     opened: "Action started. Follow the system prompts to continue.",
     cancelled: "Cancelled. No file was selected.",
-    failed: "Action failed. Check client status or system permissions.",
+    failed: "Action was not completed. Check client status or system permissions.",
     selectedImages: "Selected images",
     noImages: "No images selected",
+    backToDeviceServices: "Back to Device Services",
     close: "Close",
   },
   security: {

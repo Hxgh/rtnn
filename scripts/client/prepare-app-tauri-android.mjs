@@ -408,6 +408,7 @@ import android.util.Base64
 import android.view.View
 import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -441,6 +442,7 @@ class MainActivity : TauriActivity() {
   private var nativeMediaResultJson: String? = null
   private var pendingFileChooser = false
   private var pendingPermissionKind: String? = null
+  private var pendingWebChromePermissionRequest: PermissionRequest? = null
   @Volatile
   private var nativePermissionResultJson: String? = null
   private var currentTheme = "light"
@@ -495,6 +497,7 @@ class MainActivity : TauriActivity() {
     val kind = pendingPermissionKind ?: "unknown"
     pendingPermissionKind = null
     nativePermissionResultJson = permissionResult(kind, granted, true, false).toString()
+    completeWebChromePermissionRequest(kind, granted)
     notifyPermissionChanged(kind, granted)
   }
 
@@ -536,6 +539,33 @@ class MainActivity : TauriActivity() {
         webView.addJavascriptInterface(NotificationBridge(), "AndroidNotification")
         webView.addJavascriptInterface(DiagnosticsBridge(), "AndroidDiagnostics")
         webView.webChromeClient = object : WebChromeClient() {
+          override fun onPermissionRequest(request: PermissionRequest?) {
+            val resources = request?.resources ?: emptyArray()
+            val needsCamera = resources.any { it == PermissionRequest.RESOURCE_VIDEO_CAPTURE }
+
+            if (!needsCamera) {
+              request?.deny()
+              return
+            }
+
+            if (isPermissionGranted("camera")) {
+              request?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+              return
+            }
+
+            pendingWebChromePermissionRequest?.deny()
+            pendingWebChromePermissionRequest = request
+            pendingPermissionKind = "camera"
+            nativePermissionLauncher.launch(Manifest.permission.CAMERA)
+          }
+
+          override fun onPermissionRequestCanceled(request: PermissionRequest?) {
+            if (pendingWebChromePermissionRequest == request) {
+              pendingWebChromePermissionRequest = null
+              pendingPermissionKind = null
+            }
+          }
+
           override fun onShowFileChooser(
             webView: WebView?,
             filePathCallback: ValueCallback<Array<Uri>>?,
@@ -680,6 +710,19 @@ class MainActivity : TauriActivity() {
     ).toString()
     nativePermissionResultJson = null
     return result
+  }
+
+  private fun completeWebChromePermissionRequest(kind: String, granted: Boolean) {
+    val request = pendingWebChromePermissionRequest ?: return
+    pendingWebChromePermissionRequest = null
+
+    runOnUiThread {
+      if (kind == "camera" && granted) {
+        request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+      } else {
+        request.deny()
+      }
+    }
   }
 
   private fun buildMediaResult(uris: Array<Uri>?, reason: String?): String {

@@ -8,6 +8,7 @@ import { scanBarcode } from "./barcode";
 import { getMapCandidates, openMapNavigation } from "./map";
 import { pickMedia } from "./media";
 import { showNotification } from "./notifications";
+import { openInAppWebView } from "./webview";
 import {
   checkPermissions,
   ensureActionPermissions,
@@ -37,7 +38,7 @@ export function createAppNativeCore(
     },
 
     openInAppWebView(url) {
-      return nativeBridge.openInAppWebView({ url });
+      return openInAppWebView(nativeBridge, url);
     },
 
     openMapNavigation(input) {
@@ -85,7 +86,7 @@ export function createAppNativeCore(
     },
 
     openUrl(url) {
-      return nativeBridge.openInAppWebView({ url });
+      return openInAppWebView(nativeBridge, url);
     },
   };
 }

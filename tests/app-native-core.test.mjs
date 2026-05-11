@@ -223,33 +223,59 @@ test("app native core still allows web fallback for preferred map auto open", as
 test("app native core separates external open from in-app webview", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    location: {
+      href: "https://app.testing.rtnn.soolan.xyz/device-services",
+    },
+  };
   const core = createAppNativeCore(createBridge(calls));
 
-  assert.deepEqual(await core.openExternalUrl("https://example.com/download"), {
-    ok: true,
-  });
-  assert.deepEqual(await core.openInAppWebView("https://example.com/download"), {
-    ok: true,
-    message: "opened-in-app-webview",
-  });
-  assert.deepEqual(calls, [
-    ["openExternal", "https://example.com/download"],
-    ["openInAppWebView", "https://example.com/download"],
-  ]);
+  try {
+    assert.deepEqual(await core.openExternalUrl("https://example.com/download"), {
+      ok: true,
+    });
+    assert.deepEqual(await core.openInAppWebView("https://app.testing.rtnn.soolan.xyz/download"), {
+      ok: true,
+      message: "opened-in-app-webview",
+    });
+    assert.deepEqual(calls, [
+      ["openExternal", "https://example.com/download"],
+      [
+        "openInAppWebView",
+        "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      ],
+    ]);
+  } finally {
+    globalThis.window = originalWindow;
+  }
 });
 
 test("app native core opens generic app URL inside the shell", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    location: {
+      href: "https://app.testing.rtnn.soolan.xyz/me",
+    },
+  };
   const core = createAppNativeCore(createBridge(calls));
 
-  assert.deepEqual(await core.openUrl("https://example.com/download"), {
-    ok: true,
-    message: "opened-in-app-webview",
-  });
-  assert.deepEqual(calls, [
-    ["openInAppWebView", "https://example.com/download"],
-  ]);
+  try {
+    assert.deepEqual(await core.openUrl("https://app.testing.rtnn.soolan.xyz/download"), {
+      ok: true,
+      message: "opened-in-app-webview",
+    });
+    assert.deepEqual(calls, [
+      [
+        "openInAppWebView",
+        "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      ],
+    ]);
+  } finally {
+    globalThis.window = originalWindow;
+  }
 });
 
 test("app native core requests only the permission needed by media action", async () => {

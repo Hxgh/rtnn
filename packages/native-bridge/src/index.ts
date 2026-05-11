@@ -1008,7 +1008,18 @@ async function requestBrowserPermission(
     pickerManagedPermissionKinds.has(normalized.kind) &&
     normalized.purpose !== "standalone-camera"
   ) {
-    return makePickerManagedPermissionResult(normalized, true);
+    if (normalized.kind !== "camera") {
+      return makePickerManagedPermissionResult(normalized, true);
+    }
+
+    const hasAndroidPermissionBridge =
+      typeof globalScope?.AndroidPermission?.requestPermission === "function";
+    const hasCameraMediaApi =
+      typeof globalScope?.navigator?.mediaDevices?.getUserMedia === "function";
+
+    if (!hasAndroidPermissionBridge && !hasCameraMediaApi) {
+      return makePickerManagedPermissionResult(normalized, true);
+    }
   }
 
   if (normalized.kind === "notification") {

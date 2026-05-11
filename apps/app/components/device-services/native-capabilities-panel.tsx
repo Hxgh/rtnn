@@ -7,7 +7,6 @@ import {
   isNativeActionCancelled,
   runNativeActionWithWatchdog,
   type NativeCoreActionResult,
-  type NativeCoreBarcode,
   type NativeCoreMapCandidate,
   type NativeCorePermissionKind,
   type NativeCorePermissionResult,
@@ -33,7 +32,6 @@ type BusyAction =
   | "webview"
   | "map"
   | "image"
-  | "barcode"
   | "notification"
   | null;
 type VisiblePermissionKind = Extract<
@@ -61,7 +59,6 @@ const emptyPermissions: Record<
   notification: null,
 };
 const mediaPickerTimeoutMs = 12_000;
-const barcodeScanTimeoutMs = 18_000;
 const mapDetectionTimeoutMs = 3_000;
 const transientActionStateMs = 1_200;
 const nativeActionDispatchStateMs = 1_800;
@@ -277,6 +274,17 @@ function getMapStatusText(
   return messages.mapUnavailable;
 }
 
+function getMapActionAccessibilityLabel(
+  candidate: MapCandidateView,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (candidate.status === "installed") {
+    return `${messages.mapOpenWith}${candidate.label}`;
+  }
+
+  return `${candidate.label}${getMapInstallLabel(candidate.status, messages)}`;
+}
+
 function getSortedMapCandidates(candidates: NativeCoreMapCandidate[]) {
   return [...candidates].sort(
     (left, right) =>
@@ -379,7 +387,6 @@ export function NativeCapabilitiesPanel({
   const [webViewState, setWebViewState] = useState<ActionState>("idle");
   const [mapState, setMapState] = useState<ActionState>("idle");
   const [imageState, setImageState] = useState<ActionState>("idle");
-  const [barcodeState, setBarcodeState] = useState<ActionState>("idle");
   const [notificationState, setNotificationState] =
     useState<ActionState>("idle");
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
@@ -398,7 +405,6 @@ export function NativeCapabilitiesPanel({
     notification: "idle",
   });
   const [images, setImages] = useState<NativeCorePickedFile[]>([]);
-  const [barcodes, setBarcodes] = useState<NativeCoreBarcode[]>([]);
   const [permissions, setPermissions] =
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
@@ -411,7 +417,6 @@ export function NativeCapabilitiesPanel({
       [webViewState, setWebViewState],
       [mapState, setMapState],
       [imageState, setImageState],
-      [barcodeState, setBarcodeState],
       [notificationState, setNotificationState],
     ];
     const timers = entries
@@ -423,7 +428,7 @@ export function NativeCapabilitiesPanel({
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [externalState, webViewState, mapState, imageState, barcodeState, notificationState]);
+  }, [externalState, webViewState, mapState, imageState, notificationState]);
 
   useEffect(() => {
     if (!busyAction) {
@@ -447,8 +452,6 @@ export function NativeCapabilitiesPanel({
         } else if (busyAction === "image") {
           setImageState((state) => (state === "opening" ? "idle" : state));
           setActiveMediaSource(null);
-        } else if (busyAction === "barcode") {
-          setBarcodeState((state) => (state === "opening" ? "idle" : state));
         } else if (busyAction === "notification") {
           setNotificationState((state) =>
             state === "opening" ? "opened" : state,
@@ -590,7 +593,6 @@ export function NativeCapabilitiesPanel({
   const webViewAvailable = capabilities.inAppWebView;
   const mapAvailable = capabilities.mapNavigation;
   const imagePickerAvailable = capabilities.filePick;
-  const barcodeAvailable = capabilities.barcodeScan;
   const notificationAvailable = capabilities.notification;
   const installedMapCount = mapCandidates.filter(
     (item) => item.status === "installed",
@@ -713,34 +715,6 @@ export function NativeCapabilitiesPanel({
     }
   }
 
-  async function handleScanBarcode(source: "camera" | "image" = "camera") {
-    setBarcodeState("opening");
-    setBusyAction("barcode");
-    setLastMessage(null);
-
-    try {
-      const result = await nativeCore.scanBarcode({
-        source,
-        timeoutMs: barcodeScanTimeoutMs,
-      });
-
-      setLastMessage(result.message ?? result.reason ?? null);
-      setBarcodes(result.codes);
-      if (result.files?.length) {
-        setImages(result.files);
-      }
-      setBarcodeState(
-        result.ok ? "opened" : isCancelled(result) ? "cancelled" : "failed",
-      );
-      void refreshPermissionsFor(["camera"]).catch(() => {});
-    } catch (error) {
-      setLastMessage(error instanceof Error ? error.message : String(error));
-      setBarcodeState("failed");
-    } finally {
-      setBusyAction((current) => (current === "barcode" ? null : current));
-    }
-  }
-
   async function handleSendNotification() {
     await runAction("notification", setNotificationState, () =>
       nativeCore.showNotification(),
@@ -811,6 +785,9 @@ export function NativeCapabilitiesPanel({
               {externalState === "opening" ? messages.opening : messages.openExternal}
             </Button>
           </div>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {messages.webviewDescription}
+          </p>
         </div>
       </SurfaceCard>
 
@@ -924,43 +901,9 @@ export function NativeCapabilitiesPanel({
             <p className="text-xs leading-5 text-muted-foreground">{messages.barcodeDescription}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              disabled={!barcodeAvailable || barcodeState === "opening"}
-              onClick={() => handleScanBarcode("camera")}
-              variant="outline"
-            >
-              {barcodeState === "opening"
-                ? messages.opening
-                : messages.barcodeScanCamera}
-            </Button>
-            <Button
-              disabled={!barcodeAvailable || barcodeState === "opening"}
-              onClick={() => handleScanBarcode("image")}
-              variant="outline"
-            >
-              {messages.barcodeScanFromImage}
-            </Button>
-          </div>
-
-          <div className="rounded-xl border border-border/70 px-3 py-3 text-xs leading-5">
-            <p className="font-medium text-muted-foreground">
-              {barcodes.length > 0 ? messages.barcodeResult : messages.barcodeNoResult}
-            </p>
-            {barcodes.length > 0 ? (
-              <div className="mt-2 grid gap-1">
-                {barcodes.map((code, index) => (
-                  <p
-                    className="break-words text-foreground"
-                    key={`${code.rawValue}:${code.format ?? "unknown"}:${index}`}
-                  >
-                    {code.format ? `${code.format}: ` : ""}
-                    {code.rawValue}
-                  </p>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <Link className={buttonVariants({ className: "w-full" })} href="/device-services/scan">
+            {messages.barcodeOpenScanner}
+          </Link>
         </div>
       </SurfaceCard>
 
@@ -1045,18 +988,16 @@ export function NativeCapabilitiesPanel({
       webViewState === "opened" ||
       mapState === "opened" ||
       imageState === "opened" ||
-      barcodeState === "opened" ||
       notificationState === "opened" ? (
         <p className="text-xs leading-5 text-muted-foreground">{messages.opened}</p>
       ) : null}
-      {imageState === "cancelled" || barcodeState === "cancelled" ? (
+      {imageState === "cancelled" ? (
         <p className="text-xs leading-5 text-muted-foreground">{messages.cancelled}</p>
       ) : null}
       {externalState === "failed" ||
       webViewState === "failed" ||
       mapState === "failed" ||
       imageState === "failed" ||
-      barcodeState === "failed" ||
       notificationState === "failed" ? (
         <p className="text-xs leading-5 text-destructive">{messages.failed}</p>
       ) : null}
@@ -1100,8 +1041,9 @@ export function NativeCapabilitiesPanel({
                   !isMapCandidateActionable(candidate);
                 return (
                   <button
+                    aria-label={getMapActionAccessibilityLabel(candidate, messages)}
                     className={cn(
-                      "flex min-h-14 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition-colors",
+                      "flex min-h-14 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
                       disabled
                         ? "border-border/60 bg-secondary/50 text-muted-foreground"
                         : "border-border bg-background text-foreground active:bg-secondary",

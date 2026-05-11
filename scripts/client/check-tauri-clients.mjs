@@ -85,6 +85,8 @@ const CLIENTS = {
         'android:icon="@mipmap/rtnn_launcher_icon"',
         'android:roundIcon="@mipmap/rtnn_launcher_icon"',
         "isCaptureEnabled",
+        "onPermissionRequest",
+        "PermissionRequest.RESOURCE_VIDEO_CAPTURE",
         "pickImages",
         "captureImage",
         "scanBarcode",
@@ -121,6 +123,8 @@ const CLIENTS = {
         "barcode-not-found",
         "openNavigation",
         "native-map-no-handler",
+        "onPermissionRequest",
+        "PermissionRequest.RESOURCE_VIDEO_CAPTURE",
       ],
       "../../scripts/client/sync-client-branding.mjs": [
         "RTNN_ADMIN_DESKTOP_NAME",

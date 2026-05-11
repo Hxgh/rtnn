@@ -8,6 +8,16 @@ export {
   runNativeActionWithWatchdog,
 } from "./actions";
 export { isMapDetectionUncertain } from "./map";
+export {
+  buildInAppWebViewUrl,
+} from "./webview";
+export {
+  createHtml5QrcodeScanner,
+  getScannerBoxSize,
+  normalizeWebBarcodeResult,
+  scannerElementId,
+  type WebBarcodeScanResult,
+} from "./scanner";
 export { installAppNativeViewportInsets } from "./runtime";
 export {
   installAppNativeThemeListener,
