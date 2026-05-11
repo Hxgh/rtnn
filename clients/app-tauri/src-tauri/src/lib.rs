@@ -1,5 +1,5 @@
-use tauri_plugin_opener::OpenerExt;
 use tauri::Manager;
+use tauri_plugin_opener::OpenerExt;
 
 #[cfg(target_os = "android")]
 use jni::objects::{JObject, JValue};
