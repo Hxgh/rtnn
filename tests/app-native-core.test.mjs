@@ -342,7 +342,7 @@ test("app native core can scan barcode from an image source for diagnostics", as
   ]);
 });
 
-test("app native core keeps manually selected map apps actionable after uncertain detection", async () => {
+test("app native core blocks manually selected uncertain map apps", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const core = createAppNativeCore(
@@ -367,7 +367,7 @@ test("app native core keeps manually selected map apps actionable after uncertai
   assert.equal(
     (await core.getMapCandidates()).find((item) => item.appType === "amap")
       ?.available,
-    true,
+    false,
   );
   assert.deepEqual(
     await core.openMapNavigation({
@@ -378,9 +378,8 @@ test("app native core keeps manually selected map apps actionable after uncertai
       allowWebFallback: false,
     }),
     {
-      ok: true,
-      message: "opened-native-map",
-      appType: "amap",
+      ok: false,
+      reason: "map-app-not-installed-or-not-visible",
     },
   );
   assert.deepEqual(calls, [
@@ -388,7 +387,6 @@ test("app native core keeps manually selected map apps actionable after uncertai
     ["checkMapInstalled", "baidu"],
     ["checkMapInstalled", "tencent"],
     ["checkMapInstalled", "amap"],
-    ["openMapNavigation", "amap", false],
   ]);
 });
 

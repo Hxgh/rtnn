@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAppNativeCore,
-  isMapDetectionUncertain,
   isNativeActionCancelled,
   runNativeActionWithWatchdog,
   type NativeCoreActionResult,
@@ -76,6 +75,7 @@ const emptyPermissions: Record<
 };
 const mediaPickerTimeoutMs = 12_000;
 const barcodeScanTimeoutMs = 18_000;
+const mapDetectionTimeoutMs = 1_500;
 const transientActionStateMs = 1_200;
 const nativeActionDispatchStateMs = 1_800;
 const androidBridgeNames: AndroidBridgeName[] = [
@@ -216,6 +216,10 @@ function getMapCandidateHint(
   candidate: NativeCoreMapCandidate,
   messages: NativeCapabilitiesMessages,
 ) {
+  if (candidate.reason === "map-install-check-timeout") {
+    return messages.mapCheckUnavailable;
+  }
+
   if (candidate.reason === "map-app-not-installed-or-not-visible") {
     return messages.mapVisibilityLimited;
   }
@@ -228,11 +232,28 @@ function getMapCandidateHint(
 }
 
 function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
-  return (
-    candidate.status === "installed" ||
-    candidate.status === "unknown" ||
-    isMapDetectionUncertain(candidate)
-  );
+  return candidate.status === "installed";
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutReason: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(timeoutReason)), timeoutMs);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 function isPickerManagedPermission(result: NativeCorePermissionResult | null) {
@@ -421,15 +442,34 @@ export function NativeCapabilitiesPanel({
   }, [busyAction]);
 
   const refreshMapCandidates = useCallback(
-    async (options: { silent?: boolean } = {}) => {
+    async (options: { silent?: boolean; timeoutMs?: number } = {}) => {
       if (!options.silent) {
         setMapRefreshing(true);
       }
 
       try {
-        setMapCandidates(await nativeCore.getMapCandidates());
-      } catch {
-        setMapCandidates(createFallbackMapCandidates());
+        const candidates = await (options.timeoutMs
+          ? withTimeout(
+              nativeCore.getMapCandidates(),
+              options.timeoutMs,
+              "map-install-check-timeout",
+            )
+          : nativeCore.getMapCandidates());
+
+        setMapCandidates(candidates);
+      } catch (error) {
+        const reason =
+          error instanceof Error && error.message
+            ? error.message
+            : "map-install-check-unavailable";
+
+        setMapCandidates(
+          createFallbackMapCandidates().map((candidate) => ({
+            ...candidate,
+            available: false,
+            reason,
+          })),
+        );
       } finally {
         if (!options.silent) {
           setMapRefreshing(false);
@@ -671,11 +711,11 @@ export function NativeCapabilitiesPanel({
     void refreshPermissionsFor(["notification"]).catch(() => {});
   }
 
-  async function handleOpenMapPicker() {
+  function handleOpenMapPicker() {
     setLastMessage(null);
-    setMapCandidates(createCheckingMapCandidates());
-    await refreshMapCandidates().catch(() => {});
     setMapPickerOpen(true);
+    setMapCandidates(createCheckingMapCandidates());
+    void refreshMapCandidates({ timeoutMs: mapDetectionTimeoutMs }).catch(() => {});
   }
 
   async function handleOpenMapCandidate(candidate: NativeCoreMapCandidate) {
@@ -833,9 +873,7 @@ export function NativeCapabilitiesPanel({
             onClick={handleOpenMapPicker}
             variant="outline"
           >
-            {mapRefreshing
-              ? messages.mapChecking
-              : mapState === "opening"
+            {mapState === "opening"
                 ? messages.opening
                 : messages.openMap}
           </Button>
@@ -1089,8 +1127,6 @@ export function NativeCapabilitiesPanel({
                   mapState === "opening" ||
                   candidate.checking ||
                   !isMapCandidateActionable(candidate);
-                const uncertain = isMapDetectionUncertain(candidate);
-
                 return (
                   <button
                     className={cn(
@@ -1119,12 +1155,8 @@ export function NativeCapabilitiesPanel({
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {candidate.checking
                         ? "-"
-                        : candidate.status === "unknown"
-                        ? messages.mapTryOpen
                         : candidate.status === "installed"
                           ? messages.mapOpenWith
-                          : uncertain || isMapCandidateActionable(candidate)
-                            ? messages.mapTryOpen
                           : "-"}
                     </span>
                   </button>

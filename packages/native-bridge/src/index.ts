@@ -490,6 +490,10 @@ function openBrowserLocationUrl(
   url: string,
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ) {
+  if (!isHttpUrl(url)) {
+    return false;
+  }
+
   try {
     if (typeof globalScope?.location?.assign === "function") {
       globalScope.location.assign(url);
@@ -508,14 +512,10 @@ function openBrowserLocationUrl(
 }
 
 function dispatchAndroidIntentUrl(
-  url: string,
-  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+  _url: string,
+  _globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ) {
-  if (detectBrowserPlatform(globalScope?.navigator?.userAgent) !== "android") {
-    return false;
-  }
-
-  return openBrowserLocationUrl(url, globalScope);
+  return false;
 }
 
 function isHttpUrl(url: string) {
@@ -1915,12 +1915,10 @@ export function createBrowserNativeBridge(
       }
 
       if (detectBrowserPlatform(globalScope?.navigator?.userAgent) === "android") {
-        const nativeUrl = buildNativeMapNavigationUrl(input);
-
-        if (nativeUrl && openBrowserLocationUrl(nativeUrl, globalScope)) {
+        if (input.allowWebFallback === false) {
           return {
-            ok: true,
-            message: "opened-native-map",
+            ok: false,
+            reason: "native-map-open-unavailable",
           };
         }
       }
@@ -2244,11 +2242,7 @@ function parseAndroidActionBridgeResult(
 }
 
 function isMapCandidateAvailable(result: NativeMapInstallResult) {
-  return (
-    result.status === "installed" ||
-    result.status === "unknown" ||
-    isMapDetectionUncertain(result)
-  );
+  return result.status === "installed";
 }
 
 function isMapDetectionUncertain(result: NativeMapInstallResult) {
@@ -2268,7 +2262,7 @@ function shouldSkipNativeMapCandidate(
   }
 
   if (options.userSelected) {
-    return result.status === "not-installed" && !isMapDetectionUncertain(result);
+    return result.status !== "installed";
   }
 
   return result.status === "not-installed" && !isMapDetectionUncertain(result);

@@ -272,7 +272,7 @@ test("native bridge preserves Android map diagnostics", async () => {
   });
 });
 
-test("native capability core keeps Android package visibility candidates actionable", async () => {
+test("native capability core disables Android package visibility candidates", async () => {
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {},
     invoke: async () => ({
@@ -287,7 +287,7 @@ test("native capability core keeps Android package visibility candidates actiona
   const core = createNativeCapabilityCore({ bridge });
   const candidates = await core.listMapOpenCandidates();
 
-  assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
+  assert.equal(candidates.find((item) => item.appType === "amap")?.available, false);
 });
 
 test("native capability core skips clearly missing maps during automatic open", async () => {
@@ -329,7 +329,7 @@ test("native capability core skips clearly missing maps during automatic open", 
   ]);
 });
 
-test("native capability core keeps unavailable Android map checks actionable", async () => {
+test("native capability core blocks unavailable manually selected Android maps", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {},
@@ -352,7 +352,7 @@ test("native capability core keeps unavailable Android map checks actionable", a
   const core = createNativeCapabilityCore({ bridge });
   const candidates = await core.listMapOpenCandidates();
 
-  assert.equal(candidates.find((item) => item.appType === "amap")?.available, true);
+  assert.equal(candidates.find((item) => item.appType === "amap")?.available, false);
   assert.deepEqual(
     await core.openPreferredMapNavigation({
       lat: 30.25,
@@ -360,9 +360,8 @@ test("native capability core keeps unavailable Android map checks actionable", a
       appType: "amap",
     }),
     {
-      ok: true,
-      message: "opened-native-map",
-      appType: "amap",
+      ok: false,
+      reason: "map-install-check-unavailable",
     },
   );
   assert.deepEqual(calls, [
@@ -370,7 +369,6 @@ test("native capability core keeps unavailable Android map checks actionable", a
     ["check_map_installed", "baidu"],
     ["check_map_installed", "tencent"],
     ["check_map_installed", "amap"],
-    ["open_map_navigation", "amap"],
   ]);
 });
 
@@ -577,7 +575,7 @@ test("browser bridge opens Android map through injected WebView bridge first", a
   assert.match(calls[0][2], /^androidamap:\/\//);
 });
 
-test("browser bridge dispatches Android map scheme when injected open reports no handler", async () => {
+test("browser bridge does not dispatch Android map scheme when injected open reports no handler", async () => {
   const calls = [];
   const bridge = createBrowserNativeBridge({
     globalScope: {
@@ -609,16 +607,11 @@ test("browser bridge dispatches Android map scheme when injected open reports no
       allowWebFallback: false,
     }),
     {
-      ok: true,
-      dispatched: true,
-      message: "opened-native-map",
+      ok: false,
+      reason: "native-map-no-handler",
     },
   );
-  assert.deepEqual(calls.map((call) => call[0]), [
-    "AndroidMap.openNavigation",
-    "location.assign",
-  ]);
-  assert.match(calls[1][1], /^androidamap:\/\//);
+  assert.deepEqual(calls.map((call) => call[0]), ["AndroidMap.openNavigation"]);
 });
 
 test("detected Tauri bridge returns Android map bridge failure when web fallback is disabled", async () => {
