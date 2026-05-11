@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   createAppNativeCore,
@@ -10,13 +9,14 @@ import {
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
 import { ActionRowLink } from "@/components/site/action-row";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Messages = AppMessages["nativeCapabilities"];
 type MapPickerState = "idle" | "checking" | "ready" | "failed";
 type ActionState = "idle" | "opening";
+type DeviceFeatureIconKind = "scan" | "map" | "download";
 
 const mapTarget = {
   lat: 30.2741,
@@ -141,6 +141,18 @@ function getMapPickerDescription(
   return messages.mapNoInstalled;
 }
 
+function getMapPickerCaption(
+  state: MapPickerState,
+  candidates: NativeCoreMapCandidate[],
+  messages: Messages,
+) {
+  if (state === "ready" && candidates.some(isMapCandidateActionable)) {
+    return messages.mapPickerDescription;
+  }
+
+  return getMapPickerDescription(state, candidates, messages);
+}
+
 function getActionMessage(reason: string | null, messages: Messages) {
   if (!reason) {
     return null;
@@ -169,10 +181,39 @@ function getActionMessage(reason: string | null, messages: Messages) {
   return null;
 }
 
-function FeatureIcon({ label }: { label: string }) {
+function FeatureIcon({
+  kind,
+  label,
+}: {
+  kind: DeviceFeatureIconKind;
+  label: string;
+}) {
+  const symbol =
+    kind === "scan" ? (
+      <span aria-hidden="true" className="grid size-4 grid-cols-2 grid-rows-2 gap-0.5">
+        <span className="rounded-[2px] border border-current" />
+        <span className="rounded-[2px] border border-current" />
+        <span className="rounded-[2px] border border-current" />
+        <span className="rounded-[2px] border border-current" />
+      </span>
+    ) : kind === "map" ? (
+      <span aria-hidden="true" className="relative block size-4 rounded-full border border-current">
+        <span className="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
+      </span>
+    ) : (
+      <span aria-hidden="true" className="relative block h-4 w-3 rounded-[2px] border border-current">
+        <span className="absolute left-1/2 top-2 h-1.5 w-px -translate-x-1/2 bg-current" />
+        <span className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rotate-45 border-b border-r border-current" />
+      </span>
+    );
+
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-secondary text-xs font-semibold text-foreground">
-      {label}
+    <span
+      aria-label={label}
+      className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-secondary text-foreground"
+      title={label}
+    >
+      {symbol}
     </span>
   );
 }
@@ -190,6 +231,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
     setMapActionState("opening");
     setMapPickerState("checking");
     setMapCandidates(createFallbackMapCandidates("map-install-checking"));
+    setMapPickerOpen(true);
 
     try {
       const candidates = await withTimeout(
@@ -209,7 +251,6 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
       setMapPickerState("failed");
       setLastMessage(reason);
     } finally {
-      setMapPickerOpen(true);
       setMapActionState("idle");
     }
   }
@@ -250,7 +291,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
           <ActionRowLink
             description={messages.barcodeDescription}
             href="/device-services/scan"
-            icon={<FeatureIcon label={messages.barcodeShortLabel} />}
+            icon={<FeatureIcon kind="scan" label={messages.barcodeTitle} />}
             title={messages.barcodeTitle}
           />
           <button
@@ -260,7 +301,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
             type="button"
           >
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <FeatureIcon label={messages.mapShortLabel} />
+              <FeatureIcon kind="map" label={messages.mapTitle} />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">{messages.mapTitle}</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -275,18 +316,18 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
           <ActionRowLink
             description={messages.downloadEntryDescription}
             href="/download"
-            icon={<FeatureIcon label={messages.downloadShortLabel} />}
+            icon={<FeatureIcon kind="download" label={messages.openDownloads} />}
             title={messages.openDownloads}
           />
         </div>
       </SurfaceCard>
 
-      <Link
-        className={buttonVariants({ variant: "outline", className: "w-full" })}
+      <ActionRowLink
+        className="rounded-2xl border border-dashed border-border/80 bg-card px-4 py-3"
+        description={messages.diagnosticsEntryDescription}
         href="/native-diagnostics"
-      >
-        {messages.openDiagnostics}
-      </Link>
+        title={messages.openDiagnostics}
+      />
 
       {displayMessage ? (
         <p className="break-words rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
@@ -312,7 +353,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                 {messages.mapPickerTitle}
               </h3>
               <p className="text-xs leading-5 text-muted-foreground">
-                {getMapPickerDescription(mapPickerState, mapCandidates, messages)}
+                {getMapPickerCaption(mapPickerState, mapCandidates, messages)}
               </p>
             </div>
 
@@ -328,7 +369,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                     className={cn(
                       "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left first:rounded-t-2xl last:rounded-b-2xl",
                       disabled
-                        ? "text-muted-foreground"
+                        ? "cursor-not-allowed text-muted-foreground"
                         : "text-foreground active:bg-secondary",
                     )}
                     disabled={disabled}
@@ -346,7 +387,14 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                           : getMapCandidateHint(candidate, messages)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-1 text-[11px]",
+                        isMapCandidateActionable(candidate)
+                          ? "bg-secondary text-foreground"
+                          : "bg-transparent text-muted-foreground",
+                      )}
+                    >
                       {mapPickerState === "checking"
                         ? messages.mapChecking
                         : getMapInstallLabel(candidate.status, messages)}

@@ -2,22 +2,26 @@
 
 import type { NativeBridge, NativeBridgeActionResult } from "@rtnn/native-bridge";
 
-function canUseHttpUrl(url: string) {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
 export function buildInAppWebViewUrl(url: string) {
-  if (typeof window === "undefined" || !canUseHttpUrl(url)) {
+  if (typeof window === "undefined") {
     return null;
   }
 
   const current = new URL(window.location.href);
-  const target = new URL(url);
+  let target: URL;
+
+  try {
+    target = new URL(url, current.origin);
+  } catch {
+    return null;
+  }
+
+  if (
+    target.origin !== current.origin ||
+    (target.protocol !== "https:" && target.protocol !== "http:")
+  ) {
+    return null;
+  }
 
   if (
     current.pathname === "/device-services/webview" &&

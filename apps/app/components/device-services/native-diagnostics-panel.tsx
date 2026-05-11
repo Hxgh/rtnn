@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createAppNativeCore,
@@ -16,7 +15,7 @@ import {
   type NativeMediaSource,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SurfaceCard } from "@/components/ui/card";
 
@@ -51,8 +50,6 @@ const transientActionStateMs = 1_200;
 function resolveDownloadUrl() {
   return new URL("/download", window.location.href).toString();
 }
-
-const webViewDiagnosticsHref = `/device-services/webview?url=${encodeURIComponent("/download")}`;
 
 function isOpened(result: NativeCoreActionResult) {
   return result.ok;
@@ -368,6 +365,12 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
     void refreshPermissionsFor(["notification"]).catch(() => {});
   }
 
+  async function handleOpenInAppWebView() {
+    await runAction("webview", setWebViewState, () =>
+      nativeCore.openInAppWebView("/download"),
+    );
+  }
+
   const clientInfo = snapshot?.clientInfo;
   const capabilityText = snapshot
     ? Object.entries(snapshot.capabilities)
@@ -417,12 +420,13 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
             <p className="text-xs leading-5 text-muted-foreground">{messages.externalDescription}</p>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Link
-              className={buttonVariants({ variant: "outline" })}
-              href={webViewDiagnosticsHref}
+            <Button
+              disabled={webViewState === "opening"}
+              onClick={handleOpenInAppWebView}
+              variant="outline"
             >
-              {messages.openInAppWebView}
-            </Link>
+              {webViewState === "opening" ? messages.opening : messages.openInAppWebView}
+            </Button>
             <Button
               disabled={externalState === "opening"}
               onClick={() =>

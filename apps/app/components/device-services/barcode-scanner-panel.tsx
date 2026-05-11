@@ -23,6 +23,7 @@ import { SurfaceCard } from "@/components/ui/card";
 
 type ScannerMessages = AppMessages["nativeCapabilities"];
 type ScannerState = "idle" | "starting" | "scanning" | "stopping" | "failed";
+type ImageScanState = "idle" | "opening" | "scanning";
 
 function getResultTypeLabel(
   type: WebBarcodeScanResult["contentType"],
@@ -65,7 +66,7 @@ export function BarcodeScannerPanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
   const [state, setState] = useState<ScannerState>("idle");
-  const [imageScanState, setImageScanState] = useState<"idle" | "opening" | "scanning">("idle");
+  const [imageScanState, setImageScanState] = useState<ImageScanState>("idle");
   const [lastResult, setLastResult] = useState<WebBarcodeScanResult | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
 
@@ -119,7 +120,7 @@ export function BarcodeScannerPanel({
       const permission = await nativeCoreRef.current.ensureActionPermissions("barcode.scan");
       if (!permission.ok) {
         setErrorReason(permission.reason ?? "camera-permission-denied");
-        setState("failed");
+        setState("idle");
         return;
       }
 
@@ -174,6 +175,7 @@ export function BarcodeScannerPanel({
     try {
       const result = await scanBarcodeImageFile(file);
       setLastResult(result);
+      setErrorReason(null);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       setErrorReason(
@@ -205,6 +207,9 @@ export function BarcodeScannerPanel({
   }, []);
 
   const displayError = getScannerErrorMessage(errorReason, messages);
+  const isCameraBusy = state === "starting" || state === "stopping";
+  const isScanning = state === "scanning";
+  const isImageBusy = imageScanState !== "idle";
 
   return (
     <div className="space-y-5">
@@ -233,21 +238,25 @@ export function BarcodeScannerPanel({
 
           <div className="grid grid-cols-2 gap-2">
             <Button
-              disabled={state === "starting" || state === "stopping"}
+              disabled={isCameraBusy || isImageBusy}
               onClick={state === "scanning" ? stopScanner : startScanner}
             >
-              {state === "scanning"
+              {isScanning
                 ? messages.barcodeStop
                 : state === "starting"
                   ? messages.opening
                   : messages.barcodeStart}
             </Button>
             <Button
-              disabled={state === "starting" || state === "scanning" || imageScanState !== "idle"}
+              disabled={isCameraBusy || isScanning || isImageBusy}
               onClick={handleScanFromImage}
               variant="outline"
             >
-              {imageScanState === "idle" ? messages.barcodeScanFromImage : messages.opening}
+              {imageScanState === "scanning"
+                ? messages.barcodeImageScanning
+                : imageScanState === "opening"
+                  ? messages.opening
+                  : messages.barcodeScanFromImage}
             </Button>
           </div>
           <input

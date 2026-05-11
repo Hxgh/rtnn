@@ -66,12 +66,12 @@ export function InAppWebViewPanel({
           </div>
           <Button
             onClick={() => {
-            window.location.reload();
-          }}
+              window.location.reload();
+            }}
             size="sm"
             variant="ghost"
           >
-          {messages.mapRefresh}
+            {messages.mapRefresh}
           </Button>
         </div>
         <div className="h-[68vh] min-h-[28rem] bg-background">
