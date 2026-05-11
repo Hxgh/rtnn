@@ -26,6 +26,7 @@ export async function getRuntimeSnapshot(
     clientInfo,
     capabilities: {
       externalOpen: canUseNativeFeature(clientInfo, "external.open"),
+      inAppWebView: canUseNativeFeature(clientInfo, "webview.open"),
       mapNavigation: canUseNativeFeature(clientInfo, "map.navigation"),
       filePick: canUseNativeFeature(clientInfo, "file.pick"),
       notification: canUseNativeFeature(clientInfo, "notification"),

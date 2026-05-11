@@ -3,7 +3,7 @@
 import type { NativeBridge, NativeBridgeActionResult } from "@rtnn/native-bridge";
 import { ensureActionPermissions } from "./permissions";
 
-export async function showTestNotification(
+export async function showNotification(
   nativeBridge: NativeBridge,
 ): Promise<NativeBridgeActionResult> {
   const permissionResult = await ensureActionPermissions(
@@ -20,7 +20,7 @@ export async function showTestNotification(
 
   return nativeBridge.showNotification({
     title: "RTNN",
-    body: "通知能力已触发。",
-    tag: "rtnn-native-diagnostics",
+    body: "你已开启客户端通知。",
+    tag: "rtnn-device-service",
   });
 }

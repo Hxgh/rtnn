@@ -99,7 +99,10 @@ export function syncAppNativeTheme(
   }
 
   try {
-    win?.AndroidTheme?.setTheme?.(resolvedTheme, mode);
+    const androidTheme = win?.AndroidTheme;
+    if (typeof androidTheme?.setTheme === "function") {
+      androidTheme.setTheme(resolvedTheme, mode);
+    }
   } catch {
     // Native theme sync is best-effort; Web theme should remain authoritative.
   }

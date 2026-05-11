@@ -45,11 +45,17 @@ test("browser bridge reports browser client info and opens only http URLs", asyn
   assert.equal(opened[0].target, "_blank");
   assert.equal(opened[0].features, "noopener,noreferrer");
 
+  assert.deepEqual(await bridge.openInAppWebView({ url: "https://example.com/download" }), {
+    ok: true,
+    message: "opened-in-app-webview",
+  });
+  assert.equal(opened[1].target, "_self");
+
   assert.deepEqual(await bridge.openExternal({ url: "javascript:alert(1)" }), {
     ok: false,
     reason: "browser-open-unavailable",
   });
-  assert.equal(opened.length, 1);
+  assert.equal(opened.length, 2);
 });
 
 test("browser map navigation builds AMap URL from coordinates", () => {
@@ -136,10 +142,13 @@ test("detected Tauri bridge reads native client info and commands", async () => 
   assert.deepEqual(await bridge.openExternal({ url: "https://example.com" }), {
     ok: true,
   });
+  assert.deepEqual(await bridge.openInAppWebView({ url: "https://example.com/download" }), {
+    ok: true,
+  });
   assert.equal((await bridge.checkUpdate()).update?.version, "0.2.0");
   assert.deepEqual(
     calls.map((call) => call.command),
-    ["get_client_info", "open_external", "check_update"],
+    ["get_client_info", "open_external", "open_in_app_webview", "check_update"],
   );
 });
 
@@ -248,7 +257,7 @@ test("native bridge detects Android map apps through WebView bridge first", asyn
   ]);
 });
 
-test("native bridge preserves Android map diagnostics", async () => {
+test("native bridge preserves Android map detail fields", async () => {
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {},
     invoke: async () => ({
@@ -372,7 +381,7 @@ test("native capability core blocks unavailable manually selected Android maps",
   ]);
 });
 
-test("native bridge parses structured Android map install diagnostics", async () => {
+test("native bridge parses structured Android map install details", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {
@@ -507,6 +516,73 @@ test("native bridge can be woken by Android map ready event", async () => {
   assert.equal(listeners.has("rtnn:android-map-ready"), false);
   assert.deepEqual(calls, [
     ["AndroidMap.isAppInstalled", "com.autonavi.minimap"],
+  ]);
+});
+
+test("native bridge retries Android map check when bridge object is not injected yet", async () => {
+  const calls = [];
+  const listeners = new Map();
+  const timers = [];
+  const globalScope = {
+    navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+    AndroidMap: {
+      checkAppInstalled() {
+        calls.push(["AndroidMap.checkAppInstalled", "not-ready"]);
+        throw new Error("Java bridge method can't be invoked on a non-injected object");
+      },
+    },
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(name);
+    },
+    setTimeout(callback, delay) {
+      timers.push([callback, delay]);
+      return 1;
+    },
+    clearTimeout() {},
+  };
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope,
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return {
+        ok: false,
+        appType: "amap",
+        installed: false,
+        status: "not-installed",
+      };
+    },
+  });
+  const pending = bridge.checkMapInstalled({ appType: "amap" });
+
+  assert.equal(listeners.has("rtnn:android-map-ready"), true);
+  globalScope.AndroidMap = {
+    checkAppInstalled(packageName) {
+      calls.push(["AndroidMap.checkAppInstalled", packageName]);
+      return JSON.stringify({
+        ok: true,
+        installed: true,
+        status: "installed",
+      });
+    },
+  };
+  listeners.get("rtnn:android-map-ready")();
+
+  assert.deepEqual(await pending, {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    message: undefined,
+    reason: undefined,
+    diagnostic: undefined,
+  });
+  assert.equal(timers[0][1], 100);
+  assert.deepEqual(calls, [
+    ["AndroidMap.checkAppInstalled", "not-ready"],
+    ["AndroidMap.checkAppInstalled", "com.autonavi.minimap"],
   ]);
 });
 
@@ -772,7 +848,7 @@ test("browser bridge prefers Android media bridge over web file input", async ()
   assert.deepEqual(calls, [["AndroidMedia.pickImages", { maxFiles: 1 }]]);
 });
 
-test("detected Tauri bridge prefers barcode plugin before Android bridge and commands", async () => {
+test("detected Tauri bridge prefers barcode plugin for camera scan", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {
@@ -809,6 +885,44 @@ test("detected Tauri bridge prefers barcode plugin before Android bridge and com
   assert.deepEqual(calls, [["invoke", "plugin:barcode-scanner|scan"]]);
 });
 
+test("detected Tauri bridge uses Android barcode bridge for image scan", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      AndroidBarcode: {
+        scanBarcode(optionsJson) {
+          calls.push(["AndroidBarcode.scanBarcode", JSON.parse(optionsJson)]);
+          return JSON.stringify({
+            ok: true,
+            codes: [{ rawValue: "android", format: "qr_code" }],
+          });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode({ source: "image", timeoutMs: 2000 }), {
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    codes: [
+      {
+        rawValue: "android",
+        format: "qr_code",
+      },
+    ],
+    files: undefined,
+  });
+  assert.deepEqual(calls, [
+    ["AndroidBarcode.scanBarcode", { source: "image", timeoutMs: 2000 }],
+  ]);
+});
+
 test("detected Tauri bridge falls back to Android barcode bridge when plugin is unavailable", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
@@ -833,7 +947,7 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
     },
   });
 
-  assert.deepEqual(await bridge.scanBarcode({ source: "image", timeoutMs: 2000 }), {
+  assert.deepEqual(await bridge.scanBarcode({ source: "camera", timeoutMs: 2000 }), {
     ok: true,
     message: undefined,
     reason: undefined,
@@ -848,6 +962,74 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
   });
   assert.deepEqual(calls, [
     ["invoke", "plugin:barcode-scanner|scan"],
+    ["AndroidBarcode.scanBarcode", { source: "camera", timeoutMs: 2000 }],
+  ]);
+});
+
+test("detected Tauri bridge uses barcode plugin when Android barcode bridge is missing", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {},
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      if (command === "plugin:barcode-scanner|scan") {
+        return {
+          content: "plugin",
+          format: { name: "qr_code" },
+        };
+      }
+
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode(), {
+    ok: true,
+    reason: undefined,
+    codes: [
+      {
+        rawValue: "plugin",
+        format: "qr_code",
+      },
+    ],
+  });
+  assert.deepEqual(calls, [["invoke", "plugin:barcode-scanner|scan"]]);
+});
+
+test("image barcode scan skips camera plugin and uses Android image source directly", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      AndroidBarcode: {
+        scanBarcode(optionsJson) {
+          calls.push(["AndroidBarcode.scanBarcode", JSON.parse(optionsJson)]);
+          return JSON.stringify({
+            ok: true,
+            codes: [{ rawValue: "image", format: "qr_code" }],
+          });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode({ source: "image", timeoutMs: 2000 }), {
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    codes: [
+      {
+        rawValue: "image",
+        format: "qr_code",
+      },
+    ],
+    files: undefined,
+  });
+  assert.deepEqual(calls, [
     ["AndroidBarcode.scanBarcode", { source: "image", timeoutMs: 2000 }],
   ]);
 });
@@ -884,7 +1066,7 @@ test("browser bridge waits for Android permission change after dispatched reques
   const pending = bridge.requestPermission({
     kind: "camera",
     trigger: "manual",
-    purpose: "native-diagnostics",
+    purpose: "device-service",
   });
 
   assert.equal(listeners.has("rtnn:android-permission-change"), true);
@@ -905,6 +1087,106 @@ test("browser bridge waits for Android permission change after dispatched reques
   });
   assert.equal(listeners.has("rtnn:android-permission-change"), false);
   assert.equal(timers[0][1], 30_000);
+});
+
+test("detected Tauri bridge retries Android media and barcode when bridge object is not injected yet", async () => {
+  const calls = [];
+  const listeners = new Map();
+  const globalScope = {
+    navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+    AndroidMedia: {
+      pickImages() {
+        calls.push(["AndroidMedia.pickImages", "not-ready"]);
+        throw new Error("Java bridge method can't be invoked on a non-injected object");
+      },
+    },
+    AndroidBarcode: {
+      scanBarcode() {
+        calls.push(["AndroidBarcode.scanBarcode", "not-ready"]);
+        throw new Error("Java bridge method can't be invoked on a non-injected object");
+      },
+    },
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(name);
+    },
+    setTimeout() {
+      return 1;
+    },
+    clearTimeout() {},
+  };
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope,
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      throw new Error("unknown command");
+    },
+  });
+
+  const pendingImages = bridge.pickImages({ maxFiles: 1 });
+  assert.equal(listeners.has("rtnn:android-native-ready"), true);
+  globalScope.AndroidMedia = {
+    pickImages(optionsJson) {
+      calls.push(["AndroidMedia.pickImages", JSON.parse(optionsJson)]);
+      return JSON.stringify({
+        ok: true,
+        files: [{ name: "ready.jpg", type: "image/jpeg", size: 1 }],
+      });
+    },
+  };
+  listeners.get("rtnn:android-native-ready")();
+
+  assert.deepEqual(await pendingImages, {
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    files: [
+      {
+        name: "ready.jpg",
+        type: "image/jpeg",
+        size: 1,
+        dataUrl: undefined,
+      },
+    ],
+  });
+
+  globalScope.AndroidBarcode = {
+    scanBarcode() {
+      calls.push(["AndroidBarcode.scanBarcode", "not-ready"]);
+      throw new Error("Java bridge method can't be invoked on a non-injected object");
+    },
+  };
+  const pendingScan = bridge.scanBarcode({ source: "image", timeoutMs: 2000 });
+  await Promise.resolve();
+  assert.equal(listeners.has("rtnn:android-native-ready"), true);
+  globalScope.AndroidBarcode = {
+    scanBarcode(optionsJson) {
+      calls.push(["AndroidBarcode.scanBarcode", JSON.parse(optionsJson)]);
+      return JSON.stringify({
+        ok: true,
+        codes: [{ rawValue: "READY", format: "QR_CODE" }],
+      });
+    },
+  };
+  listeners.get("rtnn:android-native-ready")();
+
+  assert.deepEqual(await pendingScan, {
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    codes: [{ rawValue: "READY", format: "QR_CODE" }],
+    files: undefined,
+  });
+  assert.deepEqual(calls, [
+    ["AndroidMedia.pickImages", "not-ready"],
+    ["AndroidMedia.pickImages", { maxFiles: 1 }],
+    ["AndroidBarcode.scanBarcode", "not-ready"],
+    ["AndroidBarcode.scanBarcode", { source: "image", timeoutMs: 2000 }],
+  ]);
 });
 
 test("native capability core requests media permissions before image picking", async () => {

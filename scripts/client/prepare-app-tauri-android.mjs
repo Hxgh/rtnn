@@ -417,7 +417,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.io.File
 import java.io.InputStream
@@ -435,9 +437,11 @@ class MainActivity : TauriActivity() {
   private var nativeMediaMode: String? = null
   private var nativeMediaReadAsDataUrl = true
   private var nativeMediaMaxFiles = 3
+  @Volatile
   private var nativeMediaResultJson: String? = null
   private var pendingFileChooser = false
   private var pendingPermissionKind: String? = null
+  @Volatile
   private var nativePermissionResultJson: String? = null
   private var currentTheme = "light"
   private var currentThemeMode = "system"
@@ -474,14 +478,10 @@ class MainActivity : TauriActivity() {
         cameraPhotoUri != null -> arrayOf(cameraPhotoUri!!)
         else -> null
       }
-      if (mode != null) {
-        nativeMediaResultJson = buildMediaResult(uris, null)
-      }
+      completeNativeMediaResult(mode, uris, null)
       callback?.onReceiveValue(uris)
     } else {
-      if (mode != null) {
-        nativeMediaResultJson = buildMediaResult(null, "file-picker-cancelled")
-      }
+      completeNativeMediaResult(mode, null, "file-picker-cancelled")
       callback?.onReceiveValue(null)
       notifyFilePickerClosed("cancelled")
     }
@@ -583,6 +583,7 @@ class MainActivity : TauriActivity() {
       fileChooserLauncher.launch(chooserIntent)
     } catch (error: Exception) {
       android.util.Log.e("MainActivity", "Image picker failed", error)
+      failNativeMedia("image-picker-failed")
       filePathCallback?.onReceiveValue(null)
       filePathCallback = null
       notifyFilePickerClosed("image-picker-failed")
@@ -597,6 +598,7 @@ class MainActivity : TauriActivity() {
       fileChooserLauncher.launch(cameraIntent)
     } catch (error: Exception) {
       android.util.Log.e("MainActivity", "Camera capture failed", error)
+      failNativeMedia("camera-capture-failed")
       filePathCallback?.onReceiveValue(null)
       filePathCallback = null
       cameraPhotoUri = null
@@ -614,6 +616,17 @@ class MainActivity : TauriActivity() {
       android.util.Log.e("MainActivity", "Failed to create image Uri", error)
       null
     }
+  }
+
+  private fun completeNativeMediaResult(mode: String?, uris: Array<Uri>?, reason: String?) {
+    if (mode != null) {
+      nativeMediaResultJson = buildMediaResult(uris, reason)
+    }
+  }
+
+  private fun failNativeMedia(reason: String) {
+    completeNativeMediaResult(nativeMediaMode, null, reason)
+    nativeMediaMode = null
   }
 
   private fun parseMediaOptions(optionsJson: String?) {
@@ -822,22 +835,6 @@ class MainActivity : TauriActivity() {
       }
 
       val packageNames = packageName.split("|").map { it.trim() }.filter { it.isNotEmpty() }
-      for (candidatePackageName in packageNames) {
-        try {
-          val launchIntent = packageManager.getLaunchIntentForPackage(candidatePackageName)
-          if (launchIntent != null) {
-            result.put("ok", true)
-            result.put("installed", true)
-            result.put("status", "installed")
-            result.put("packageName", candidatePackageName)
-            result.put("message", "installed-by-launch-intent")
-            return result
-          }
-        } catch (error: Exception) {
-          result.put("launchIntentError", error.javaClass.simpleName)
-        }
-      }
-
       var lastPackageVisibilityError: String? = null
       for (candidatePackageName in packageNames) {
         try {
@@ -859,11 +856,23 @@ class MainActivity : TauriActivity() {
         } catch (error: PackageManager.NameNotFoundException) {
           lastPackageVisibilityError = "map-app-not-installed-or-not-visible"
         } catch (error: Exception) {
-          result.put("ok", true)
-          result.put("installed", JSONObject.NULL)
-          result.put("status", "unknown")
-          result.put("reason", error.javaClass.simpleName)
-          return result
+          result.put("packageInfoError", error.javaClass.simpleName)
+        }
+      }
+
+      for (candidatePackageName in packageNames) {
+        try {
+          val launchIntent = packageManager.getLaunchIntentForPackage(candidatePackageName)
+          if (launchIntent != null) {
+            result.put("ok", true)
+            result.put("installed", true)
+            result.put("status", "installed")
+            result.put("packageName", candidatePackageName)
+            result.put("message", "installed-by-launch-intent")
+            return result
+          }
+        } catch (error: Exception) {
+          result.put("launchIntentError", error.javaClass.simpleName)
         }
       }
 
@@ -942,7 +951,15 @@ class MainActivity : TauriActivity() {
     @JavascriptInterface
     fun scanBarcode(optionsJson: String?): String {
       parseMediaOptions(optionsJson)
-      if (!isPermissionGranted("camera")) {
+      val options = try {
+        if (optionsJson.isNullOrBlank()) JSONObject() else JSONObject(optionsJson)
+      } catch (_: Exception) {
+        JSONObject()
+      }
+      val source = options.optString("source", "camera")
+      val fromImage = source == "image"
+
+      if (!fromImage && !isPermissionGranted("camera")) {
         val requested = PermissionBridge().requestPermission("camera", "scan-barcode")
         val permission = JSONObject(requested)
         if (!permission.optBoolean("ok", false) || permission.optString("status") != "granted") {
@@ -950,9 +967,15 @@ class MainActivity : TauriActivity() {
         }
       }
 
-      nativeMediaMode = "barcode"
+      nativeMediaMode = if (fromImage) "barcode-image" else "barcode-camera"
       val mediaResult = awaitNativeMediaResult {
-        runOnUiThread { launchCameraCapture() }
+        runOnUiThread {
+          if (fromImage) {
+            launchImagePicker()
+          } else {
+            launchCameraCapture()
+          }
+        }
       }
 
       val result = JSONObject(mediaResult)
@@ -997,8 +1020,11 @@ class MainActivity : TauriActivity() {
       val latch = CountDownLatch(1)
       val output = JSONObject()
       val inputImage = InputImage.fromBitmap(bitmap, 0)
+      val scannerOptions = BarcodeScannerOptions.Builder()
+        .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+        .build()
 
-      BarcodeScanning.getClient()
+      BarcodeScanning.getClient(scannerOptions)
         .process(inputImage)
         .addOnSuccessListener { barcodes ->
           val codes = org.json.JSONArray()

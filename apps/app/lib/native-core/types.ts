@@ -23,6 +23,7 @@ export type NativePermissionAction =
   | "media.capture-camera"
   | "notification.enable"
   | "barcode.scan"
+  | "barcode.scan-image"
   | "location.use"
   | "map.navigation"
   | "external.open"
@@ -31,7 +32,7 @@ export type NativePermissionAction =
 export type NativePermissionRequestTiming =
   | "startup"
   | "on-user-action"
-  | "manual-diagnostics"
+  | "manual"
   | "never";
 
 export type NativePermissionPolicy = {
@@ -54,6 +55,7 @@ export type NativeRuntimeSnapshot = {
   clientInfo: NativeClientInfo;
   capabilities: {
     externalOpen: boolean;
+    inAppWebView: boolean;
     mapNavigation: boolean;
     filePick: boolean;
     notification: boolean;
@@ -85,7 +87,7 @@ export type NativeBarcodeScanOptions = {
 };
 
 export type NativeBarcodeScanActionResult = NativeBarcodeScanResult & {
-  action: Extract<NativePermissionAction, "barcode.scan">;
+  action: Extract<NativePermissionAction, "barcode.scan" | "barcode.scan-image">;
   permissions: NativePermissionResult[];
   codes: NativeBarcode[];
 };
@@ -107,13 +109,14 @@ export type NativeCoreService = {
   getRuntimeSnapshot(): Promise<NativeRuntimeSnapshot>;
   getMapCandidates(): Promise<NativeMapOpenCandidate[]>;
   openExternalUrl(url: string): Promise<NativeBridgeActionResult>;
+  openInAppWebView(url: string): Promise<NativeBridgeActionResult>;
   openMapNavigation(
     input: NativeMapNavigationInput,
   ): Promise<NativeBridgeActionResult & { appType?: MapAppType }>;
   checkPermissions(
     kinds: NativePermissionKind[],
   ): Promise<NativePermissionSnapshot>;
-  requestPermissionForDiagnostics(
+  requestPermission(
     kind: NativePermissionKind,
   ): Promise<NativePermissionResult>;
   getPermissionPolicy(action: NativePermissionAction): NativePermissionPolicy;
@@ -133,7 +136,7 @@ export type NativeCoreService = {
   scanBarcode(
     options?: NativeBarcodeScanOptions,
   ): Promise<NativeBarcodeScanActionResult>;
-  showTestNotification(): Promise<NativeBridgeActionResult>;
+  showNotification(): Promise<NativeBridgeActionResult>;
   buildUpdateCheckQuery(): Promise<NativeClientUpdateQuery | null>;
   checkAppUpdate(options?: {
     currentVersion?: string;

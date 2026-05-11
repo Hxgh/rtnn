@@ -53,10 +53,10 @@ export default async function MePage() {
               }
             />
             <ActionRowLink
-              href="/native-diagnostics"
+              href="/device-services"
               title={messages.nativeCapabilities.title}
               description={messages.nativeCapabilities.description}
-              dataTestId="me-native-diagnostics-link"
+              dataTestId="me-device-services-link"
               icon={
                 <svg
                   aria-hidden="true"

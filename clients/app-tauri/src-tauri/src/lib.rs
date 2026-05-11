@@ -1,4 +1,5 @@
 use tauri_plugin_opener::OpenerExt;
+use tauri::Manager;
 
 #[cfg(target_os = "android")]
 use jni::objects::{JObject, JValue};
@@ -358,6 +359,7 @@ fn get_client_info() -> NativeClientInfo {
         source_sha: std::env::var("RTNN_CLIENT_SOURCE_SHA").ok(),
         features: vec![
             "external.open",
+            "webview.open",
             "map.navigation",
             "file.pick",
             "notification",
@@ -386,6 +388,51 @@ fn open_external(
         message: None,
         reason: None,
     })
+}
+
+#[tauri::command]
+fn open_in_app_webview(app: tauri::AppHandle, url: String) -> CommandResult {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return CommandResult {
+            ok: false,
+            message: None,
+            reason: Some("missing-webview-url".to_string()),
+        };
+    }
+
+    let allowed = trimmed.starts_with("http://localhost:")
+        || trimmed.starts_with("https://app.testing.rtnn.soolan.xyz/")
+        || trimmed.starts_with("https://app.rtnn.soolan.xyz/");
+
+    if !allowed {
+        return CommandResult {
+            ok: false,
+            message: None,
+            reason: Some("webview-url-not-allowed".to_string()),
+        };
+    }
+
+    if let Some(webview) = app.webviews().values().next() {
+        match webview.eval(&format!("window.location.assign({:?})", trimmed)) {
+            Ok(_) => CommandResult {
+                ok: true,
+                message: Some("opened-in-app-webview".to_string()),
+                reason: None,
+            },
+            Err(error) => CommandResult {
+                ok: false,
+                message: None,
+                reason: Some(error.to_string()),
+            },
+        }
+    } else {
+        CommandResult {
+            ok: false,
+            message: None,
+            reason: Some("webview-unavailable".to_string()),
+        }
+    }
 }
 
 #[tauri::command]
@@ -535,6 +582,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_client_info,
             open_external,
+            open_in_app_webview,
             open_map_navigation,
             check_map_installed,
             check_permission,

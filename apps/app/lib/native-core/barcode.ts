@@ -27,7 +27,8 @@ export async function scanBarcode(
   nativeBridge: NativeBridge,
   options: NativeBarcodeScanOptions = {},
 ): Promise<NativeBarcodeScanActionResult> {
-  const action = "barcode.scan";
+  const source = options.source ?? "camera";
+  const action = source === "image" ? "barcode.scan-image" : "barcode.scan";
   const permissionResult = await ensureActionPermissions(nativeBridge, action);
 
   if (!permissionResult.ok) {
@@ -41,7 +42,7 @@ export async function scanBarcode(
   }
 
   const result = await nativeBridge.scanBarcode({
-    source: options.source ?? "camera",
+    source,
     formats: options.formats ?? defaultBarcodeFormats,
     timeoutMs: options.timeoutMs,
   });

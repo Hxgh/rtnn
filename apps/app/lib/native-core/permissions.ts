@@ -24,6 +24,11 @@ const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
   "file-picker",
 ]);
 
+const pickerManagedPermissionActions = new Set<NativePermissionAction>([
+  "media.pick-album",
+  "barcode.scan-image",
+]);
+
 export const nativePermissionPolicies = {
   "media.pick-album": {
     action: "media.pick-album",
@@ -69,6 +74,18 @@ export const nativePermissionPolicies = {
       {
         kind: "camera",
         purpose: "scan-barcode",
+        required: true,
+      },
+    ],
+  },
+  "barcode.scan-image": {
+    action: "barcode.scan-image",
+    requestTiming: "on-user-action",
+    trigger: "on-demand",
+    permissions: [
+      {
+        kind: "photo-library",
+        purpose: "scan-barcode-image",
         required: true,
       },
     ],
@@ -134,14 +151,14 @@ export async function checkPermissions(
   return Object.fromEntries(pairs) as NativePermissionSnapshot;
 }
 
-export function requestPermissionForDiagnostics(
+export function requestPermission(
   nativeBridge: NativeBridge,
   kind: NativePermissionKind,
 ): Promise<NativePermissionResult> {
   return nativeBridge.requestPermission({
     kind,
     trigger: "manual",
-    purpose: "native-diagnostics",
+    purpose: "device-service",
   });
 }
 
@@ -161,7 +178,10 @@ export async function ensureActionPermissions(
   }
 
   for (const item of policy.permissions) {
-    if (pickerManagedPermissionKinds.has(item.kind)) {
+    if (
+      pickerManagedPermissionKinds.has(item.kind) &&
+      pickerManagedPermissionActions.has(action)
+    ) {
       const result = await nativeBridge.checkPermission({
         kind: item.kind,
         trigger: policy.trigger,

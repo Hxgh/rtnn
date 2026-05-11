@@ -37,9 +37,15 @@ function shouldSkipMapCandidate(
 }
 
 function normalizeNativeError(error: unknown) {
-  return error instanceof Error
+  const reason = error instanceof Error
     ? error.message || "native-action-failed"
     : String(error || "native-action-failed");
+
+  if (reason.includes("Java bridge method can't be invoked on a non-injected object")) {
+    return "native-bridge-not-ready";
+  }
+
+  return reason;
 }
 
 export async function getMapCandidates(
@@ -63,7 +69,7 @@ export async function getMapCandidates(
           ok: true,
           installed: null,
           status: "unknown" as const,
-          available: true,
+          available: false,
           reason: normalizeNativeError(error),
         };
       }

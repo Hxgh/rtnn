@@ -66,6 +66,7 @@ function createBridge(calls, overrides = {}) {
         channel: "testing",
         features: [
           "external.open",
+          "webview.open",
           "map.navigation",
           "file.pick",
           "permission",
@@ -77,6 +78,10 @@ function createBridge(calls, overrides = {}) {
     async openExternal(input) {
       calls.push(["openExternal", input.url]);
       return { ok: true };
+    },
+    async openInAppWebView(input) {
+      calls.push(["openInAppWebView", input.url]);
+      return { ok: true, message: "opened-in-app-webview" };
     },
     async openMapNavigation(input) {
       calls.push(["openMapNavigation", input.appType, input.allowWebFallback]);
@@ -215,6 +220,38 @@ test("app native core still allows web fallback for preferred map auto open", as
   ]);
 });
 
+test("app native core separates external open from in-app webview", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(createBridge(calls));
+
+  assert.deepEqual(await core.openExternalUrl("https://example.com/download"), {
+    ok: true,
+  });
+  assert.deepEqual(await core.openInAppWebView("https://example.com/download"), {
+    ok: true,
+    message: "opened-in-app-webview",
+  });
+  assert.deepEqual(calls, [
+    ["openExternal", "https://example.com/download"],
+    ["openInAppWebView", "https://example.com/download"],
+  ]);
+});
+
+test("app native core opens generic app URL inside the shell", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const core = createAppNativeCore(createBridge(calls));
+
+  assert.deepEqual(await core.openUrl("https://example.com/download"), {
+    ok: true,
+    message: "opened-in-app-webview",
+  });
+  assert.deepEqual(calls, [
+    ["openInAppWebView", "https://example.com/download"],
+  ]);
+});
+
 test("app native core requests only the permission needed by media action", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
@@ -277,7 +314,7 @@ test("app native core keeps barcode and notification behind core service actions
       },
     ],
   });
-  assert.deepEqual(await core.showTestNotification(), {
+  assert.deepEqual(await core.showNotification(), {
     ok: true,
     message: "notification-dispatched",
   });
@@ -308,7 +345,7 @@ test("app native core keeps barcode and notification behind core service actions
   ]);
 });
 
-test("app native core can scan barcode from an image source for diagnostics", async () => {
+test("app native core can scan barcode from an image source", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const core = createAppNativeCore(createBridge(calls));
@@ -318,7 +355,7 @@ test("app native core can scan barcode from an image source for diagnostics", as
     "rtnn-test",
   );
   assert.deepEqual(calls, [
-    ["ensurePermission", "camera", "on-demand", "scan-barcode"],
+    ["checkPermission", "photo-library", "on-demand"],
     [
       "scanBarcode",
       2000,
@@ -568,23 +605,23 @@ test("app native core stops media action when required permission is denied", as
   ]);
 });
 
-test("app native core keeps manual permission requests in diagnostics only", async () => {
+test("app native core supports manual permission requests", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const core = createAppNativeCore(createBridge(calls));
 
-  assert.deepEqual(await core.requestPermissionForDiagnostics("notification"), {
+  assert.deepEqual(await core.requestPermission("notification"), {
     ok: true,
     kind: "notification",
     status: "granted",
     requested: true,
   });
   assert.deepEqual(calls, [
-    ["requestPermission", "notification", "manual", "native-diagnostics"],
+    ["requestPermission", "notification", "manual", "device-service"],
   ]);
 });
 
-test("app native core can override update check current version for diagnostics", async () => {
+test("app native core can override update check current version", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const originalFetch = globalThis.fetch;

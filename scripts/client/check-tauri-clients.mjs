@@ -43,6 +43,7 @@ const CLIENTS = {
     requiredSourceSnippets: [
       "get_client_info",
       "open_external",
+      "open_in_app_webview",
       "open_map_navigation",
       "tauri_plugin_barcode_scanner::init",
       "tauri_plugin_notification::init",
@@ -54,6 +55,7 @@ const CLIENTS = {
       "scan_barcode",
       "show_notification",
       "file.pick",
+      "webview.open",
       "notification",
       "barcode.scan",
       "permission",

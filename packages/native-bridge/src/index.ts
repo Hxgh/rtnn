@@ -6,6 +6,7 @@ export type NativePlatform = "macos" | "windows" | "android" | "ios" | "web";
 export type NativeChannel = "dev" | "testing" | "production";
 export type NativeFeature =
   | "external.open"
+  | "webview.open"
   | "map.navigation"
   | "file.pick"
   | "file.save"
@@ -95,6 +96,10 @@ export type OpenExternalInput = {
   target?: "_blank" | "_self";
 };
 
+export type OpenInAppWebViewInput = {
+  url: string;
+};
+
 export type MapAppType = "amap" | "baidu" | "tencent";
 
 export type NativeMapAppInfo = {
@@ -182,6 +187,7 @@ export type NativeMapOpenCandidate = NativeMapAppInfo &
 export type NativeBridge = {
   getClientInfo(): Promise<NativeClientInfo>;
   openExternal(input: OpenExternalInput): Promise<NativeBridgeActionResult>;
+  openInAppWebView(input: OpenInAppWebViewInput): Promise<NativeBridgeActionResult>;
   openMapNavigation(
     input: MapNavigationInput,
   ): Promise<NativeBridgeActionResult>;
@@ -242,6 +248,8 @@ type BrowserWindowLike = {
   clearTimeout?: typeof clearTimeout;
   addEventListener?: Window["addEventListener"];
   removeEventListener?: Window["removeEventListener"];
+  dispatchEvent?: Window["dispatchEvent"];
+  CustomEvent?: typeof CustomEvent;
 };
 type BrowserNotificationApi = {
   new (title: string, options?: { body?: string; tag?: string }): unknown;
@@ -307,6 +315,8 @@ type TauriGlobalScope = {
   clearTimeout?: typeof clearTimeout;
   addEventListener?: Window["addEventListener"];
   removeEventListener?: Window["removeEventListener"];
+  dispatchEvent?: Window["dispatchEvent"];
+  CustomEvent?: typeof CustomEvent;
   Notification?: BrowserNotificationApi;
   BarcodeDetector?: BrowserBarcodeDetectorConstructor;
   createImageBitmap?: (source: Blob) => Promise<unknown>;
@@ -354,6 +364,7 @@ export type CreateTauriNativeBridgeOptions = {
   sourceSha?: string;
   features?: NativeFeature[];
   openExternalCommand?: string;
+  openInAppWebViewCommand?: string;
   mapNavigationCommand?: string;
   checkMapInstalledCommand?: string;
   checkPermissionCommand?: string;
@@ -370,6 +381,7 @@ export type CreateDetectedTauriNativeBridgeOptions = {
   globalScope?: TauriGlobalScope;
   getClientInfoCommand?: string;
   openExternalCommand?: string;
+  openInAppWebViewCommand?: string;
   mapNavigationCommand?: string;
   checkMapInstalledCommand?: string;
   checkPermissionCommand?: string;
@@ -386,6 +398,7 @@ export type CreateNativeBridgeOptions = CreateBrowserNativeBridgeOptions & {
   fallback?: NativeBridge;
   getClientInfoCommand?: string;
   openExternalCommand?: string;
+  openInAppWebViewCommand?: string;
   mapNavigationCommand?: string;
   checkMapInstalledCommand?: string;
   checkPermissionCommand?: string;
@@ -415,6 +428,7 @@ export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
 ];
 
 const NATIVE_FILE_PICKER_CLOSED_EVENT = "rtnn:native-file-picker-closed";
+const NATIVE_ANDROID_READY_EVENT = "rtnn:android-native-ready";
 const NATIVE_ANDROID_MAP_READY_EVENT = "rtnn:android-map-ready";
 const NATIVE_ANDROID_PERMISSION_CHANGE_EVENT = "rtnn:android-permission-change";
 
@@ -426,6 +440,8 @@ const NATIVE_MAP_ANDROID_PACKAGES: Record<MapAppType, string[]> = {
 const ANDROID_MAP_BRIDGE_WAIT_MS = 3_000;
 const ANDROID_MAP_BRIDGE_POLL_MS = 100;
 const ANDROID_PERMISSION_BRIDGE_WAIT_MS = 30_000;
+const ANDROID_NON_INJECTED_BRIDGE_ERROR =
+  "Java bridge method can't be invoked on a non-injected object";
 
 const pickerManagedPermissionKinds = new Set<NativePermissionKind>([
   "camera",
@@ -592,7 +608,7 @@ function normalizePickedFilesResult(
   return {
     ok: Boolean(result.ok),
     message: result.message ?? undefined,
-    reason: result.reason ?? undefined,
+    reason: normalizeReason(result.reason),
     dispatched: result.dispatched,
     files: Array.isArray(result.files)
       ? result.files
@@ -624,7 +640,7 @@ function parseAndroidImagePickBridgeResult(
     } catch {
       return {
         ok: false,
-        reason: value || "file-picker-invalid-result",
+        reason: normalizeReason(value) ?? "file-picker-invalid-result",
         files: [],
       };
     }
@@ -752,7 +768,7 @@ function parseAndroidPermissionBridgeResult(
     } catch {
       return makePermissionResult(input, "unknown", {
         ok: false,
-        reason: value || "permission-bridge-invalid-result",
+        reason: normalizeReason(value) ?? "permission-bridge-invalid-result",
       });
     }
   }
@@ -1083,7 +1099,7 @@ function normalizeBarcodeScanResult(
   return {
     ok: Boolean(result.ok),
     message: result.message ?? undefined,
-    reason: result.reason ?? undefined,
+    reason: normalizeReason(result.reason),
     dispatched: result.dispatched,
     codes: Array.isArray(result.codes)
       ? result.codes
@@ -1116,7 +1132,7 @@ function parseAndroidBarcodeBridgeResult(
     } catch {
       return {
         ok: false,
-        reason: value || "barcode-scan-invalid-result",
+        reason: normalizeReason(value) ?? "barcode-scan-invalid-result",
         codes: [],
       };
     }
@@ -1191,6 +1207,10 @@ async function scanBarcodeWithTauriPlugin(
   invoke: TauriInvoke,
   input: NativeBarcodeScanInput = {},
 ): Promise<NativeBarcodeScanResult | null> {
+  if (input.source === "image") {
+    return null;
+  }
+
   try {
     const result = await invoke("plugin:barcode-scanner|scan", {
       formats: input.formats,
@@ -1216,21 +1236,23 @@ async function scanBarcodeWithBrowser(
   input: NativeBarcodeScanInput = {},
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): Promise<NativeBarcodeScanResult> {
-  const permission = await ensureBrowserPermission(
-    {
-      kind: "camera",
-      trigger: "on-demand",
-      purpose: "scan-barcode",
-    },
-    globalScope,
-  );
+  if (input.source !== "image") {
+    const permission = await ensureBrowserPermission(
+      {
+        kind: "camera",
+        trigger: "on-demand",
+        purpose: "scan-barcode",
+      },
+      globalScope,
+    );
 
-  if (!permission.ok) {
-    return {
-      ok: false,
-      reason: permission.reason ?? "camera-permission-denied",
-      codes: [],
-    };
+    if (!permission.ok) {
+      return {
+        ok: false,
+        reason: permission.reason ?? "camera-permission-denied",
+        codes: [],
+      };
+    }
   }
 
   if (typeof globalScope?.BarcodeDetector !== "function") {
@@ -1300,15 +1322,24 @@ function pickImagesWithAndroidBridge(
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): NativeImagePickResult | null {
   const androidMedia = globalScope?.AndroidMedia;
-  const method = input.capture ? androidMedia?.captureImage : androidMedia?.pickImages;
-
-  if (typeof method !== "function") {
-    return null;
-  }
 
   try {
+    let value: string | NativeImagePickResult | boolean | undefined;
+
+    if (input.capture) {
+      if (typeof androidMedia?.captureImage !== "function") {
+        return null;
+      }
+      value = androidMedia.captureImage(buildAndroidJsonInput(input));
+    } else {
+      if (typeof androidMedia?.pickImages !== "function") {
+        return null;
+      }
+      value = androidMedia.pickImages(buildAndroidJsonInput(input));
+    }
+
     return (
-      parseAndroidImagePickBridgeResult(method(buildAndroidJsonInput(input))) ??
+      parseAndroidImagePickBridgeResult(value) ??
       {
         ok: false,
         reason: "file-picker-invalid-result",
@@ -1908,6 +1939,17 @@ export function createBrowserNativeBridge(
         : { ok: false, reason: "browser-open-unavailable" };
     },
 
+    async openInAppWebView(input) {
+      const opened = openBrowserUrl(
+        input.url,
+        "_self",
+        options.open ?? globalScope?.open,
+      );
+      return opened
+        ? { ok: true, message: "opened-in-app-webview" }
+        : { ok: false, reason: "browser-open-unavailable" };
+    },
+
     async openMapNavigation(input) {
       const androidResult = openAndroidMapWithBridge(input, globalScope);
       if (androidResult) {
@@ -2055,18 +2097,48 @@ export function resolveNativeClientUpdateQuery(
 }
 
 function normalizeErrorReason(error: unknown) {
-  if (error instanceof Error) {
-    return error.message || "native-command-failed";
+  const message =
+    error instanceof Error
+      ? error.message || "native-command-failed"
+      : String(error || "native-command-failed");
+
+  if (message.includes(ANDROID_NON_INJECTED_BRIDGE_ERROR)) {
+    return "native-bridge-not-ready";
   }
 
-  return String(error || "native-command-failed");
+  if (error instanceof Error) {
+    return message;
+  }
+
+  return message;
+}
+
+function normalizeReason(reason: unknown) {
+  return reason ? normalizeErrorReason(reason) : undefined;
 }
 
 function normalizeActionResult(
   result: NativeBridgeActionResult | null | undefined,
 ): NativeBridgeActionResult {
   if (result && typeof result.ok === "boolean") {
-    return result;
+    const normalized: NativeBridgeActionResult = {
+      ok: result.ok,
+    };
+    const reason = normalizeReason(result.reason);
+
+    if (typeof result.message === "string") {
+      normalized.message = result.message;
+    }
+
+    if (typeof reason === "string") {
+      normalized.reason = reason;
+    }
+
+    if (typeof result.dispatched === "boolean") {
+      normalized.dispatched = result.dispatched;
+    }
+
+    return normalized;
   }
 
   return { ok: true };
@@ -2090,7 +2162,7 @@ function normalizePermissionResult(
     requested: result.requested,
     canAskAgain: result.canAskAgain,
     message: result.message ?? undefined,
-    reason: result.reason ?? undefined,
+    reason: normalizeReason(result.reason),
     dispatched: result.dispatched,
   });
 }
@@ -2132,8 +2204,8 @@ function normalizeMapInstallResult(
     installed,
     status,
     message: result.message ?? undefined,
-    reason: result.reason ?? undefined,
-    diagnostic: result.diagnostic ?? undefined,
+    reason: normalizeReason(result.reason),
+    diagnostic: normalizeReason(result.diagnostic),
   };
 }
 
@@ -2164,7 +2236,7 @@ function parseAndroidMapBridgeResult(
         appType,
         installed: null,
         status: "unknown",
-        reason: value || "map-install-check-invalid-result",
+        reason: normalizeReason(value) ?? "map-install-check-invalid-result",
       };
     }
   }
@@ -2197,7 +2269,7 @@ function parseAndroidMapOpenBridgeResult(
     } catch {
       return {
         ok: false,
-        reason: value || "native-map-open-invalid-result",
+        reason: normalizeReason(value) ?? "native-map-open-invalid-result",
       };
     }
   }
@@ -2229,7 +2301,7 @@ function parseAndroidActionBridgeResult(
     } catch {
       return {
         ok: false,
-        reason: value || fallbackReason,
+        reason: normalizeReason(value) ?? fallbackReason,
       };
     }
   }
@@ -2301,21 +2373,22 @@ function checkAndroidMapInstalledWithBridge(
 ): NativeMapInstallResult | null {
   const packageName = joinAndroidMapPackages(appType);
   const androidMap = globalScope?.AndroidMap;
-  const checkAppInstalled = androidMap?.checkAppInstalled;
-  const isAppInstalled = androidMap?.isAppInstalled;
 
   if (
     !packageName ||
-    (typeof checkAppInstalled !== "function" &&
-      typeof isAppInstalled !== "function")
+    (typeof androidMap?.checkAppInstalled !== "function" &&
+      typeof androidMap?.isAppInstalled !== "function")
   ) {
     return null;
   }
 
   try {
-    if (typeof checkAppInstalled === "function") {
+    if (typeof androidMap.checkAppInstalled === "function") {
       return (
-        parseAndroidMapBridgeResult(checkAppInstalled(packageName), appType) ?? {
+        parseAndroidMapBridgeResult(
+          androidMap.checkAppInstalled(packageName),
+          appType,
+        ) ?? {
           ok: true,
           appType,
           installed: null,
@@ -2325,7 +2398,7 @@ function checkAndroidMapInstalledWithBridge(
       );
     }
 
-    if (typeof isAppInstalled !== "function") {
+    if (typeof androidMap.isAppInstalled !== "function") {
       return {
         ok: true,
         appType,
@@ -2338,7 +2411,9 @@ function checkAndroidMapInstalledWithBridge(
     const installed = packageName
       .split("|")
       .filter(Boolean)
-      .some((candidatePackageName) => Boolean(isAppInstalled(candidatePackageName)));
+      .some((candidatePackageName) =>
+        Boolean(androidMap.isAppInstalled?.(candidatePackageName)),
+      );
 
     return {
       ok: installed,
@@ -2412,12 +2487,42 @@ function shouldWaitForAndroidMapBridge(
   return detectBrowserPlatform(globalScope?.navigator?.userAgent) === "android";
 }
 
-function waitForAndroidMapBridge(
-  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+function isNativeBridgeNotReadyResult(result: { reason?: string } | null) {
+  return result?.reason === "native-bridge-not-ready";
+}
+
+function isAndroidMapBridgeNotReady(result: NativeMapInstallResult | null) {
+  return isNativeBridgeNotReadyResult(result);
+}
+
+function getAndroidBridgeObject(
+  globalScope: TauriGlobalScope | undefined,
+  bridgeName: string,
+) {
+  return (globalScope as unknown as Record<string, unknown> | undefined)?.[
+    bridgeName
+  ] as Record<string, unknown> | undefined;
+}
+
+function hasAndroidBridgeMethod(
+  globalScope: TauriGlobalScope | undefined,
+  bridgeName: string,
+  methodName: string | string[],
+) {
+  const bridge = getAndroidBridgeObject(globalScope, bridgeName);
+  const methodNames = Array.isArray(methodName) ? methodName : [methodName];
+
+  return methodNames.some((item) => typeof bridge?.[item] === "function");
+}
+
+function waitForAndroidBridgeMethod(
+  globalScope: TauriGlobalScope | undefined,
+  bridgeName: string,
+  methodName: string | string[],
+  options: { force?: boolean; eventName?: string } = {},
 ): Promise<void> {
   if (
-    globalScope?.AndroidMap?.checkAppInstalled ||
-    globalScope?.AndroidMap?.isAppInstalled ||
+    (!options.force && hasAndroidBridgeMethod(globalScope, bridgeName, methodName)) ||
     !shouldWaitForAndroidMapBridge(globalScope)
   ) {
     return Promise.resolve();
@@ -2426,10 +2531,22 @@ function waitForAndroidMapBridge(
   const setTimer = globalScope?.setTimeout ?? setTimeout;
   const clearTimer = globalScope?.clearTimeout ?? clearTimeout;
   const deadline = Date.now() + ANDROID_MAP_BRIDGE_WAIT_MS;
+  const initialBridge = getAndroidBridgeObject(globalScope, bridgeName);
+  const methodNames = Array.isArray(methodName) ? methodName : [methodName];
+  const readinessEvents = [
+    NATIVE_ANDROID_READY_EVENT,
+    options.eventName,
+  ].filter((item): item is string => Boolean(item));
 
   return new Promise((resolve) => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let completed = false;
+
+    const cleanup = () => {
+      for (const eventName of readinessEvents) {
+        globalScope?.removeEventListener?.(eventName, finish);
+      }
+    };
 
     const finish = () => {
       if (completed) {
@@ -2440,17 +2557,25 @@ function waitForAndroidMapBridge(
       if (timer) {
         clearTimer(timer);
       }
-      globalScope?.removeEventListener?.(
-        NATIVE_ANDROID_MAP_READY_EVENT,
-        finish,
-      );
+      cleanup();
       resolve();
+    };
+
+    const bridgeChangedAndReady = () => {
+      const bridge = getAndroidBridgeObject(globalScope, bridgeName);
+      return (
+        options.force &&
+        initialBridge &&
+        bridge &&
+        bridge !== initialBridge &&
+        methodNames.some((item) => typeof bridge[item] === "function")
+      );
     };
 
     const tick = () => {
       if (
-        globalScope?.AndroidMap?.checkAppInstalled ||
-        globalScope?.AndroidMap?.isAppInstalled ||
+        bridgeChangedAndReady() ||
+        (!options.force && hasAndroidBridgeMethod(globalScope, bridgeName, methodName)) ||
         Date.now() >= deadline
       ) {
         finish();
@@ -2460,9 +2585,30 @@ function waitForAndroidMapBridge(
       timer = setTimer(tick, ANDROID_MAP_BRIDGE_POLL_MS);
     };
 
-    globalScope?.addEventListener?.(NATIVE_ANDROID_MAP_READY_EVENT, finish);
+    for (const eventName of readinessEvents) {
+      globalScope?.addEventListener?.(eventName, finish);
+    }
     tick();
   });
+}
+
+function waitForAndroidMapBridge(
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+  options: { force?: boolean } = {},
+): Promise<void> {
+  if (!options.force && hasAndroidBridgeMethod(globalScope, "AndroidMap", "isAppInstalled")) {
+    return Promise.resolve();
+  }
+
+  return waitForAndroidBridgeMethod(
+    globalScope,
+    "AndroidMap",
+    ["checkAppInstalled", "isAppInstalled"],
+    {
+      force: options.force,
+      eventName: NATIVE_ANDROID_MAP_READY_EVENT,
+    },
+  );
 }
 
 export function createDetectedTauriNativeBridge(
@@ -2496,6 +2642,21 @@ export function createDetectedTauriNativeBridge(
         );
       } catch {
         return fallback.openExternal(input);
+      }
+    },
+
+    async openInAppWebView(input) {
+      try {
+        return normalizeActionResult(
+          await options.invoke<NativeBridgeActionResult>(
+            options.openInAppWebViewCommand ?? "open_in_app_webview",
+            {
+              url: input.url,
+            },
+          ),
+        );
+      } catch {
+        return fallback.openInAppWebView(input);
       }
     },
 
@@ -2541,17 +2702,19 @@ export function createDetectedTauriNativeBridge(
         input.appType,
         globalScope,
       );
-      if (androidResult) {
+      if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
         return androidResult;
       }
 
-      await waitForAndroidMapBridge(globalScope);
+      await waitForAndroidMapBridge(globalScope, {
+        force: isAndroidMapBridgeNotReady(androidResult),
+      });
 
       const delayedAndroidResult = checkAndroidMapInstalledWithBridge(
         input.appType,
         globalScope,
       );
-      if (delayedAndroidResult) {
+      if (delayedAndroidResult && !isAndroidMapBridgeNotReady(delayedAndroidResult)) {
         return delayedAndroidResult;
       }
 
@@ -2577,8 +2740,29 @@ export function createDetectedTauriNativeBridge(
         globalScope,
       );
 
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          globalScope,
+          "AndroidPermission",
+          "checkPermission",
+          { force: true },
+        );
+
+        const delayedAndroidResult = checkAndroidPermissionWithBridge(
+          normalized,
+          globalScope,
+        );
+
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return delayedAndroidResult;
+        }
       }
 
       try {
@@ -2605,12 +2789,37 @@ export function createDetectedTauriNativeBridge(
         globalScope,
       );
 
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return waitForAndroidPermissionChange(
           normalized,
           androidResult,
           globalScope,
         );
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          globalScope,
+          "AndroidPermission",
+          "requestPermission",
+          { force: true },
+        );
+
+        const delayedAndroidResult = requestAndroidPermissionWithBridge(
+          normalized,
+          globalScope,
+        );
+
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return waitForAndroidPermissionChange(
+            normalized,
+            delayedAndroidResult,
+            globalScope,
+          );
+        }
       }
 
       try {
@@ -2650,8 +2859,25 @@ export function createDetectedTauriNativeBridge(
 
     async pickImages(input) {
       const androidResult = pickImagesWithAndroidBridge(input, globalScope);
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          globalScope,
+          "AndroidMedia",
+          input?.capture ? "captureImage" : "pickImages",
+          { force: true },
+        );
+
+        const delayedAndroidResult = pickImagesWithAndroidBridge(input, globalScope);
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return delayedAndroidResult;
+        }
       }
 
       return fallback.pickImages(input);
@@ -2664,8 +2890,25 @@ export function createDetectedTauriNativeBridge(
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input, globalScope);
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          globalScope,
+          "AndroidBarcode",
+          "scanBarcode",
+          { force: true },
+        );
+
+        const delayedAndroidResult = scanBarcodeWithAndroidBridge(input, globalScope);
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return delayedAndroidResult;
+        }
       }
 
       try {
@@ -2747,7 +2990,11 @@ export function createDetectedTauriNativeBridge(
 export function createTauriNativeBridge(
   options: CreateTauriNativeBridgeOptions,
 ): NativeBridge {
-  const features = options.features ?? ["external.open", "map.navigation"];
+  const features = options.features ?? [
+    "external.open",
+    "webview.open",
+    "map.navigation",
+  ];
 
   return {
     async getClientInfo() {
@@ -2773,6 +3020,17 @@ export function createTauriNativeBridge(
       );
 
       return result ?? { ok: true };
+    },
+
+    async openInAppWebView(input) {
+      const result = await options.invoke<NativeBridgeActionResult>(
+        options.openInAppWebViewCommand ?? "open_in_app_webview",
+        {
+          url: input.url,
+        },
+      );
+
+      return normalizeActionResult(result);
     },
 
     async openMapNavigation(input) {
@@ -2804,8 +3062,17 @@ export function createTauriNativeBridge(
 
     async checkMapInstalled(input) {
       const androidResult = checkAndroidMapInstalledWithBridge(input.appType);
-      if (androidResult) {
+      if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
         return androidResult;
+      }
+
+      await waitForAndroidMapBridge(undefined, {
+        force: isAndroidMapBridgeNotReady(androidResult),
+      });
+
+      const delayedAndroidResult = checkAndroidMapInstalledWithBridge(input.appType);
+      if (delayedAndroidResult && !isAndroidMapBridgeNotReady(delayedAndroidResult)) {
+        return delayedAndroidResult;
       }
 
       return normalizeMapInstallResult(
@@ -2881,8 +3148,25 @@ export function createTauriNativeBridge(
 
     async pickImages(input) {
       const androidResult = pickImagesWithAndroidBridge(input);
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          undefined,
+          "AndroidMedia",
+          input?.capture ? "captureImage" : "pickImages",
+          { force: true },
+        );
+
+        const delayedAndroidResult = pickImagesWithAndroidBridge(input);
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return delayedAndroidResult;
+        }
       }
 
       return pickImagesWithInput(input);
@@ -2895,8 +3179,25 @@ export function createTauriNativeBridge(
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input);
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          undefined,
+          "AndroidBarcode",
+          "scanBarcode",
+          { force: true },
+        );
+
+        const delayedAndroidResult = scanBarcodeWithAndroidBridge(input);
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return delayedAndroidResult;
+        }
       }
 
       try {
@@ -2978,6 +3279,7 @@ export function createNativeBridge(
     globalScope: options.globalScope,
     getClientInfoCommand: options.getClientInfoCommand,
     openExternalCommand: options.openExternalCommand,
+    openInAppWebViewCommand: options.openInAppWebViewCommand,
     mapNavigationCommand: options.mapNavigationCommand,
     checkMapInstalledCommand: options.checkMapInstalledCommand,
     checkPermissionCommand: options.checkPermissionCommand,
@@ -3098,16 +3400,20 @@ export function createNativeCapabilityCore(
     },
 
     async scanBarcode(input) {
+      const requiredPermission =
+        input?.source === "image" ? "photo-library" : "camera";
       const permission = await bridge.ensurePermission({
-        kind: "camera",
+        kind: requiredPermission,
         trigger: "on-demand",
-        purpose: "scan-barcode",
+        purpose: input?.source === "image" ? "scan-barcode-image" : "scan-barcode",
       });
 
       if (!permission.ok) {
         return {
           ok: false,
-          reason: permission.reason ?? "camera-permission-denied",
+          reason:
+            permission.reason ??
+            `${requiredPermission}-permission-denied`,
           codes: [],
         };
       }

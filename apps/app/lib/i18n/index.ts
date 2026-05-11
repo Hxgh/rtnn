@@ -131,6 +131,7 @@ export type AppMessages = {
     barcodeTitle: string;
     barcodeDescription: string;
     barcodeScan: string;
+    barcodeScanCamera: string;
     barcodeScanFromImage: string;
     barcodeResult: string;
     barcodeNoResult: string;
@@ -144,21 +145,6 @@ export type AppMessages = {
     platform: string;
     shell: string;
     features: string;
-    webviewDiagnostics: string;
-    webviewDiagnosticsDescription: string;
-    webviewBridgeReady: string;
-    webviewBridgeMissing: string;
-    webviewBridgeCheck: string;
-    webviewBridgeCheckedAt: string;
-    webviewBridgeObject: string;
-    webviewBridgeState: string;
-    bridgeMap: string;
-    bridgePermission: string;
-    bridgeMedia: string;
-    bridgeBarcode: string;
-    bridgeNotification: string;
-    bridgeDiagnostics: string;
-    bridgeTheme: string;
     browserRuntime: string;
     unavailable: string;
     permissions: string;
@@ -173,12 +159,17 @@ export type AppMessages = {
     mapInstalled: string;
     mapNotInstalled: string;
     mapUnknown: string;
+    mapUnavailable: string;
     mapUnsupported: string;
     mapDetected: string;
+    mapDetectedAvailable: string;
+    mapNoInstalled: string;
+    mapReadyHint: string;
     mapUnknownCount: string;
     mapChecking: string;
     mapPickerTitle: string;
     mapPickerDescription: string;
+    mapPickerCheckingDescription: string;
     mapVisibilityLimited: string;
     mapCheckUnavailable: string;
     mapRefresh: string;
@@ -187,6 +178,7 @@ export type AppMessages = {
     permissionActionDriven: string;
     permissionActionDrivenShort: string;
     permissionRequestDone: string;
+    openInAppWebView: string;
     openExternal: string;
     openMap: string;
     pickImages: string;
@@ -349,7 +341,7 @@ const zhCN: AppMessages = {
   },
   nativeCapabilities: {
     title: "设备服务",
-    description: "管理当前设备可用的系统能力，包括地图、相机、相册、扫码、通知和下载入口。",
+    description: "管理地图、相机、相册、扫码、通知和下载等客户端能力。",
     runtimeTitle: "设备信息",
     runtimeDescription: "查看当前客户端环境与已启用的系统能力。",
     externalTitle: "外链打开",
@@ -359,36 +351,22 @@ const zhCN: AppMessages = {
     mediaTitle: "相机相册",
     mediaDescription: "从相册选择图片，或调用相机拍摄图片。",
     barcodeTitle: "扫码",
-    barcodeDescription: "按需请求相机权限，支持常见二维码和一维码。",
+    barcodeDescription: "支持二维码和常见一维码；可直接扫码，也可识别相册图片。",
     barcodeScan: "扫码",
+    barcodeScanCamera: "相机扫码",
     barcodeScanFromImage: "识别图片",
     barcodeResult: "扫码结果",
     barcodeNoResult: "暂无扫码结果",
     notificationTitle: "通知",
     notificationDescription: "按需请求通知权限，并发送本地通知。",
     notificationSend: "发送通知",
-    permissionDescription: "权限按需请求，具体业务页面可根据使用场景决定触发时机。",
+    permissionDescription: "权限按能力动作触发，业务页面可按场景复用同一套核心接口。",
     keyboardTitle: "键盘与安全区",
     keyboardDescription: "输入内容时页面会适配键盘和底部安全区域。",
     runtime: "运行环境",
     platform: "平台",
     shell: "客户端类型",
     features: "能力",
-    webviewDiagnostics: "桥接状态",
-    webviewDiagnosticsDescription: "查看当前客户端与系统能力桥接的可用状态。",
-    webviewBridgeReady: "桥接已注入",
-    webviewBridgeMissing: "桥接未注入",
-    webviewBridgeCheck: "刷新状态",
-    webviewBridgeCheckedAt: "检测时间",
-    webviewBridgeObject: "系统服务",
-    webviewBridgeState: "状态",
-    bridgeMap: "地图服务",
-    bridgePermission: "权限服务",
-    bridgeMedia: "媒体服务",
-    bridgeBarcode: "扫码服务",
-    bridgeNotification: "通知服务",
-    bridgeDiagnostics: "状态服务",
-    bridgeTheme: "外观服务",
     browserRuntime: "浏览器",
     unavailable: "当前在浏览器中运行，原生能力会降级为 Web 行为。",
     permissions: "权限状态",
@@ -403,21 +381,27 @@ const zhCN: AppMessages = {
     mapInstalled: "已安装",
     mapNotInstalled: "未安装",
     mapUnknown: "无法检测",
+    mapUnavailable: "不可用",
     mapUnsupported: "不支持检测",
-    mapDetected: "已检测安装",
+    mapDetected: "地图应用状态",
+    mapDetectedAvailable: "可用地图应用：{count} 个",
+    mapNoInstalled: "未发现可用地图应用",
+    mapReadyHint: "可用于导航",
     mapUnknownCount: "无法检测",
     mapChecking: "正在检测地图应用",
-    mapPickerTitle: "打开方式",
-    mapPickerDescription: "请选择可用的地图应用。未安装或暂时无法确认的应用将不可选择。",
-    mapVisibilityLimited: "系统暂时无法确认该应用是否可用，请刷新状态或更新客户端后重试。",
-    mapCheckUnavailable: "当前环境暂时无法读取地图应用状态，请刷新状态或更新客户端后重试。",
+    mapPickerTitle: "选择地图应用",
+    mapPickerDescription: "应用会先确认设备上可用的地图，未安装或暂时无法确认的应用不可选择。",
+    mapPickerCheckingDescription: "正在确认设备上可用的地图应用。",
+    mapVisibilityLimited: "暂时无法确认该地图是否可用，请刷新状态或更新客户端后重试。",
+    mapCheckUnavailable: "暂时无法读取地图应用状态，请刷新状态或更新客户端后重试。",
     mapRefresh: "重新检测",
     mapOpenWith: "打开",
     requestPermission: "请求权限",
     permissionActionDriven: "该权限会在对应操作时由系统按需询问，不单独弹窗。",
-    permissionActionDrivenShort: "去处理",
+    permissionActionDrivenShort: "按操作询问",
     permissionRequestDone: "权限请求已处理。",
-    openExternal: "打开外链",
+    openInAppWebView: "应用内打开",
+    openExternal: "外部打开",
     openMap: "打开地图",
     pickImages: "选择图片",
     captureImage: "拍照",
@@ -428,7 +412,7 @@ const zhCN: AppMessages = {
     opening: "打开中...",
     opened: "操作已触发，请根据系统提示继续。",
     cancelled: "已取消，未选择文件。",
-    failed: "操作失败，请检查客户端能力或系统权限。",
+    failed: "操作失败，请检查客户端状态或系统权限。",
     selectedImages: "已选择图片",
     noImages: "尚未选择图片",
     close: "关闭",
@@ -579,7 +563,7 @@ const enUS: AppMessages = {
   },
   nativeCapabilities: {
     title: "Device Services",
-    description: "Manage system capabilities available on this device, including maps, camera, photos, scanning, notifications, and downloads.",
+    description: "Manage client capabilities such as maps, camera, photos, scanning, notifications, and downloads.",
     runtimeTitle: "Device information",
     runtimeDescription: "View the current client environment and enabled system capabilities.",
     externalTitle: "External links",
@@ -589,36 +573,22 @@ const enUS: AppMessages = {
     mediaTitle: "Camera and photos",
     mediaDescription: "Choose images from photos, or capture a new image with the camera.",
     barcodeTitle: "Scan",
-    barcodeDescription: "Camera permission is requested when needed. Common QR codes and 1D barcodes are supported.",
+    barcodeDescription: "Scan QR codes and common 1D barcodes with the camera, or read them from an image.",
     barcodeScan: "Scan",
+    barcodeScanCamera: "Camera scan",
     barcodeScanFromImage: "Scan image",
     barcodeResult: "Scan result",
     barcodeNoResult: "No scan result",
     notificationTitle: "Notifications",
     notificationDescription: "Request notification permission when needed and send a local notification.",
     notificationSend: "Send notification",
-    permissionDescription: "Permissions are requested on demand. Each business screen can decide the right trigger timing.",
+    permissionDescription: "Permissions are requested by capability action, so business screens can reuse the same core API.",
     keyboardTitle: "Keyboard and safe area",
     keyboardDescription: "The page adapts to the keyboard and bottom safe area while editing.",
     runtime: "Runtime",
     platform: "Platform",
     shell: "Client type",
     features: "Features",
-    webviewDiagnostics: "Bridge status",
-    webviewDiagnosticsDescription: "View the availability of the client bridge used by system capabilities.",
-    webviewBridgeReady: "Bridge injected",
-    webviewBridgeMissing: "Bridge missing",
-    webviewBridgeCheck: "Refresh",
-    webviewBridgeCheckedAt: "Checked",
-    webviewBridgeObject: "Service",
-    webviewBridgeState: "State",
-    bridgeMap: "Map service",
-    bridgePermission: "Permission service",
-    bridgeMedia: "Media service",
-    bridgeBarcode: "Scan service",
-    bridgeNotification: "Notification service",
-    bridgeDiagnostics: "Status service",
-    bridgeTheme: "Appearance service",
     browserRuntime: "Browser",
     unavailable: "The current runtime is a browser, so native actions fall back to web behavior.",
     permissions: "Permissions",
@@ -633,21 +603,27 @@ const enUS: AppMessages = {
     mapInstalled: "Installed",
     mapNotInstalled: "Not installed",
     mapUnknown: "Unknown",
+    mapUnavailable: "Unavailable",
     mapUnsupported: "Unsupported",
-    mapDetected: "Detected installed",
+    mapDetected: "Map app status",
+    mapDetectedAvailable: "Available map apps: {count}",
+    mapNoInstalled: "No available map app found",
+    mapReadyHint: "Ready for navigation",
     mapUnknownCount: "Unknown",
     mapChecking: "Checking map apps",
-    mapPickerTitle: "Open with",
-    mapPickerDescription: "Choose an available map app. Missing or uncertain apps cannot be selected.",
-    mapVisibilityLimited: "The system cannot confirm whether this app is available. Refresh status or update the client and retry.",
-    mapCheckUnavailable: "The current environment cannot read map app status. Refresh status or update the client and retry.",
+    mapPickerTitle: "Choose Map App",
+    mapPickerDescription: "The app checks available map apps first. Missing or uncertain apps cannot be selected.",
+    mapPickerCheckingDescription: "Checking available map apps on this device.",
+    mapVisibilityLimited: "This map app cannot be confirmed right now. Refresh status or update the client and retry.",
+    mapCheckUnavailable: "Map app status cannot be read right now. Refresh status or update the client and retry.",
     mapRefresh: "Refresh",
     mapOpenWith: "Open",
     requestPermission: "Request permission",
     permissionActionDriven: "This permission is requested by the system when the related action runs, not as a standalone prompt.",
-    permissionActionDrivenShort: "Handle",
+    permissionActionDrivenShort: "On action",
     permissionRequestDone: "Permission request handled.",
-    openExternal: "Open external link",
+    openInAppWebView: "Open in app",
+    openExternal: "Open externally",
     openMap: "Open map",
     pickImages: "Pick images",
     captureImage: "Capture image",
@@ -658,7 +634,7 @@ const enUS: AppMessages = {
     opening: "Opening...",
     opened: "Action started. Follow the system prompts to continue.",
     cancelled: "Cancelled. No file was selected.",
-    failed: "Action failed. Check client capabilities or system permissions.",
+    failed: "Action failed. Check client status or system permissions.",
     selectedImages: "Selected images",
     noImages: "No images selected",
     close: "Close",

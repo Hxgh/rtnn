@@ -7,7 +7,6 @@ import {
   isNativeActionCancelled,
   runNativeActionWithWatchdog,
   type NativeCoreActionResult,
-  type NativeCoreClientInfo,
   type NativeCoreBarcode,
   type NativeCoreMapCandidate,
   type NativeCorePermissionKind,
@@ -28,22 +27,10 @@ type ActionState = "idle" | "opening" | "opened" | "cancelled" | "failed";
 type MapCandidateView = NativeCoreMapCandidate & {
   checking?: boolean;
 };
-type AndroidBridgeName =
-  | "AndroidMap"
-  | "AndroidPermission"
-  | "AndroidMedia"
-  | "AndroidBarcode"
-  | "AndroidNotification"
-  | "AndroidDiagnostics"
-  | "AndroidTheme";
-type WebViewDiagnosticsState = {
-  ready: boolean;
-  bridges: Record<AndroidBridgeName, boolean>;
-  nativeStatus: Record<string, unknown> | null;
-  checkedAt: string;
-};
+type MapPickerState = "idle" | "checking" | "ready" | "failed";
 type BusyAction =
   | "external"
+  | "webview"
   | "map"
   | "image"
   | "barcode"
@@ -75,18 +62,15 @@ const emptyPermissions: Record<
 };
 const mediaPickerTimeoutMs = 12_000;
 const barcodeScanTimeoutMs = 18_000;
-const mapDetectionTimeoutMs = 1_500;
+const mapDetectionTimeoutMs = 3_000;
 const transientActionStateMs = 1_200;
 const nativeActionDispatchStateMs = 1_800;
-const androidBridgeNames: AndroidBridgeName[] = [
-  "AndroidMap",
-  "AndroidPermission",
-  "AndroidMedia",
-  "AndroidBarcode",
-  "AndroidNotification",
-  "AndroidDiagnostics",
-  "AndroidTheme",
-];
+const mapStatusOrder: Record<NativeCoreMapCandidate["status"], number> = {
+  installed: 0,
+  unknown: 1,
+  "not-installed": 2,
+  unsupported: 3,
+};
 
 function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
   return [
@@ -98,7 +82,7 @@ function createFallbackMapCandidates(): NativeCoreMapCandidate[] {
     ok: true,
     installed: null,
     status: "unknown" as const,
-    available: true,
+    available: false,
     reason: "map-install-check-unavailable",
   }));
 }
@@ -117,10 +101,6 @@ function createCheckingMapCandidates(): MapCandidateView[] {
     checking: true,
     reason: "map-install-checking",
   }));
-}
-
-function formatList(values?: string[]) {
-  return values?.length ? values.join(", ") : "-";
 }
 
 function isOpened(result: NativeCoreActionResult) {
@@ -209,13 +189,17 @@ function getMapInstallLabel(
     return messages.mapUnsupported;
   }
 
-  return messages.mapUnknown;
+  return messages.mapUnavailable;
 }
 
 function getMapCandidateHint(
   candidate: NativeCoreMapCandidate,
   messages: NativeCapabilitiesMessages,
 ) {
+  if (candidate.status === "installed") {
+    return messages.mapReadyHint;
+  }
+
   if (candidate.reason === "map-install-check-timeout") {
     return messages.mapCheckUnavailable;
   }
@@ -228,7 +212,112 @@ function getMapCandidateHint(
     return messages.mapCheckUnavailable;
   }
 
-  return candidate.reason;
+  if (candidate.reason === "native-bridge-not-ready") {
+    return messages.mapCheckUnavailable;
+  }
+
+  return candidate.status === "unknown" ? messages.mapCheckUnavailable : undefined;
+}
+
+function getMapSummary(
+  candidates: NativeCoreMapCandidate[],
+  installedMapCount: number,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (candidates.length === 0) {
+    return messages.mapChecking;
+  }
+
+  if (installedMapCount > 0) {
+    return messages.mapDetectedAvailable.replace("{count}", String(installedMapCount));
+  }
+
+  if (candidates.every((item) => item.status === "not-installed")) {
+    return messages.mapNoInstalled;
+  }
+
+  return messages.mapCheckUnavailable;
+}
+
+function getMapPickerDescription(
+  state: MapPickerState,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (state === "checking") {
+    return messages.mapPickerCheckingDescription;
+  }
+
+  if (state === "failed") {
+    return messages.mapCheckUnavailable;
+  }
+
+  return messages.mapPickerDescription;
+}
+
+function getMapStatusText(
+  candidate: MapCandidateView,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (candidate.checking) {
+    return messages.mapChecking;
+  }
+
+  if (candidate.status === "installed") {
+    return messages.mapOpenWith;
+  }
+
+  if (candidate.status === "not-installed") {
+    return messages.mapNotInstalled;
+  }
+
+  if (candidate.status === "unsupported") {
+    return messages.mapUnsupported;
+  }
+
+  return messages.mapUnavailable;
+}
+
+function getSortedMapCandidates(candidates: NativeCoreMapCandidate[]) {
+  return [...candidates].sort(
+    (left, right) =>
+      mapStatusOrder[left.status] - mapStatusOrder[right.status],
+  );
+}
+
+function getActionMessage(
+  reason: string | null,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (!reason) {
+    return null;
+  }
+
+  if (
+    reason === "map-install-check-timeout" ||
+    reason === "map-install-check-unavailable" ||
+    reason === "native-bridge-not-ready"
+  ) {
+    return messages.mapCheckUnavailable;
+  }
+
+  if (reason === "map-app-not-installed-or-not-visible") {
+    return messages.mapVisibilityLimited;
+  }
+
+  if (
+    reason === "file-picker-cancelled" ||
+    reason === "barcode-scan-cancelled" ||
+    reason === "cancelled" ||
+    reason === "canceled"
+  ) {
+    return messages.cancelled;
+  }
+
+  if (reason.endsWith("-permission-denied") || reason === "permission-denied") {
+    return messages.permissionDenied;
+  }
+
+  return null;
 }
 
 function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
@@ -272,96 +361,22 @@ function getPickerManagedPermissionSource(kind: VisiblePermissionKind): Permissi
   return null;
 }
 
-function parseBridgeStatusResult(value: unknown) {
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      return parsed && typeof parsed === "object"
-        ? (parsed as Record<string, unknown>)
-        : null;
-    } catch {
-      return { raw: value };
-    }
-  }
-
-  return value && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function getWindowBridge(name: AndroidBridgeName) {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  return (window as unknown as Record<AndroidBridgeName, unknown>)[name];
-}
-
-function getBridgeServiceLabel(
-  name: AndroidBridgeName,
-  messages: NativeCapabilitiesMessages,
-) {
-  if (name === "AndroidMap") {
-    return messages.bridgeMap;
-  }
-
-  if (name === "AndroidPermission") {
-    return messages.bridgePermission;
-  }
-
-  if (name === "AndroidMedia") {
-    return messages.bridgeMedia;
-  }
-
-  if (name === "AndroidBarcode") {
-    return messages.bridgeBarcode;
-  }
-
-  if (name === "AndroidNotification") {
-    return messages.bridgeNotification;
-  }
-
-  if (name === "AndroidDiagnostics") {
-    return messages.bridgeDiagnostics;
-  }
-
-  return messages.bridgeTheme;
-}
-
-function inspectWebViewDiagnostics(): WebViewDiagnosticsState {
-  const bridges = Object.fromEntries(
-    androidBridgeNames.map((name) => [name, Boolean(getWindowBridge(name))]),
-  ) as Record<AndroidBridgeName, boolean>;
-  const diagnostics = getWindowBridge("AndroidDiagnostics") as
-    | { getBridgeStatus?: () => unknown }
-    | undefined;
-
-  return {
-    ready: Object.values(bridges).some(Boolean),
-    bridges,
-    nativeStatus:
-      typeof diagnostics?.getBridgeStatus === "function"
-        ? parseBridgeStatusResult(diagnostics.getBridgeStatus())
-        : null,
-    checkedAt: new Date().toLocaleTimeString(),
-  };
-}
-
 export function NativeCapabilitiesPanel({
   messages,
 }: {
   messages: NativeCapabilitiesMessages;
 }) {
   const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
-  const [clientInfo, setClientInfo] = useState<NativeCoreClientInfo | null>(null);
   const [capabilities, setCapabilities] = useState({
     externalOpen: true,
+    inAppWebView: true,
     mapNavigation: true,
     filePick: true,
     notification: true,
     barcodeScan: true,
   });
   const [externalState, setExternalState] = useState<ActionState>("idle");
+  const [webViewState, setWebViewState] = useState<ActionState>("idle");
   const [mapState, setMapState] = useState<ActionState>("idle");
   const [imageState, setImageState] = useState<ActionState>("idle");
   const [barcodeState, setBarcodeState] = useState<ActionState>("idle");
@@ -372,6 +387,7 @@ export function NativeCapabilitiesPanel({
     useState<NativeMediaSource | null>(null);
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("idle");
   const [mapRefreshing, setMapRefreshing] = useState(false);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
   const [permissionState, setPermissionState] = useState<
@@ -383,16 +399,16 @@ export function NativeCapabilitiesPanel({
   });
   const [images, setImages] = useState<NativeCorePickedFile[]>([]);
   const [barcodes, setBarcodes] = useState<NativeCoreBarcode[]>([]);
-  const [webViewDiagnostics, setWebViewDiagnostics] =
-    useState<WebViewDiagnosticsState>(inspectWebViewDiagnostics);
   const [permissions, setPermissions] =
     useState<Record<VisiblePermissionKind, NativeCorePermissionResult | null>>(
       emptyPermissions,
     );
+  const visibleLastMessage = getActionMessage(lastMessage, messages);
 
   useEffect(() => {
     const entries: Array<[ActionState, (state: ActionState) => void]> = [
       [externalState, setExternalState],
+      [webViewState, setWebViewState],
       [mapState, setMapState],
       [imageState, setImageState],
       [barcodeState, setBarcodeState],
@@ -407,7 +423,7 @@ export function NativeCapabilitiesPanel({
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [externalState, mapState, imageState, barcodeState, notificationState]);
+  }, [externalState, webViewState, mapState, imageState, barcodeState, notificationState]);
 
   useEffect(() => {
     if (!busyAction) {
@@ -424,6 +440,8 @@ export function NativeCapabilitiesPanel({
       window.setTimeout(() => {
         if (busyAction === "external") {
           setExternalState((state) => (state === "opening" ? "opened" : state));
+        } else if (busyAction === "webview") {
+          setWebViewState((state) => (state === "opening" ? "opened" : state));
         } else if (busyAction === "map") {
           setMapState((state) => (state === "opening" ? "opened" : state));
         } else if (busyAction === "image") {
@@ -476,6 +494,8 @@ export function NativeCapabilitiesPanel({
     async (options: { silent?: boolean; timeoutMs?: number } = {}) => {
       if (!options.silent) {
         setMapRefreshing(true);
+        setMapPickerState("checking");
+        setMapCandidates(createCheckingMapCandidates());
       }
 
       try {
@@ -488,6 +508,7 @@ export function NativeCapabilitiesPanel({
           : nativeCore.getMapCandidates());
 
         setMapCandidates(candidates);
+        setMapPickerState("ready");
       } catch (error) {
         const reason =
           error instanceof Error && error.message
@@ -501,6 +522,7 @@ export function NativeCapabilitiesPanel({
             reason,
           })),
         );
+        setMapPickerState("failed");
       } finally {
         if (!options.silent) {
           setMapRefreshing(false);
@@ -517,13 +539,12 @@ export function NativeCapabilitiesPanel({
       .getRuntimeSnapshot()
       .then((snapshot) => {
         if (active) {
-          setClientInfo(snapshot.clientInfo);
           setCapabilities(snapshot.capabilities);
         }
       })
       .catch(() => {
         if (active) {
-          setClientInfo(null);
+          setCapabilities((current) => current);
         }
       });
 
@@ -532,11 +553,13 @@ export function NativeCapabilitiesPanel({
       .then((candidates: NativeCoreMapCandidate[]) => {
         if (active) {
           setMapCandidates(candidates);
+          setMapPickerState("ready");
         }
       })
       .catch(() => {
         if (active) {
           setMapCandidates(createFallbackMapCandidates());
+          setMapPickerState("failed");
         }
       });
 
@@ -563,34 +586,14 @@ export function NativeCapabilitiesPanel({
     };
   }, [nativeCore]);
 
-  const refreshWebViewDiagnostics = useCallback(() => {
-    setWebViewDiagnostics(inspectWebViewDiagnostics());
-  }, []);
-
-  useEffect(() => {
-    const handleReady = () => {
-      refreshWebViewDiagnostics();
-    };
-
-    window.addEventListener("rtnn:android-native-ready", handleReady);
-    window.addEventListener("rtnn:android-map-ready", handleReady);
-
-    return () => {
-      window.removeEventListener("rtnn:android-native-ready", handleReady);
-      window.removeEventListener("rtnn:android-map-ready", handleReady);
-    };
-  }, [refreshWebViewDiagnostics]);
-
   const externalAvailable = capabilities.externalOpen;
+  const webViewAvailable = capabilities.inAppWebView;
   const mapAvailable = capabilities.mapNavigation;
   const imagePickerAvailable = capabilities.filePick;
   const barcodeAvailable = capabilities.barcodeScan;
   const notificationAvailable = capabilities.notification;
   const installedMapCount = mapCandidates.filter(
     (item) => item.status === "installed",
-  ).length;
-  const unknownMapCount = mapCandidates.filter(
-    (item) => item.status === "unknown",
   ).length;
 
   async function runAction(
@@ -636,7 +639,7 @@ export function NativeCapabilitiesPanel({
         if (pickerSource === "album") {
           await handlePickMedia("album");
         } else {
-          const result = await nativeCore.requestPermissionForDiagnostics("camera");
+          const result = await nativeCore.requestPermission("camera");
 
           setPermissions((current) => ({
             ...current,
@@ -655,7 +658,7 @@ export function NativeCapabilitiesPanel({
     setPermissionState((current) => ({ ...current, [kind]: "opening" }));
 
     try {
-      const result = await nativeCore.requestPermissionForDiagnostics(kind);
+      const result = await nativeCore.requestPermission(kind);
 
       setPermissions((current) => ({
         ...current,
@@ -723,6 +726,9 @@ export function NativeCapabilitiesPanel({
 
       setLastMessage(result.message ?? result.reason ?? null);
       setBarcodes(result.codes);
+      if (result.files?.length) {
+        setImages(result.files);
+      }
       setBarcodeState(
         result.ok ? "opened" : isCancelled(result) ? "cancelled" : "failed",
       );
@@ -737,21 +743,28 @@ export function NativeCapabilitiesPanel({
 
   async function handleSendNotification() {
     await runAction("notification", setNotificationState, () =>
-      nativeCore.showTestNotification(),
+      nativeCore.showNotification(),
     );
     void refreshPermissionsFor(["notification"]).catch(() => {});
   }
 
-  function handleOpenMapPicker() {
+  async function handleOpenMapPicker() {
     setLastMessage(null);
-    setMapPickerOpen(true);
+    setMapState("opening");
+    setMapPickerState("checking");
     setMapCandidates(createCheckingMapCandidates());
-    void refreshMapCandidates({ timeoutMs: mapDetectionTimeoutMs }).catch(() => {});
+
+    try {
+      await refreshMapCandidates({ timeoutMs: mapDetectionTimeoutMs });
+    } finally {
+      setMapPickerOpen(true);
+      setMapState("idle");
+    }
   }
 
   async function handleOpenMapCandidate(candidate: NativeCoreMapCandidate) {
     if (!isMapCandidateActionable(candidate)) {
-      setLastMessage(candidate.reason ?? candidate.status);
+      setLastMessage(candidate.reason ?? "map-install-check-unavailable");
       setMapState("failed");
       return;
     }
@@ -771,110 +784,33 @@ export function NativeCapabilitiesPanel({
       <SurfaceCard className="overflow-hidden">
         <div className="space-y-4 px-4 py-4">
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-foreground">{messages.runtimeTitle}</h2>
-            <p className="text-xs leading-5 text-muted-foreground">{messages.runtimeDescription}</p>
-          </div>
-
-          <dl className="grid gap-2 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">{messages.runtime}</dt>
-              <dd>{clientInfo?.runtime ?? messages.browserRuntime}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">{messages.platform}</dt>
-              <dd>{clientInfo?.platform ?? "-"}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">{messages.shell}</dt>
-              <dd>{clientInfo?.shell ?? "-"}</dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="text-muted-foreground">{messages.features}</dt>
-              <dd className="break-words text-xs text-foreground">
-                {formatList(clientInfo?.features)}
-              </dd>
-            </div>
-          </dl>
-
-          {clientInfo?.runtime !== "tauri" ? (
-            <p className="text-xs leading-5 text-muted-foreground">{messages.unavailable}</p>
-          ) : null}
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard className="overflow-hidden">
-        <div className="space-y-4 px-4 py-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-foreground">{messages.webviewDiagnostics}</h2>
-            <p className="text-xs leading-5 text-muted-foreground">{messages.webviewDiagnosticsDescription}</p>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 text-xs">
-            <div className="min-w-0">
-              <p className="font-medium text-foreground">
-                {webViewDiagnostics?.ready
-                  ? messages.webviewBridgeReady
-                  : messages.webviewBridgeMissing}
-              </p>
-              <p className="mt-1 text-muted-foreground">
-                {messages.webviewBridgeCheckedAt}: {webViewDiagnostics?.checkedAt ?? "-"}
-              </p>
-            </div>
-            <Button onClick={refreshWebViewDiagnostics} size="sm" variant="ghost">
-              {messages.webviewBridgeCheck}
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {androidBridgeNames.map((name) => (
-              <div
-                className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2"
-                key={name}
-              >
-                <span className="truncate text-muted-foreground" title={messages.webviewBridgeObject}>
-                  {getBridgeServiceLabel(name, messages)}
-                </span>
-                <span className="font-medium text-foreground" title={messages.webviewBridgeState}>
-                  {webViewDiagnostics?.bridges[name] ? "OK" : "-"}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {webViewDiagnostics?.nativeStatus ? (
-            <div className="space-y-1 rounded-xl border border-border/70 px-3 py-3 text-xs leading-5">
-              {Object.entries(webViewDiagnostics.nativeStatus)
-                .filter(([key]) => key !== "ok")
-                .map(([key, value]) => (
-                  <div className="grid grid-cols-[6rem_1fr] gap-2" key={key}>
-                    <span className="text-muted-foreground">{key}</span>
-                    <span className="min-w-0 break-words text-foreground">
-                      {typeof value === "string" ? value : JSON.stringify(value)}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          ) : null}
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard className="overflow-hidden">
-        <div className="space-y-4 px-4 py-4">
-          <div className="space-y-1">
             <h2 className="text-sm font-semibold text-foreground">{messages.externalTitle}</h2>
             <p className="text-xs leading-5 text-muted-foreground">{messages.externalDescription}</p>
           </div>
-          <Button
-            disabled={!externalAvailable || externalState === "opening"}
-            onClick={() =>
-              runAction("external", setExternalState, () =>
-                nativeCore.openExternalUrl(resolveExternalCheckUrl()),
-              )
-            }
-            variant="outline"
-          >
-            {externalState === "opening" ? messages.opening : messages.openExternal}
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              disabled={!webViewAvailable || webViewState === "opening"}
+              onClick={() =>
+                runAction("webview", setWebViewState, () =>
+                  nativeCore.openInAppWebView(resolveExternalCheckUrl()),
+                )
+              }
+              variant="outline"
+            >
+              {webViewState === "opening" ? messages.opening : messages.openInAppWebView}
+            </Button>
+            <Button
+              disabled={!externalAvailable || externalState === "opening"}
+              onClick={() =>
+                runAction("external", setExternalState, () =>
+                  nativeCore.openExternalUrl(resolveExternalCheckUrl()),
+                )
+              }
+              variant="outline"
+            >
+              {externalState === "opening" ? messages.opening : messages.openExternal}
+            </Button>
+          </div>
         </div>
       </SurfaceCard>
 
@@ -888,10 +824,7 @@ export function NativeCapabilitiesPanel({
           <div className="rounded-xl border border-border/70 px-3 py-3 text-xs leading-5 text-muted-foreground">
             {mapCandidates.length > 0 ? (
               <div className="space-y-1">
-                <p>
-                  {messages.mapDetected}: {installedMapCount} / {mapCandidates.length}
-                  {unknownMapCount > 0 ? `, ${messages.mapUnknownCount}: ${unknownMapCount}` : ""}
-                </p>
+                <p>{getMapSummary(mapCandidates, installedMapCount, messages)}</p>
                 {mapCandidates.some((item) => item.reason === "map-app-not-installed-or-not-visible") ? (
                   <p>{messages.mapVisibilityLimited}</p>
                 ) : null}
@@ -906,9 +839,9 @@ export function NativeCapabilitiesPanel({
             onClick={handleOpenMapPicker}
             variant="outline"
           >
-            {mapState === "opening"
-                ? messages.opening
-                : messages.openMap}
+            {mapState === "opening" || mapPickerState === "checking"
+              ? messages.opening
+              : messages.openMap}
           </Button>
         </div>
       </SurfaceCard>
@@ -997,7 +930,9 @@ export function NativeCapabilitiesPanel({
               onClick={() => handleScanBarcode("camera")}
               variant="outline"
             >
-              {barcodeState === "opening" ? messages.opening : messages.barcodeScan}
+              {barcodeState === "opening"
+                ? messages.opening
+                : messages.barcodeScanCamera}
             </Button>
             <Button
               disabled={!barcodeAvailable || barcodeState === "opening"}
@@ -1107,6 +1042,7 @@ export function NativeCapabilitiesPanel({
       </div>
 
       {externalState === "opened" ||
+      webViewState === "opened" ||
       mapState === "opened" ||
       imageState === "opened" ||
       barcodeState === "opened" ||
@@ -1117,15 +1053,16 @@ export function NativeCapabilitiesPanel({
         <p className="text-xs leading-5 text-muted-foreground">{messages.cancelled}</p>
       ) : null}
       {externalState === "failed" ||
+      webViewState === "failed" ||
       mapState === "failed" ||
       imageState === "failed" ||
       barcodeState === "failed" ||
       notificationState === "failed" ? (
         <p className="text-xs leading-5 text-destructive">{messages.failed}</p>
       ) : null}
-      {lastMessage ? (
+      {visibleLastMessage ? (
         <p className="break-words rounded-lg bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
-          {lastMessage}
+          {visibleLastMessage}
         </p>
       ) : null}
 
@@ -1147,14 +1084,15 @@ export function NativeCapabilitiesPanel({
                 {messages.mapPickerTitle}
               </h3>
               <p className="text-xs leading-5 text-muted-foreground">
-                {messages.mapPickerDescription}
+                {getMapPickerDescription(mapPickerState, messages)}
               </p>
             </div>
 
             <div className="mt-4 grid gap-2">
-              {(mapCandidates.length > 0
-                ? mapCandidates
-                : createFallbackMapCandidates()
+              {getSortedMapCandidates(
+                mapCandidates.length > 0
+                  ? mapCandidates
+                  : createFallbackMapCandidates(),
               ).map((candidate: MapCandidateView) => {
                 const disabled =
                   mapState === "opening" ||
@@ -1180,17 +1118,12 @@ export function NativeCapabilitiesPanel({
                       <span className="block text-xs text-muted-foreground">
                         {candidate.checking
                           ? messages.mapChecking
-                          : getMapCandidateHint(candidate, messages)
-                            ? `${getMapInstallLabel(candidate.status, messages)} · ${getMapCandidateHint(candidate, messages)}`
-                            : getMapInstallLabel(candidate.status, messages)}
+                          : getMapCandidateHint(candidate, messages) ??
+                            getMapInstallLabel(candidate.status, messages)}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {candidate.checking
-                        ? "-"
-                        : candidate.status === "installed"
-                          ? messages.mapOpenWith
-                          : "-"}
+                      {getMapStatusText(candidate, messages)}
                     </span>
                   </button>
                 );

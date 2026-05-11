@@ -7,14 +7,14 @@ import {
 import { scanBarcode } from "./barcode";
 import { getMapCandidates, openMapNavigation } from "./map";
 import { pickMedia } from "./media";
-import { showTestNotification } from "./notifications";
+import { showNotification } from "./notifications";
 import {
   checkPermissions,
   ensureActionPermissions,
   getActionPermissionKinds,
   getPermissionPolicy,
   prepareStartupPermissions,
-  requestPermissionForDiagnostics,
+  requestPermission,
 } from "./permissions";
 import { getRuntimeSnapshot } from "./runtime";
 import { buildUpdateCheckQuery, checkAppUpdate } from "./updates";
@@ -36,6 +36,10 @@ export function createAppNativeCore(
       return nativeBridge.openExternal({ url });
     },
 
+    openInAppWebView(url) {
+      return nativeBridge.openInAppWebView({ url });
+    },
+
     openMapNavigation(input) {
       return openMapNavigation(nativeBridge, input);
     },
@@ -44,8 +48,8 @@ export function createAppNativeCore(
       return checkPermissions(nativeBridge, kinds);
     },
 
-    requestPermissionForDiagnostics(kind) {
-      return requestPermissionForDiagnostics(nativeBridge, kind);
+    requestPermission(kind) {
+      return requestPermission(nativeBridge, kind);
     },
 
     getPermissionPolicy,
@@ -68,8 +72,8 @@ export function createAppNativeCore(
       return scanBarcode(nativeBridge, options);
     },
 
-    showTestNotification() {
-      return showTestNotification(nativeBridge);
+    showNotification() {
+      return showNotification(nativeBridge);
     },
 
     buildUpdateCheckQuery() {
@@ -81,7 +85,7 @@ export function createAppNativeCore(
     },
 
     openUrl(url) {
-      return nativeBridge.openExternal({ url });
+      return nativeBridge.openInAppWebView({ url });
     },
   };
 }
