@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  Html5Qrcode,
   Html5QrcodeResult,
   Html5QrcodeSupportedFormats,
 } from "html5-qrcode";
@@ -93,6 +94,28 @@ export async function createHtml5QrcodeScanner(elementId = scannerElementId) {
     ),
     formats: Html5QrcodeSupportedFormats,
   };
+}
+
+export function clearScanner(scanner: Html5Qrcode) {
+  try {
+    scanner.clear();
+  } catch {
+    // Scanner cleanup can throw after permission or route-transition failures.
+  }
+}
+
+export async function scanBarcodeImageFile(
+  file: File,
+  elementId = `${scannerElementId}-image`,
+) {
+  const { scanner } = await createHtml5QrcodeScanner(elementId);
+
+  try {
+    const result = await scanner.scanFileV2(file, false);
+    return normalizeWebBarcodeResult(result.decodedText, result);
+  } finally {
+    clearScanner(scanner);
+  }
 }
 
 export function getScannerBoxSize(width: number, height: number) {

@@ -36,7 +36,9 @@ export function SiteHeader() {
     isAccountPage
       ? messages.security.title
       : isDeviceServicesPage
-          ? pathname.startsWith("/device-services/scan")
+          ? pathname.startsWith("/native-diagnostics")
+            ? messages.nativeCapabilities.diagnosticsTitle
+            : pathname.startsWith("/device-services/scan")
             ? messages.nativeCapabilities.barcodeTitle
             : pathname.startsWith("/device-services/webview")
               ? messages.nativeCapabilities.openInAppWebView

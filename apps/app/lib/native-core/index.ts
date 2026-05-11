@@ -12,9 +12,11 @@ export {
   buildInAppWebViewUrl,
 } from "./webview";
 export {
+  clearScanner,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
   normalizeWebBarcodeResult,
+  scanBarcodeImageFile,
   scannerElementId,
   type WebBarcodeScanResult,
 } from "./scanner";

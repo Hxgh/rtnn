@@ -8,12 +8,13 @@ import type {
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  clearScanner,
   createAppNativeCore,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
   normalizeWebBarcodeResult,
+  scanBarcodeImageFile,
   scannerElementId,
-  type NativeCoreActionResult,
   type WebBarcodeScanResult,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
@@ -47,7 +48,7 @@ function getScannerErrorMessage(reason: string | null, messages: ScannerMessages
     return messages.barcodeNoResult;
   }
 
-  if (reason === "barcode-detector-unavailable") {
+  if (reason === "barcode-detector-unavailable" || reason === "barcode-image-unsupported") {
     return messages.barcodeImageUnsupported;
   }
 
@@ -61,10 +62,11 @@ export function BarcodeScannerPanel({
 }) {
   const nativeCoreRef = useRef(createAppNativeCore());
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
   const [state, setState] = useState<ScannerState>("idle");
+  const [imageScanState, setImageScanState] = useState<"idle" | "opening" | "scanning">("idle");
   const [lastResult, setLastResult] = useState<WebBarcodeScanResult | null>(null);
-  const [lastImageResult, setLastImageResult] = useState<NativeCoreActionResult | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
 
   const stopScanner = useCallback(async () => {
@@ -81,7 +83,7 @@ export function BarcodeScannerPanel({
       if (scanner.isScanning) {
         await scanner.stop();
       }
-      scanner.clear();
+      clearScanner(scanner);
     } catch {
       // stop/clear can throw if the browser already revoked camera access.
     } finally {
@@ -145,29 +147,42 @@ export function BarcodeScannerPanel({
     }
   }, [handleSuccess, state, stopScanner]);
 
-  async function handleScanFromImage() {
-    setLastImageResult(null);
+  function handleScanFromImage() {
     setErrorReason(null);
+    setImageScanState("opening");
+    fileInputRef.current?.click();
+  }
+
+  async function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+
+    if (!file) {
+      setImageScanState("idle");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setErrorReason("barcode-image-unsupported");
+      setImageScanState("idle");
+      return;
+    }
+
+    setErrorReason(null);
+    setImageScanState("scanning");
 
     try {
-      const result = await nativeCoreRef.current.scanBarcode({
-        source: "image",
-        timeoutMs: 18_000,
-      });
-
-      setLastImageResult(result);
-      if (result.codes[0]?.rawValue) {
-        setLastResult({
-          rawValue: result.codes[0].rawValue,
-          format: result.codes[0].format,
-          scannedAt: new Date().toISOString(),
-          contentType: "text",
-        });
-      } else {
-        setErrorReason(result.reason ?? "barcode-not-found");
-      }
+      const result = await scanBarcodeImageFile(file);
+      setLastResult(result);
     } catch (error) {
-      setErrorReason(error instanceof Error ? error.message : String(error));
+      const reason = error instanceof Error ? error.message : String(error);
+      setErrorReason(
+        reason.includes("No barcode or QR code detected")
+          ? "barcode-not-found"
+          : reason,
+      );
+    } finally {
+      setImageScanState("idle");
     }
   }
 
@@ -180,7 +195,9 @@ export function BarcodeScannerPanel({
         void scanner.stop().catch(() => {});
       }
       try {
-        scanner?.clear();
+        if (scanner) {
+          clearScanner(scanner);
+        }
       } catch {
         // Ignore cleanup errors on route transitions.
       }
@@ -226,13 +243,21 @@ export function BarcodeScannerPanel({
                   : messages.barcodeStart}
             </Button>
             <Button
-              disabled={state === "starting" || state === "scanning"}
+              disabled={state === "starting" || state === "scanning" || imageScanState !== "idle"}
               onClick={handleScanFromImage}
               variant="outline"
             >
-              {messages.barcodeScanFromImage}
+              {imageScanState === "idle" ? messages.barcodeScanFromImage : messages.opening}
             </Button>
           </div>
+          <input
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageFileChange}
+            ref={fileInputRef}
+            type="file"
+          />
+          <div className="hidden" id={`${scannerElementId}-image`} />
         </div>
       </SurfaceCard>
 
@@ -262,11 +287,6 @@ export function BarcodeScannerPanel({
           {displayError ? (
             <p className="rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
               {displayError}
-            </p>
-          ) : null}
-          {lastImageResult?.ok === false && !displayError ? (
-            <p className="rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
-              {messages.barcodeNoResult}
             </p>
           ) : null}
         </div>

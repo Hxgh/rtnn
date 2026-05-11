@@ -125,10 +125,13 @@ export type AppMessages = {
     externalTitle: string;
     externalDescription: string;
     mapTitle: string;
+    mapShortLabel: string;
     mapDescription: string;
+    mapDiagnosticDescription: string;
     mediaTitle: string;
     mediaDescription: string;
     barcodeTitle: string;
+    barcodeShortLabel: string;
     barcodeDescription: string;
     barcodeScan: string;
     barcodeScanCamera: string;
@@ -150,6 +153,8 @@ export type AppMessages = {
     notificationTitle: string;
     notificationDescription: string;
     notificationSend: string;
+    diagnosticsTitle: string;
+    diagnosticsDescription: string;
     permissionDescription: string;
     keyboardTitle: string;
     keyboardDescription: string;
@@ -186,6 +191,7 @@ export type AppMessages = {
     mapCheckUnavailable: string;
     mapRefresh: string;
     mapOpenWith: string;
+    mapOpenFailed: string;
     requestPermission: string;
     permissionActionDriven: string;
     permissionActionDrivenShort: string;
@@ -203,6 +209,9 @@ export type AppMessages = {
     keyboardLabel: string;
     keyboardPlaceholder: string;
     openDownloads: string;
+    downloadShortLabel: string;
+    downloadEntryDescription: string;
+    openDiagnostics: string;
     opening: string;
     opened: string;
     cancelled: string;
@@ -358,17 +367,20 @@ const zhCN: AppMessages = {
   },
   nativeCapabilities: {
     title: "设备服务",
-    description: "地图、相机、相册、扫码、通知和下载等能力统一从这里进入。",
+    description: "使用扫码、地图导航和客户端下载安装等设备服务。",
     runtimeTitle: "设备信息",
     runtimeDescription: "查看当前客户端环境与已启用的系统能力。",
     externalTitle: "外链打开",
     externalDescription: "按场景选择应用内页面或系统浏览器打开链接。",
     mapTitle: "地图导航",
+    mapShortLabel: "导",
     mapDescription: "选择已安装的地图应用并打开导航。",
+    mapDiagnosticDescription: "查看当前客户端识别到的地图应用状态。",
     mediaTitle: "相机相册",
     mediaDescription: "从相册选择图片，或调用相机拍摄图片。",
     barcodeTitle: "扫码",
-    barcodeDescription: "打开独立扫码页，支持二维码和常见一维码。",
+    barcodeShortLabel: "扫",
+    barcodeDescription: "支持二维码和常见一维码，识别结果会留在当前页。",
     barcodeScan: "扫码",
     barcodeScanCamera: "相机扫码",
     barcodeScanFromImage: "识别图片",
@@ -397,7 +409,9 @@ const zhCN: AppMessages = {
     notificationTitle: "通知",
     notificationDescription: "按需请求通知权限，并发送一条本地通知。",
     notificationSend: "发送通知",
-    permissionDescription: "权限默认在相关动作触发时申请，也可以在这里提前处理。",
+    diagnosticsTitle: "设备诊断",
+    diagnosticsDescription: "集中验证当前客户端运行环境、权限和系统调用状态。",
+    permissionDescription: "权限由相关动作按需申请，这里用于排查当前授权状态。",
     keyboardTitle: "键盘与安全区",
     keyboardDescription: "输入内容时页面会适配键盘和底部安全区域。",
     runtime: "运行环境",
@@ -433,6 +447,7 @@ const zhCN: AppMessages = {
     mapCheckUnavailable: "暂时无法读取地图应用状态，请刷新状态或更新客户端后重试。",
     mapRefresh: "重新检测",
     mapOpenWith: "打开",
+    mapOpenFailed: "地图应用打开失败，请重新检测后选择可用应用。",
     requestPermission: "请求权限",
     permissionActionDriven: "该权限会在对应操作时由系统询问。",
     permissionActionDrivenShort: "按操作询问",
@@ -450,7 +465,10 @@ const zhCN: AppMessages = {
     keyboardLabel: "备注",
     keyboardPlaceholder: "请输入内容",
     openDownloads: "客户端下载",
-    opening: "打开中...",
+    downloadShortLabel: "包",
+    downloadEntryDescription: "打开当前环境的客户端安装包下载页。",
+    openDiagnostics: "设备诊断",
+    opening: "处理中...",
     opened: "操作已触发，请根据系统提示继续。",
     cancelled: "已取消，未选择文件。",
     failed: "操作未完成，请检查客户端状态或系统权限。",
@@ -605,17 +623,20 @@ const enUS: AppMessages = {
   },
   nativeCapabilities: {
     title: "Device Services",
-    description: "Access maps, camera, photos, scanning, notifications, and downloads from one place.",
+    description: "Use scanning, map navigation, and client package downloads.",
     runtimeTitle: "Device information",
     runtimeDescription: "View the current client environment and enabled system capabilities.",
     externalTitle: "External links",
     externalDescription: "Open links either in app or through the system browser.",
     mapTitle: "Map navigation",
+    mapShortLabel: "M",
     mapDescription: "Choose an installed map app and open navigation.",
+    mapDiagnosticDescription: "Inspect map app availability detected by the client.",
     mediaTitle: "Camera and photos",
     mediaDescription: "Choose images from photos, or capture a new image with the camera.",
     barcodeTitle: "Scan",
-    barcodeDescription: "Open the dedicated scanner for QR codes and common 1D barcodes.",
+    barcodeShortLabel: "S",
+    barcodeDescription: "Supports QR codes and common 1D barcodes. Results stay on this page.",
     barcodeScan: "Scan",
     barcodeScanCamera: "Camera scan",
     barcodeScanFromImage: "Scan image",
@@ -644,7 +665,9 @@ const enUS: AppMessages = {
     notificationTitle: "Notifications",
     notificationDescription: "Request notification permission when needed and send one local notification.",
     notificationSend: "Send notification",
-    permissionDescription: "Permissions are requested by related actions, and can also be handled here.",
+    diagnosticsTitle: "Device Diagnostics",
+    diagnosticsDescription: "Verify the current client runtime, permissions, and system calls in one place.",
+    permissionDescription: "Permissions are requested by related actions. Use this page to inspect current status.",
     keyboardTitle: "Keyboard and safe area",
     keyboardDescription: "The page adapts to the keyboard and bottom safe area while editing.",
     runtime: "Runtime",
@@ -680,6 +703,7 @@ const enUS: AppMessages = {
     mapCheckUnavailable: "Map app status cannot be read right now. Refresh status or update the client and retry.",
     mapRefresh: "Refresh",
     mapOpenWith: "Open",
+    mapOpenFailed: "The map app could not be opened. Refresh and choose an available app.",
     requestPermission: "Request permission",
     permissionActionDriven: "This permission is requested by the system when the related action runs.",
     permissionActionDrivenShort: "On action",
@@ -697,7 +721,10 @@ const enUS: AppMessages = {
     keyboardLabel: "Note",
     keyboardPlaceholder: "Enter text",
     openDownloads: "Client downloads",
-    opening: "Opening...",
+    downloadShortLabel: "D",
+    downloadEntryDescription: "Open the client package download page for this environment.",
+    openDiagnostics: "Device diagnostics",
+    opening: "Processing...",
     opened: "Action started. Follow the system prompts to continue.",
     cancelled: "Cancelled. No file was selected.",
     failed: "Action was not completed. Check client status or system permissions.",

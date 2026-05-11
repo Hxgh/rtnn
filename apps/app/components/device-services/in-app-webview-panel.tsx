@@ -8,17 +8,20 @@ import { SurfaceCard } from "@/components/ui/card";
 
 type Messages = AppMessages["nativeCapabilities"];
 
-function isAllowedWebViewUrl(value: string | null) {
+function resolveAllowedWebViewUrl(value: string | null) {
   if (!value) {
-    return false;
+    return null;
   }
 
   try {
-    const url = new URL(value);
     const current = new URL(window.location.href);
-    return url.origin === current.origin && (url.protocol === "https:" || url.protocol === "http:");
+    const url = new URL(value, current.origin);
+
+    return url.origin === current.origin && (url.protocol === "https:" || url.protocol === "http:")
+      ? url.toString()
+      : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -36,7 +39,7 @@ export function InAppWebViewPanel({
       return null;
     }
 
-    return isAllowedWebViewUrl(url) ? url : null;
+    return resolveAllowedWebViewUrl(url);
   }, [url]);
 
   if (!targetUrl) {
