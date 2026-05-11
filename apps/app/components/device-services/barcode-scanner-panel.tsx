@@ -58,6 +58,10 @@ function getScannerErrorMessage(reason: string | null, messages: ScannerMessages
   return messages.failed;
 }
 
+function canOpenScanResult(result: WebBarcodeScanResult | null) {
+  return result?.contentType === "url";
+}
+
 export function BarcodeScannerPanel({
   messages,
 }: {
@@ -216,10 +220,36 @@ export function BarcodeScannerPanel({
   const isScanning = state === "scanning";
   const isImageBusy = imageScanState !== "idle";
 
+  async function copyResult() {
+    if (!lastResult) {
+      return;
+    }
+
+    await navigator.clipboard?.writeText(lastResult.rawValue).catch(() => {});
+  }
+
+  function openResult() {
+    const result = lastResult;
+
+    if (!result || result.contentType !== "url") {
+      return;
+    }
+
+    window.open(result.rawValue, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <div className="space-y-5">
       <SurfaceCard className="overflow-hidden">
         <div className="space-y-4 px-4 py-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground">
+              {messages.barcodeCameraTitle}
+            </h2>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {messages.barcodeCameraDescription}
+            </p>
+          </div>
           <div className="overflow-hidden rounded-2xl border border-border bg-black">
             <div
               className="relative aspect-square w-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
@@ -235,6 +265,10 @@ export function BarcodeScannerPanel({
               </div>
             </div>
           </div>
+
+          <p className="text-xs leading-5 text-muted-foreground">
+            {messages.barcodePrivacyHint}
+          </p>
 
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -297,6 +331,21 @@ export function BarcodeScannerPanel({
             <p className="rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
               {displayError}
             </p>
+          ) : null}
+          {lastResult ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={copyResult} type="button" variant="outline">
+                {messages.barcodeCopyResult}
+              </Button>
+              <Button
+                disabled={!canOpenScanResult(lastResult)}
+                onClick={openResult}
+                type="button"
+                variant="outline"
+              >
+                {messages.barcodeOpenResult}
+              </Button>
+            </div>
           ) : null}
         </div>
       </SurfaceCard>

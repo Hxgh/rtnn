@@ -366,7 +366,9 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
   }
 
   async function handleOpenInAppWebView() {
-    await runAction("webview", setWebViewState, () => nativeCore.openUrl("/download"));
+    await runAction("webview", setWebViewState, () =>
+      nativeCore.openInAppWebView("/download"),
+    );
   }
 
   const clientInfo = snapshot?.clientInfo;

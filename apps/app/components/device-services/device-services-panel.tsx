@@ -126,7 +126,7 @@ function getMapPickerDescription(
   }
 
   if (state === "failed") {
-    return messages.mapCheckUnavailable;
+    return messages.mapPickerFailedDescription;
   }
 
   const installedCount = candidates.filter(isMapCandidateActionable).length;
@@ -134,7 +134,7 @@ function getMapPickerDescription(
     return messages.mapDetectedAvailable.replace("{count}", String(installedCount));
   }
 
-  return messages.mapNoInstalled;
+  return messages.mapPickerEmptyDescription;
 }
 
 function getMapPickerCaption(
@@ -349,7 +349,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
         >
           <div
             aria-modal="true"
-            className="w-full rounded-t-[1.75rem] border border-border/80 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl"
+            className="mx-auto w-full max-w-[28rem] rounded-t-[1.75rem] border border-border/80 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -409,6 +409,10 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                 );
               })}
             </div>
+
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              {messages.mapPickerSafetyHint}
+            </p>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button

@@ -280,6 +280,33 @@ test("app native core opens generic app URL inside the shell", async () => {
   }
 });
 
+test("app native core can open same-origin URLs through native webview command", async () => {
+  const { createAppNativeCore } = await importAppNativeCore();
+  const calls = [];
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    location: {
+      href: "https://app.testing.rtnn.soolan.xyz/native-diagnostics",
+    },
+  };
+  const core = createAppNativeCore(createBridge(calls));
+
+  try {
+    assert.deepEqual(await core.openInAppWebView("/download"), {
+      ok: true,
+      message: "opened-in-app-webview",
+    });
+    assert.deepEqual(calls, [
+      [
+        "openInAppWebView",
+        "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      ],
+    ]);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
 test("app native core rejects cross-origin shell navigation", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
@@ -343,6 +370,8 @@ test("app barcode scanner classifies product-length numeric codes", async () => 
 
   assert.equal(normalizeWebBarcodeResult("6901234567890").contentType, "product");
   assert.equal(normalizeWebBarcodeResult("https://rtnn.dev").contentType, "url");
+  assert.equal(normalizeWebBarcodeResult("WIFI:S:RTNN;T:WPA;P:secret;;").contentType, "wifi");
+  assert.equal(normalizeWebBarcodeResult("geo:30.2741,120.1551").contentType, "geo");
 });
 
 test("app native core requests only the permission needed by media action", async () => {

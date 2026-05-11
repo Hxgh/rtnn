@@ -141,6 +141,9 @@ export type AppMessages = {
     barcodeCameraTitle: string;
     barcodeCameraDescription: string;
     barcodeCameraIdle: string;
+    barcodePrivacyHint: string;
+    barcodeCopyResult: string;
+    barcodeOpenResult: string;
     barcodeStart: string;
     barcodeStop: string;
     barcodeResult: string;
@@ -188,6 +191,9 @@ export type AppMessages = {
     mapPickerTitle: string;
     mapPickerDescription: string;
     mapPickerCheckingDescription: string;
+    mapPickerEmptyDescription: string;
+    mapPickerFailedDescription: string;
+    mapPickerSafetyHint: string;
     mapVisibilityLimited: string;
     mapCheckUnavailable: string;
     mapRefresh: string;
@@ -391,6 +397,9 @@ const zhCN: AppMessages = {
     barcodeCameraTitle: "相机扫码",
     barcodeCameraDescription: "使用相机取景框识别二维码和条形码，识别成功后自动停止。",
     barcodeCameraIdle: "点击开始后请求相机权限",
+    barcodePrivacyHint: "扫码识别在当前设备内完成，结果只回显在本页面。",
+    barcodeCopyResult: "复制结果",
+    barcodeOpenResult: "打开链接",
     barcodeStart: "开始扫码",
     barcodeStop: "停止扫码",
     barcodeResult: "扫码结果",
@@ -413,9 +422,9 @@ const zhCN: AppMessages = {
     notificationTitle: "通知",
     notificationDescription: "按需请求通知权限，并发送一条本地通知。",
     notificationSend: "发送通知",
-    diagnosticsTitle: "设备状态",
-    diagnosticsDescription: "查看当前客户端运行环境、权限和系统调用状态。",
-    permissionDescription: "权限由相关动作按需申请，也可以在这里主动处理。",
+    diagnosticsTitle: "设备诊断",
+    diagnosticsDescription: "集中查看当前客户端运行环境、权限和系统调用状态。",
+    permissionDescription: "权限默认由相关动作按需申请；这里用于排查授权状态。",
     keyboardTitle: "键盘与安全区",
     keyboardDescription: "输入内容时页面会适配键盘和底部安全区域。",
     runtime: "运行环境",
@@ -445,8 +454,11 @@ const zhCN: AppMessages = {
     mapUnknownCount: "无法检测",
     mapChecking: "正在检测地图应用",
     mapPickerTitle: "选择地图应用",
-    mapPickerDescription: "选择一个可用地图应用继续导航。",
+    mapPickerDescription: "选择一个已安装的地图应用继续导航。",
     mapPickerCheckingDescription: "正在检测当前设备可用的地图应用。",
+    mapPickerEmptyDescription: "未发现已安装的地图应用，请安装后重新检测。",
+    mapPickerFailedDescription: "暂时无法读取地图应用状态，请重新检测。",
+    mapPickerSafetyHint: "未安装或无法确认可用的应用不会被打开。",
     mapVisibilityLimited: "当前客户端暂未识别到该应用。",
     mapCheckUnavailable: "未能读取地图应用状态，请重新检测。",
     mapRefresh: "重新检测",
@@ -471,8 +483,8 @@ const zhCN: AppMessages = {
     openDownloads: "客户端下载",
     downloadShortLabel: "包",
     downloadEntryDescription: "打开当前环境的客户端安装包下载页。",
-    openDiagnostics: "设备状态",
-    diagnosticsEntryDescription: "查看运行环境、权限、媒体、通知和页面打开能力。",
+    openDiagnostics: "设备诊断",
+    diagnosticsEntryDescription: "查看运行环境、权限、媒体、通知和页面打开状态。",
     opening: "处理中...",
     opened: "操作已触发，请根据系统提示继续。",
     cancelled: "已取消，未选择文件。",
@@ -650,6 +662,9 @@ const enUS: AppMessages = {
     barcodeCameraTitle: "Camera scan",
     barcodeCameraDescription: "Use the camera viewfinder to read QR codes and barcodes. Scanning stops after a match.",
     barcodeCameraIdle: "Start scanning to request camera access",
+    barcodePrivacyHint: "Scanning runs on this device and the result is only shown on this page.",
+    barcodeCopyResult: "Copy result",
+    barcodeOpenResult: "Open link",
     barcodeStart: "Start scan",
     barcodeStop: "Stop scan",
     barcodeResult: "Scan result",
@@ -672,9 +687,9 @@ const enUS: AppMessages = {
     notificationTitle: "Notifications",
     notificationDescription: "Request notification permission when needed and send one local notification.",
     notificationSend: "Send notification",
-    diagnosticsTitle: "Device Status",
-    diagnosticsDescription: "View the current client runtime, permissions, and system call status.",
-    permissionDescription: "Permissions are requested by related actions, and can also be handled here.",
+    diagnosticsTitle: "Device Diagnostics",
+    diagnosticsDescription: "Review the current client runtime, permissions, and system call status.",
+    permissionDescription: "Permissions are requested by related actions by default. This page is for diagnostics.",
     keyboardTitle: "Keyboard and safe area",
     keyboardDescription: "The page adapts to the keyboard and bottom safe area while editing.",
     runtime: "Runtime",
@@ -704,8 +719,11 @@ const enUS: AppMessages = {
     mapUnknownCount: "Unknown",
     mapChecking: "Checking map apps",
     mapPickerTitle: "Choose Map App",
-    mapPickerDescription: "Choose an available map app to continue navigation.",
+    mapPickerDescription: "Choose an installed map app to continue navigation.",
     mapPickerCheckingDescription: "Checking available map apps on this device.",
+    mapPickerEmptyDescription: "No installed map app was found. Install one and refresh.",
+    mapPickerFailedDescription: "Map app status cannot be read right now. Refresh and retry.",
+    mapPickerSafetyHint: "Apps that are not installed or cannot be confirmed are not opened.",
     mapVisibilityLimited: "The client has not detected this app.",
     mapCheckUnavailable: "Map app status could not be read. Refresh and retry.",
     mapRefresh: "Refresh",
@@ -730,8 +748,8 @@ const enUS: AppMessages = {
     openDownloads: "Client downloads",
     downloadShortLabel: "D",
     downloadEntryDescription: "Open the client package download page for this environment.",
-    openDiagnostics: "Device status",
-    diagnosticsEntryDescription: "View runtime, permissions, media, notifications, and page opening capability.",
+    openDiagnostics: "Device diagnostics",
+    diagnosticsEntryDescription: "View runtime, permissions, media, notifications, and page opening status.",
     opening: "Processing...",
     opened: "Action started. Follow the system prompts to continue.",
     cancelled: "Cancelled. No file was selected.",
