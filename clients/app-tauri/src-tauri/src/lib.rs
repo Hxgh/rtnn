@@ -413,8 +413,12 @@ fn open_in_app_webview(app: tauri::AppHandle, url: String) -> CommandResult {
         };
     }
 
-    if let Some(webview) = app.webviews().values().next() {
-        match webview.eval(&format!("window.location.assign({:?})", trimmed)) {
+    let webview = app
+        .get_webview_window("main")
+        .or_else(|| app.webview_windows().into_values().next());
+
+    if let Some(webview) = webview {
+        match webview.eval(format!("window.location.assign({:?})", trimmed)) {
             Ok(_) => CommandResult {
                 ok: true,
                 message: Some("opened-in-app-webview".to_string()),
