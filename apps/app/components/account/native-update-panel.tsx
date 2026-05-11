@@ -105,7 +105,7 @@ export function NativeUpdatePanel({
   const actionLabel = updateAvailable ? messages.openUpdate : messages.openDownloads;
   const updatedAt = checkResult?.syncedAt ?? checkResult?.generatedAt ?? null;
 
-  async function handleCheckUpdate(options: { forceOutdated?: boolean } = {}) {
+  async function handleCheckUpdate() {
     if (!clientInfo) {
       return;
     }
@@ -116,11 +116,7 @@ export function NativeUpdatePanel({
     setCheckFailed(false);
 
     try {
-      setCheckResult(
-        await nativeCore.checkAppUpdate(
-          options.forceOutdated ? { currentVersion: "0.0.0" } : undefined,
-        ),
-      );
+      setCheckResult(await nativeCore.checkAppUpdate());
     } catch {
       setCheckResult(null);
       setCheckFailed(true);
@@ -232,13 +228,6 @@ export function NativeUpdatePanel({
             variant="outline"
           >
             {checking ? messages.checkingUpdate : messages.checkUpdate}
-          </Button>
-          <Button
-            onClick={() => handleCheckUpdate({ forceOutdated: true })}
-            disabled={checking || opening}
-            variant="ghost"
-          >
-            {checking ? messages.checkingUpdate : messages.testUpdate}
           </Button>
           {canOpenDownloads ? (
             <Button

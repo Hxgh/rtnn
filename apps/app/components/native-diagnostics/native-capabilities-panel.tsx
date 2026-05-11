@@ -297,6 +297,37 @@ function getWindowBridge(name: AndroidBridgeName) {
   return (window as unknown as Record<AndroidBridgeName, unknown>)[name];
 }
 
+function getBridgeServiceLabel(
+  name: AndroidBridgeName,
+  messages: NativeCapabilitiesMessages,
+) {
+  if (name === "AndroidMap") {
+    return messages.bridgeMap;
+  }
+
+  if (name === "AndroidPermission") {
+    return messages.bridgePermission;
+  }
+
+  if (name === "AndroidMedia") {
+    return messages.bridgeMedia;
+  }
+
+  if (name === "AndroidBarcode") {
+    return messages.bridgeBarcode;
+  }
+
+  if (name === "AndroidNotification") {
+    return messages.bridgeNotification;
+  }
+
+  if (name === "AndroidDiagnostics") {
+    return messages.bridgeDiagnostics;
+  }
+
+  return messages.bridgeTheme;
+}
+
 function inspectWebViewDiagnostics(): WebViewDiagnosticsState {
   const bridges = Object.fromEntries(
     androidBridgeNames.map((name) => [name, Boolean(getWindowBridge(name))]),
@@ -800,7 +831,9 @@ export function NativeCapabilitiesPanel({
                 className="flex items-center justify-between gap-2 rounded-lg bg-secondary px-3 py-2"
                 key={name}
               >
-                <span className="truncate text-muted-foreground" title={messages.webviewBridgeObject}>{name}</span>
+                <span className="truncate text-muted-foreground" title={messages.webviewBridgeObject}>
+                  {getBridgeServiceLabel(name, messages)}
+                </span>
                 <span className="font-medium text-foreground" title={messages.webviewBridgeState}>
                   {webViewDiagnostics?.bridges[name] ? "OK" : "-"}
                 </span>
