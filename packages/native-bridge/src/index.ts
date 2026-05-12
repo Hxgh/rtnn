@@ -2069,6 +2069,23 @@ export function createBrowserNativeBridge(
         return androidResult;
       }
 
+      if (
+        input.allowWebFallback === false &&
+        shouldWaitForAndroidMapBridge(globalScope)
+      ) {
+        await waitForAndroidBridgeMethod(
+          globalScope,
+          "AndroidMap",
+          "openNavigation",
+          { eventName: NATIVE_ANDROID_MAP_READY_EVENT },
+        );
+
+        const delayedAndroidResult = openAndroidMapWithBridge(input, globalScope);
+        if (delayedAndroidResult) {
+          return delayedAndroidResult;
+        }
+      }
+
       if (detectBrowserPlatform(globalScope?.navigator?.userAgent) === "android") {
         if (input.allowWebFallback === false) {
           return {
@@ -2095,8 +2112,22 @@ export function createBrowserNativeBridge(
         input.appType,
         globalScope,
       );
-      if (androidResult) {
+      if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
         return androidResult;
+      }
+
+      if (shouldWaitForAndroidMapBridge(globalScope)) {
+        await waitForAndroidMapBridge(globalScope, {
+          force: isAndroidMapBridgeNotReady(androidResult),
+        });
+
+        const delayedAndroidResult = checkAndroidMapInstalledWithBridge(
+          input.appType,
+          globalScope,
+        );
+        if (delayedAndroidResult && !isAndroidMapBridgeNotReady(delayedAndroidResult)) {
+          return delayedAndroidResult;
+        }
       }
 
       return {
@@ -2139,8 +2170,25 @@ export function createBrowserNativeBridge(
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input, globalScope);
-      if (androidResult) {
+      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
+      }
+
+      if (isNativeBridgeNotReadyResult(androidResult)) {
+        await waitForAndroidBridgeMethod(
+          globalScope,
+          "AndroidBarcode",
+          "scanBarcode",
+          { force: true },
+        );
+
+        const delayedAndroidResult = scanBarcodeWithAndroidBridge(input, globalScope);
+        if (
+          delayedAndroidResult &&
+          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+        ) {
+          return delayedAndroidResult;
+        }
       }
 
       return scanBarcodeWithBrowser(input, globalScope);

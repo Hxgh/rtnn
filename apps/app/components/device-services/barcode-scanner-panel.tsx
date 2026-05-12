@@ -28,9 +28,7 @@ type ScannerState =
   | "scanning"
   | "stopping"
   | "failed";
-type ImageScanState = "idle" | "opening" | "scanning";
-
-const imagePickerResetDelayMs = 900;
+type ImageScanState = "idle" | "scanning";
 
 function getResultTypeLabel(
   type: WebBarcodeScanResult["contentType"],
@@ -167,17 +165,13 @@ export function BarcodeScannerPanel({
     stopScanner,
   ]);
 
-  async function handleScanFromImage() {
+  function handleScanFromImage() {
     if (imageScanState !== "idle") {
       return;
     }
 
     setErrorReason(null);
-    setImageScanState("opening");
     fileInputRef.current?.click();
-    window.setTimeout(() => {
-      setImageScanState((current) => (current === "opening" ? "idle" : current));
-    }, imagePickerResetDelayMs);
   }
 
   async function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -307,9 +301,7 @@ export function BarcodeScannerPanel({
             >
               {imageScanState === "scanning"
                 ? messages.barcodeImageScanning
-                : imageScanState === "opening"
-                  ? messages.opening
-                  : messages.barcodeScanFromImage}
+                : messages.barcodeScanFromImage}
             </Button>
           </div>
           <input

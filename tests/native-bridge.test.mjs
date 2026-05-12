@@ -609,6 +609,74 @@ test("browser bridge can use Android map install bridge when available", async (
   assert.deepEqual(calls, ["com.tencent.map", "com.tencent.maplite"]);
 });
 
+test("browser bridge waits for Android map bridge before reporting unavailable", async () => {
+  const calls = [];
+  const listeners = new Map();
+  const globalScope = {
+    navigator: { userAgent: "Mozilla/5.0 (Linux; Android 15)" },
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(name);
+    },
+    setTimeout() {
+      return 1;
+    },
+    clearTimeout() {},
+  };
+  const bridge = createBrowserNativeBridge({ globalScope });
+
+  const pendingCheck = bridge.checkMapInstalled({ appType: "amap" });
+  assert.equal(listeners.has("rtnn:android-native-ready"), true);
+  assert.equal(listeners.has("rtnn:android-map-ready"), true);
+
+  globalScope.AndroidMap = {
+    checkAppInstalled(packageName) {
+      calls.push(["AndroidMap.checkAppInstalled", packageName]);
+      return JSON.stringify({
+        ok: true,
+        installed: true,
+        status: "installed",
+      });
+    },
+  };
+  listeners.get("rtnn:android-map-ready")();
+
+  assert.deepEqual(await pendingCheck, {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    message: undefined,
+    reason: undefined,
+    diagnostic: undefined,
+  });
+
+  globalScope.AndroidMap.openNavigation = (appType, url) => {
+    calls.push(["AndroidMap.openNavigation", appType, url]);
+    return JSON.stringify({
+      ok: true,
+      message: "opened-native-map",
+    });
+  };
+
+  assert.deepEqual(await bridge.openMapNavigation({
+    appType: "amap",
+    lat: 30.25,
+    lng: 120.16,
+    name: "杭州",
+    allowWebFallback: false,
+  }), {
+    ok: true,
+    message: "opened-native-map",
+  });
+  assert.deepEqual(calls.map((call) => call[0]), [
+    "AndroidMap.checkAppInstalled",
+    "AndroidMap.openNavigation",
+  ]);
+});
+
 test("browser bridge opens Android map through injected WebView bridge first", async () => {
   const calls = [];
   const bridge = createBrowserNativeBridge({

@@ -13,7 +13,7 @@ import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Messages = AppMessages["nativeCapabilities"];
-type MapPickerState = "checking" | "ready";
+type MapPickerState = "idle" | "ready";
 type ActionState = "idle" | "checking" | "opening";
 type DeviceFeatureIconKind = "scan" | "map" | "download";
 
@@ -49,21 +49,6 @@ function withTimeout<T>(
       },
     );
   });
-}
-
-function createCheckingMapCandidates() {
-  return [
-    { appType: "amap" as const, label: "高德地图" },
-    { appType: "baidu" as const, label: "百度地图" },
-    { appType: "tencent" as const, label: "腾讯地图" },
-  ].map((item) => ({
-    ...item,
-    ok: true,
-    installed: null,
-    status: "unknown" as const,
-    available: false,
-    reason: "map-install-checking",
-  }));
 }
 
 function createUnavailableMapCandidates(reason = "map-install-check-unavailable") {
@@ -127,10 +112,6 @@ function getMapCandidateHint(
     return messages.mapUnsupported;
   }
 
-  if (candidate.reason === "map-install-checking") {
-    return messages.mapChecking;
-  }
-
   return messages.mapUnavailable;
 }
 
@@ -139,10 +120,6 @@ function getMapPickerDescription(
   candidates: NativeCoreMapCandidate[],
   messages: Messages,
 ) {
-  if (state === "checking") {
-    return messages.mapPickerCheckingDescription;
-  }
-
   const installedCount = candidates.filter(isMapCandidateActionable).length;
   if (installedCount > 0) {
     return messages.mapDetectedAvailable.replace("{count}", String(installedCount));
@@ -255,7 +232,7 @@ function FeatureIcon({
 export function DeviceServicesPanel({ messages }: { messages: Messages }) {
   const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
-  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("checking");
+  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("idle");
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
   const [mapActionState, setMapActionState] = useState<ActionState>("idle");
   const [lastMessage, setLastMessage] = useState<string | null>(null);
@@ -267,9 +244,9 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
 
     setLastMessage(null);
     setMapActionState("checking");
-    setMapPickerState("checking");
-    setMapCandidates(createCheckingMapCandidates());
-    setMapPickerOpen(true);
+    setMapPickerState("idle");
+    setMapCandidates([]);
+    setMapPickerOpen(false);
 
     try {
       const candidates = await withTimeout(
@@ -398,8 +375,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
 
             <div className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card">
               {sortMapCandidates(mapCandidates).map((candidate) => {
-                const disabled =
-                  mapPickerState === "checking" || !isMapCandidateActionable(candidate);
+                const disabled = !isMapCandidateActionable(candidate);
 
                 return (
                   <button
@@ -421,9 +397,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                           {candidate.label}
                         </span>
                         <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                          {mapPickerState === "checking"
-                            ? messages.mapChecking
-                            : getMapCandidateHint(candidate, messages)}
+                          {getMapCandidateHint(candidate, messages)}
                         </span>
                       </span>
                     </span>
@@ -435,9 +409,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                           : "text-muted-foreground",
                       )}
                     >
-                      {mapPickerState === "checking"
-                        ? messages.mapChecking
-                        : isMapCandidateActionable(candidate)
+                      {isMapCandidateActionable(candidate)
                           ? "›"
                           : getMapInstallLabel(candidate.status, messages)}
                     </span>
