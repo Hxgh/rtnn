@@ -269,6 +269,7 @@ type BrowserBarcodeDetectorConstructor = {
 type AndroidMapBridge = {
   isAppInstalled?: (packageName: string) => boolean;
   checkAppInstalled?: (packageName: string) => string | NativeMapInstallResult | boolean;
+  getInstalledMapApps?: () => string;
   openNavigation?: (appType: string, url: string) => string | NativeBridgeActionResult | boolean;
 };
 type AndroidPermissionBridge = {
@@ -2412,6 +2413,27 @@ function parseAndroidMapBridgeResult(
   return null;
 }
 
+function parseAndroidMapAppsBridgeResult(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as { apps?: NativeMapInstallResult[] };
+    if (!Array.isArray(parsed.apps)) {
+      return null;
+    }
+
+    return parsed.apps
+      .map((item) => normalizeMapInstallResult(item, item.appType))
+      .filter((item) =>
+        NATIVE_MAP_APPS.some((app) => app.appType === item.appType),
+      );
+  } catch {
+    return null;
+  }
+}
+
 function parseAndroidMapOpenBridgeResult(
   value: unknown,
   appType: MapAppType,
@@ -2538,12 +2560,22 @@ function checkAndroidMapInstalledWithBridge(
   if (
     !packageName ||
     (typeof androidMap?.checkAppInstalled !== "function" &&
+      typeof androidMap?.getInstalledMapApps !== "function" &&
       typeof androidMap?.isAppInstalled !== "function")
   ) {
     return null;
   }
 
   try {
+    if (typeof androidMap.getInstalledMapApps === "function") {
+      const apps = parseAndroidMapAppsBridgeResult(androidMap.getInstalledMapApps());
+      const matched = apps?.find((item) => item.appType === appType);
+
+      if (matched) {
+        return matched;
+      }
+    }
+
     if (typeof androidMap.checkAppInstalled === "function") {
       return (
         parseAndroidMapBridgeResult(

@@ -13,7 +13,6 @@ import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Messages = AppMessages["nativeCapabilities"];
-type MapPickerState = "idle" | "ready";
 type ActionState = "idle" | "checking" | "opening";
 type DeviceFeatureIconKind = "scan" | "map" | "download";
 
@@ -77,10 +76,7 @@ function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
   return candidate.status === "installed";
 }
 
-function getMapInstallLabel(
-  status: NativeCoreMapCandidate["status"],
-  messages: Messages,
-) {
+function getMapInstallLabel(status: NativeCoreMapCandidate["status"], messages: Messages) {
   if (status === "installed") {
     return messages.mapInstalled;
   }
@@ -93,7 +89,7 @@ function getMapInstallLabel(
     return messages.mapUnsupported;
   }
 
-  return messages.mapUnavailable;
+  return messages.mapNotInstalled;
 }
 
 function getMapCandidateHint(
@@ -115,29 +111,12 @@ function getMapCandidateHint(
   return messages.mapUnavailable;
 }
 
-function getMapPickerDescription(
-  state: MapPickerState,
-  candidates: NativeCoreMapCandidate[],
-  messages: Messages,
-) {
-  const installedCount = candidates.filter(isMapCandidateActionable).length;
-  if (installedCount > 0) {
-    return messages.mapDetectedAvailable.replace("{count}", String(installedCount));
-  }
-
-  return messages.mapPickerEmptyDescription;
-}
-
-function getMapPickerCaption(
-  state: MapPickerState,
-  candidates: NativeCoreMapCandidate[],
-  messages: Messages,
-) {
-  if (state === "ready" && candidates.some(isMapCandidateActionable)) {
+function getMapPickerCaption(candidates: NativeCoreMapCandidate[], messages: Messages) {
+  if (candidates.some(isMapCandidateActionable)) {
     return messages.mapPickerDescription;
   }
 
-  return getMapPickerDescription(state, candidates, messages);
+  return messages.mapPickerEmptyDescription;
 }
 
 function getActionMessage(reason: string | null, messages: Messages) {
@@ -232,7 +211,6 @@ function FeatureIcon({
 export function DeviceServicesPanel({ messages }: { messages: Messages }) {
   const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
-  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("idle");
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
   const [mapActionState, setMapActionState] = useState<ActionState>("idle");
   const [lastMessage, setLastMessage] = useState<string | null>(null);
@@ -244,7 +222,6 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
 
     setLastMessage(null);
     setMapActionState("checking");
-    setMapPickerState("idle");
     setMapCandidates([]);
     setMapPickerOpen(false);
 
@@ -255,11 +232,9 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
         "map-install-check-timeout",
       );
       setMapCandidates(candidates);
-      setMapPickerState("ready");
       setMapPickerOpen(true);
     } catch {
       setMapCandidates(createUnavailableMapCandidates());
-      setMapPickerState("ready");
       setLastMessage("map-install-check-unavailable");
       setMapPickerOpen(true);
     } finally {
@@ -359,7 +334,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
         >
           <div
             aria-modal="true"
-            className="mx-auto w-full max-w-[28rem] rounded-t-[1.75rem] border border-border/80 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl"
+            className="mx-auto w-full max-w-[28rem] rounded-t-[1.5rem] border border-border/80 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
@@ -369,11 +344,11 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                 {messages.mapPickerTitle}
               </h3>
               <p className="text-xs leading-5 text-muted-foreground">
-                {getMapPickerCaption(mapPickerState, mapCandidates, messages)}
+                {getMapPickerCaption(mapCandidates, messages)}
               </p>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card">
+            <div className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-card">
               {sortMapCandidates(mapCandidates).map((candidate) => {
                 const disabled = !isMapCandidateActionable(candidate);
 
@@ -403,15 +378,15 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 text-sm",
+                        "shrink-0 text-sm leading-5",
                         isMapCandidateActionable(candidate)
                           ? "text-foreground"
                           : "text-muted-foreground",
                       )}
                     >
                       {isMapCandidateActionable(candidate)
-                          ? "›"
-                          : getMapInstallLabel(candidate.status, messages)}
+                        ? "›"
+                        : getMapInstallLabel(candidate.status, messages)}
                     </span>
                   </button>
                 );

@@ -606,7 +606,8 @@ class MainActivity : TauriActivity() {
     try {
       val galleryIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
         type = "image/*"
-        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, nativeMediaMaxFiles > 1)
+        addCategory(Intent.CATEGORY_OPENABLE)
       }
       val chooserIntent = Intent.createChooser(galleryIntent, "选择图片")
 
@@ -624,7 +625,11 @@ class MainActivity : TauriActivity() {
     try {
       val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
       cameraPhotoUri = createImageUri()
-      cameraPhotoUri?.let { cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, it) }
+      cameraPhotoUri?.let {
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, it)
+        cameraIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+      }
       fileChooserLauncher.launch(cameraIntent)
     } catch (error: Exception) {
       android.util.Log.e("MainActivity", "Camera capture failed", error)
@@ -796,6 +801,18 @@ class MainActivity : TauriActivity() {
     }
 
     @JavascriptInterface
+    fun getInstalledMapApps(): String {
+      val result = JSONObject()
+      val apps = org.json.JSONArray()
+      for (appType in listOf("amap", "baidu", "tencent")) {
+        apps.put(detectMapAppInstalled(appType))
+      }
+      result.put("ok", true)
+      result.put("apps", apps)
+      return result.toString()
+    }
+
+    @JavascriptInterface
     fun openNavigation(appType: String, url: String): String {
       val result = JSONObject()
       result.put("appType", appType)
@@ -812,16 +829,16 @@ class MainActivity : TauriActivity() {
         }
         val preferredPackage = findInstalledMapPackage(appType)
 
-        if (preferredPackage != null) {
-          intent.setPackage(preferredPackage)
+        if (preferredPackage == null) {
+          result.put("ok", false)
+          result.put("reason", "map-app-not-installed")
+          return result.toString()
         }
+
+        intent.setPackage(preferredPackage)
 
         val canOpen = canResolveIntent(intent)
-        if (!canOpen && preferredPackage != null) {
-          intent.setPackage(null)
-        }
-
-        if (!canResolveIntent(intent)) {
+        if (!canOpen) {
           result.put("ok", false)
           result.put("reason", "native-map-no-handler")
           return result.toString()
@@ -863,6 +880,19 @@ class MainActivity : TauriActivity() {
       }
 
       return packages.firstOrNull { detectAppInstalled(it).optBoolean("installed", false) }
+    }
+
+    private fun detectMapAppInstalled(appType: String): JSONObject {
+      val packages = when (appType) {
+        "amap" -> listOf("com.autonavi.minimap")
+        "baidu" -> listOf("com.baidu.BaiduMap")
+        "tencent" -> listOf("com.tencent.map", "com.tencent.maplite")
+        else -> emptyList()
+      }
+
+      val result = detectAppInstalled(packages.joinToString("|"))
+      result.put("appType", appType)
+      return result
     }
 
     private fun detectAppInstalled(packageName: String): JSONObject {

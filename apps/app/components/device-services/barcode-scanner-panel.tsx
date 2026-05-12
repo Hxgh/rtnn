@@ -9,7 +9,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   clearScanner,
-  createAppNativeCore,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
   normalizeWebBarcodeResult,
@@ -74,7 +73,6 @@ export function BarcodeScannerPanel({
 }: {
   messages: ScannerMessages;
 }) {
-  const nativeCoreRef = useRef(createAppNativeCore());
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
@@ -130,13 +128,6 @@ export function BarcodeScannerPanel({
     completedRef.current = false;
 
     try {
-      const permission = await nativeCoreRef.current.ensureActionPermissions("barcode.scan");
-      if (!permission.ok) {
-        setErrorReason(permission.reason ?? "camera-permission-denied");
-        setState("idle");
-        return;
-      }
-
       await stopScanner();
       const { scanner } = await createHtml5QrcodeScanner(scannerElementId);
       scannerRef.current = scanner;
@@ -147,6 +138,11 @@ export function BarcodeScannerPanel({
           qrbox: getScannerBoxSize,
           aspectRatio: 1,
           disableFlip: false,
+          videoConstraints: {
+            facingMode: {
+              ideal: "environment",
+            },
+          },
         } satisfies Html5QrcodeCameraScanConfig,
         (decodedText, result) => {
           void handleSuccess(decodedText, result);

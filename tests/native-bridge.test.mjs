@@ -281,6 +281,65 @@ test("native bridge preserves Android map detail fields", async () => {
   });
 });
 
+test("native bridge reads Android map apps from batch bridge result", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      AndroidMap: {
+        getInstalledMapApps() {
+          calls.push(["AndroidMap.getInstalledMapApps"]);
+          return JSON.stringify({
+            ok: true,
+            apps: [
+              {
+                ok: true,
+                appType: "amap",
+                installed: true,
+                status: "installed",
+              },
+              {
+                ok: false,
+                appType: "baidu",
+                installed: false,
+                status: "not-installed",
+                reason: "map-app-not-installed",
+              },
+            ],
+          });
+        },
+        checkAppInstalled() {
+          calls.push(["AndroidMap.checkAppInstalled"]);
+          return false;
+        },
+      },
+    },
+    invoke: async () => ({ ok: false }),
+  });
+
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "amap" }), {
+    ok: true,
+    appType: "amap",
+    installed: true,
+    status: "installed",
+    message: undefined,
+    reason: undefined,
+    diagnostic: undefined,
+  });
+  assert.deepEqual(await bridge.checkMapInstalled({ appType: "baidu" }), {
+    ok: false,
+    appType: "baidu",
+    installed: false,
+    status: "not-installed",
+    message: undefined,
+    reason: "map-app-not-installed",
+    diagnostic: undefined,
+  });
+  assert.deepEqual(calls, [
+    ["AndroidMap.getInstalledMapApps"],
+    ["AndroidMap.getInstalledMapApps"],
+  ]);
+});
+
 test("native capability core disables Android package visibility candidates", async () => {
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {},
