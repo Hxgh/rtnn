@@ -81,6 +81,10 @@ function getPermissionStatusLabel(
   return messages.permissionUnknown;
 }
 
+function canRequestPermission(kind: VisiblePermissionKind) {
+  return kind === "camera" || kind === "notification";
+}
+
 export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
   const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
   const [snapshot, setSnapshot] = useState<RuntimeSnapshot | null>(null);
@@ -208,12 +212,15 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
                   </dd>
                 </div>
                 <Button
+                  disabled={!canRequestPermission(kind)}
                   onClick={() => handleRequestPermission(kind)}
                   size="sm"
                   type="button"
                   variant="ghost"
                 >
-                  {messages.requestPermission}
+                  {canRequestPermission(kind)
+                    ? messages.requestPermission
+                    : messages.permissionActionDrivenShort}
                 </Button>
               </div>
             ))}

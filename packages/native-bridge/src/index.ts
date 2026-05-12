@@ -1219,6 +1219,7 @@ function normalizeTauriBarcodePluginResult(value: unknown): NativeBarcodeScanRes
     rawValue?: unknown;
     format?: unknown;
     cancelled?: unknown;
+    codes?: unknown;
   };
   const rawValue =
     typeof result.content === "string"
@@ -1226,6 +1227,21 @@ function normalizeTauriBarcodePluginResult(value: unknown): NativeBarcodeScanRes
       : typeof result.rawValue === "string"
         ? result.rawValue
         : "";
+  const codes = Array.isArray(result.codes)
+    ? result.codes
+        .filter((item) => item && typeof item.rawValue === "string")
+        .map((item) => ({
+          rawValue: item.rawValue,
+          format: normalizeBarcodeFormat(item.format),
+        }))
+    : rawValue
+      ? [
+          {
+            rawValue,
+            format: normalizeBarcodeFormat(result.format),
+          },
+        ]
+      : [];
 
   if (!rawValue && result.cancelled === true) {
     return {
@@ -1236,16 +1252,9 @@ function normalizeTauriBarcodePluginResult(value: unknown): NativeBarcodeScanRes
   }
 
   return {
-    ok: Boolean(rawValue),
-    reason: rawValue ? undefined : "barcode-not-found",
-    codes: rawValue
-      ? [
-          {
-            rawValue,
-            format: normalizeBarcodeFormat(result.format),
-          },
-        ]
-      : [],
+    ok: codes.length > 0,
+    reason: codes.length > 0 ? undefined : "barcode-not-found",
+    codes,
   };
 }
 

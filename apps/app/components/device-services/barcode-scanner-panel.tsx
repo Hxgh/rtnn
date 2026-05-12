@@ -14,7 +14,6 @@ import {
   isNativeActionCancelled,
   normalizeBarcodeValue,
   normalizeWebBarcodeResult,
-  runNativeActionWithWatchdog,
   scanBarcodeImageFile,
   scannerElementId,
   type NativeCoreService,
@@ -222,19 +221,16 @@ export function BarcodeScannerPanel({
     setState("scanning");
     setErrorReason(null);
     completedRef.current = false;
+    const scanRunId = scanRunIdRef.current + 1;
+    scanRunIdRef.current = scanRunId;
 
     try {
-      const result = (await runNativeActionWithWatchdog(() =>
-        getNativeCore().scanBarcode({
-          source: "camera",
-          timeoutMs: 30_000,
-        }),
-        30_000,
-      )) as Awaited<ReturnType<NativeCoreService["scanBarcode"]>> & {
-        dispatched?: boolean;
-      };
+      const result = await getNativeCore().scanBarcode({
+        source: "camera",
+        timeoutMs: 30_000,
+      });
 
-      if (result.dispatched) {
+      if (scanRunId !== scanRunIdRef.current) {
         return;
       }
 
@@ -257,7 +253,9 @@ export function BarcodeScannerPanel({
         reason.toLowerCase().includes("cancel") ? null : reason,
       );
     } finally {
-      setState("idle");
+      if (scanRunId === scanRunIdRef.current) {
+        setState("idle");
+      }
     }
   }, [getNativeCore, state]);
 

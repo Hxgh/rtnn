@@ -1158,6 +1158,42 @@ test("detected Tauri bridge requests barcode permission before camera scan", asy
   ]);
 });
 
+test("detected Tauri bridge accepts barcode plugin codes array result", async () => {
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      __TAURI__: {
+        barcodeScanner: {
+          async checkPermissions() {
+            return "granted";
+          },
+          async scan() {
+            return {
+              codes: [
+                {
+                  rawValue: "array-result",
+                  format: { name: "QR_CODE" },
+                },
+              ],
+            };
+          },
+        },
+      },
+    },
+    invoke: async () => ({ ok: false }),
+  });
+
+  assert.deepEqual(await bridge.scanBarcode(), {
+    ok: true,
+    reason: undefined,
+    codes: [
+      {
+        rawValue: "array-result",
+        format: "QR_CODE",
+      },
+    ],
+  });
+});
+
 test("detected Tauri bridge normalizes barcode cancel without page fallback", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({

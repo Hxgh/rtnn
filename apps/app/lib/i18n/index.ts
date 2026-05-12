@@ -96,6 +96,8 @@ export type AppMessages = {
   nativeCapabilities: {
     title: string;
     description: string;
+    serviceActionsTitle: string;
+    serviceSupportTitle: string;
     runtimeTitle: string;
     runtimeDescription: string;
     mapTitle: string;
@@ -302,7 +304,9 @@ const zhCN: AppMessages = {
   },
   nativeCapabilities: {
     title: "设备服务",
-    description: "扫码、地图导航、相机相册、通知与客户端下载。",
+    description: "扫码、地图导航、相机相册和通知能力。",
+    serviceActionsTitle: "设备能力",
+    serviceSupportTitle: "辅助入口",
     runtimeTitle: "设备信息",
     runtimeDescription: "查看当前客户端环境与已启用的系统能力。",
     mapTitle: "地图导航",
@@ -341,7 +345,7 @@ const zhCN: AppMessages = {
       text: "文本",
     },
     notificationTitle: "通知",
-    notificationDescription: "按需请求权限并发送本地通知。",
+    notificationDescription: "发送本地通知，未授权时由系统询问。",
     diagnosticsTitle: "设备诊断",
     diagnosticsDescription: "查看运行环境、权限和系统状态。",
     permissionDescription: "权限由相关操作按需申请。",
@@ -380,16 +384,16 @@ const zhCN: AppMessages = {
     permissionActionDriven: "该权限会在对应操作时由系统询问。",
     permissionActionDrivenShort: "按操作询问",
     permissionRequestDone: "权限请求已处理。",
-    webviewLoadFailed: "页面加载失败，请返回后重试。",
+    webviewLoadFailed: "操作未完成，请返回后重试。",
     openMap: "打开地图",
     pickImages: "选择图片",
     captureImage: "拍照",
     clearImages: "清空图片",
     keyboardPlaceholder: "请输入内容",
     openDownloads: "客户端下载",
-    downloadEntryDescription: "打开当前环境的客户端安装包下载页。",
+    downloadEntryDescription: "查看当前环境可下载的客户端安装包。",
     openDiagnostics: "设备诊断",
-    diagnosticsEntryDescription: "查看运行环境和权限状态。",
+    diagnosticsEntryDescription: "查看运行环境、权限和地图识别状态。",
     opening: "处理中...",
     openingShort: "打开中",
     checkingShort: "检测中",
@@ -518,7 +522,9 @@ const enUS: AppMessages = {
   },
   nativeCapabilities: {
     title: "Device Services",
-    description: "Scan, navigate, pick media, send notifications, and download clients.",
+    description: "Scan, navigate, pick media, and send notifications.",
+    serviceActionsTitle: "Device actions",
+    serviceSupportTitle: "Support",
     runtimeTitle: "Device information",
     runtimeDescription: "View the current client environment and enabled system capabilities.",
     mapTitle: "Map navigation",
@@ -557,7 +563,7 @@ const enUS: AppMessages = {
       text: "Text",
     },
     notificationTitle: "Notifications",
-    notificationDescription: "Request permission when needed and send a local notification.",
+    notificationDescription: "Send a local notification. The system asks for permission when needed.",
     diagnosticsTitle: "Device Diagnostics",
     diagnosticsDescription: "Review runtime, permissions, and system status.",
     permissionDescription: "Permissions are requested by related actions.",
@@ -596,16 +602,16 @@ const enUS: AppMessages = {
     permissionActionDriven: "This permission is requested by the system when the related action runs.",
     permissionActionDrivenShort: "On action",
     permissionRequestDone: "Permission request handled.",
-    webviewLoadFailed: "The page failed to load. Go back and retry.",
+    webviewLoadFailed: "The action was not completed. Go back and retry.",
     openMap: "Open map",
     pickImages: "Pick images",
     captureImage: "Capture image",
     clearImages: "Clear images",
     keyboardPlaceholder: "Enter text",
     openDownloads: "Client downloads",
-    downloadEntryDescription: "Open the client package download page for this environment.",
+    downloadEntryDescription: "View downloadable client packages for this environment.",
     openDiagnostics: "Device diagnostics",
-    diagnosticsEntryDescription: "View runtime and permission status.",
+    diagnosticsEntryDescription: "View runtime, permission, and map detection status.",
     opening: "Processing...",
     openingShort: "Opening",
     checkingShort: "Checking",

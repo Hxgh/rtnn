@@ -14,6 +14,7 @@ import {
 import type { AppMessages } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { ActionRowLink } from "@/components/site/action-row";
+import { PageSection } from "@/components/site/page-shell";
 import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -590,91 +591,81 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
 
   return (
     <div className="space-y-5">
-      <SurfaceCard className="overflow-hidden">
-        <div className="divide-y divide-border/70">
-          <ActionRowLink
-            description={messages.barcodeDescription}
-            href="/device-services/scan"
-            icon={<FeatureIcon kind="scan" label={messages.barcodeTitle} />}
-            title={messages.barcodeTitle}
-          />
-          <button
-            className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
-            disabled={mapActionState !== "idle"}
-            onClick={detectMaps}
-            type="button"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <FeatureIcon kind="map" label={messages.mapTitle} />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">{messages.mapTitle}</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {messages.mapDescription}
-                </p>
+      <PageSection title={messages.serviceActionsTitle}>
+        <SurfaceCard className="overflow-hidden">
+          <div className="divide-y divide-border/70">
+            <ActionRowLink
+              description={messages.barcodeDescription}
+              href="/device-services/scan"
+              icon={<FeatureIcon kind="scan" label={messages.barcodeTitle} />}
+              title={messages.barcodeTitle}
+            />
+            <button
+              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
+              disabled={mapActionState !== "idle"}
+              onClick={detectMaps}
+              type="button"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <FeatureIcon kind="map" label={messages.mapTitle} />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{messages.mapTitle}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {messages.mapDescription}
+                  </p>
+                </div>
               </div>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {mapActionState === "checking"
-                ? messages.checkingShort
-                : mapActionState === "opening"
-                  ? messages.openingShort
-                  : "›"}
-            </span>
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
-            disabled={mediaActionState !== "idle"}
-            onClick={() => setMediaPickerState("open")}
-            type="button"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <FeatureIcon kind="media" label={messages.mediaTitle} />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">{messages.mediaTitle}</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {messages.mediaDescription}
-                </p>
+              <span className="text-sm text-muted-foreground">
+                {mapActionState === "checking"
+                  ? messages.checkingShort
+                  : mapActionState === "opening"
+                    ? messages.openingShort
+                    : "›"}
+              </span>
+            </button>
+            <button
+              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
+              disabled={mediaActionState !== "idle"}
+              onClick={() => setMediaPickerState("open")}
+              type="button"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <FeatureIcon kind="media" label={messages.mediaTitle} />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{messages.mediaTitle}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {messages.mediaDescription}
+                  </p>
+                </div>
               </div>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {mediaActionState === "opening" ? messages.openingShort : "›"}
-            </span>
-          </button>
-          <button
-            className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
-            disabled={notificationActionState !== "idle"}
-            onClick={sendNotification}
-            type="button"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <FeatureIcon kind="notification" label={messages.notificationTitle} />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  {messages.notificationTitle}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {messages.notificationDescription}
-                </p>
+              <span className="text-sm text-muted-foreground">
+                {mediaActionState === "opening" ? messages.openingShort : "›"}
+              </span>
+            </button>
+            <button
+              className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition-colors hover:bg-secondary/55 disabled:opacity-60"
+              disabled={notificationActionState !== "idle"}
+              onClick={sendNotification}
+              type="button"
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <FeatureIcon kind="notification" label={messages.notificationTitle} />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {messages.notificationTitle}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {messages.notificationDescription}
+                  </p>
+                </div>
               </div>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {notificationActionState === "opening" ? messages.openingShort : "›"}
-            </span>
-          </button>
-          <ActionRowLink
-            description={messages.downloadEntryDescription}
-            href="/download"
-            icon={<FeatureIcon kind="download" label={messages.openDownloads} />}
-            title={messages.openDownloads}
-          />
-          <ActionRowLink
-            description={messages.diagnosticsEntryDescription}
-            href="/native-diagnostics"
-            icon={<FeatureIcon kind="diagnostics" label={messages.openDiagnostics} />}
-            title={messages.openDiagnostics}
-          />
-        </div>
-      </SurfaceCard>
+              <span className="text-sm text-muted-foreground">
+                {notificationActionState === "opening" ? messages.openingShort : "›"}
+              </span>
+            </button>
+          </div>
+        </SurfaceCard>
+      </PageSection>
 
       {images.length > 0 ? (
         <SurfaceCard className="overflow-hidden">
@@ -723,6 +714,25 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
           {displayMessage}
         </p>
       ) : null}
+
+      <PageSection title={messages.serviceSupportTitle}>
+        <SurfaceCard className="overflow-hidden">
+          <div className="divide-y divide-border/70">
+            <ActionRowLink
+              description={messages.downloadEntryDescription}
+              href="/download"
+              icon={<FeatureIcon kind="download" label={messages.openDownloads} />}
+              title={messages.openDownloads}
+            />
+            <ActionRowLink
+              description={messages.diagnosticsEntryDescription}
+              href="/native-diagnostics"
+              icon={<FeatureIcon kind="diagnostics" label={messages.openDiagnostics} />}
+              title={messages.openDiagnostics}
+            />
+          </div>
+        </SurfaceCard>
+      </PageSection>
 
       {mapPickerOpen ? (
         <MapActionSheet
