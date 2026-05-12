@@ -219,7 +219,9 @@ fn map_android_packages(app_type: &str) -> Vec<&'static str> {
 }
 
 #[cfg(target_os = "android")]
-fn detect_android_package(package_name: &str) -> Result<MapPackageDetection, String> {
+fn with_android_env<T>(
+    action: impl FnOnce(&mut jni::JNIEnv<'_>, JObject<'_>) -> Result<T, String>,
+) -> Result<T, String> {
     let context = ndk_context::android_context();
     let vm =
         unsafe { jni::JavaVM::from_raw(context.vm().cast()) }.map_err(|error| error.to_string())?;
@@ -227,55 +229,170 @@ fn detect_android_package(package_name: &str) -> Result<MapPackageDetection, Str
         .attach_current_thread()
         .map_err(|error| error.to_string())?;
     let context_object = unsafe { JObject::from_raw(context.context().cast()) };
-    let package_manager = env
-        .call_method(
-            &context_object,
-            "getPackageManager",
-            "()Landroid/content/pm/PackageManager;",
-            &[],
-        )
-        .map_err(|error| error.to_string())?
-        .l()
-        .map_err(|error| error.to_string())?;
-    let package_name = env
-        .new_string(package_name)
-        .map_err(|error| error.to_string())?;
-    let package_name_object = JObject::from(package_name);
-    let launch_intent = env
-        .call_method(
-            &package_manager,
-            "getLaunchIntentForPackage",
-            "(Ljava/lang/String;)Landroid/content/Intent;",
-            &[JValue::Object(&package_name_object)],
-        )
-        .map_err(|error| error.to_string())?
-        .l()
-        .map_err(|error| error.to_string())?;
 
-    let launch_visible = !launch_intent.as_raw().is_null();
-    let package_visible = match env.call_method(
-        &package_manager,
-        "getPackageInfo",
-        "(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;",
-        &[JValue::Object(&package_name_object), JValue::Int(0)],
-    ) {
-        Ok(_) => true,
-        Err(error) => {
-            let reason = error.to_string();
-            let _ = env.exception_clear();
-            if reason.contains("NameNotFoundException") {
-                false
-            } else {
-                return Err(reason);
+    action(&mut env, context_object)
+}
+
+#[cfg(target_os = "android")]
+fn detect_android_package(package_name: &str) -> Result<MapPackageDetection, String> {
+    with_android_env(|env, context_object| {
+        let package_manager = env
+            .call_method(
+                &context_object,
+                "getPackageManager",
+                "()Landroid/content/pm/PackageManager;",
+                &[],
+            )
+            .map_err(|error| error.to_string())?
+            .l()
+            .map_err(|error| error.to_string())?;
+        let package_name = env
+            .new_string(package_name)
+            .map_err(|error| error.to_string())?;
+        let package_name_object = JObject::from(package_name);
+        let launch_intent = env
+            .call_method(
+                &package_manager,
+                "getLaunchIntentForPackage",
+                "(Ljava/lang/String;)Landroid/content/Intent;",
+                &[JValue::Object(&package_name_object)],
+            )
+            .map_err(|error| error.to_string())?
+            .l()
+            .map_err(|error| error.to_string())?;
+
+        let launch_visible = !launch_intent.as_raw().is_null();
+        let package_visible = match env.call_method(
+            &package_manager,
+            "getPackageInfo",
+            "(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;",
+            &[JValue::Object(&package_name_object), JValue::Int(0)],
+        ) {
+            Ok(_) => true,
+            Err(error) => {
+                let reason = error.to_string();
+                let _ = env.exception_clear();
+                if reason.contains("NameNotFoundException") {
+                    false
+                } else {
+                    return Err(reason);
+                }
             }
+        };
+
+        Ok(MapPackageDetection {
+            installed: launch_visible || package_visible,
+            launch_visible,
+            package_visible,
+        })
+    })
+}
+
+#[cfg(target_os = "android")]
+fn package_for_installed_android_map(app_type: &str) -> Result<Option<String>, String> {
+    for package_name in map_android_packages(app_type) {
+        if detect_android_package(package_name)?.installed {
+            return Ok(Some(package_name.to_string()));
+        }
+    }
+
+    Ok(None)
+}
+
+#[cfg(target_os = "android")]
+fn open_android_map_intent(app_type: &str, url: &str) -> CommandResult {
+    if url.trim().is_empty() {
+        return CommandResult {
+            ok: false,
+            message: None,
+            reason: Some("missing-map-target".to_string()),
+        };
+    }
+
+    let package_name = match package_for_installed_android_map(app_type) {
+        Ok(Some(value)) => value,
+        Ok(None) => {
+            return CommandResult {
+                ok: false,
+                message: None,
+                reason: Some("map-app-not-installed".to_string()),
+            };
+        }
+        Err(error) => {
+            return CommandResult {
+                ok: false,
+                message: None,
+                reason: Some(error),
+            };
         }
     };
 
-    Ok(MapPackageDetection {
-        installed: launch_visible || package_visible,
-        launch_visible,
-        package_visible,
-    })
+    match with_android_env(|env, context_object| {
+        let uri_class = env
+            .find_class("android/net/Uri")
+            .map_err(|error| error.to_string())?;
+        let url_string = env.new_string(url).map_err(|error| error.to_string())?;
+        let uri = env
+            .call_static_method(
+                uri_class,
+                "parse",
+                "(Ljava/lang/String;)Landroid/net/Uri;",
+                &[JValue::Object(&JObject::from(url_string))],
+            )
+            .map_err(|error| error.to_string())?
+            .l()
+            .map_err(|error| error.to_string())?;
+        let action = env
+            .new_string("android.intent.action.VIEW")
+            .map_err(|error| error.to_string())?;
+        let intent_class = env
+            .find_class("android/content/Intent")
+            .map_err(|error| error.to_string())?;
+        let intent = env
+            .new_object(
+                intent_class,
+                "(Ljava/lang/String;Landroid/net/Uri;)V",
+                &[JValue::Object(&JObject::from(action)), JValue::Object(&uri)],
+            )
+            .map_err(|error| error.to_string())?;
+        let package = env
+            .new_string(package_name)
+            .map_err(|error| error.to_string())?;
+        env.call_method(
+            &intent,
+            "setPackage",
+            "(Ljava/lang/String;)Landroid/content/Intent;",
+            &[JValue::Object(&JObject::from(package))],
+        )
+        .map_err(|error| error.to_string())?;
+        env.call_method(
+            &intent,
+            "addFlags",
+            "(I)Landroid/content/Intent;",
+            &[JValue::Int(0x10000000)],
+        )
+        .map_err(|error| error.to_string())?;
+        env.call_method(
+            &context_object,
+            "startActivity",
+            "(Landroid/content/Intent;)V",
+            &[JValue::Object(&intent)],
+        )
+        .map_err(|error| error.to_string())?;
+
+        Ok(())
+    }) {
+        Ok(()) => CommandResult {
+            ok: true,
+            message: Some("opened-native-map".to_string()),
+            reason: None,
+        },
+        Err(error) => CommandResult {
+            ok: false,
+            message: None,
+            reason: Some(error),
+        },
+    }
 }
 
 #[cfg(target_os = "android")]
@@ -456,6 +573,14 @@ fn open_map_navigation(
     {
         let allow_web_fallback = _allow_web_fallback.unwrap_or(true);
         let scheme_url = build_map_url(&app_type, lat, lng, name.as_deref(), true, direct_nav)?;
+
+        #[cfg(target_os = "android")]
+        {
+            let result = open_android_map_intent(&app_type, &scheme_url);
+            if result.ok || !allow_web_fallback {
+                return Ok(result);
+            }
+        }
 
         if app.opener().open_url(&scheme_url, None::<&str>).is_ok() {
             return Ok(CommandResult {

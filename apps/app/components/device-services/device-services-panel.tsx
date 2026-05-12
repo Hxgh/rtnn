@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 type Messages = AppMessages["nativeCapabilities"];
 type ActionState = "idle" | "checking" | "opening";
 type DeviceFeatureIconKind = "scan" | "map" | "download";
-type MapPickerState = "idle" | "checking" | "ready" | "empty";
+type MapPickerState = "idle" | "checking" | "ready" | "empty" | "failed";
 
 const mapTarget = {
   lat: 30.2741,
@@ -120,6 +120,13 @@ function getMapPickerCaption(candidates: NativeCoreMapCandidate[], messages: Mes
   return messages.mapPickerEmptyDescription;
 }
 
+function getVisibleMapCandidates(candidates: NativeCoreMapCandidate[]) {
+  const sortedCandidates = sortMapCandidates(candidates);
+  const installedCandidates = sortedCandidates.filter(isMapCandidateActionable);
+
+  return installedCandidates.length > 0 ? sortedCandidates : [];
+}
+
 function getActionMessage(reason: string | null, messages: Messages) {
   if (!reason) {
     return null;
@@ -169,6 +176,106 @@ function MapAppMark({
     >
       {initial}
     </span>
+  );
+}
+
+function MapActionSheet({
+  candidates,
+  messages,
+  onClose,
+  onSelect,
+  state,
+}: {
+  candidates: NativeCoreMapCandidate[];
+  messages: Messages;
+  onClose: () => void;
+  onSelect: (candidate: NativeCoreMapCandidate) => void;
+  state: MapPickerState;
+}) {
+  const visibleCandidates = getVisibleMapCandidates(candidates);
+  const isChecking = state === "checking";
+  const isFailed = state === "failed";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/45"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        aria-modal="true"
+        className="mx-auto w-full max-w-[28rem] rounded-t-[1.25rem] border border-border/80 bg-background pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+        <div className="space-y-1 px-5">
+          <h3 className="text-base font-semibold text-foreground">
+            {messages.mapPickerTitle}
+          </h3>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {isChecking
+              ? messages.mapPickerCheckingDescription
+              : isFailed
+                ? messages.mapPickerFailedDescription
+                : getMapPickerCaption(candidates, messages)}
+          </p>
+        </div>
+
+        <div className="mt-3 divide-y divide-border/70 bg-card">
+          {isChecking ? (
+            <div className="px-5 py-5 text-sm text-muted-foreground">
+              {messages.mapChecking}
+            </div>
+          ) : null}
+          {!isChecking && visibleCandidates.length === 0 ? (
+            <div className="px-5 py-5 text-sm leading-6 text-muted-foreground">
+              {isFailed
+                ? messages.mapCheckUnavailable
+                : messages.mapPickerEmptyDescription}
+            </div>
+          ) : null}
+          {visibleCandidates.map((candidate) => {
+            const disabled = !isMapCandidateActionable(candidate);
+
+            return (
+              <button
+                className={cn(
+                  "flex min-h-16 w-full items-center justify-between gap-3 px-5 py-3 text-left",
+                  disabled
+                    ? "cursor-not-allowed bg-card text-muted-foreground"
+                    : "bg-card text-foreground active:bg-secondary/80",
+                )}
+                disabled={disabled}
+                key={candidate.appType}
+                onClick={() => onSelect(candidate)}
+                type="button"
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <MapAppMark candidate={candidate} disabled={disabled} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {candidate.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                      {getMapCandidateHint(candidate, messages)}
+                    </span>
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 text-sm leading-5",
+                    disabled ? "text-muted-foreground" : "text-foreground",
+                  )}
+                >
+                  {disabled ? getMapInstallLabel(candidate.status, messages) : "›"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -226,7 +333,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
     setLastMessage(null);
     setMapActionState("checking");
     setMapPickerState("checking");
-    setMapPickerOpen(false);
+    setMapPickerOpen(true);
 
     if (mapCandidatesCacheRef.current) {
       setMapCandidates(mapCandidatesCacheRef.current);
@@ -258,7 +365,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
     } catch {
       const unavailableCandidates = createUnavailableMapCandidates();
       setMapCandidates(unavailableCandidates);
-      setMapPickerState("empty");
+      setMapPickerState("failed");
       setLastMessage("map-install-check-unavailable");
       setMapPickerOpen(true);
     } finally {
@@ -351,80 +458,13 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
       ) : null}
 
       {mapPickerOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-black/45"
-          onClick={() => setMapPickerOpen(false)}
-          role="presentation"
-        >
-          <div
-            aria-modal="true"
-            className="mx-auto w-full max-w-[28rem] rounded-t-[1.25rem] border border-border/80 bg-background pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-            <div className="space-y-1 px-5">
-              <h3 className="text-base font-semibold text-foreground">
-                {messages.mapPickerTitle}
-              </h3>
-              <p className="text-xs leading-5 text-muted-foreground">
-                {mapPickerState === "checking"
-                  ? messages.mapPickerCheckingDescription
-                  : getMapPickerCaption(mapCandidates, messages)}
-              </p>
-            </div>
-
-            <div className="mt-3 divide-y divide-border/70 bg-card">
-              {mapPickerState === "checking" && mapCandidates.length === 0 ? (
-                <div className="px-5 py-5 text-sm text-muted-foreground">
-                  {messages.mapChecking}
-                </div>
-              ) : null}
-              {sortMapCandidates(mapCandidates).map((candidate) => {
-                const disabled = !isMapCandidateActionable(candidate);
-
-                return (
-                  <button
-                    className={cn(
-                      "flex min-h-16 w-full items-center justify-between gap-3 px-5 py-3 text-left",
-                      disabled
-                        ? "cursor-not-allowed bg-card text-muted-foreground"
-                        : "bg-card text-foreground active:bg-secondary/80",
-                    )}
-                    disabled={disabled}
-                    key={candidate.appType}
-                    onClick={() => openMap(candidate)}
-                    type="button"
-                  >
-                    <span className="flex min-w-0 items-center gap-3">
-                      <MapAppMark candidate={candidate} disabled={disabled} />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">
-                          {candidate.label}
-                        </span>
-                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                          {getMapCandidateHint(candidate, messages)}
-                        </span>
-                      </span>
-                    </span>
-                    <span
-                      className={cn(
-                        "shrink-0 text-sm leading-5",
-                        isMapCandidateActionable(candidate)
-                          ? "text-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {isMapCandidateActionable(candidate)
-                        ? "›"
-                        : getMapInstallLabel(candidate.status, messages)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <MapActionSheet
+          candidates={mapCandidates}
+          messages={messages}
+          onClose={() => setMapPickerOpen(false)}
+          onSelect={openMap}
+          state={mapPickerState}
+        />
       ) : null}
     </div>
   );

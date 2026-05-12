@@ -2715,6 +2715,16 @@ function hasAndroidBridgeMethod(
   return methodNames.some((item) => typeof bridge?.[item] === "function");
 }
 
+function hasAndroidMapInstallBridge(
+  globalScope: TauriGlobalScope | undefined,
+) {
+  return hasAndroidBridgeMethod(globalScope, "AndroidMap", [
+    "checkAppInstalled",
+    "getInstalledMapApps",
+    "isAppInstalled",
+  ]);
+}
+
 function waitForAndroidBridgeMethod(
   globalScope: TauriGlobalScope | undefined,
   bridgeName: string,
@@ -2861,17 +2871,21 @@ export function createDetectedTauriNativeBridge(
     },
 
     async openMapNavigation(input) {
-      const androidResult = openAndroidMapWithBridge(input, globalScope);
-      if (androidResult?.ok) {
-        return androidResult;
+      if (hasAndroidBridgeMethod(globalScope, "AndroidMap", "openNavigation")) {
+        const androidResult = openAndroidMapWithBridge(input, globalScope);
+
+        if (androidResult?.ok || input.allowWebFallback === false) {
+          return androidResult ?? {
+            ok: false,
+            reason: "native-map-open-unavailable",
+          };
+        }
       }
 
-      if (androidResult && input.allowWebFallback === false) {
-        return androidResult;
-      }
+      let invokeReason: string | undefined;
 
       try {
-        return normalizeActionResult(
+        const nativeResult = normalizeActionResult(
           await options.invoke<NativeBridgeActionResult>(
             options.mapNavigationCommand ?? "open_map_navigation",
             {
@@ -2886,40 +2900,84 @@ export function createDetectedTauriNativeBridge(
             },
           ),
         );
-      } catch (error) {
-        const fallbackResult = await fallback.openMapNavigation(input);
 
-        if (fallbackResult.ok) {
-          return fallbackResult;
+        if (nativeResult.ok || input.allowWebFallback === false) {
+          return nativeResult;
         }
 
-        return { ok: false, reason: normalizeErrorReason(error) };
+        invokeReason = nativeResult.reason;
+      } catch (error) {
+        invokeReason = normalizeErrorReason(error);
       }
-    },
 
-    async checkMapInstalled(input) {
-      const androidResult = checkAndroidMapInstalledWithBridge(
-        input.appType,
-        globalScope,
-      );
-      if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
+      const androidResult = openAndroidMapWithBridge(input, globalScope);
+      if (androidResult?.ok) {
         return androidResult;
       }
 
-      await waitForAndroidMapBridge(globalScope, {
-        force: isAndroidMapBridgeNotReady(androidResult),
-      });
-
-      const delayedAndroidResult = checkAndroidMapInstalledWithBridge(
-        input.appType,
-        globalScope,
-      );
-      if (delayedAndroidResult && !isAndroidMapBridgeNotReady(delayedAndroidResult)) {
-        return delayedAndroidResult;
+      if (androidResult && input.allowWebFallback === false) {
+        return androidResult;
       }
 
+      const fallbackResult = await fallback.openMapNavigation(input);
+
+      if (fallbackResult.ok) {
+        return fallbackResult;
+      }
+
+      return { ok: false, reason: invokeReason ?? fallbackResult.reason };
+    },
+
+    async checkMapInstalled(input) {
+      let androidResult: NativeMapInstallResult | null = null;
+
+      if (hasAndroidMapInstallBridge(globalScope)) {
+        androidResult = checkAndroidMapInstalledWithBridge(
+          input.appType,
+          globalScope,
+        );
+
+        if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
+          return androidResult;
+        }
+      }
+
+      if (shouldWaitForAndroidMapBridge(globalScope)) {
+        if (isAndroidMapBridgeNotReady(androidResult)) {
+          await waitForAndroidMapBridge(globalScope, {
+            force: true,
+          });
+
+          const delayedAndroidResult = checkAndroidMapInstalledWithBridge(
+            input.appType,
+            globalScope,
+          );
+          if (
+            delayedAndroidResult &&
+            !isAndroidMapBridgeNotReady(delayedAndroidResult)
+          ) {
+            return delayedAndroidResult;
+          }
+        } else if (!androidResult) {
+          await waitForAndroidMapBridge(globalScope);
+
+          const delayedAndroidResult = checkAndroidMapInstalledWithBridge(
+            input.appType,
+            globalScope,
+          );
+          if (
+            delayedAndroidResult &&
+            !isAndroidMapBridgeNotReady(delayedAndroidResult)
+          ) {
+            return delayedAndroidResult;
+          }
+        }
+      }
+
+      let invokeResult: NativeMapInstallResult | null = null;
+
       try {
-        return normalizeMapInstallResult(
+        invokeResult = normalizeMapInstallResult(
           await options.invoke<NativeMapInstallResult>(
             options.checkMapInstalledCommand ?? "check_map_installed",
             {
@@ -2928,9 +2986,19 @@ export function createDetectedTauriNativeBridge(
           ),
           input.appType,
         );
+
+        if (invokeResult.status !== "unknown") {
+          return invokeResult;
+        }
       } catch {
-        return fallback.checkMapInstalled(input);
+        invokeResult = null;
       }
+
+      if (invokeResult) {
+        return invokeResult;
+      }
+
+      return fallback.checkMapInstalled(input);
     },
 
     async checkPermission(input) {
@@ -3246,16 +3314,18 @@ export function createTauriNativeBridge(
     },
 
     async openMapNavigation(input) {
-      const androidResult = openAndroidMapWithBridge(input);
-      if (androidResult?.ok) {
-        return androidResult;
+      if (hasAndroidBridgeMethod(undefined, "AndroidMap", "openNavigation")) {
+        const androidResult = openAndroidMapWithBridge(input);
+
+        if (androidResult?.ok || input.allowWebFallback === false) {
+          return androidResult ?? {
+            ok: false,
+            reason: "native-map-open-unavailable",
+          };
+        }
       }
 
-      if (androidResult && input.allowWebFallback === false) {
-        return androidResult;
-      }
-
-      const result = await options.invoke<NativeBridgeActionResult>(
+      const nativeResult = normalizeActionResult(await options.invoke<NativeBridgeActionResult>(
         options.mapNavigationCommand ?? "open_map_navigation",
         {
           lat: input.lat ?? null,
@@ -3267,12 +3337,42 @@ export function createTauriNativeBridge(
             (typeof input.lat === "number" && typeof input.lng === "number"),
           allowWebFallback: input.allowWebFallback ?? true,
         },
-      );
+      ));
 
-      return result ?? { ok: true };
+      if (nativeResult.ok || input.allowWebFallback === false) {
+        return nativeResult;
+      }
+
+      const androidResult = openAndroidMapWithBridge(input);
+      if (androidResult?.ok) {
+        return androidResult;
+      }
+
+      return androidResult ?? nativeResult;
     },
 
     async checkMapInstalled(input) {
+      if (hasAndroidMapInstallBridge(undefined)) {
+        const androidResult = checkAndroidMapInstalledWithBridge(input.appType);
+        if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
+          return androidResult;
+        }
+      }
+
+      const invokeResult = normalizeMapInstallResult(
+        await options.invoke<NativeMapInstallResult>(
+          options.checkMapInstalledCommand ?? "check_map_installed",
+          {
+            appType: input.appType,
+          },
+        ),
+        input.appType,
+      );
+
+      if (invokeResult.status !== "unknown") {
+        return invokeResult;
+      }
+
       const androidResult = checkAndroidMapInstalledWithBridge(input.appType);
       if (androidResult && !isAndroidMapBridgeNotReady(androidResult)) {
         return androidResult;
@@ -3287,15 +3387,7 @@ export function createTauriNativeBridge(
         return delayedAndroidResult;
       }
 
-      return normalizeMapInstallResult(
-        await options.invoke<NativeMapInstallResult>(
-          options.checkMapInstalledCommand ?? "check_map_installed",
-          {
-            appType: input.appType,
-          },
-        ),
-        input.appType,
-      );
+      return invokeResult;
     },
 
     async checkPermission(input) {
