@@ -13,7 +13,7 @@ import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Messages = AppMessages["nativeCapabilities"];
-type MapPickerState = "idle" | "checking" | "ready" | "failed";
+type MapPickerState = "checking" | "ready";
 type ActionState = "idle" | "checking" | "opening";
 type DeviceFeatureIconKind = "scan" | "map" | "download";
 
@@ -51,21 +51,6 @@ function withTimeout<T>(
   });
 }
 
-function createFallbackMapCandidates(reason = "map-install-check-unavailable") {
-  return [
-    { appType: "amap" as const, label: "高德地图" },
-    { appType: "baidu" as const, label: "百度地图" },
-    { appType: "tencent" as const, label: "腾讯地图" },
-  ].map((item) => ({
-    ...item,
-    ok: true,
-    installed: null,
-    status: "unknown" as const,
-    available: false,
-    reason,
-  }));
-}
-
 function createCheckingMapCandidates() {
   return [
     { appType: "amap" as const, label: "高德地图" },
@@ -78,6 +63,21 @@ function createCheckingMapCandidates() {
     status: "unknown" as const,
     available: false,
     reason: "map-install-checking",
+  }));
+}
+
+function createUnavailableMapCandidates(reason = "map-install-check-unavailable") {
+  return [
+    { appType: "amap" as const, label: "高德地图" },
+    { appType: "baidu" as const, label: "百度地图" },
+    { appType: "tencent" as const, label: "腾讯地图" },
+  ].map((item) => ({
+    ...item,
+    ok: true,
+    installed: null,
+    status: "unknown" as const,
+    available: false,
+    reason,
   }));
 }
 
@@ -143,10 +143,6 @@ function getMapPickerDescription(
     return messages.mapPickerCheckingDescription;
   }
 
-  if (state === "failed") {
-    return messages.mapPickerFailedDescription;
-  }
-
   const installedCount = candidates.filter(isMapCandidateActionable).length;
   if (installedCount > 0) {
     return messages.mapDetectedAvailable.replace("{count}", String(installedCount));
@@ -195,6 +191,30 @@ function getActionMessage(reason: string | null, messages: Messages) {
   return null;
 }
 
+function MapAppMark({
+  candidate,
+  disabled,
+}: {
+  candidate: NativeCoreMapCandidate;
+  disabled: boolean;
+}) {
+  const initial = candidate.label.slice(0, 1);
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-2xl border text-sm font-semibold",
+        disabled
+          ? "border-border bg-secondary text-muted-foreground"
+          : "border-foreground bg-foreground text-background",
+      )}
+    >
+      {initial}
+    </span>
+  );
+}
+
 function FeatureIcon({
   kind,
   label,
@@ -235,7 +255,7 @@ function FeatureIcon({
 export function DeviceServicesPanel({ messages }: { messages: Messages }) {
   const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
-  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("idle");
+  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("checking");
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
   const [mapActionState, setMapActionState] = useState<ActionState>("idle");
   const [lastMessage, setLastMessage] = useState<string | null>(null);
@@ -260,15 +280,10 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
       setMapCandidates(candidates);
       setMapPickerState("ready");
       setMapPickerOpen(true);
-    } catch (error) {
-      const reason =
-        error instanceof Error && error.message
-          ? error.message
-          : "map-install-check-unavailable";
-
-      setMapCandidates(createFallbackMapCandidates(reason));
-      setMapPickerState("failed");
-      setLastMessage(reason);
+    } catch {
+      setMapCandidates(createUnavailableMapCandidates());
+      setMapPickerState("ready");
+      setLastMessage("map-install-check-unavailable");
       setMapPickerOpen(true);
     } finally {
       setMapActionState("idle");
@@ -372,7 +387,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
             role="dialog"
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-            <div className="space-y-1">
+            <div className="space-y-1 px-1">
               <h3 className="text-base font-semibold text-foreground">
                 {messages.mapPickerTitle}
               </h3>
@@ -382,16 +397,14 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
             </div>
 
             <div className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card">
-              {sortMapCandidates(
-                mapCandidates.length > 0 ? mapCandidates : createCheckingMapCandidates(),
-              ).map((candidate) => {
+              {sortMapCandidates(mapCandidates).map((candidate) => {
                 const disabled =
                   mapPickerState === "checking" || !isMapCandidateActionable(candidate);
 
                 return (
                   <button
                     className={cn(
-                      "flex min-h-14 w-full items-center justify-between gap-3 border-b border-border/70 px-4 py-3 text-left last:border-b-0",
+                      "flex min-h-16 w-full items-center justify-between gap-3 border-b border-border/70 px-4 py-3 text-left last:border-b-0",
                       disabled
                         ? "cursor-not-allowed bg-card text-muted-foreground"
                         : "bg-card text-foreground active:bg-secondary",
@@ -401,19 +414,22 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                     onClick={() => openMap(candidate)}
                     type="button"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">
-                        {candidate.label}
-                      </span>
-                      <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                        {mapPickerState === "checking"
-                          ? messages.mapChecking
-                          : getMapCandidateHint(candidate, messages)}
+                    <span className="flex min-w-0 items-center gap-3">
+                      <MapAppMark candidate={candidate} disabled={disabled} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">
+                          {candidate.label}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                          {mapPickerState === "checking"
+                            ? messages.mapChecking
+                            : getMapCandidateHint(candidate, messages)}
+                        </span>
                       </span>
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 text-xs",
+                        "shrink-0 text-sm",
                         isMapCandidateActionable(candidate)
                           ? "text-foreground"
                           : "text-muted-foreground",

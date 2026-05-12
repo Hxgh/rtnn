@@ -1002,23 +1002,13 @@ class MainActivity : TauriActivity() {
       val source = options.optString("source", "camera")
       val fromImage = source == "image"
 
-      if (!fromImage && !isPermissionGranted("camera")) {
-        val requested = PermissionBridge().requestPermission("camera", "scan-barcode")
-        val permission = JSONObject(requested)
-        if (!permission.optBoolean("ok", false) || permission.optString("status") != "granted") {
-          return barcodeError(permission.optString("reason", "camera-permission-denied"))
-        }
+      if (!fromImage) {
+        return barcodeError("barcode-scanner-native-unavailable")
       }
 
-      nativeMediaMode = if (fromImage) "barcode-image" else "barcode-camera"
+      nativeMediaMode = "barcode-image"
       val mediaResult = awaitNativeMediaResult {
-        runOnUiThread {
-          if (fromImage) {
-            launchImagePicker()
-          } else {
-            launchCameraCapture()
-          }
-        }
+        runOnUiThread { launchImagePicker() }
       }
 
       val result = JSONObject(mediaResult)
