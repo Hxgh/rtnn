@@ -38,6 +38,10 @@ export function SiteHeader() {
       : isDeviceServicesPage
           ? pathname.startsWith("/native-diagnostics")
             ? messages.nativeCapabilities.diagnosticsTitle
+            : pathname.startsWith("/device-services/map")
+            ? messages.nativeCapabilities.mapTitle
+            : pathname.startsWith("/device-services/media")
+            ? messages.nativeCapabilities.mediaTitle
             : pathname.startsWith("/device-services/scan")
             ? messages.nativeCapabilities.barcodeTitle
             : messages.nativeCapabilities.title

@@ -8,15 +8,11 @@ import type {
 import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import {
   clearScanner,
-  createAppNativeCore,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
-  isNativeActionCancelled,
-  normalizeBarcodeValue,
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
   scannerElementId,
-  type NativeCoreService,
   type WebBarcodeScanResult,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
@@ -85,26 +81,15 @@ export function BarcodeScannerPanel({
 }: {
   messages: ScannerMessages;
 }) {
-  const nativeCoreRef = useRef<NativeCoreService | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
   const manualStopRef = useRef(false);
   const scanRunIdRef = useRef(0);
-  const [useNativeScanner, setUseNativeScanner] = useState(false);
-  const [isTauriRuntime, setIsTauriRuntime] = useState(false);
   const [state, setState] = useState<ScannerState>("idle");
   const [imageScanState, setImageScanState] = useState<ImageScanState>("idle");
   const [lastResult, setLastResult] = useState<WebBarcodeScanResult | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
-
-  const getNativeCore = useCallback(() => {
-    if (!nativeCoreRef.current) {
-      nativeCoreRef.current = createAppNativeCore();
-    }
-
-    return nativeCoreRef.current;
-  }, []);
 
   const stopScanner = useCallback(async (options?: { expected?: boolean }) => {
     if (options?.expected) {
@@ -213,65 +198,9 @@ export function BarcodeScannerPanel({
     }
   }, [handleSuccess, state, stopScanner]);
 
-  const startNativeScanner = useCallback(async () => {
-    if (state === "starting" || state === "scanning") {
-      return;
-    }
-
-    setState("scanning");
-    setErrorReason(null);
-    completedRef.current = false;
-    const scanRunId = scanRunIdRef.current + 1;
-    scanRunIdRef.current = scanRunId;
-
-    try {
-      const result = await getNativeCore().scanBarcode({
-        source: "camera",
-        timeoutMs: 30_000,
-      });
-
-      if (scanRunId !== scanRunIdRef.current) {
-        return;
-      }
-
-      if (result.ok && result.codes.length > 0) {
-        const code = result.codes[0];
-        completedRef.current = true;
-        startTransition(() => {
-          setLastResult(normalizeBarcodeValue(code.rawValue, code.format));
-          setErrorReason(null);
-        });
-        return;
-      }
-
-      setErrorReason(
-        isNativeActionCancelled(result) ? null : (result.reason ?? "barcode-not-found"),
-      );
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      setErrorReason(
-        reason.toLowerCase().includes("cancel") ? null : reason,
-      );
-    } finally {
-      if (scanRunId === scanRunIdRef.current) {
-        setState("idle");
-      }
-    }
-  }, [getNativeCore, state]);
-
   const handleStartScanner = useCallback(() => {
-    if (useNativeScanner) {
-      void startNativeScanner();
-      return;
-    }
-
-    if (isTauriRuntime) {
-      setErrorReason("barcode-scanner-native-unavailable");
-      return;
-    }
-
     void startScanner();
-  }, [isTauriRuntime, startNativeScanner, startScanner, useNativeScanner]);
+  }, [startScanner]);
 
   const handleStopScanner = useCallback(
     (event?: React.MouseEvent<HTMLButtonElement>) => {
@@ -288,35 +217,6 @@ export function BarcodeScannerPanel({
     }
 
     setErrorReason(null);
-
-    if (useNativeScanner) {
-      setImageScanState("scanning");
-
-      try {
-        const nativeResult = await getNativeCore().scanBarcode({
-          source: "image",
-          timeoutMs: 12_000,
-        });
-
-        if (nativeResult.ok && nativeResult.codes.length > 0) {
-          const code = nativeResult.codes[0];
-          startTransition(() => {
-            setLastResult(normalizeBarcodeValue(code.rawValue, code.format));
-            setErrorReason(null);
-          });
-        } else if (isNativeActionCancelled(nativeResult)) {
-          setErrorReason(null);
-        } else {
-          setErrorReason(nativeResult.reason ?? "barcode-not-found");
-        }
-      } catch (error) {
-        setErrorReason(error instanceof Error ? error.message : String(error));
-      } finally {
-        setImageScanState("idle");
-      }
-
-      return;
-    }
 
     fileInputRef.current?.click();
   }
@@ -358,30 +258,6 @@ export function BarcodeScannerPanel({
   }
 
   useEffect(() => {
-    let active = true;
-
-    getNativeCore()
-      .getRuntimeSnapshot()
-      .then((snapshot) => {
-        if (active) {
-          const tauriRuntime = snapshot.clientInfo.runtime === "tauri";
-          setIsTauriRuntime(tauriRuntime);
-          setUseNativeScanner(tauriRuntime && snapshot.capabilities.barcodeScan);
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setIsTauriRuntime(false);
-          setUseNativeScanner(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [getNativeCore]);
-
-  useEffect(() => {
     return () => {
       scanRunIdRef.current += 1;
       manualStopRef.current = true;
@@ -406,7 +282,6 @@ export function BarcodeScannerPanel({
     state === "starting" ||
     state === "stopping";
   const isScanning = state === "scanning";
-  const isNativeScannerBusy = useNativeScanner && isScanning;
   const isImageBusy = imageScanState !== "idle";
 
   async function copyResult() {
@@ -447,12 +322,10 @@ export function BarcodeScannerPanel({
 
           <div className="grid grid-cols-2 gap-2">
             <Button
-              disabled={isCameraBusy || isImageBusy || isNativeScannerBusy}
+              disabled={isCameraBusy || isImageBusy}
               onClick={isScanning ? handleStopScanner : handleStartScanner}
             >
-              {isNativeScannerBusy
-                ? messages.barcodeScanning
-                : isScanning
+              {isScanning
                 ? messages.barcodeStop
                 : state === "starting"
                   ? messages.opening

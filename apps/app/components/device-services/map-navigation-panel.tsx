@@ -1,0 +1,406 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import {
+  createAppNativeCore,
+  nativeActionReturnSettleMs,
+  runNativeActionWithWatchdog,
+  type NativeCoreMapCandidate,
+  type NativeCoreService,
+} from "@/lib/native-core";
+import type { AppMessages } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { SurfaceCard } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+type Messages = AppMessages["nativeCapabilities"];
+type ActionState = "idle" | "checking" | "opening";
+type MapPickerState = "idle" | "checking" | "ready" | "empty" | "failed";
+
+const mapTarget = {
+  lat: 30.2741,
+  lng: 120.1551,
+  name: "杭州西湖",
+};
+const mapDetectionTimeoutMs = 2_500;
+const mapStatusOrder: Record<NativeCoreMapCandidate["status"], number> = {
+  installed: 0,
+  unknown: 1,
+  "not-installed": 2,
+  unsupported: 3,
+};
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutReason: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(timeoutReason)), timeoutMs);
+
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+function createUnavailableMapCandidates(reason = "map-install-check-unavailable") {
+  return [
+    { appType: "amap" as const, label: "高德地图" },
+    { appType: "baidu" as const, label: "百度地图" },
+    { appType: "tencent" as const, label: "腾讯地图" },
+  ].map((item) => ({
+    ...item,
+    ok: true,
+    installed: null,
+    status: "unknown" as const,
+    available: false,
+    reason,
+  }));
+}
+
+function sortMapCandidates(candidates: NativeCoreMapCandidate[]) {
+  return [...candidates].sort(
+    (left, right) =>
+      mapStatusOrder[left.status] - mapStatusOrder[right.status],
+  );
+}
+
+function isMapCandidateActionable(candidate: NativeCoreMapCandidate) {
+  return candidate.status === "installed";
+}
+
+function getMapInstallLabel(status: NativeCoreMapCandidate["status"], messages: Messages) {
+  if (status === "installed") {
+    return messages.mapInstalled;
+  }
+
+  if (status === "not-installed") {
+    return messages.mapNotInstalled;
+  }
+
+  if (status === "unsupported") {
+    return messages.mapUnsupported;
+  }
+
+  return messages.mapUnavailable;
+}
+
+function getMapCandidateHint(
+  candidate: NativeCoreMapCandidate,
+  messages: Messages,
+) {
+  if (candidate.status === "installed") {
+    return null;
+  }
+
+  if (candidate.status === "not-installed") {
+    return messages.mapNotInstalled;
+  }
+
+  if (candidate.status === "unsupported") {
+    return messages.mapUnsupported;
+  }
+
+  return messages.mapUnavailable;
+}
+
+function getMapPickerCaption(candidates: NativeCoreMapCandidate[], messages: Messages) {
+  if (candidates.some(isMapCandidateActionable)) {
+    return messages.mapPickerDescription;
+  }
+
+  return messages.mapPickerEmptyDescription;
+}
+
+function getVisibleMapCandidates(candidates: NativeCoreMapCandidate[]) {
+  const sortedCandidates = sortMapCandidates(candidates);
+  const installedCandidates = sortedCandidates.filter(isMapCandidateActionable);
+
+  return installedCandidates.length > 0 ? sortedCandidates : [];
+}
+
+function getMapMessage(reason: string | null, messages: Messages) {
+  if (!reason) {
+    return null;
+  }
+
+  if (
+    reason === "map-install-check-timeout" ||
+    reason === "map-install-check-unavailable" ||
+    reason === "native-bridge-not-ready"
+  ) {
+    return messages.mapCheckUnavailable;
+  }
+
+  if (reason === "map-app-not-installed-or-not-visible") {
+    return messages.mapVisibilityLimited;
+  }
+
+  if (reason === "native-map-open-failed" || reason === "native-map-no-handler") {
+    return messages.mapOpenFailed;
+  }
+
+  return messages.mapOpenFailed;
+}
+
+function MapAppMark({
+  candidate,
+  disabled,
+}: {
+  candidate: NativeCoreMapCandidate;
+  disabled: boolean;
+}) {
+  const initial = candidate.label.slice(0, 1);
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-10 shrink-0 items-center justify-center rounded-2xl border text-sm font-semibold",
+        disabled
+          ? "border-border bg-secondary text-muted-foreground"
+          : "border-foreground bg-foreground text-background",
+      )}
+    >
+      {initial}
+    </span>
+  );
+}
+
+function MapActionSheet({
+  candidates,
+  messages,
+  onClose,
+  onSelect,
+  state,
+}: {
+  candidates: NativeCoreMapCandidate[];
+  messages: Messages;
+  onClose: () => void;
+  onSelect: (candidate: NativeCoreMapCandidate) => void;
+  state: MapPickerState;
+}) {
+  const visibleCandidates = getVisibleMapCandidates(candidates);
+  const isChecking = state === "checking";
+  const isFailed = state === "failed";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/45"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        aria-modal="true"
+        className="mx-auto w-full max-w-[28rem] rounded-t-[1.25rem] border border-border/80 bg-background pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+        <div className="space-y-1 px-5">
+          <h3 className="text-base font-semibold text-foreground">
+            {messages.mapPickerTitle}
+          </h3>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {isChecking
+              ? messages.mapPickerCheckingDescription
+              : isFailed
+                ? messages.mapPickerFailedDescription
+                : getMapPickerCaption(candidates, messages)}
+          </p>
+        </div>
+
+        <div className="mt-3 divide-y divide-border/70 bg-card">
+          {isChecking ? (
+            <div className="px-5 py-5 text-sm text-muted-foreground">
+              {messages.mapChecking}
+            </div>
+          ) : null}
+          {!isChecking && visibleCandidates.length === 0 ? (
+            <div className="px-5 py-5 text-sm leading-6 text-muted-foreground">
+              {isFailed
+                ? messages.mapCheckUnavailable
+                : messages.mapPickerEmptyDescription}
+            </div>
+          ) : null}
+          {visibleCandidates.map((candidate) => {
+            const disabled = !isMapCandidateActionable(candidate);
+            const hint = getMapCandidateHint(candidate, messages);
+
+            return (
+              <button
+                className={cn(
+                  "flex min-h-16 w-full items-center justify-between gap-3 px-5 py-3 text-left",
+                  disabled
+                    ? "cursor-not-allowed bg-card text-muted-foreground"
+                    : "bg-card text-foreground active:bg-secondary/80",
+                )}
+                disabled={disabled}
+                key={candidate.appType}
+                onClick={() => onSelect(candidate)}
+                type="button"
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <MapAppMark candidate={candidate} disabled={disabled} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {candidate.label}
+                    </span>
+                    {hint ? (
+                      <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                        {hint}
+                      </span>
+                    ) : null}
+                  </span>
+                </span>
+                {disabled ? (
+                  <span className="shrink-0 text-xs leading-5 text-muted-foreground">
+                    {getMapInstallLabel(candidate.status, messages)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-lg leading-none text-muted-foreground">›</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function MapNavigationPanel({ messages }: { messages: Messages }) {
+  const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
+  const mapCandidatesCacheRef = useRef<NativeCoreMapCandidate[] | null>(null);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
+  const [mapActionState, setMapActionState] = useState<ActionState>("idle");
+  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("idle");
+  const [lastMessage, setLastMessage] = useState<string | null>(null);
+
+  async function detectMaps() {
+    if (mapActionState !== "idle") {
+      return;
+    }
+
+    setLastMessage(null);
+    setMapActionState("checking");
+    setMapPickerState("checking");
+    setMapPickerOpen(true);
+
+    if (mapCandidatesCacheRef.current) {
+      setMapCandidates(mapCandidatesCacheRef.current);
+      setMapPickerState(
+        mapCandidatesCacheRef.current.some(isMapCandidateActionable)
+          ? "ready"
+          : "empty",
+      );
+      setMapActionState("idle");
+      return;
+    }
+
+    setMapCandidates([]);
+
+    try {
+      const candidates = await withTimeout(
+        nativeCore.getMapCandidates(),
+        mapDetectionTimeoutMs,
+        "map-install-check-timeout",
+      );
+      const sortedCandidates = sortMapCandidates(candidates);
+      mapCandidatesCacheRef.current = sortedCandidates;
+      setMapCandidates(sortedCandidates);
+      setMapPickerState(
+        sortedCandidates.some(isMapCandidateActionable) ? "ready" : "empty",
+      );
+    } catch {
+      setMapCandidates(createUnavailableMapCandidates());
+      setMapPickerState("failed");
+      setLastMessage("map-install-check-unavailable");
+    } finally {
+      setMapActionState("idle");
+    }
+  }
+
+  async function openMap(candidate: NativeCoreMapCandidate) {
+    if (!isMapCandidateActionable(candidate)) {
+      setLastMessage(candidate.reason ?? "map-install-check-unavailable");
+      return;
+    }
+
+    setMapPickerOpen(false);
+    setMapActionState("opening");
+    setLastMessage(null);
+
+    try {
+      const result = await runNativeActionWithWatchdog(() =>
+        nativeCore.openMapNavigation({
+          ...mapTarget,
+          appType: candidate.appType,
+          allowWebFallback: false,
+        }),
+      );
+
+      window.setTimeout(() => {
+        setLastMessage(result.ok ? null : (result.reason ?? "native-map-open-failed"));
+      }, nativeActionReturnSettleMs);
+    } catch (error) {
+      setLastMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setMapActionState("idle");
+    }
+  }
+
+  const displayMessage = getMapMessage(lastMessage, messages);
+
+  return (
+    <div className="space-y-5">
+      <SurfaceCard className="overflow-hidden">
+        <div className="space-y-4 px-4 py-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-foreground">{messages.mapTitle}</h2>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {messages.mapDescription}
+            </p>
+          </div>
+          <Button
+            className="w-full"
+            disabled={mapActionState !== "idle"}
+            onClick={detectMaps}
+            type="button"
+          >
+            {mapActionState === "checking"
+              ? messages.checkingShort
+              : mapActionState === "opening"
+                ? messages.openingShort
+                : messages.openMap}
+          </Button>
+        </div>
+      </SurfaceCard>
+
+      {displayMessage ? (
+        <p className="break-words rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
+          {displayMessage}
+        </p>
+      ) : null}
+
+      {mapPickerOpen ? (
+        <MapActionSheet
+          candidates={mapCandidates}
+          messages={messages}
+          onClose={() => setMapPickerOpen(false)}
+          onSelect={openMap}
+          state={mapPickerState}
+        />
+      ) : null}
+    </div>
+  );
+}
