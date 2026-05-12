@@ -128,6 +128,8 @@ export type AppMessages = {
     barcodeContentTypeLabels: Record<"url" | "email" | "phone" | "sms" | "wifi" | "geo" | "product" | "text", string>;
     notificationTitle: string;
     notificationDescription: string;
+    notificationSend: string;
+    notificationSent: string;
     diagnosticsTitle: string;
     diagnosticsDescription: string;
     permissionDescription: string;
@@ -345,7 +347,9 @@ const zhCN: AppMessages = {
       text: "文本",
     },
     notificationTitle: "通知",
-    notificationDescription: "发送一条本地通知。",
+    notificationDescription: "发送本地通知，并按系统策略申请通知权限。",
+    notificationSend: "发送通知",
+    notificationSent: "通知已发送。",
     diagnosticsTitle: "设备诊断",
     diagnosticsDescription: "查看运行环境、权限和系统状态。",
     permissionDescription: "权限由相关操作按需申请。",
@@ -393,7 +397,7 @@ const zhCN: AppMessages = {
     openDownloads: "客户端下载",
     downloadEntryDescription: "查看当前环境可下载的客户端安装包。",
     openDiagnostics: "设备诊断",
-    diagnosticsEntryDescription: "查看运行环境、权限和地图状态。",
+    diagnosticsEntryDescription: "查看设备能力状态。",
     opening: "处理中...",
     openingShort: "处理中",
     checkingShort: "检测中",
@@ -563,7 +567,9 @@ const enUS: AppMessages = {
       text: "Text",
     },
     notificationTitle: "Notifications",
-    notificationDescription: "Send a local notification.",
+    notificationDescription: "Send a local notification and request permission when required.",
+    notificationSend: "Send notification",
+    notificationSent: "Notification sent.",
     diagnosticsTitle: "Device Diagnostics",
     diagnosticsDescription: "Review runtime, permissions, and system status.",
     permissionDescription: "Permissions are requested by related actions.",
@@ -611,7 +617,7 @@ const enUS: AppMessages = {
     openDownloads: "Client downloads",
     downloadEntryDescription: "View downloadable client packages for this environment.",
     openDiagnostics: "Device diagnostics",
-    diagnosticsEntryDescription: "View runtime, permission, and map status.",
+    diagnosticsEntryDescription: "View device capability status.",
     opening: "Processing...",
     openingShort: "Processing",
     checkingShort: "Checking",

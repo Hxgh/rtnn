@@ -27,6 +27,10 @@ type ScannerState =
   | "stopping"
   | "failed";
 type ImageScanState = "idle" | "scanning";
+type StopScannerOptions = {
+  expected?: boolean;
+  preserveResult?: boolean;
+};
 
 function getResultTypeLabel(
   type: WebBarcodeScanResult["contentType"],
@@ -91,10 +95,12 @@ export function BarcodeScannerPanel({
   const [lastResult, setLastResult] = useState<WebBarcodeScanResult | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
 
-  const stopScanner = useCallback(async (options?: { expected?: boolean }) => {
+  const stopScanner = useCallback(async (options?: StopScannerOptions) => {
     if (options?.expected) {
       manualStopRef.current = true;
-      completedRef.current = true;
+      if (!options.preserveResult) {
+        completedRef.current = true;
+      }
       scanRunIdRef.current += 1;
       setErrorReason(null);
     }
@@ -136,7 +142,7 @@ export function BarcodeScannerPanel({
         setLastResult(normalizeWebBarcodeResult(decodedText, result));
         setErrorReason(null);
       });
-      await stopScanner();
+      await stopScanner({ expected: true, preserveResult: true });
     },
     [stopScanner],
   );
@@ -194,7 +200,7 @@ export function BarcodeScannerPanel({
 
       setErrorReason(error instanceof Error ? error.message : String(error));
       setState("failed");
-      await stopScanner();
+      await stopScanner({ expected: true });
     }
   }, [handleSuccess, state, stopScanner]);
 

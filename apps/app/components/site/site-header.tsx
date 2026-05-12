@@ -42,6 +42,8 @@ export function SiteHeader() {
             ? messages.nativeCapabilities.mapTitle
             : pathname.startsWith("/device-services/media")
             ? messages.nativeCapabilities.mediaTitle
+            : pathname.startsWith("/device-services/notification")
+            ? messages.nativeCapabilities.notificationTitle
             : pathname.startsWith("/device-services/scan")
             ? messages.nativeCapabilities.barcodeTitle
             : messages.nativeCapabilities.title

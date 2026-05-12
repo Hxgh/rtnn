@@ -39,6 +39,7 @@ const nativeCapabilitiesTitle = either("设备服务", "Device Services");
 const nativeScannerTitle = either("扫码", "Scan");
 const nativeMapTitle = either("地图导航", "Map navigation");
 const nativeMediaTitle = either("相机相册", "Camera and photos");
+const nativeNotificationTitle = either("通知", "Notifications");
 const nativeDiagnosticsTitle = either("设备诊断", "Device Diagnostics");
 
 const refreshTokenCookieName = cookieKeys.customerRefreshToken;
@@ -245,6 +246,7 @@ test("app 客户端最小闭环验收", async ({ page }) => {
   await expect(page.locator('a[href="/device-services/scan"]')).toContainText(nativeScannerTitle);
   await expect(page.locator('a[href="/device-services/map"]')).toContainText(nativeMapTitle);
   await expect(page.locator('a[href="/device-services/media"]')).toContainText(nativeMediaTitle);
+  await expect(page.locator('a[href="/device-services/notification"]')).toContainText(nativeNotificationTitle);
   await expect(page.locator('a[href="/native-diagnostics"]')).toContainText(nativeDiagnosticsTitle);
   await expect(page.locator("nav")).toHaveCount(0);
   await expectContentClearsViewportBottom(page, 'a[href="/native-diagnostics"]');
