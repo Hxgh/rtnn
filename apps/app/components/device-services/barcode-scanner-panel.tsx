@@ -5,7 +5,6 @@ import type {
   Html5QrcodeCameraScanConfig,
   Html5QrcodeResult,
 } from "html5-qrcode";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   clearScanner,
@@ -17,7 +16,7 @@ import {
   type WebBarcodeScanResult,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 
 type ScannerMessages = AppMessages["nativeCapabilities"];
@@ -71,10 +70,6 @@ function getScannerErrorMessage(reason: string | null, messages: ScannerMessages
   }
 
   return messages.failed;
-}
-
-function canOpenScanResult(result: WebBarcodeScanResult | null) {
-  return result?.contentType === "url";
 }
 
 export function BarcodeScannerPanel({
@@ -242,16 +237,6 @@ export function BarcodeScannerPanel({
     await navigator.clipboard?.writeText(lastResult.rawValue).catch(() => {});
   }
 
-  function openResult() {
-    const result = lastResult;
-
-    if (!result || result.contentType !== "url") {
-      return;
-    }
-
-    window.open(result.rawValue, "_blank", "noopener,noreferrer");
-  }
-
   return (
     <div className="space-y-5">
       <SurfaceCard className="overflow-hidden">
@@ -345,26 +330,14 @@ export function BarcodeScannerPanel({
             </p>
           ) : null}
           {lastResult ? (
-            <div className="grid grid-cols-2 gap-2">
-              <Button onClick={copyResult} type="button" variant="outline">
+            <div>
+              <Button className="w-full" onClick={copyResult} type="button" variant="outline">
                 {messages.barcodeCopyResult}
-              </Button>
-              <Button
-                disabled={!canOpenScanResult(lastResult)}
-                onClick={openResult}
-                type="button"
-                variant="outline"
-              >
-                {messages.barcodeOpenResult}
               </Button>
             </div>
           ) : null}
         </div>
       </SurfaceCard>
-
-      <Link className={buttonVariants({ variant: "ghost", className: "w-full" })} href="/device-services">
-        {messages.backToDeviceServices}
-      </Link>
     </div>
   );
 }

@@ -40,9 +40,7 @@ export function SiteHeader() {
             ? messages.nativeCapabilities.diagnosticsTitle
             : pathname.startsWith("/device-services/scan")
             ? messages.nativeCapabilities.barcodeTitle
-            : pathname.startsWith("/device-services/webview")
-              ? messages.nativeCapabilities.openInAppWebView
-              : messages.nativeCapabilities.title
+            : messages.nativeCapabilities.title
       : isDownloadPage
           ? messages.download.title
           : pathname.startsWith("/me")

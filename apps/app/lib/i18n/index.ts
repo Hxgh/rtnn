@@ -145,7 +145,6 @@ export type AppMessages = {
     barcodeScanning: string;
     barcodePrivacyHint: string;
     barcodeCopyResult: string;
-    barcodeOpenResult: string;
     barcodeStart: string;
     barcodeStop: string;
     barcodeResult: string;
@@ -188,7 +187,6 @@ export type AppMessages = {
     mapDetected: string;
     mapDetectedAvailable: string;
     mapNoInstalled: string;
-    mapReadyHint: string;
     mapUnknownCount: string;
     mapChecking: string;
     mapPickerTitle: string;
@@ -199,7 +197,6 @@ export type AppMessages = {
     mapPickerSafetyHint: string;
     mapVisibilityLimited: string;
     mapCheckUnavailable: string;
-    mapRefresh: string;
     mapOpenWith: string;
     mapOpenFailed: string;
     requestPermission: string;
@@ -207,9 +204,6 @@ export type AppMessages = {
     permissionActionDrivenShort: string;
     permissionRequestDone: string;
     openInAppWebView: string;
-    webviewDescription: string;
-    webviewCurrentPage: string;
-    webviewUnavailable: string;
     webviewLoadFailed: string;
     openExternal: string;
     openMap: string;
@@ -404,7 +398,6 @@ const zhCN: AppMessages = {
     barcodeScanning: "扫码中...",
     barcodePrivacyHint: "扫码识别在当前设备内完成，结果只回显在本页面。",
     barcodeCopyResult: "复制结果",
-    barcodeOpenResult: "打开链接",
     barcodeStart: "开始扫码",
     barcodeStop: "停止扫码",
     barcodeResult: "扫码结果",
@@ -456,7 +449,6 @@ const zhCN: AppMessages = {
     mapDetected: "地图应用状态",
     mapDetectedAvailable: "已检测到 {count} 个可用地图应用",
     mapNoInstalled: "未发现可用地图应用",
-    mapReadyHint: "可用于导航",
     mapUnknownCount: "无法检测",
     mapChecking: "正在检测地图应用",
     mapPickerTitle: "选择地图应用",
@@ -467,7 +459,6 @@ const zhCN: AppMessages = {
     mapPickerSafetyHint: "未安装或无法确认可用的应用不会被打开。",
     mapVisibilityLimited: "当前设备未识别到该地图应用。",
     mapCheckUnavailable: "当前无法读取地图应用状态。",
-    mapRefresh: "刷新",
     mapOpenWith: "继续",
     mapOpenFailed: "未能打开地图应用，请选择其他可用地图。",
     requestPermission: "请求权限",
@@ -475,9 +466,6 @@ const zhCN: AppMessages = {
     permissionActionDrivenShort: "按操作询问",
     permissionRequestDone: "权限请求已处理。",
     openInAppWebView: "打开页面",
-    webviewDescription: "在当前客户端内打开下载页。",
-    webviewCurrentPage: "应用内页面",
-    webviewUnavailable: "该链接暂不支持应用内打开。",
     webviewLoadFailed: "页面加载失败，请返回后重试或使用外部浏览器打开。",
     openExternal: "外部打开",
     openMap: "打开地图",
@@ -672,7 +660,6 @@ const enUS: AppMessages = {
     barcodeScanning: "Scanning...",
     barcodePrivacyHint: "Scanning runs on this device and the result is only shown on this page.",
     barcodeCopyResult: "Copy result",
-    barcodeOpenResult: "Open link",
     barcodeStart: "Start scan",
     barcodeStop: "Stop scan",
     barcodeResult: "Scan result",
@@ -724,7 +711,6 @@ const enUS: AppMessages = {
     mapDetected: "Map app status",
     mapDetectedAvailable: "{count} available map apps detected",
     mapNoInstalled: "No available map app found",
-    mapReadyHint: "Ready for navigation",
     mapUnknownCount: "Unknown",
     mapChecking: "Checking map apps",
     mapPickerTitle: "Choose Map App",
@@ -735,7 +721,6 @@ const enUS: AppMessages = {
     mapPickerSafetyHint: "Apps that are not installed or cannot be confirmed are not opened.",
     mapVisibilityLimited: "This map app was not detected on this device.",
     mapCheckUnavailable: "Map app status could not be read.",
-    mapRefresh: "Refresh",
     mapOpenWith: "Continue",
     mapOpenFailed: "The map app could not be opened. Choose another available app.",
     requestPermission: "Request permission",
@@ -743,9 +728,6 @@ const enUS: AppMessages = {
     permissionActionDrivenShort: "On action",
     permissionRequestDone: "Permission request handled.",
     openInAppWebView: "Open page",
-    webviewDescription: "Open the downloads page inside the current client.",
-    webviewCurrentPage: "In-app page",
-    webviewUnavailable: "This link cannot be opened in app.",
     webviewLoadFailed: "The page failed to load. Go back and retry or open it externally.",
     openExternal: "Open externally",
     openMap: "Open map",

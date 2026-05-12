@@ -247,7 +247,7 @@ test("app native core separates external open from in-app webview", async () => 
       ["openExternal", "https://example.com/download"],
     ]);
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      "https://app.testing.rtnn.soolan.xyz/download",
     ]);
   } finally {
     globalThis.window = originalWindow;
@@ -276,14 +276,14 @@ test("app native core opens generic app URL inside the shell", async () => {
     });
     assert.deepEqual(calls, []);
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      "https://app.testing.rtnn.soolan.xyz/download",
     ]);
   } finally {
     globalThis.window = originalWindow;
   }
 });
 
-test("app native core opens same-origin URLs through the in-app webview route", async () => {
+test("app native core opens same-origin URLs inside the shell", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];
   const assigned = [];
@@ -304,7 +304,7 @@ test("app native core opens same-origin URLs through the in-app webview route", 
       message: "opened-in-app-webview",
     });
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      "https://app.testing.rtnn.soolan.xyz/download",
     ]);
     assert.deepEqual(calls, []);
   } finally {
@@ -364,7 +364,7 @@ test("app native core accepts same-origin relative in-app webview URLs", async (
       reason: "webview-url-not-allowed",
     });
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/device-services/webview?url=https%3A%2F%2Fapp.testing.rtnn.soolan.xyz%2Fdownload",
+      "https://app.testing.rtnn.soolan.xyz/download",
     ]);
     assert.deepEqual(calls, []);
   } finally {

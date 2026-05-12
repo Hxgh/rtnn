@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 type Messages = AppMessages["nativeCapabilities"];
 type ActionState = "idle" | "checking" | "opening";
-type DeviceFeatureIconKind = "scan" | "map" | "download";
+type DeviceFeatureIconKind = "scan" | "map" | "download" | "diagnostics";
 type MapPickerState = "idle" | "checking" | "ready" | "empty" | "failed";
 
 const mapTarget = {
@@ -98,7 +98,7 @@ function getMapCandidateHint(
   messages: Messages,
 ) {
   if (candidate.status === "installed") {
-    return messages.mapReadyHint;
+    return null;
   }
 
   if (candidate.status === "not-installed") {
@@ -237,6 +237,7 @@ function MapActionSheet({
           ) : null}
           {visibleCandidates.map((candidate) => {
             const disabled = !isMapCandidateActionable(candidate);
+            const hint = getMapCandidateHint(candidate, messages);
 
             return (
               <button
@@ -257,9 +258,11 @@ function MapActionSheet({
                     <span className="block truncate text-sm font-medium">
                       {candidate.label}
                     </span>
-                    <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                      {getMapCandidateHint(candidate, messages)}
-                    </span>
+                    {hint ? (
+                      <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                        {hint}
+                      </span>
+                    ) : null}
                   </span>
                 </span>
                 <span
@@ -298,10 +301,17 @@ function FeatureIcon({
       <span aria-hidden="true" className="relative block size-4 rounded-full border border-current">
         <span className="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-current" />
       </span>
-    ) : (
+    ) : kind === "download" ? (
       <span aria-hidden="true" className="relative block h-4 w-3 rounded-[2px] border border-current">
         <span className="absolute left-1/2 top-2 h-1.5 w-px -translate-x-1/2 bg-current" />
         <span className="absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rotate-45 border-b border-r border-current" />
+      </span>
+    ) : (
+      <span aria-hidden="true" className="grid size-4 grid-cols-2 gap-1">
+        <span className="rounded-full bg-current" />
+        <span className="rounded-full bg-current" />
+        <span className="rounded-full bg-current" />
+        <span className="rounded-full bg-current" />
       </span>
     );
 
@@ -441,15 +451,14 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
             icon={<FeatureIcon kind="download" label={messages.openDownloads} />}
             title={messages.openDownloads}
           />
+          <ActionRowLink
+            description={messages.diagnosticsEntryDescription}
+            href="/native-diagnostics"
+            icon={<FeatureIcon kind="diagnostics" label={messages.openDiagnostics} />}
+            title={messages.openDiagnostics}
+          />
         </div>
       </SurfaceCard>
-
-      <ActionRowLink
-        className="rounded-2xl border border-border/70 bg-card px-4 py-3"
-        description={messages.diagnosticsEntryDescription}
-        href="/native-diagnostics"
-        title={messages.openDiagnostics}
-      />
 
       {displayMessage ? (
         <p className="break-words rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">

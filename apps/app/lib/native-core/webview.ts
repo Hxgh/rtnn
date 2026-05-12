@@ -23,16 +23,7 @@ export function buildInAppWebViewUrl(url: string) {
     return null;
   }
 
-  if (
-    current.pathname === "/device-services/webview" &&
-    current.searchParams.get("url") === target.toString()
-  ) {
-    return current.toString();
-  }
-
-  const webviewUrl = new URL("/device-services/webview", current.origin);
-  webviewUrl.searchParams.set("url", target.toString());
-  return webviewUrl.toString();
+  return target.toString();
 }
 
 export function navigateToInAppWebView(url: string): NativeBridgeActionResult {
