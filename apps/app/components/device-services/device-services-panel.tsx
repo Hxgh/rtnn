@@ -9,7 +9,6 @@ import {
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
 import { ActionRowLink } from "@/components/site/action-row";
-import { Button } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -395,41 +394,22 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 rounded-full border px-2 py-1 text-[11px]",
+                        "shrink-0 text-sm",
                         isMapCandidateActionable(candidate)
-                          ? "border-border bg-secondary text-foreground"
-                          : "border-transparent bg-transparent text-muted-foreground",
+                          ? "text-foreground"
+                          : "text-muted-foreground",
                       )}
+                      aria-hidden="true"
                     >
                       {mapPickerState === "checking"
                         ? messages.mapChecking
-                        : getMapInstallLabel(candidate.status, messages)}
+                        : isMapCandidateActionable(candidate)
+                          ? "›"
+                          : getMapInstallLabel(candidate.status, messages)}
                     </span>
                   </button>
                 );
               })}
-            </div>
-
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              {messages.mapPickerSafetyHint}
-            </p>
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Button
-                disabled={mapPickerState === "checking"}
-                onClick={detectMaps}
-                type="button"
-                variant="outline"
-              >
-                {mapPickerState === "checking" ? messages.opening : messages.mapRefresh}
-              </Button>
-              <Button
-                onClick={() => setMapPickerOpen(false)}
-                type="button"
-                variant="ghost"
-              >
-                {messages.close}
-              </Button>
             </div>
           </div>
         </div>

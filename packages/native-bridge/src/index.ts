@@ -1214,6 +1214,48 @@ function isTauriBarcodePluginUnavailable(reason: string) {
   );
 }
 
+const tauriBarcodeFormatsByInput: Record<string, string> = {
+  qr_code: "QR_CODE",
+  qrcode: "QR_CODE",
+  qr: "QR_CODE",
+  aztec: "AZTEC",
+  codabar: "CODABAR",
+  code_39: "CODE_39",
+  code39: "CODE_39",
+  code_93: "CODE_93",
+  code93: "CODE_93",
+  code_128: "CODE_128",
+  code128: "CODE_128",
+  data_matrix: "DATA_MATRIX",
+  datamatrix: "DATA_MATRIX",
+  ean_8: "EAN_8",
+  ean8: "EAN_8",
+  ean_13: "EAN_13",
+  ean13: "EAN_13",
+  itf: "ITF",
+  pdf417: "PDF_417",
+  pdf_417: "PDF_417",
+  upc_a: "UPC_A",
+  upca: "UPC_A",
+  upc_e: "UPC_E",
+  upce: "UPC_E",
+};
+
+function normalizeTauriBarcodeFormats(formats: string[] | undefined) {
+  if (!formats?.length) {
+    return undefined;
+  }
+
+  const normalized = formats
+    .map((format) => {
+      const value = String(format).trim();
+      return tauriBarcodeFormatsByInput[value.toLowerCase()] ?? value;
+    })
+    .filter(Boolean);
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 async function scanBarcodeWithTauriPlugin(
   invoke: TauriInvoke,
   input: NativeBarcodeScanInput = {},
@@ -1224,7 +1266,7 @@ async function scanBarcodeWithTauriPlugin(
 
   try {
     const result = await invoke("plugin:barcode-scanner|scan", {
-      formats: input.formats,
+      formats: normalizeTauriBarcodeFormats(input.formats),
       windowed: false,
       cameraDirection: "back",
     });

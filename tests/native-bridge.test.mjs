@@ -959,6 +959,36 @@ test("detected Tauri bridge prefers barcode plugin for camera scan", async () =>
   assert.deepEqual(calls, [["invoke", "plugin:barcode-scanner|scan"]]);
 });
 
+test("detected Tauri bridge maps barcode formats to plugin enum values", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    invoke: async (command, args) => {
+      calls.push(["invoke", command, args]);
+      return {
+        content: "plugin",
+        format: "QR_CODE",
+      };
+    },
+  });
+
+  assert.equal(
+    (await bridge.scanBarcode({ formats: ["qr_code", "ean_13", "CODE_128"] }))
+      .codes[0].rawValue,
+    "plugin",
+  );
+  assert.deepEqual(calls, [
+    [
+      "invoke",
+      "plugin:barcode-scanner|scan",
+      {
+        formats: ["QR_CODE", "EAN_13", "CODE_128"],
+        windowed: false,
+        cameraDirection: "back",
+      },
+    ],
+  ]);
+});
+
 test("detected Tauri bridge uses Android barcode bridge for image scan", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({

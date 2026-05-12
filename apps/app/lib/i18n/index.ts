@@ -141,6 +141,8 @@ export type AppMessages = {
     barcodeCameraTitle: string;
     barcodeCameraDescription: string;
     barcodeCameraIdle: string;
+    barcodeNativeIdle: string;
+    barcodeScanning: string;
     barcodePrivacyHint: string;
     barcodeCopyResult: string;
     barcodeOpenResult: string;
@@ -397,6 +399,8 @@ const zhCN: AppMessages = {
     barcodeCameraTitle: "相机扫码",
     barcodeCameraDescription: "使用相机取景框识别二维码和条形码，识别成功后自动停止。",
     barcodeCameraIdle: "点击开始后请求相机权限",
+    barcodeNativeIdle: "点击开始后打开系统扫码界面",
+    barcodeScanning: "扫码中...",
     barcodePrivacyHint: "扫码识别在当前设备内完成，结果只回显在本页面。",
     barcodeCopyResult: "复制结果",
     barcodeOpenResult: "打开链接",
@@ -456,14 +460,14 @@ const zhCN: AppMessages = {
     mapPickerTitle: "选择地图应用",
     mapPickerDescription: "选择一个已安装的地图应用继续导航。",
     mapPickerCheckingDescription: "正在检测当前设备可用的地图应用。",
-    mapPickerEmptyDescription: "未发现已安装的地图应用，请安装后重新检测。",
-    mapPickerFailedDescription: "暂时无法读取地图应用状态，请重新检测。",
+    mapPickerEmptyDescription: "当前设备未识别到可用地图应用。",
+    mapPickerFailedDescription: "当前无法读取地图应用状态。",
     mapPickerSafetyHint: "未安装或无法确认可用的应用不会被打开。",
-    mapVisibilityLimited: "当前客户端暂未识别到该应用。",
-    mapCheckUnavailable: "未能读取地图应用状态，请重新检测。",
-    mapRefresh: "重新检测",
+    mapVisibilityLimited: "当前设备未识别到该地图应用。",
+    mapCheckUnavailable: "当前无法读取地图应用状态。",
+    mapRefresh: "检测可用应用",
     mapOpenWith: "打开",
-    mapOpenFailed: "地图应用打开失败，请重新检测后选择可用应用。",
+    mapOpenFailed: "未能打开地图应用，请选择其他可用地图。",
     requestPermission: "请求权限",
     permissionActionDriven: "该权限会在对应操作时由系统询问。",
     permissionActionDrivenShort: "按操作询问",
@@ -662,6 +666,8 @@ const enUS: AppMessages = {
     barcodeCameraTitle: "Camera scan",
     barcodeCameraDescription: "Use the camera viewfinder to read QR codes and barcodes. Scanning stops after a match.",
     barcodeCameraIdle: "Start scanning to request camera access",
+    barcodeNativeIdle: "Start scanning to open the system scanner",
+    barcodeScanning: "Scanning...",
     barcodePrivacyHint: "Scanning runs on this device and the result is only shown on this page.",
     barcodeCopyResult: "Copy result",
     barcodeOpenResult: "Open link",
@@ -721,14 +727,14 @@ const enUS: AppMessages = {
     mapPickerTitle: "Choose Map App",
     mapPickerDescription: "Choose an installed map app to continue navigation.",
     mapPickerCheckingDescription: "Checking available map apps on this device.",
-    mapPickerEmptyDescription: "No installed map app was found. Install one and refresh.",
-    mapPickerFailedDescription: "Map app status cannot be read right now. Refresh and retry.",
+    mapPickerEmptyDescription: "No available map app was detected on this device.",
+    mapPickerFailedDescription: "Map app status cannot be read right now.",
     mapPickerSafetyHint: "Apps that are not installed or cannot be confirmed are not opened.",
-    mapVisibilityLimited: "The client has not detected this app.",
-    mapCheckUnavailable: "Map app status could not be read. Refresh and retry.",
-    mapRefresh: "Refresh",
+    mapVisibilityLimited: "This map app was not detected on this device.",
+    mapCheckUnavailable: "Map app status could not be read.",
+    mapRefresh: "Check apps",
     mapOpenWith: "Open",
-    mapOpenFailed: "The map app could not be opened. Refresh and choose an available app.",
+    mapOpenFailed: "The map app could not be opened. Choose another available app.",
     requestPermission: "Request permission",
     permissionActionDriven: "This permission is requested by the system when the related action runs.",
     permissionActionDrivenShort: "On action",
