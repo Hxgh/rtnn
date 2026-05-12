@@ -335,6 +335,9 @@ type TauriGlobalScope = {
     };
     invoke?: TauriInvoke;
     barcodeScanner?: {
+      checkPermissions?: () => Promise<unknown>;
+      requestPermissions?: () => Promise<unknown>;
+      openAppSettings?: () => Promise<void>;
       scan?: (options?: {
         cameraDirection?: "back" | "front";
         formats?: string[];
@@ -1214,6 +1217,31 @@ function isTauriBarcodePluginUnavailable(reason: string) {
   );
 }
 
+function normalizeTauriBarcodePermission(value: unknown) {
+  if (typeof value === "string") {
+    return normalizePermissionStatus(value);
+  }
+
+  if (value && typeof value === "object") {
+    const permission = value as { camera?: unknown; status?: unknown; ok?: unknown };
+    const status = normalizePermissionStatus(permission.camera ?? permission.status);
+
+    if (status !== "unknown") {
+      return status;
+    }
+
+    if (permission.ok === true) {
+      return "granted";
+    }
+
+    if (permission.ok === false) {
+      return "denied";
+    }
+  }
+
+  return "unknown";
+}
+
 const tauriBarcodeFormatsByInput: Record<string, string> = {
   qr_code: "QR_CODE",
   qrcode: "QR_CODE",
@@ -1259,17 +1287,49 @@ function normalizeTauriBarcodeFormats(formats: string[] | undefined) {
 async function scanBarcodeWithTauriPlugin(
   invoke: TauriInvoke,
   input: NativeBarcodeScanInput = {},
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
 ): Promise<NativeBarcodeScanResult | null> {
   if (input.source === "image") {
     return null;
   }
 
   try {
-    const result = await invoke("plugin:barcode-scanner|scan", {
-      formats: normalizeTauriBarcodeFormats(input.formats),
+    const scanner = globalScope?.__TAURI__?.barcodeScanner;
+    const formats = normalizeTauriBarcodeFormats(input.formats);
+    const scanOptions = {
+      formats,
       windowed: false,
-      cameraDirection: "back",
-    });
+      cameraDirection: "back" as const,
+    };
+
+    const checked =
+      typeof scanner?.checkPermissions === "function"
+        ? normalizeTauriBarcodePermission(await scanner.checkPermissions())
+        : normalizeTauriBarcodePermission(
+            await invoke("plugin:barcode-scanner|check_permissions"),
+          );
+
+    if (checked !== "granted") {
+      const requested =
+        typeof scanner?.requestPermissions === "function"
+          ? normalizeTauriBarcodePermission(await scanner.requestPermissions())
+          : normalizeTauriBarcodePermission(
+              await invoke("plugin:barcode-scanner|request_permissions"),
+            );
+
+      if (requested !== "granted") {
+        return {
+          ok: false,
+          reason: "camera-permission-denied",
+          codes: [],
+        };
+      }
+    }
+
+    const result =
+      typeof scanner?.scan === "function"
+        ? await scanner.scan(scanOptions)
+        : await invoke("plugin:barcode-scanner|scan", scanOptions);
 
     return normalizeTauriBarcodePluginResult(result);
   } catch (error) {
@@ -2072,7 +2132,7 @@ export function createBrowserNativeBridge(
     async scanBarcode(input) {
       const tauriInvoke = getTauriInvoke(globalScope);
       const pluginResult = tauriInvoke
-        ? await scanBarcodeWithTauriPlugin(tauriInvoke, input)
+        ? await scanBarcodeWithTauriPlugin(tauriInvoke, input, globalScope)
         : null;
       if (pluginResult) {
         return pluginResult;
@@ -2944,9 +3004,21 @@ export function createDetectedTauriNativeBridge(
     },
 
     async scanBarcode(input) {
-      const pluginResult = await scanBarcodeWithTauriPlugin(options.invoke, input);
+      const pluginResult = await scanBarcodeWithTauriPlugin(
+        options.invoke,
+        input,
+        globalScope,
+      );
       if (pluginResult) {
         return pluginResult;
+      }
+
+      if (input?.source !== "image") {
+        return {
+          ok: false,
+          reason: "barcode-scanner-native-unavailable",
+          codes: [],
+        };
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input, globalScope);
@@ -3236,6 +3308,14 @@ export function createTauriNativeBridge(
       const pluginResult = await scanBarcodeWithTauriPlugin(options.invoke, input);
       if (pluginResult) {
         return pluginResult;
+      }
+
+      if (input?.source !== "image") {
+        return {
+          ok: false,
+          reason: "barcode-scanner-native-unavailable",
+          codes: [],
+        };
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input);

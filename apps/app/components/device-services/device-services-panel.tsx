@@ -66,6 +66,21 @@ function createFallbackMapCandidates(reason = "map-install-check-unavailable") {
   }));
 }
 
+function createCheckingMapCandidates() {
+  return [
+    { appType: "amap" as const, label: "高德地图" },
+    { appType: "baidu" as const, label: "百度地图" },
+    { appType: "tencent" as const, label: "腾讯地图" },
+  ].map((item) => ({
+    ...item,
+    ok: true,
+    installed: null,
+    status: "unknown" as const,
+    available: false,
+    reason: "map-install-checking",
+  }));
+}
+
 function sortMapCandidates(candidates: NativeCoreMapCandidate[]) {
   return [...candidates].sort(
     (left, right) =>
@@ -110,6 +125,10 @@ function getMapCandidateHint(
 
   if (candidate.status === "unsupported") {
     return messages.mapUnsupported;
+  }
+
+  if (candidate.reason === "map-install-checking") {
+    return messages.mapChecking;
   }
 
   return messages.mapUnavailable;
@@ -229,8 +248,8 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
     setLastMessage(null);
     setMapActionState("checking");
     setMapPickerState("checking");
-    setMapCandidates([]);
-    setMapPickerOpen(false);
+    setMapCandidates(createCheckingMapCandidates());
+    setMapPickerOpen(true);
 
     try {
       const candidates = await withTimeout(
@@ -362,9 +381,9 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
               </p>
             </div>
 
-            <div className="mt-4 divide-y divide-border/70 rounded-2xl border border-border/70 bg-card">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card">
               {sortMapCandidates(
-                mapCandidates.length > 0 ? mapCandidates : createFallbackMapCandidates(),
+                mapCandidates.length > 0 ? mapCandidates : createCheckingMapCandidates(),
               ).map((candidate) => {
                 const disabled =
                   mapPickerState === "checking" || !isMapCandidateActionable(candidate);
@@ -372,10 +391,10 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                 return (
                   <button
                     className={cn(
-                      "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left first:rounded-t-2xl last:rounded-b-2xl",
+                      "flex min-h-14 w-full items-center justify-between gap-3 border-b border-border/70 px-4 py-3 text-left last:border-b-0",
                       disabled
-                        ? "cursor-not-allowed text-muted-foreground"
-                        : "text-foreground active:bg-secondary",
+                        ? "cursor-not-allowed bg-card text-muted-foreground"
+                        : "bg-card text-foreground active:bg-secondary",
                     )}
                     disabled={disabled}
                     key={candidate.appType}
@@ -394,12 +413,11 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 text-sm",
+                        "shrink-0 text-xs",
                         isMapCandidateActionable(candidate)
                           ? "text-foreground"
                           : "text-muted-foreground",
                       )}
-                      aria-hidden="true"
                     >
                       {mapPickerState === "checking"
                         ? messages.mapChecking

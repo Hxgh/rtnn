@@ -926,6 +926,21 @@ test("detected Tauri bridge prefers barcode plugin for camera scan", async () =>
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
     globalScope: {
+      __TAURI__: {
+        barcodeScanner: {
+          async checkPermissions() {
+            calls.push(["barcodeScanner.checkPermissions"]);
+            return "granted";
+          },
+          async scan(options) {
+            calls.push(["barcodeScanner.scan", options]);
+            return {
+              content: "plugin",
+              format: { name: "QR_CODE" },
+            };
+          },
+        },
+      },
       AndroidBarcode: {
         scanBarcode() {
           calls.push(["AndroidBarcode.scanBarcode"]);
@@ -935,13 +950,6 @@ test("detected Tauri bridge prefers barcode plugin for camera scan", async () =>
     },
     invoke: async (command) => {
       calls.push(["invoke", command]);
-      if (command === "plugin:barcode-scanner|scan") {
-        return {
-          content: "plugin",
-          format: { name: "qr_code" },
-        };
-      }
-
       return { ok: true, codes: [{ rawValue: "command" }] };
     },
   });
@@ -952,11 +960,75 @@ test("detected Tauri bridge prefers barcode plugin for camera scan", async () =>
     codes: [
       {
         rawValue: "plugin",
-        format: "qr_code",
+        format: "QR_CODE",
       },
     ],
   });
-  assert.deepEqual(calls, [["invoke", "plugin:barcode-scanner|scan"]]);
+  assert.deepEqual(calls, [
+    ["barcodeScanner.checkPermissions"],
+    [
+      "barcodeScanner.scan",
+      {
+        formats: undefined,
+        windowed: false,
+        cameraDirection: "back",
+      },
+    ],
+  ]);
+});
+
+test("detected Tauri bridge requests barcode permission before camera scan", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      __TAURI__: {
+        barcodeScanner: {
+          async checkPermissions() {
+            calls.push(["barcodeScanner.checkPermissions"]);
+            return "prompt";
+          },
+          async requestPermissions() {
+            calls.push(["barcodeScanner.requestPermissions"]);
+            return "granted";
+          },
+          async scan(options) {
+            calls.push(["barcodeScanner.scan", options]);
+            return {
+              content: "plugin",
+              format: "QR_CODE",
+            };
+          },
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode(), {
+    ok: true,
+    reason: undefined,
+    codes: [
+      {
+        rawValue: "plugin",
+        format: "QR_CODE",
+      },
+    ],
+  });
+  assert.deepEqual(calls, [
+    ["barcodeScanner.checkPermissions"],
+    ["barcodeScanner.requestPermissions"],
+    [
+      "barcodeScanner.scan",
+      {
+        formats: undefined,
+        windowed: false,
+        cameraDirection: "back",
+      },
+    ],
+  ]);
 });
 
 test("detected Tauri bridge maps barcode formats to plugin enum values", async () => {
@@ -964,6 +1036,10 @@ test("detected Tauri bridge maps barcode formats to plugin enum values", async (
   const bridge = createDetectedTauriNativeBridge({
     invoke: async (command, args) => {
       calls.push(["invoke", command, args]);
+      if (command === "plugin:barcode-scanner|check_permissions") {
+        return { camera: "granted" };
+      }
+
       return {
         content: "plugin",
         format: "QR_CODE",
@@ -977,6 +1053,11 @@ test("detected Tauri bridge maps barcode formats to plugin enum values", async (
     "plugin",
   );
   assert.deepEqual(calls, [
+    [
+      "invoke",
+      "plugin:barcode-scanner|check_permissions",
+      undefined,
+    ],
     [
       "invoke",
       "plugin:barcode-scanner|scan",
@@ -1043,6 +1124,10 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
     },
     invoke: async (command) => {
       calls.push(["invoke", command]);
+      if (command === "plugin:barcode-scanner|check_permissions") {
+        return { camera: "granted" };
+      }
+
       if (command === "plugin:barcode-scanner|scan") {
         throw new Error("plugin:barcode-scanner not initialized");
       }
@@ -1052,21 +1137,13 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
   });
 
   assert.deepEqual(await bridge.scanBarcode({ source: "camera", timeoutMs: 2000 }), {
-    ok: true,
-    message: undefined,
-    reason: undefined,
-    dispatched: undefined,
-    codes: [
-      {
-        rawValue: "android",
-        format: "qr_code",
-      },
-    ],
-    files: undefined,
+    ok: false,
+    reason: "barcode-scanner-native-unavailable",
+    codes: [],
   });
   assert.deepEqual(calls, [
+    ["invoke", "plugin:barcode-scanner|check_permissions"],
     ["invoke", "plugin:barcode-scanner|scan"],
-    ["AndroidBarcode.scanBarcode", { source: "camera", timeoutMs: 2000 }],
   ]);
 });
 
@@ -1076,6 +1153,10 @@ test("detected Tauri bridge uses barcode plugin when Android barcode bridge is m
     globalScope: {},
     invoke: async (command) => {
       calls.push(["invoke", command]);
+      if (command === "plugin:barcode-scanner|check_permissions") {
+        return { camera: "granted" };
+      }
+
       if (command === "plugin:barcode-scanner|scan") {
         return {
           content: "plugin",
@@ -1097,7 +1178,10 @@ test("detected Tauri bridge uses barcode plugin when Android barcode bridge is m
       },
     ],
   });
-  assert.deepEqual(calls, [["invoke", "plugin:barcode-scanner|scan"]]);
+  assert.deepEqual(calls, [
+    ["invoke", "plugin:barcode-scanner|check_permissions"],
+    ["invoke", "plugin:barcode-scanner|scan"],
+  ]);
 });
 
 test("image barcode scan skips camera plugin and uses Android image source directly", async () => {

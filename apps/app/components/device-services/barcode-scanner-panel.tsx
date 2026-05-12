@@ -61,6 +61,10 @@ function getScannerErrorMessage(reason: string | null, messages: ScannerMessages
     return messages.barcodeNoResult;
   }
 
+  if (reason === "barcode-scanner-native-unavailable") {
+    return messages.barcodeNativeUnavailable;
+  }
+
   if (reason === "barcode-detector-unavailable" || reason === "barcode-image-unsupported") {
     return messages.barcodeImageUnsupported;
   }

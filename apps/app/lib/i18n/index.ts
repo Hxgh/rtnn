@@ -154,6 +154,7 @@ export type AppMessages = {
     barcodeContentType: string;
     barcodeFormat: string;
     barcodeCameraDenied: string;
+    barcodeNativeUnavailable: string;
     barcodeImageUnsupported: string;
     barcodeContentTypeLabels: Record<"url" | "email" | "phone" | "sms" | "wifi" | "geo" | "product" | "text", string>;
     notificationTitle: string;
@@ -412,6 +413,7 @@ const zhCN: AppMessages = {
     barcodeContentType: "类型",
     barcodeFormat: "码制",
     barcodeCameraDenied: "相机权限未开启，请允许访问相机后重试。",
+    barcodeNativeUnavailable: "当前客户端未启用原生扫码能力，请更新安装包后重试。",
     barcodeImageUnsupported: "当前环境不支持图片识别，请使用相机扫码。",
     barcodeContentTypeLabels: {
       url: "网页链接",
@@ -679,6 +681,7 @@ const enUS: AppMessages = {
     barcodeContentType: "Type",
     barcodeFormat: "Format",
     barcodeCameraDenied: "Camera permission is not enabled. Allow camera access and retry.",
+    barcodeNativeUnavailable: "Native scanning is not enabled in this client. Update the app package and retry.",
     barcodeImageUnsupported: "Image scanning is not supported in this environment. Use camera scan instead.",
     barcodeContentTypeLabels: {
       url: "Web URL",
