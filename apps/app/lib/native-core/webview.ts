@@ -45,7 +45,11 @@ export function navigateToInAppWebView(url: string): NativeBridgeActionResult {
     };
   }
 
-  window.location.assign(webviewUrl);
+  if (typeof window.location.assign === "function") {
+    window.location.assign(webviewUrl);
+  } else {
+    window.location.href = webviewUrl;
+  }
   return {
     ok: true,
     message: "opened-in-app-webview",
@@ -56,14 +60,6 @@ export async function openInAppWebView(
   nativeBridge: NativeBridge,
   url: string,
 ): Promise<NativeBridgeActionResult> {
-  const webviewUrl = buildInAppWebViewUrl(url);
-
-  if (!webviewUrl) {
-    return {
-      ok: false,
-      reason: "webview-url-not-allowed",
-    };
-  }
-
-  return nativeBridge.openInAppWebView({ url: webviewUrl });
+  void nativeBridge;
+  return navigateToInAppWebView(url);
 }

@@ -412,6 +412,7 @@ import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -538,25 +539,50 @@ class MainActivity : TauriActivity() {
         webView.addJavascriptInterface(BarcodeBridge(), "AndroidBarcode")
         webView.addJavascriptInterface(NotificationBridge(), "AndroidNotification")
         webView.addJavascriptInterface(DiagnosticsBridge(), "AndroidDiagnostics")
+        webView.webViewClient = object : WebViewClient() {
+          override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+            val uri = request?.url ?: return false
+            val scheme = uri.scheme ?: return false
+
+            if (scheme == "http" || scheme == "https" || scheme == "file" || scheme == "tauri") {
+              return false
+            }
+
+            return try {
+              val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              }
+
+              if (canResolveIntent(intent)) {
+                startActivity(intent)
+              }
+              true
+            } catch (_: Exception) {
+              true
+            }
+          }
+        }
         webView.webChromeClient = object : WebChromeClient() {
           override fun onPermissionRequest(request: PermissionRequest?) {
             val resources = request?.resources ?: emptyArray()
             val needsCamera = resources.any { it == PermissionRequest.RESOURCE_VIDEO_CAPTURE }
 
-            if (!needsCamera) {
-              request?.deny()
-              return
-            }
+            runOnUiThread {
+              if (!needsCamera) {
+                request?.deny()
+                return@runOnUiThread
+              }
 
-            if (isPermissionGranted("camera")) {
-              request?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
-              return
-            }
+              if (isPermissionGranted("camera")) {
+                request?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                return@runOnUiThread
+              }
 
-            pendingWebChromePermissionRequest?.deny()
-            pendingWebChromePermissionRequest = request
-            pendingPermissionKind = "camera"
-            nativePermissionLauncher.launch(Manifest.permission.CAMERA)
+              pendingWebChromePermissionRequest?.deny()
+              pendingWebChromePermissionRequest = request
+              pendingPermissionKind = "camera"
+              nativePermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
           }
 
           override fun onPermissionRequestCanceled(request: PermissionRequest?) {
@@ -608,6 +634,7 @@ class MainActivity : TauriActivity() {
         type = "image/*"
         putExtra(Intent.EXTRA_ALLOW_MULTIPLE, nativeMediaMaxFiles > 1)
         addCategory(Intent.CATEGORY_OPENABLE)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       }
       val chooserIntent = Intent.createChooser(galleryIntent, "选择图片")
 
@@ -789,6 +816,22 @@ class MainActivity : TauriActivity() {
     return findWebView(window.decorView)
   }
 
+  private fun canResolveIntent(intent: Intent): Boolean {
+    return try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        packageManager.queryIntentActivities(
+          intent,
+          PackageManager.ResolveInfoFlags.of(0)
+        ).isNotEmpty()
+      } else {
+        @Suppress("DEPRECATION")
+        packageManager.queryIntentActivities(intent, 0).isNotEmpty()
+      }
+    } catch (_: Exception) {
+      false
+    }
+  }
+
   inner class MapBridge {
     @JavascriptInterface
     fun isAppInstalled(packageName: String): Boolean {
@@ -852,22 +895,6 @@ class MainActivity : TauriActivity() {
         result.put("ok", false)
         result.put("reason", error.javaClass.simpleName)
         result.toString()
-      }
-    }
-
-    private fun canResolveIntent(intent: Intent): Boolean {
-      return try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-          packageManager.queryIntentActivities(
-            intent,
-            PackageManager.ResolveInfoFlags.of(0)
-          ).isNotEmpty()
-        } else {
-          @Suppress("DEPRECATION")
-          packageManager.queryIntentActivities(intent, 0).isNotEmpty()
-        }
-      } catch (_: Exception) {
-        false
       }
     }
 

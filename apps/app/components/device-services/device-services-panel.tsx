@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   createAppNativeCore,
   runNativeActionWithWatchdog,
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type Messages = AppMessages["nativeCapabilities"];
 type ActionState = "idle" | "checking" | "opening";
 type DeviceFeatureIconKind = "scan" | "map" | "download";
+type MapPickerState = "idle" | "checking" | "ready" | "empty";
 
 const mapTarget = {
   lat: 30.2741,
@@ -89,7 +90,7 @@ function getMapInstallLabel(status: NativeCoreMapCandidate["status"], messages: 
     return messages.mapUnsupported;
   }
 
-  return messages.mapNotInstalled;
+  return messages.mapUnavailable;
 }
 
 function getMapCandidateHint(
@@ -210,9 +211,11 @@ function FeatureIcon({
 
 export function DeviceServicesPanel({ messages }: { messages: Messages }) {
   const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
+  const mapCandidatesCacheRef = useRef<NativeCoreMapCandidate[] | null>(null);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [mapCandidates, setMapCandidates] = useState<NativeCoreMapCandidate[]>([]);
   const [mapActionState, setMapActionState] = useState<ActionState>("idle");
+  const [mapPickerState, setMapPickerState] = useState<MapPickerState>("idle");
   const [lastMessage, setLastMessage] = useState<string | null>(null);
 
   async function detectMaps() {
@@ -222,8 +225,22 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
 
     setLastMessage(null);
     setMapActionState("checking");
-    setMapCandidates([]);
+    setMapPickerState("checking");
     setMapPickerOpen(false);
+
+    if (mapCandidatesCacheRef.current) {
+      setMapCandidates(mapCandidatesCacheRef.current);
+      setMapPickerState(
+        mapCandidatesCacheRef.current.some(isMapCandidateActionable)
+          ? "ready"
+          : "empty",
+      );
+      setMapPickerOpen(true);
+      setMapActionState("idle");
+      return;
+    }
+
+    setMapCandidates([]);
 
     try {
       const candidates = await withTimeout(
@@ -231,10 +248,17 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
         mapDetectionTimeoutMs,
         "map-install-check-timeout",
       );
-      setMapCandidates(candidates);
+      const sortedCandidates = sortMapCandidates(candidates);
+      mapCandidatesCacheRef.current = sortedCandidates;
+      setMapCandidates(sortedCandidates);
+      setMapPickerState(
+        sortedCandidates.some(isMapCandidateActionable) ? "ready" : "empty",
+      );
       setMapPickerOpen(true);
     } catch {
-      setMapCandidates(createUnavailableMapCandidates());
+      const unavailableCandidates = createUnavailableMapCandidates();
+      setMapCandidates(unavailableCandidates);
+      setMapPickerState("empty");
       setLastMessage("map-install-check-unavailable");
       setMapPickerOpen(true);
     } finally {
@@ -334,31 +358,38 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
         >
           <div
             aria-modal="true"
-            className="mx-auto w-full max-w-[28rem] rounded-t-[1.5rem] border border-border/80 bg-background px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-2xl"
+            className="mx-auto w-full max-w-[28rem] rounded-t-[1.25rem] border border-border/80 bg-background pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-            <div className="space-y-1 px-1">
+            <div className="space-y-1 px-5">
               <h3 className="text-base font-semibold text-foreground">
                 {messages.mapPickerTitle}
               </h3>
               <p className="text-xs leading-5 text-muted-foreground">
-                {getMapPickerCaption(mapCandidates, messages)}
+                {mapPickerState === "checking"
+                  ? messages.mapPickerCheckingDescription
+                  : getMapPickerCaption(mapCandidates, messages)}
               </p>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-xl border border-border/70 bg-card">
+            <div className="mt-3 divide-y divide-border/70 bg-card">
+              {mapPickerState === "checking" && mapCandidates.length === 0 ? (
+                <div className="px-5 py-5 text-sm text-muted-foreground">
+                  {messages.mapChecking}
+                </div>
+              ) : null}
               {sortMapCandidates(mapCandidates).map((candidate) => {
                 const disabled = !isMapCandidateActionable(candidate);
 
                 return (
                   <button
                     className={cn(
-                      "flex min-h-16 w-full items-center justify-between gap-3 border-b border-border/70 px-4 py-3 text-left last:border-b-0",
+                      "flex min-h-16 w-full items-center justify-between gap-3 px-5 py-3 text-left",
                       disabled
                         ? "cursor-not-allowed bg-card text-muted-foreground"
-                        : "bg-card text-foreground active:bg-secondary",
+                        : "bg-card text-foreground active:bg-secondary/80",
                     )}
                     disabled={disabled}
                     key={candidate.appType}

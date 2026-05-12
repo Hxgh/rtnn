@@ -6,14 +6,17 @@ import type {
   Html5QrcodeResult,
 } from "html5-qrcode";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearScanner,
+  createAppNativeCore,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
   scannerElementId,
+  type NativeCoreBarcode,
+  type NativeCoreService,
   type WebBarcodeScanResult,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
@@ -28,6 +31,23 @@ type ScannerState =
   | "stopping"
   | "failed";
 type ImageScanState = "idle" | "scanning";
+type NativeRuntime = "browser" | "tauri" | null;
+
+const barcodeFormats = [
+  "qr_code",
+  "aztec",
+  "codabar",
+  "code_39",
+  "code_93",
+  "code_128",
+  "data_matrix",
+  "ean_8",
+  "ean_13",
+  "itf",
+  "pdf_417",
+  "upc_a",
+  "upc_e",
+];
 
 function getResultTypeLabel(
   type: WebBarcodeScanResult["contentType"],
@@ -53,6 +73,15 @@ function getScannerErrorMessage(reason: string | null, messages: ScannerMessages
     return messages.barcodeNoResult;
   }
 
+  if (
+    reason === "barcode-scan-cancelled" ||
+    reason === "file-picker-cancelled" ||
+    reason === "cancelled" ||
+    reason === "canceled"
+  ) {
+    return messages.cancelled;
+  }
+
   if (reason === "barcode-scanner-native-unavailable") {
     return messages.barcodeNativeUnavailable;
   }
@@ -68,18 +97,30 @@ function canOpenScanResult(result: WebBarcodeScanResult | null) {
   return result?.contentType === "url";
 }
 
+function normalizeNativeBarcodeResult(
+  code: NativeCoreBarcode,
+): WebBarcodeScanResult {
+  return {
+    ...normalizeWebBarcodeResult(code.rawValue),
+    format: code.format,
+  };
+}
+
 export function BarcodeScannerPanel({
   messages,
 }: {
   messages: ScannerMessages;
 }) {
+  const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
+  const nativeCoreRef = useRef<NativeCoreService>(nativeCore);
   const [state, setState] = useState<ScannerState>("idle");
   const [imageScanState, setImageScanState] = useState<ImageScanState>("idle");
   const [lastResult, setLastResult] = useState<WebBarcodeScanResult | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
+  const [nativeRuntime, setNativeRuntime] = useState<NativeRuntime>(null);
 
   const stopScanner = useCallback(async () => {
     const scanner = scannerRef.current;
@@ -129,6 +170,33 @@ export function BarcodeScannerPanel({
 
     try {
       await stopScanner();
+
+      if (nativeRuntime === "tauri") {
+        const nativeResult = await nativeCoreRef.current.scanBarcode({
+          source: "camera",
+          formats: barcodeFormats,
+          timeoutMs: 30_000,
+        });
+        const firstCode = nativeResult.codes[0];
+
+        if (nativeResult.ok && firstCode) {
+          setLastResult(normalizeNativeBarcodeResult(firstCode));
+          setErrorReason(null);
+          setState("idle");
+          return;
+        }
+
+        const reason = nativeResult.reason ?? "barcode-scanner-native-unavailable";
+        if (
+          reason !== "barcode-scanner-native-unavailable" &&
+          reason !== "barcode-scan-unavailable"
+        ) {
+          setErrorReason(reason);
+          setState("failed");
+          return;
+        }
+      }
+
       const { scanner } = await createHtml5QrcodeScanner(scannerElementId);
       scannerRef.current = scanner;
       await scanner.start(
@@ -157,17 +225,54 @@ export function BarcodeScannerPanel({
     }
   }, [
     handleSuccess,
+    nativeRuntime,
     state,
     stopScanner,
   ]);
 
-  function handleScanFromImage() {
+  async function handleScanFromImage() {
     if (imageScanState !== "idle") {
       return;
     }
 
     setErrorReason(null);
-    fileInputRef.current?.click();
+
+    if (nativeRuntime !== "tauri") {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    setImageScanState("scanning");
+
+    try {
+      const nativeResult = await nativeCoreRef.current.scanBarcode({
+        source: "image",
+        formats: barcodeFormats,
+        timeoutMs: 30_000,
+      });
+      const firstCode = nativeResult.codes[0];
+
+      if (nativeResult.ok && firstCode) {
+        setLastResult(normalizeNativeBarcodeResult(firstCode));
+        setErrorReason(null);
+        return;
+      }
+
+      const reason = nativeResult.reason ?? "barcode-not-found";
+      if (
+        reason === "barcode-scanner-native-unavailable" ||
+        reason === "barcode-image-decoder-unavailable"
+      ) {
+        fileInputRef.current?.click();
+        return;
+      }
+
+      setErrorReason(reason);
+    } catch (error) {
+      setErrorReason(error instanceof Error ? error.message : String(error));
+    } finally {
+      setImageScanState("idle");
+    }
   }
 
   async function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -205,7 +310,23 @@ export function BarcodeScannerPanel({
   }
 
   useEffect(() => {
+    let active = true;
+
+    nativeCoreRef.current
+      .getRuntimeSnapshot()
+      .then((snapshot) => {
+        if (active) {
+          setNativeRuntime(snapshot.clientInfo.runtime);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setNativeRuntime("browser");
+        }
+      });
+
     return () => {
+      active = false;
       const scanner = scannerRef.current;
       scannerRef.current = null;
 
