@@ -5,14 +5,19 @@ import type {
   Html5QrcodeCameraScanConfig,
   Html5QrcodeResult,
 } from "html5-qrcode";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
 import {
   clearScanner,
+  createAppNativeCore,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
+  isNativeActionCancelled,
+  normalizeBarcodeValue,
   normalizeWebBarcodeResult,
+  runNativeActionWithWatchdog,
   scanBarcodeImageFile,
   scannerElementId,
+  type NativeCoreService,
   type WebBarcodeScanResult,
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
@@ -56,12 +61,16 @@ function getScannerErrorMessage(reason: string | null, messages: ScannerMessages
     reason === "barcode-scan-cancelled" ||
     reason === "file-picker-cancelled" ||
     reason === "cancelled" ||
-    reason === "canceled"
+    reason === "canceled" ||
+    reason.toLowerCase().includes("cancel")
   ) {
-    return messages.cancelled;
+    return null;
   }
 
-  if (reason === "barcode-scanner-native-unavailable") {
+  if (
+    reason === "barcode-scanner-native-unavailable" ||
+    reason === "barcode-scan-native-unavailable"
+  ) {
     return messages.barcodeNativeUnavailable;
   }
 
@@ -77,19 +86,43 @@ export function BarcodeScannerPanel({
 }: {
   messages: ScannerMessages;
 }) {
+  const nativeCoreRef = useRef<NativeCoreService | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const completedRef = useRef(false);
+  const manualStopRef = useRef(false);
+  const scanRunIdRef = useRef(0);
+  const [useNativeScanner, setUseNativeScanner] = useState(false);
+  const [isTauriRuntime, setIsTauriRuntime] = useState(false);
   const [state, setState] = useState<ScannerState>("idle");
   const [imageScanState, setImageScanState] = useState<ImageScanState>("idle");
   const [lastResult, setLastResult] = useState<WebBarcodeScanResult | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
 
-  const stopScanner = useCallback(async () => {
+  const getNativeCore = useCallback(() => {
+    if (!nativeCoreRef.current) {
+      nativeCoreRef.current = createAppNativeCore();
+    }
+
+    return nativeCoreRef.current;
+  }, []);
+
+  const stopScanner = useCallback(async (options?: { expected?: boolean }) => {
+    if (options?.expected) {
+      manualStopRef.current = true;
+      completedRef.current = true;
+      scanRunIdRef.current += 1;
+      setErrorReason(null);
+    }
+
     const scanner = scannerRef.current;
 
     if (!scanner) {
-      setState((current) => (current === "stopping" ? "idle" : current));
+      setState((current) =>
+        current === "stopping" || current === "starting" || current === "scanning"
+          ? "idle"
+          : current,
+      );
       return;
     }
 
@@ -115,8 +148,10 @@ export function BarcodeScannerPanel({
       }
 
       completedRef.current = true;
-      setLastResult(normalizeWebBarcodeResult(decodedText, result));
-      setErrorReason(null);
+      startTransition(() => {
+        setLastResult(normalizeWebBarcodeResult(decodedText, result));
+        setErrorReason(null);
+      });
       await stopScanner();
     },
     [stopScanner],
@@ -127,12 +162,19 @@ export function BarcodeScannerPanel({
       return;
     }
 
+    const scanRunId = scanRunIdRef.current + 1;
+    scanRunIdRef.current = scanRunId;
+    manualStopRef.current = false;
     setState("starting");
     setErrorReason(null);
     completedRef.current = false;
 
     try {
       await stopScanner();
+      if (manualStopRef.current || scanRunId !== scanRunIdRef.current) {
+        setState("idle");
+        return;
+      }
       const { scanner } = await createHtml5QrcodeScanner(scannerElementId);
       scannerRef.current = scanner;
       await scanner.start(
@@ -153,13 +195,94 @@ export function BarcodeScannerPanel({
         },
         undefined,
       );
+      if (manualStopRef.current || scanRunId !== scanRunIdRef.current) {
+        await stopScanner({ expected: true });
+        return;
+      }
       setState("scanning");
     } catch (error) {
+      if (manualStopRef.current || scanRunId !== scanRunIdRef.current) {
+        setErrorReason(null);
+        setState("idle");
+        await stopScanner({ expected: true });
+        return;
+      }
+
       setErrorReason(error instanceof Error ? error.message : String(error));
       setState("failed");
       await stopScanner();
     }
   }, [handleSuccess, state, stopScanner]);
+
+  const startNativeScanner = useCallback(async () => {
+    if (state === "starting" || state === "scanning") {
+      return;
+    }
+
+    setState("scanning");
+    setErrorReason(null);
+    completedRef.current = false;
+
+    try {
+      const result = (await runNativeActionWithWatchdog(() =>
+        getNativeCore().scanBarcode({
+          source: "camera",
+          timeoutMs: 30_000,
+        }),
+        30_000,
+      )) as Awaited<ReturnType<NativeCoreService["scanBarcode"]>> & {
+        dispatched?: boolean;
+      };
+
+      if (result.dispatched) {
+        return;
+      }
+
+      if (result.ok && result.codes.length > 0) {
+        const code = result.codes[0];
+        completedRef.current = true;
+        startTransition(() => {
+          setLastResult(normalizeBarcodeValue(code.rawValue, code.format));
+          setErrorReason(null);
+        });
+        return;
+      }
+
+      setErrorReason(
+        isNativeActionCancelled(result) ? null : (result.reason ?? "barcode-not-found"),
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      setErrorReason(
+        reason.toLowerCase().includes("cancel") ? null : reason,
+      );
+    } finally {
+      setState("idle");
+    }
+  }, [getNativeCore, state]);
+
+  const handleStartScanner = useCallback(() => {
+    if (useNativeScanner) {
+      void startNativeScanner();
+      return;
+    }
+
+    if (isTauriRuntime) {
+      setErrorReason("barcode-scanner-native-unavailable");
+      return;
+    }
+
+    void startScanner();
+  }, [isTauriRuntime, startNativeScanner, startScanner, useNativeScanner]);
+
+  const handleStopScanner = useCallback(
+    (event?: React.MouseEvent<HTMLButtonElement>) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      void stopScanner({ expected: true });
+    },
+    [stopScanner],
+  );
 
   async function handleScanFromImage() {
     if (imageScanState !== "idle") {
@@ -167,6 +290,36 @@ export function BarcodeScannerPanel({
     }
 
     setErrorReason(null);
+
+    if (useNativeScanner) {
+      setImageScanState("scanning");
+
+      try {
+        const nativeResult = await getNativeCore().scanBarcode({
+          source: "image",
+          timeoutMs: 12_000,
+        });
+
+        if (nativeResult.ok && nativeResult.codes.length > 0) {
+          const code = nativeResult.codes[0];
+          startTransition(() => {
+            setLastResult(normalizeBarcodeValue(code.rawValue, code.format));
+            setErrorReason(null);
+          });
+        } else if (isNativeActionCancelled(nativeResult)) {
+          setErrorReason(null);
+        } else {
+          setErrorReason(nativeResult.reason ?? "barcode-not-found");
+        }
+      } catch (error) {
+        setErrorReason(error instanceof Error ? error.message : String(error));
+      } finally {
+        setImageScanState("idle");
+      }
+
+      return;
+    }
+
     fileInputRef.current?.click();
   }
 
@@ -190,8 +343,10 @@ export function BarcodeScannerPanel({
 
     try {
       const result = await scanBarcodeImageFile(file);
-      setLastResult(result);
-      setErrorReason(null);
+      startTransition(() => {
+        setLastResult(result);
+        setErrorReason(null);
+      });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       setErrorReason(
@@ -205,7 +360,33 @@ export function BarcodeScannerPanel({
   }
 
   useEffect(() => {
+    let active = true;
+
+    getNativeCore()
+      .getRuntimeSnapshot()
+      .then((snapshot) => {
+        if (active) {
+          const tauriRuntime = snapshot.clientInfo.runtime === "tauri";
+          setIsTauriRuntime(tauriRuntime);
+          setUseNativeScanner(tauriRuntime && snapshot.capabilities.barcodeScan);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setIsTauriRuntime(false);
+          setUseNativeScanner(false);
+        }
+      });
+
     return () => {
+      active = false;
+    };
+  }, [getNativeCore]);
+
+  useEffect(() => {
+    return () => {
+      scanRunIdRef.current += 1;
+      manualStopRef.current = true;
       const scanner = scannerRef.current;
       scannerRef.current = null;
 
@@ -227,6 +408,7 @@ export function BarcodeScannerPanel({
     state === "starting" ||
     state === "stopping";
   const isScanning = state === "scanning";
+  const isNativeScannerBusy = useNativeScanner && isScanning;
   const isImageBusy = imageScanState !== "idle";
 
   async function copyResult() {
@@ -265,16 +447,14 @@ export function BarcodeScannerPanel({
             </div>
           </div>
 
-          <p className="text-xs leading-5 text-muted-foreground">
-            {messages.barcodePrivacyHint}
-          </p>
-
           <div className="grid grid-cols-2 gap-2">
             <Button
-              disabled={isCameraBusy || isImageBusy}
-              onClick={isScanning ? stopScanner : startScanner}
+              disabled={isCameraBusy || isImageBusy || isNativeScannerBusy}
+              onClick={isScanning ? handleStopScanner : handleStartScanner}
             >
-              {isScanning
+              {isNativeScannerBusy
+                ? messages.barcodeScanning
+                : isScanning
                 ? messages.barcodeStop
                 : state === "starting"
                   ? messages.opening

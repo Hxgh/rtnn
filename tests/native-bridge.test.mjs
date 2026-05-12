@@ -1158,6 +1158,46 @@ test("detected Tauri bridge requests barcode permission before camera scan", asy
   ]);
 });
 
+test("detected Tauri bridge normalizes barcode cancel without page fallback", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    globalScope: {
+      __TAURI__: {
+        barcodeScanner: {
+          async checkPermissions() {
+            calls.push(["barcodeScanner.checkPermissions"]);
+            return "granted";
+          },
+          async scan() {
+            calls.push(["barcodeScanner.scan"]);
+            throw new Error("cancelled by user");
+          },
+        },
+      },
+      AndroidBarcode: {
+        scanBarcode() {
+          calls.push(["AndroidBarcode.scanBarcode"]);
+          return JSON.stringify({ ok: true, codes: [{ rawValue: "android" }] });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      return { ok: true, codes: [{ rawValue: "command" }] };
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode(), {
+    ok: false,
+    reason: "barcode-scan-cancelled",
+    codes: [],
+  });
+  assert.deepEqual(calls, [
+    ["barcodeScanner.checkPermissions"],
+    ["barcodeScanner.scan"],
+  ]);
+});
+
 test("detected Tauri bridge maps barcode formats to plugin enum values", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
@@ -1264,13 +1304,17 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
   });
 
   assert.deepEqual(await bridge.scanBarcode({ source: "camera", timeoutMs: 2000 }), {
-    ok: false,
-    reason: "barcode-scanner-native-unavailable",
-    codes: [],
+    ok: true,
+    message: undefined,
+    reason: undefined,
+    dispatched: undefined,
+    codes: [{ rawValue: "android", format: "qr_code" }],
+    files: undefined,
   });
   assert.deepEqual(calls, [
     ["invoke", "plugin:barcode-scanner|check_permissions"],
     ["invoke", "plugin:barcode-scanner|scan"],
+    ["AndroidBarcode.scanBarcode", { source: "camera", timeoutMs: 2000 }],
   ]);
 });
 

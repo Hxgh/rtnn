@@ -1111,19 +1111,51 @@ function normalizeBarcodeScanResult(
     };
   }
 
+  const legacyResult = result as NativeBarcodeScanResult & {
+    content?: unknown;
+    rawValue?: unknown;
+    format?: unknown;
+    cancelled?: unknown;
+  };
+  const legacyRawValue =
+    typeof legacyResult.content === "string"
+      ? legacyResult.content
+      : typeof legacyResult.rawValue === "string"
+        ? legacyResult.rawValue
+        : "";
+  const codes = Array.isArray(result.codes)
+    ? result.codes
+        .filter((item) => item && typeof item.rawValue === "string")
+        .map((item) => ({
+          rawValue: item.rawValue,
+          format: item.format,
+        }))
+    : legacyRawValue
+      ? [
+          {
+            rawValue: legacyRawValue,
+            format: normalizeBarcodeFormat(legacyResult.format),
+          },
+        ]
+      : [];
+
+  if (codes.length === 0 && legacyResult.cancelled === true) {
+    return {
+      ok: false,
+      message: result.message ?? undefined,
+      reason: "barcode-scan-cancelled",
+      dispatched: result.dispatched,
+      codes: [],
+      files: Array.isArray(result.files) ? result.files : undefined,
+    };
+  }
+
   return {
-    ok: Boolean(result.ok),
+    ok: Boolean(result.ok || codes.length > 0),
     message: result.message ?? undefined,
-    reason: normalizeReason(result.reason),
+    reason: codes.length > 0 ? undefined : normalizeReason(result.reason),
     dispatched: result.dispatched,
-    codes: Array.isArray(result.codes)
-      ? result.codes
-          .filter((item) => item && typeof item.rawValue === "string")
-          .map((item) => ({
-            rawValue: item.rawValue,
-            format: item.format,
-          }))
-      : [],
+    codes,
     files: Array.isArray(result.files) ? result.files : undefined,
   };
 }
@@ -1186,6 +1218,7 @@ function normalizeTauriBarcodePluginResult(value: unknown): NativeBarcodeScanRes
     content?: unknown;
     rawValue?: unknown;
     format?: unknown;
+    cancelled?: unknown;
   };
   const rawValue =
     typeof result.content === "string"
@@ -1193,6 +1226,14 @@ function normalizeTauriBarcodePluginResult(value: unknown): NativeBarcodeScanRes
       : typeof result.rawValue === "string"
         ? result.rawValue
         : "";
+
+  if (!rawValue && result.cancelled === true) {
+    return {
+      ok: false,
+      reason: "barcode-scan-cancelled",
+      codes: [],
+    };
+  }
 
   return {
     ok: Boolean(rawValue),
@@ -1215,6 +1256,15 @@ function isTauriBarcodePluginUnavailable(reason: string) {
     normalized.includes("unknown command") ||
     normalized.includes("plugin not initialized") ||
     normalized.includes("plugin:barcode-scanner")
+  );
+}
+
+function isTauriBarcodeCancelled(reason: string) {
+  const normalized = reason.toLowerCase();
+  return (
+    normalized.includes("cancel") ||
+    normalized.includes("user aborted") ||
+    normalized.includes("operation aborted")
   );
 }
 
@@ -1335,6 +1385,14 @@ async function scanBarcodeWithTauriPlugin(
     return normalizeTauriBarcodePluginResult(result);
   } catch (error) {
     const reason = normalizeErrorReason(error);
+
+    if (isTauriBarcodeCancelled(reason)) {
+      return {
+        ok: false,
+        reason: "barcode-scan-cancelled",
+        codes: [],
+      };
+    }
 
     return isTauriBarcodePluginUnavailable(reason)
       ? null
@@ -3161,14 +3219,6 @@ export function createDetectedTauriNativeBridge(
         return pluginResult;
       }
 
-      if (input?.source !== "image") {
-        return {
-          ok: false,
-          reason: "barcode-scanner-native-unavailable",
-          codes: [],
-        };
-      }
-
       const androidResult = scanBarcodeWithAndroidBridge(input, globalScope);
       if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
         return androidResult;
@@ -3480,14 +3530,6 @@ export function createTauriNativeBridge(
       const pluginResult = await scanBarcodeWithTauriPlugin(options.invoke, input);
       if (pluginResult) {
         return pluginResult;
-      }
-
-      if (input?.source !== "image") {
-        return {
-          ok: false,
-          reason: "barcode-scanner-native-unavailable",
-          codes: [],
-        };
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input);

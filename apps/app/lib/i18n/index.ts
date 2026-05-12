@@ -93,37 +93,11 @@ export type AppMessages = {
     accountOverview: string;
     preferencesTitle: string;
   };
-  nativeUpdate: {
-    title: string;
-    description: string;
-    platform: string;
-    version: string;
-    channel: string;
-    checkUpdate: string;
-    checkingUpdate: string;
-    openUpdate: string;
-    openInstaller: string;
-    openDownloads: string;
-    openingUpdate: string;
-    updateAvailable: string;
-    latestInstallerAvailable: string;
-    noUpdate: string;
-    updateUnavailable: string;
-    downloadUnavailable: string;
-    updateOpened: string;
-    openFailed: string;
-    packageFile: string;
-    packageSize: string;
-    updatedAt: string;
-    appStoreBoundary: string;
-  };
   nativeCapabilities: {
     title: string;
     description: string;
     runtimeTitle: string;
     runtimeDescription: string;
-    externalTitle: string;
-    externalDescription: string;
     mapTitle: string;
     mapShortLabel: string;
     mapDescription: string;
@@ -131,19 +105,13 @@ export type AppMessages = {
     mediaTitle: string;
     mediaDescription: string;
     barcodeTitle: string;
-    barcodeShortLabel: string;
     barcodeDescription: string;
-    barcodeScan: string;
-    barcodeScanCamera: string;
     barcodeScanFromImage: string;
     barcodeImageScanning: string;
-    barcodeOpenScanner: string;
     barcodeCameraTitle: string;
     barcodeCameraDescription: string;
     barcodeCameraIdle: string;
-    barcodeNativeIdle: string;
     barcodeScanning: string;
-    barcodePrivacyHint: string;
     barcodeCopyResult: string;
     barcodeStart: string;
     barcodeStop: string;
@@ -158,7 +126,6 @@ export type AppMessages = {
     barcodeContentTypeLabels: Record<"url" | "email" | "phone" | "sms" | "wifi" | "geo" | "product" | "text", string>;
     notificationTitle: string;
     notificationDescription: string;
-    notificationSend: string;
     diagnosticsTitle: string;
     diagnosticsDescription: string;
     permissionDescription: string;
@@ -168,7 +135,6 @@ export type AppMessages = {
     platform: string;
     shell: string;
     features: string;
-    browserRuntime: string;
     unavailable: string;
     permissions: string;
     photoPermission: string;
@@ -185,46 +151,34 @@ export type AppMessages = {
     mapUnavailable: string;
     mapUnsupported: string;
     mapDetected: string;
-    mapDetectedAvailable: string;
-    mapNoInstalled: string;
-    mapUnknownCount: string;
     mapChecking: string;
     mapPickerTitle: string;
     mapPickerDescription: string;
     mapPickerCheckingDescription: string;
     mapPickerEmptyDescription: string;
     mapPickerFailedDescription: string;
-    mapPickerSafetyHint: string;
     mapVisibilityLimited: string;
     mapCheckUnavailable: string;
-    mapOpenWith: string;
     mapOpenFailed: string;
     requestPermission: string;
     permissionActionDriven: string;
     permissionActionDrivenShort: string;
     permissionRequestDone: string;
-    openInAppWebView: string;
     webviewLoadFailed: string;
-    openExternal: string;
     openMap: string;
     pickImages: string;
     captureImage: string;
     clearImages: string;
-    keyboardLabel: string;
     keyboardPlaceholder: string;
     openDownloads: string;
-    downloadShortLabel: string;
     downloadEntryDescription: string;
     openDiagnostics: string;
     diagnosticsEntryDescription: string;
     opening: string;
-    opened: string;
-    cancelled: string;
+    openingShort: string;
+    checkingShort: string;
     failed: string;
     selectedImages: string;
-    noImages: string;
-    backToDeviceServices: string;
-    close: string;
   };
   security: {
     title: string;
@@ -346,57 +300,25 @@ const zhCN: AppMessages = {
     accountOverview: "账户概览",
     preferencesTitle: "应用偏好",
   },
-  nativeUpdate: {
-    title: "移动客户端",
-    description: "检查当前安装包是否有新版本；移动端默认跳转下载页，正式分发优先应用商店。",
-    platform: "平台",
-    version: "壳版本",
-    channel: "环境",
-    checkUpdate: "检查更新",
-    checkingUpdate: "检查中...",
-    openUpdate: "打开下载页",
-    openInstaller: "打开下载页",
-    openDownloads: "打开下载页",
-    openingUpdate: "打开中...",
-    updateAvailable: "有可用更新",
-    latestInstallerAvailable: "当前安装包可下载",
-    noUpdate: "已是最新版本",
-    updateUnavailable: "更新检查不可用",
-    downloadUnavailable: "暂无可用安装包",
-    updateOpened: "更新地址已打开，请按系统提示继续。",
-    openFailed: "更新地址打开失败，请前往下载页重试。",
-    packageFile: "安装包",
-    packageSize: "大小",
-    updatedAt: "更新时间",
-    appStoreBoundary: "移动端安装包由应用商店或统一下载页分发，应用内只负责展示版本信息与跳转入口。",
-  },
   nativeCapabilities: {
     title: "设备服务",
-    description: "使用扫码、地图导航和客户端下载等常用设备服务。",
+    description: "扫码、地图导航、相机相册、通知与客户端下载。",
     runtimeTitle: "设备信息",
     runtimeDescription: "查看当前客户端环境与已启用的系统能力。",
-    externalTitle: "页面打开",
-    externalDescription: "打开同源页面或交给系统浏览器处理。",
     mapTitle: "地图导航",
     mapShortLabel: "导",
-    mapDescription: "检测当前设备可用地图后选择导航应用。",
+    mapDescription: "检测可用地图应用后选择并打开导航。",
     mapDiagnosticDescription: "查看当前客户端识别到的地图应用状态。",
     mediaTitle: "相机相册",
-    mediaDescription: "从相册选择图片，或调用相机拍摄图片。",
+    mediaDescription: "选择相册图片，或调用相机拍摄图片。",
     barcodeTitle: "扫码",
-    barcodeShortLabel: "扫",
     barcodeDescription: "识别二维码和常见条形码，结果会留在当前页。",
-    barcodeScan: "扫码",
-    barcodeScanCamera: "相机扫码",
     barcodeScanFromImage: "选择图片识别",
     barcodeImageScanning: "识别中...",
-    barcodeOpenScanner: "进入扫码",
     barcodeCameraTitle: "相机扫码",
     barcodeCameraDescription: "使用相机取景框识别二维码和条形码，识别成功后自动停止。",
     barcodeCameraIdle: "点击开始后打开相机取景框",
-    barcodeNativeIdle: "点击开始后打开相机取景框",
     barcodeScanning: "扫码中...",
-    barcodePrivacyHint: "扫码识别在当前设备内完成，结果只回显在本页面。",
     barcodeCopyResult: "复制结果",
     barcodeStart: "开始扫码",
     barcodeStop: "停止扫码",
@@ -406,7 +328,7 @@ const zhCN: AppMessages = {
     barcodeContentType: "类型",
     barcodeFormat: "码制",
     barcodeCameraDenied: "相机权限未开启，请允许访问相机后重试。",
-    barcodeNativeUnavailable: "当前客户端暂不能调用系统扫码，请使用页面内扫码。",
+    barcodeNativeUnavailable: "当前客户端暂不能调用系统扫码。",
     barcodeImageUnsupported: "当前环境不支持图片识别，请换一张图片或使用相机扫码。",
     barcodeContentTypeLabels: {
       url: "网页链接",
@@ -419,19 +341,17 @@ const zhCN: AppMessages = {
       text: "文本",
     },
     notificationTitle: "通知",
-    notificationDescription: "按需请求通知权限，并发送一条本地通知。",
-    notificationSend: "发送通知",
+    notificationDescription: "按需请求权限并发送本地通知。",
     diagnosticsTitle: "设备诊断",
-    diagnosticsDescription: "集中查看当前客户端运行环境、权限和系统调用状态。",
-    permissionDescription: "权限默认由相关动作按需申请；这里用于排查授权状态。",
+    diagnosticsDescription: "查看运行环境、权限和系统状态。",
+    permissionDescription: "权限由相关操作按需申请。",
     keyboardTitle: "键盘与安全区",
     keyboardDescription: "输入内容时页面会适配键盘和底部安全区域。",
     runtime: "运行环境",
     platform: "平台",
     shell: "客户端类型",
     features: "能力",
-    browserRuntime: "浏览器",
-    unavailable: "当前在浏览器中运行，原生能力会降级为 Web 行为。",
+    unavailable: "当前运行在浏览器中。",
     permissions: "权限状态",
     photoPermission: "相册",
     cameraPermission: "相机",
@@ -447,46 +367,34 @@ const zhCN: AppMessages = {
     mapUnavailable: "无法确认",
     mapUnsupported: "不支持检测",
     mapDetected: "地图应用状态",
-    mapDetectedAvailable: "已检测到 {count} 个可用地图应用",
-    mapNoInstalled: "未发现可用地图应用",
-    mapUnknownCount: "无法检测",
     mapChecking: "正在检测地图应用",
     mapPickerTitle: "选择地图应用",
-    mapPickerDescription: "选择地图应用继续导航。",
+    mapPickerDescription: "选择一个可用应用继续导航。",
     mapPickerCheckingDescription: "正在检测可用地图应用。",
     mapPickerEmptyDescription: "当前设备未识别到可用地图应用。",
     mapPickerFailedDescription: "当前无法读取地图应用状态。",
-    mapPickerSafetyHint: "未安装或无法确认可用的应用不会被打开。",
     mapVisibilityLimited: "当前设备未识别到该地图应用。",
     mapCheckUnavailable: "当前无法读取地图应用状态。",
-    mapOpenWith: "继续",
     mapOpenFailed: "未能打开地图应用，请选择其他可用地图。",
     requestPermission: "请求权限",
     permissionActionDriven: "该权限会在对应操作时由系统询问。",
     permissionActionDrivenShort: "按操作询问",
     permissionRequestDone: "权限请求已处理。",
-    openInAppWebView: "打开页面",
-    webviewLoadFailed: "页面加载失败，请返回后重试或使用外部浏览器打开。",
-    openExternal: "外部打开",
+    webviewLoadFailed: "页面加载失败，请返回后重试。",
     openMap: "打开地图",
     pickImages: "选择图片",
     captureImage: "拍照",
     clearImages: "清空图片",
-    keyboardLabel: "备注",
     keyboardPlaceholder: "请输入内容",
     openDownloads: "客户端下载",
-    downloadShortLabel: "包",
     downloadEntryDescription: "打开当前环境的客户端安装包下载页。",
     openDiagnostics: "设备诊断",
-    diagnosticsEntryDescription: "查看运行环境、权限、媒体、通知和页面打开状态。",
+    diagnosticsEntryDescription: "查看运行环境和权限状态。",
     opening: "处理中...",
-    opened: "操作已触发，请根据系统提示继续。",
-    cancelled: "已取消，未选择文件。",
+    openingShort: "打开中",
+    checkingShort: "检测中",
     failed: "操作未完成，请检查客户端状态或系统权限。",
     selectedImages: "已选择图片",
-    noImages: "尚未选择图片",
-    backToDeviceServices: "返回设备服务",
-    close: "关闭",
   },
   security: {
     title: "账户安全",
@@ -520,10 +428,10 @@ const zhCN: AppMessages = {
   error: {
     code: "error",
     title: "页面加载失败",
-    description: "请稍后重试，或联系管理员排查后端接口与网关状态。",
+    description: "请返回后重试。",
   },
   loading: {
-    title: "正在加载页面数据...",
+    title: "加载中...",
   },
 };
 
@@ -608,57 +516,25 @@ const enUS: AppMessages = {
     accountOverview: "Account overview",
     preferencesTitle: "App preferences",
   },
-  nativeUpdate: {
-    title: "Mobile Client",
-    description: "Check whether a newer package is available. Mobile clients open the downloads page; production distribution should prefer app stores.",
-    platform: "Platform",
-    version: "Shell version",
-    channel: "Channel",
-    checkUpdate: "Check update",
-    checkingUpdate: "Checking...",
-    openUpdate: "Open downloads",
-    openInstaller: "Open downloads",
-    openDownloads: "Open downloads",
-    openingUpdate: "Opening...",
-    updateAvailable: "Update available",
-    latestInstallerAvailable: "Installer available",
-    noUpdate: "Up to date",
-    updateUnavailable: "Update check unavailable",
-    downloadUnavailable: "No installer available",
-    updateOpened: "Update link opened. Follow the system prompts to continue.",
-    openFailed: "Failed to open the update link. Try the downloads page.",
-    packageFile: "Installer",
-    packageSize: "Size",
-    updatedAt: "Updated",
-    appStoreBoundary: "Mobile packages are distributed through app stores or the downloads page. The app only shows version details and opens the proper entry.",
-  },
   nativeCapabilities: {
     title: "Device Services",
-    description: "Use scanning, map navigation, and client downloads.",
+    description: "Scan, navigate, pick media, send notifications, and download clients.",
     runtimeTitle: "Device information",
     runtimeDescription: "View the current client environment and enabled system capabilities.",
-    externalTitle: "Page opening",
-    externalDescription: "Open same-origin pages in the client or hand off links to the system browser.",
     mapTitle: "Map navigation",
     mapShortLabel: "M",
-    mapDescription: "Check available map apps on this device before navigation.",
+    mapDescription: "Check available map apps, then choose one for navigation.",
     mapDiagnosticDescription: "Inspect map app availability detected by the client.",
     mediaTitle: "Camera and photos",
-    mediaDescription: "Choose images from photos, or capture a new image with the camera.",
+    mediaDescription: "Choose photos or capture a new image with the camera.",
     barcodeTitle: "Scan",
-    barcodeShortLabel: "S",
     barcodeDescription: "Read QR codes and common barcodes. Results stay on this page.",
-    barcodeScan: "Scan",
-    barcodeScanCamera: "Camera scan",
     barcodeScanFromImage: "Choose image",
     barcodeImageScanning: "Scanning...",
-    barcodeOpenScanner: "Open scanner",
     barcodeCameraTitle: "Camera scan",
     barcodeCameraDescription: "Use the camera viewfinder to read QR codes and barcodes. Scanning stops after a match.",
     barcodeCameraIdle: "Start scanning to open the camera viewfinder",
-    barcodeNativeIdle: "Start scanning to open the camera viewfinder",
     barcodeScanning: "Scanning...",
-    barcodePrivacyHint: "Scanning runs on this device and the result is only shown on this page.",
     barcodeCopyResult: "Copy result",
     barcodeStart: "Start scan",
     barcodeStop: "Stop scan",
@@ -668,7 +544,7 @@ const enUS: AppMessages = {
     barcodeContentType: "Type",
     barcodeFormat: "Format",
     barcodeCameraDenied: "Camera permission is not enabled. Allow camera access and retry.",
-    barcodeNativeUnavailable: "System scanning is not available in this client. Use in-page scanning instead.",
+    barcodeNativeUnavailable: "System scanning is not available in this client.",
     barcodeImageUnsupported: "Image scanning is not supported here. Choose another image or use camera scan.",
     barcodeContentTypeLabels: {
       url: "Web URL",
@@ -681,19 +557,17 @@ const enUS: AppMessages = {
       text: "Text",
     },
     notificationTitle: "Notifications",
-    notificationDescription: "Request notification permission when needed and send one local notification.",
-    notificationSend: "Send notification",
+    notificationDescription: "Request permission when needed and send a local notification.",
     diagnosticsTitle: "Device Diagnostics",
-    diagnosticsDescription: "Review the current client runtime, permissions, and system call status.",
-    permissionDescription: "Permissions are requested by related actions by default. This page is for diagnostics.",
+    diagnosticsDescription: "Review runtime, permissions, and system status.",
+    permissionDescription: "Permissions are requested by related actions.",
     keyboardTitle: "Keyboard and safe area",
     keyboardDescription: "The page adapts to the keyboard and bottom safe area while editing.",
     runtime: "Runtime",
     platform: "Platform",
     shell: "Client type",
     features: "Features",
-    browserRuntime: "Browser",
-    unavailable: "The current runtime is a browser, so native actions fall back to web behavior.",
+    unavailable: "The current runtime is a browser.",
     permissions: "Permissions",
     photoPermission: "Photos",
     cameraPermission: "Camera",
@@ -709,46 +583,34 @@ const enUS: AppMessages = {
     mapUnavailable: "Unconfirmed",
     mapUnsupported: "Unsupported",
     mapDetected: "Map app status",
-    mapDetectedAvailable: "{count} available map apps detected",
-    mapNoInstalled: "No available map app found",
-    mapUnknownCount: "Unknown",
     mapChecking: "Checking map apps",
     mapPickerTitle: "Choose Map App",
-    mapPickerDescription: "Choose a map app to continue navigation.",
+    mapPickerDescription: "Choose an available app to continue navigation.",
     mapPickerCheckingDescription: "Checking available map apps.",
     mapPickerEmptyDescription: "No available map app was detected on this device.",
     mapPickerFailedDescription: "Map app status cannot be read right now.",
-    mapPickerSafetyHint: "Apps that are not installed or cannot be confirmed are not opened.",
     mapVisibilityLimited: "This map app was not detected on this device.",
     mapCheckUnavailable: "Map app status could not be read.",
-    mapOpenWith: "Continue",
     mapOpenFailed: "The map app could not be opened. Choose another available app.",
     requestPermission: "Request permission",
     permissionActionDriven: "This permission is requested by the system when the related action runs.",
     permissionActionDrivenShort: "On action",
     permissionRequestDone: "Permission request handled.",
-    openInAppWebView: "Open page",
-    webviewLoadFailed: "The page failed to load. Go back and retry or open it externally.",
-    openExternal: "Open externally",
+    webviewLoadFailed: "The page failed to load. Go back and retry.",
     openMap: "Open map",
     pickImages: "Pick images",
     captureImage: "Capture image",
     clearImages: "Clear images",
-    keyboardLabel: "Note",
     keyboardPlaceholder: "Enter text",
     openDownloads: "Client downloads",
-    downloadShortLabel: "D",
     downloadEntryDescription: "Open the client package download page for this environment.",
     openDiagnostics: "Device diagnostics",
-    diagnosticsEntryDescription: "View runtime, permissions, media, notifications, and page opening status.",
+    diagnosticsEntryDescription: "View runtime and permission status.",
     opening: "Processing...",
-    opened: "Action started. Follow the system prompts to continue.",
-    cancelled: "Cancelled. No file was selected.",
+    openingShort: "Opening",
+    checkingShort: "Checking",
     failed: "Action was not completed. Check client status or system permissions.",
     selectedImages: "Selected images",
-    noImages: "No images selected",
-    backToDeviceServices: "Back to Device Services",
-    close: "Close",
   },
   security: {
     title: "Account Security",
@@ -782,10 +644,10 @@ const enUS: AppMessages = {
   error: {
     code: "error",
     title: "Failed to load page",
-    description: "Please retry later or check backend and gateway health status.",
+    description: "Go back and retry.",
   },
   loading: {
-    title: "Loading page data...",
+    title: "Loading...",
   },
 };
 

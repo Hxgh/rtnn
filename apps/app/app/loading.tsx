@@ -2,9 +2,9 @@ export default function GlobalLoading() {
   return (
     <div
       aria-hidden="true"
-      className="mx-auto flex h-12 w-full max-w-[28rem] items-center justify-center"
+      className="fixed inset-x-0 top-[var(--rtnn-safe-top)] z-50 mx-auto h-0.5 w-full max-w-[28rem] overflow-hidden bg-transparent"
     >
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground/45" />
+      <span className="block h-full w-1/2 animate-pulse rounded-full bg-foreground/35" />
     </div>
   );
 }

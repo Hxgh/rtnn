@@ -63,9 +63,16 @@ export function normalizeWebBarcodeResult(
   rawValue: string,
   result?: Html5QrcodeResult,
 ): WebBarcodeScanResult {
+  return normalizeBarcodeValue(rawValue, result?.result?.format?.formatName);
+}
+
+export function normalizeBarcodeValue(
+  rawValue: string,
+  format?: string,
+): WebBarcodeScanResult {
   return {
     rawValue,
-    format: result?.result?.format?.formatName,
+    format,
     scannedAt: new Date().toISOString(),
     contentType: normalizeContentType(rawValue),
   };

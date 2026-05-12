@@ -4,6 +4,7 @@ export { createAppNativeCore } from "./service";
 export type { NativePermissionStartupMode } from "./permissions";
 export {
   isNativeActionCancelled,
+  nativeActionReturnSettleMs,
   nativeActionWatchdogMs,
   runNativeActionWithWatchdog,
 } from "./actions";
@@ -16,6 +17,7 @@ export {
   clearScanner,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
+  normalizeBarcodeValue,
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
   scannerElementId,
