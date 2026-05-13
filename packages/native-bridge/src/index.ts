@@ -1268,6 +1268,38 @@ function isTauriBarcodePluginUnavailable(reason: string) {
   );
 }
 
+function isBarcodeNativeUnavailableResult(result: NativeBarcodeScanResult | null) {
+  if (!result?.reason) {
+    return false;
+  }
+
+  const normalized = result.reason.toLowerCase();
+
+  if (
+    normalized.includes("cancel") ||
+    normalized.includes("permission") ||
+    normalized.includes("denied") ||
+    normalized.includes("notallowed") ||
+    normalized.includes("timeout")
+  ) {
+    return false;
+  }
+
+  return (
+    normalized === "barcode-scanner-native-unavailable" ||
+    normalized === "barcode-scan-native-unavailable" ||
+    normalized === "barcode-scan-unavailable" ||
+    normalized.includes("plugin:barcode-scanner") ||
+    normalized.includes("scan_barcode") ||
+    normalized.includes("not initialized") ||
+    normalized.includes("not available") ||
+    normalized.includes("not supported") ||
+    normalized.includes("not implemented") ||
+    normalized.includes("unknown command") ||
+    normalized.includes("command not found")
+  );
+}
+
 function isTauriBarcodeCancelled(reason: string) {
   const normalized = reason.toLowerCase();
   return (
@@ -2238,7 +2270,11 @@ export function createBrowserNativeBridge(
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input, globalScope);
-      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
+      if (
+        androidResult &&
+        !isNativeBridgeNotReadyResult(androidResult) &&
+        !isBarcodeNativeUnavailableResult(androidResult)
+      ) {
         return androidResult;
       }
 
@@ -2253,7 +2289,8 @@ export function createBrowserNativeBridge(
         const delayedAndroidResult = scanBarcodeWithAndroidBridge(input, globalScope);
         if (
           delayedAndroidResult &&
-          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+          !isNativeBridgeNotReadyResult(delayedAndroidResult) &&
+          !isBarcodeNativeUnavailableResult(delayedAndroidResult)
         ) {
           return delayedAndroidResult;
         }
@@ -3229,7 +3266,11 @@ export function createDetectedTauriNativeBridge(
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input, globalScope);
-      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
+      if (
+        androidResult &&
+        !isNativeBridgeNotReadyResult(androidResult) &&
+        !isBarcodeNativeUnavailableResult(androidResult)
+      ) {
         return androidResult;
       }
 
@@ -3244,7 +3285,8 @@ export function createDetectedTauriNativeBridge(
         const delayedAndroidResult = scanBarcodeWithAndroidBridge(input, globalScope);
         if (
           delayedAndroidResult &&
-          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+          !isNativeBridgeNotReadyResult(delayedAndroidResult) &&
+          !isBarcodeNativeUnavailableResult(delayedAndroidResult)
         ) {
           return delayedAndroidResult;
         }
@@ -3542,7 +3584,11 @@ export function createTauriNativeBridge(
       }
 
       const androidResult = scanBarcodeWithAndroidBridge(input);
-      if (androidResult && !isNativeBridgeNotReadyResult(androidResult)) {
+      if (
+        androidResult &&
+        !isNativeBridgeNotReadyResult(androidResult) &&
+        !isBarcodeNativeUnavailableResult(androidResult)
+      ) {
         return androidResult;
       }
 
@@ -3557,7 +3603,8 @@ export function createTauriNativeBridge(
         const delayedAndroidResult = scanBarcodeWithAndroidBridge(input);
         if (
           delayedAndroidResult &&
-          !isNativeBridgeNotReadyResult(delayedAndroidResult)
+          !isNativeBridgeNotReadyResult(delayedAndroidResult) &&
+          !isBarcodeNativeUnavailableResult(delayedAndroidResult)
         ) {
           return delayedAndroidResult;
         }

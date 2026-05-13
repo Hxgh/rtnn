@@ -1354,6 +1354,114 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
   ]);
 });
 
+test("detected Tauri bridge skips unavailable Android camera barcode bridge", async () => {
+  const calls = [];
+  const bridge = createDetectedTauriNativeBridge({
+    fallback: {
+      async getClientInfo() {
+        return {
+          runtime: "browser",
+          shell: null,
+          platform: "android",
+          appVersion: null,
+          bridgeVersion: "0.1.0",
+          channel: "testing",
+          features: [],
+        };
+      },
+      async openExternal() {
+        return { ok: false };
+      },
+      async openInAppWebView() {
+        return { ok: false };
+      },
+      async openMapNavigation() {
+        return { ok: false };
+      },
+      async openPreferredMapNavigation() {
+        return { ok: false };
+      },
+      async checkMapInstalled(input) {
+        return {
+          ok: false,
+          appType: input.appType,
+          installed: null,
+          status: "unknown",
+        };
+      },
+      async checkPermission(input) {
+        return {
+          ok: true,
+          kind: typeof input === "string" ? input : input.kind,
+          status: "granted",
+        };
+      },
+      async requestPermission(input) {
+        return {
+          ok: true,
+          kind: typeof input === "string" ? input : input.kind,
+          status: "granted",
+          requested: true,
+        };
+      },
+      async ensurePermission(input) {
+        return {
+          ok: true,
+          kind: typeof input === "string" ? input : input.kind,
+          status: "granted",
+          requested: true,
+        };
+      },
+      async pickImages() {
+        return { ok: false, files: [] };
+      },
+      async scanBarcode(input) {
+        calls.push(["fallback.scanBarcode", input?.source ?? null]);
+        return { ok: true, codes: [{ rawValue: "fallback", format: "qr_code" }] };
+      },
+      async showNotification() {
+        return { ok: false };
+      },
+      async checkUpdate() {
+        return { ok: false };
+      },
+      async installUpdate() {
+        return { ok: false };
+      },
+    },
+    globalScope: {
+      AndroidBarcode: {
+        scanBarcode(optionsJson) {
+          calls.push(["AndroidBarcode.scanBarcode", JSON.parse(optionsJson)]);
+          return JSON.stringify({
+            ok: false,
+            reason: "barcode-scanner-native-unavailable",
+            codes: [],
+          });
+        },
+      },
+    },
+    invoke: async (command) => {
+      calls.push(["invoke", command]);
+      if (command === "plugin:barcode-scanner|check_permissions") {
+        throw new Error("plugin:barcode-scanner not initialized");
+      }
+      throw new Error("unknown command");
+    },
+  });
+
+  assert.deepEqual(await bridge.scanBarcode({ source: "camera" }), {
+    ok: true,
+    codes: [{ rawValue: "fallback", format: "qr_code" }],
+  });
+  assert.deepEqual(calls, [
+    ["invoke", "plugin:barcode-scanner|check_permissions"],
+    ["AndroidBarcode.scanBarcode", { source: "camera" }],
+    ["invoke", "scan_barcode"],
+    ["fallback.scanBarcode", "camera"],
+  ]);
+});
+
 test("detected Tauri bridge uses barcode plugin when Android barcode bridge is missing", async () => {
   const calls = [];
   const bridge = createDetectedTauriNativeBridge({
