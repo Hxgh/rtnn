@@ -439,14 +439,7 @@ test("app native core keeps barcode and notification behind core service actions
   assert.deepEqual(await core.scanBarcode({ timeoutMs: 1234 }), {
     ok: true,
     action: "barcode.scan",
-    permissions: [
-      {
-        ok: true,
-        kind: "camera",
-        status: "granted",
-        requested: true,
-      },
-    ],
+    permissions: [],
     codes: [
       {
         rawValue: "rtnn-test",
@@ -459,7 +452,6 @@ test("app native core keeps barcode and notification behind core service actions
     message: "notification-dispatched",
   });
   assert.deepEqual(calls, [
-    ["ensurePermission", "camera", "on-demand", "scan-barcode"],
     ["scanBarcode", 1234, "camera", null],
     ["ensurePermission", "notification", "on-demand", "enable-notification"],
     ["showNotification", "RTNN"],

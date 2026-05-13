@@ -108,6 +108,10 @@ function dedupeStrings(values) {
   return [...new Set(values.map((value) => normalizeString(value)).filter(Boolean))];
 }
 
+function buildRemoteCapabilityUrls(webUrl) {
+  return dedupeStrings([webUrl, `${webUrl}/*`]);
+}
+
 function patchTauriConfig(configPath, webUrl) {
   const config = readJson(configPath);
   const previousFrontendDist = normalizeString(config.build?.frontendDist);
@@ -135,7 +139,7 @@ function patchCapabilityFile(filePath, webUrl) {
     : [];
 
   capability.remote = capability.remote ?? {};
-  capability.remote.urls = dedupeStrings([webUrl]);
+  capability.remote.urls = buildRemoteCapabilityUrls(webUrl);
   writeJson(filePath, capability);
 
   return {

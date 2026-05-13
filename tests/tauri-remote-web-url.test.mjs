@@ -104,7 +104,10 @@ test("prepare-tauri-remote-web-url patches Tauri config and capability URLs", ()
       "https://app.testing.acme.test",
     );
     assert.equal("devUrl" in config.build, false);
-    assert.deepEqual(capability.remote.urls, ["https://app.testing.acme.test"]);
+    assert.deepEqual(capability.remote.urls, [
+      "https://app.testing.acme.test",
+      "https://app.testing.acme.test/*",
+    ]);
     assert.equal(report.schemaVersion, "rtnn.tauri-remote-web-url.v1");
     assert.equal(report.webUrl, "https://app.testing.acme.test");
     assert.equal(report.config.previousFrontendDistConfigured, true);
