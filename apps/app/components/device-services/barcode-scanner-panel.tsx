@@ -15,6 +15,7 @@ import {
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
   scannerElementId,
+  shouldFallbackBarcodeScanToWeb,
   stopHtml5QrcodeScanner,
   type NativeCoreService,
   type WebBarcodeScanResult,
@@ -175,9 +176,9 @@ export function BarcodeScannerPanel({
     [stopScanner],
   );
 
-  const startNativeScanner = useCallback(async () => {
+  const startNativeScanner = useCallback(async (): Promise<"handled" | "fallback-to-web"> => {
     if (state === "starting" || state === "scanning") {
-      return;
+      return "handled";
     }
 
     await stopScanner({ clear: true });
@@ -198,7 +199,7 @@ export function BarcodeScannerPanel({
 
       if (manualStopRef.current || scanRunId !== scanRunIdRef.current) {
         setState("idle");
-        return;
+        return "handled";
       }
 
       const codes = Array.isArray(result.codes) ? result.codes : [];
@@ -213,24 +214,38 @@ export function BarcodeScannerPanel({
           setErrorReason(null);
         });
         setState("idle");
-        return;
+        return "handled";
       }
 
-      setErrorReason(
-        isNativeActionCancelled(result)
-          ? "barcode-scan-cancelled"
-          : (result.reason ?? "barcode-scan-native-unavailable"),
-      );
+      const reason = isNativeActionCancelled(result)
+        ? "barcode-scan-cancelled"
+        : (result.reason ?? "barcode-scan-native-unavailable");
+      if (shouldFallbackBarcodeScanToWeb(reason)) {
+        setErrorReason(null);
+        setState("idle");
+        return "fallback-to-web";
+      }
+
+      setErrorReason(reason);
       setState("idle");
+      return "handled";
     } catch (error) {
       if (manualStopRef.current || scanRunId !== scanRunIdRef.current) {
         setErrorReason(null);
         setState("idle");
-        return;
+        return "handled";
       }
 
-      setErrorReason(error instanceof Error ? error.message : String(error));
+      const reason = error instanceof Error ? error.message : String(error);
+      if (shouldFallbackBarcodeScanToWeb(reason)) {
+        setErrorReason(null);
+        setState("idle");
+        return "fallback-to-web";
+      }
+
+      setErrorReason(reason);
       setState("idle");
+      return "handled";
     }
   }, [nativeCore, state, stopScanner]);
 
@@ -295,7 +310,11 @@ export function BarcodeScannerPanel({
 
   const startScanner = useCallback(async () => {
     if (useNativeCameraScanner) {
-      await startNativeScanner();
+      const result = await startNativeScanner();
+      if (result !== "fallback-to-web") {
+        return;
+      }
+      await startWebScanner();
       return;
     }
 

@@ -173,3 +173,36 @@ export function getScannerBoxSize(width: number, height: number) {
     height: size,
   };
 }
+
+export function shouldFallbackBarcodeScanToWeb(reason: string | null | undefined) {
+  if (!reason) {
+    return false;
+  }
+
+  const normalized = reason.toLowerCase();
+
+  if (
+    normalized.includes("cancel") ||
+    normalized.includes("permission") ||
+    normalized.includes("notallowed") ||
+    normalized.includes("denied") ||
+    normalized.includes("timeout")
+  ) {
+    return false;
+  }
+
+  return (
+    normalized === "barcode-scan-native-unavailable" ||
+    normalized === "barcode-scanner-native-unavailable" ||
+    normalized === "barcode-scan-unavailable" ||
+    normalized === "barcode-detector-unavailable" ||
+    normalized.includes("plugin:barcode-scanner") ||
+    normalized.includes("scan_barcode") ||
+    normalized.includes("not initialized") ||
+    normalized.includes("not available") ||
+    normalized.includes("not supported") ||
+    normalized.includes("not implemented") ||
+    normalized.includes("unknown command") ||
+    normalized.includes("command not found")
+  );
+}

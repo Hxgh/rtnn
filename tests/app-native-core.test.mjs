@@ -381,6 +381,17 @@ test("app barcode scanner classifies product-length numeric codes", async () => 
   assert.equal(normalizeWebBarcodeResult("geo:30.2741,120.1551").contentType, "geo");
 });
 
+test("app barcode scanner falls back to web only when native scan is unavailable", async () => {
+  const { shouldFallbackBarcodeScanToWeb } = await importAppNativeCore();
+
+  assert.equal(shouldFallbackBarcodeScanToWeb("barcode-scan-native-unavailable"), true);
+  assert.equal(shouldFallbackBarcodeScanToWeb("plugin:barcode-scanner not initialized"), true);
+  assert.equal(shouldFallbackBarcodeScanToWeb("unknown command scan_barcode"), true);
+  assert.equal(shouldFallbackBarcodeScanToWeb("barcode-scan-cancelled"), false);
+  assert.equal(shouldFallbackBarcodeScanToWeb("camera-permission-denied"), false);
+  assert.equal(shouldFallbackBarcodeScanToWeb("file-picker-timeout"), false);
+});
+
 test("app native core requests only the permission needed by media action", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];

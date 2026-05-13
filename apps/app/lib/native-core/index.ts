@@ -22,6 +22,7 @@ export {
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
   scannerElementId,
+  shouldFallbackBarcodeScanToWeb,
   stopHtml5QrcodeScanner,
   type WebBarcodeScanResult,
 } from "./scanner";
