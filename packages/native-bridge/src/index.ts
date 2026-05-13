@@ -1568,6 +1568,56 @@ function pickImagesWithAndroidBridge(
   }
 }
 
+function waitForNativeFilePickerClosed(
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+  timeoutMs = 900,
+): Promise<NativeImagePickResult | null> {
+  if (typeof globalScope?.addEventListener !== "function") {
+    return Promise.resolve(null);
+  }
+
+  const setTimer = globalScope.setTimeout ?? setTimeout;
+  const clearTimer = globalScope.clearTimeout ?? clearTimeout;
+
+  return new Promise((resolve) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let completed = false;
+
+    const finish = (result: NativeImagePickResult | null) => {
+      if (completed) {
+        return;
+      }
+
+      completed = true;
+      if (timer) {
+        clearTimer(timer);
+      }
+      globalScope.removeEventListener?.(
+        NATIVE_FILE_PICKER_CLOSED_EVENT,
+        handleNativeFilePickerClosed,
+      );
+      resolve(result);
+    };
+
+    const handleNativeFilePickerClosed = (event: Event) => {
+      const reason = normalizeFilePickerClosedReason(
+        (event as CustomEvent<{ reason?: unknown }>).detail?.reason,
+      );
+      finish({
+        ok: false,
+        reason,
+        files: [],
+      });
+    };
+
+    globalScope.addEventListener?.(
+      NATIVE_FILE_PICKER_CLOSED_EVENT,
+      handleNativeFilePickerClosed,
+    );
+    timer = setTimer(() => finish(null), timeoutMs);
+  });
+}
+
 function scanBarcodeWithAndroidBridge(
   input: NativeBarcodeScanInput = {},
   globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
@@ -1668,6 +1718,54 @@ async function showBrowserNotification(
     permission,
     reason: "notification-unavailable",
   };
+}
+
+async function showAndroidNotification(
+  input: NativeNotificationInput,
+  globalScope: TauriGlobalScope | undefined = getDefaultGlobalScope(),
+): Promise<NativeNotificationResult | null> {
+  if (typeof globalScope?.AndroidNotification?.showNotification !== "function") {
+    return null;
+  }
+
+  const permission = await ensureBrowserPermission(
+    {
+      kind: "notification",
+      trigger: "on-demand",
+      purpose: "show-notification",
+    },
+    globalScope,
+  );
+
+  if (!permission.ok || permission.status !== "granted") {
+    return {
+      ok: false,
+      permission,
+      reason: permission.reason ?? "notification-permission-denied",
+    };
+  }
+
+  try {
+    return {
+      ...normalizeActionResult(
+        parseAndroidActionBridgeResult(
+          globalScope.AndroidNotification.showNotification(
+            input.title,
+            input.body,
+            input.tag,
+          ),
+          "notification-dispatch-failed",
+        ),
+      ),
+      permission,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      permission,
+      reason: normalizeErrorReason(error),
+    };
+  }
 }
 
 function pickImagesWithInput(
@@ -2300,6 +2398,11 @@ export function createBrowserNativeBridge(
     },
 
     async showNotification(input) {
+      const nativeResult = await showAndroidNotification(input, globalScope);
+      if (nativeResult) {
+        return nativeResult;
+      }
+
       return showBrowserNotification(input, globalScope);
     },
 
@@ -3236,6 +3339,8 @@ export function createDetectedTauriNativeBridge(
       }
 
       if (isNativeBridgeNotReadyResult(androidResult)) {
+        const closedResultPromise = waitForNativeFilePickerClosed(globalScope);
+
         await waitForAndroidBridgeMethod(
           globalScope,
           "AndroidMedia",
@@ -3249,6 +3354,11 @@ export function createDetectedTauriNativeBridge(
           !isNativeBridgeNotReadyResult(delayedAndroidResult)
         ) {
           return delayedAndroidResult;
+        }
+
+        const closedResult = await closedResultPromise;
+        if (closedResult) {
+          return closedResult;
         }
       }
 
@@ -3315,6 +3425,11 @@ export function createDetectedTauriNativeBridge(
     },
 
     async showNotification(input) {
+      const nativeResult = await showAndroidNotification(input, globalScope);
+      if (nativeResult) {
+        return nativeResult;
+      }
+
       const androidResult = await showBrowserNotification(input, globalScope);
       if (androidResult.ok || androidResult.reason !== "notification-unavailable") {
         return androidResult;
@@ -3564,6 +3679,8 @@ export function createTauriNativeBridge(
       }
 
       if (isNativeBridgeNotReadyResult(androidResult)) {
+        const closedResultPromise = waitForNativeFilePickerClosed(undefined);
+
         await waitForAndroidBridgeMethod(
           undefined,
           "AndroidMedia",
@@ -3577,6 +3694,11 @@ export function createTauriNativeBridge(
           !isNativeBridgeNotReadyResult(delayedAndroidResult)
         ) {
           return delayedAndroidResult;
+        }
+
+        const closedResult = await closedResultPromise;
+        if (closedResult) {
+          return closedResult;
         }
       }
 
@@ -3639,6 +3761,11 @@ export function createTauriNativeBridge(
     },
 
     async showNotification(input) {
+      const nativeResult = await showAndroidNotification(input);
+      if (nativeResult) {
+        return nativeResult;
+      }
+
       const androidResult = await showBrowserNotification(input);
       if (androidResult.ok || androidResult.reason !== "notification-unavailable") {
         return androidResult;

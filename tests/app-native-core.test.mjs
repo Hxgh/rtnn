@@ -1,13 +1,22 @@
 import assert from "node:assert/strict";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import test from "node:test";
 import ts from "typescript";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
+const require = createRequire(import.meta.url);
 const nativeBridgeDistPath = path
   .join(repoRoot, "packages/native-bridge/dist/index.js")
   .replaceAll(path.sep, "/");
+const appReactPath = require
+  .resolve("react", { paths: [path.join(repoRoot, "apps/app")] })
+  .replaceAll(path.sep, "/");
+const appReactJsxRuntimePath = require
+  .resolve("react/jsx-runtime", { paths: [path.join(repoRoot, "apps/app")] })
+  .replaceAll(path.sep, "/");
+const appOrigin = "https://app.rtnn.invalid";
 
 async function importAppNativeCore() {
   const sourceDir = path.join(repoRoot, "apps/app/lib/native-core");
@@ -31,6 +40,8 @@ async function importAppNativeCore() {
       },
     }).outputText;
     const runnableSource = transpiled
+      .replace(/from "react\/jsx-runtime"/g, `from "file://${appReactJsxRuntimePath}"`)
+      .replace(/from "react"/g, `from "file://${appReactPath}"`)
       .replace(
         /from "@rtnn\/native-bridge"/g,
         `from "file://${nativeBridgeDistPath}"`,
@@ -227,7 +238,7 @@ test("app native core separates external open from in-app webview", async () => 
   const originalWindow = globalThis.window;
   globalThis.window = {
     location: {
-      href: "https://app.testing.rtnn.soolan.xyz/device-services",
+      href: `${appOrigin}/device-services`,
       assign(url) {
         assigned.push(url);
       },
@@ -239,7 +250,7 @@ test("app native core separates external open from in-app webview", async () => 
     assert.deepEqual(await core.openExternalUrl("https://example.com/download"), {
       ok: true,
     });
-    assert.deepEqual(await core.openInAppWebView("https://app.testing.rtnn.soolan.xyz/download"), {
+    assert.deepEqual(await core.openInAppWebView(`${appOrigin}/download`), {
       ok: true,
       message: "opened-in-app-webview",
     });
@@ -247,7 +258,7 @@ test("app native core separates external open from in-app webview", async () => 
       ["openExternal", "https://example.com/download"],
     ]);
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/download",
+      `${appOrigin}/download`,
     ]);
   } finally {
     globalThis.window = originalWindow;
@@ -261,7 +272,7 @@ test("app native core opens generic app URL inside the shell", async () => {
   const assigned = [];
   globalThis.window = {
     location: {
-      href: "https://app.testing.rtnn.soolan.xyz/me",
+      href: `${appOrigin}/me`,
       assign(url) {
         assigned.push(url);
       },
@@ -270,13 +281,13 @@ test("app native core opens generic app URL inside the shell", async () => {
   const core = createAppNativeCore(createBridge(calls));
 
   try {
-    assert.deepEqual(await core.openUrl("https://app.testing.rtnn.soolan.xyz/download"), {
+    assert.deepEqual(await core.openUrl(`${appOrigin}/download`), {
       ok: true,
       message: "opened-in-app-webview",
     });
     assert.deepEqual(calls, []);
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/download",
+      `${appOrigin}/download`,
     ]);
   } finally {
     globalThis.window = originalWindow;
@@ -290,7 +301,7 @@ test("app native core opens same-origin URLs inside the shell", async () => {
   const originalWindow = globalThis.window;
   globalThis.window = {
     location: {
-      href: "https://app.testing.rtnn.soolan.xyz/native-diagnostics",
+      href: `${appOrigin}/native-diagnostics`,
       assign(url) {
         assigned.push(url);
       },
@@ -304,7 +315,7 @@ test("app native core opens same-origin URLs inside the shell", async () => {
       message: "opened-in-app-webview",
     });
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/download",
+      `${appOrigin}/download`,
     ]);
     assert.deepEqual(calls, []);
   } finally {
@@ -319,7 +330,7 @@ test("app native core rejects cross-origin shell navigation", async () => {
   const originalWindow = globalThis.window;
   globalThis.window = {
     location: {
-      href: "https://app.testing.rtnn.soolan.xyz/me",
+      href: `${appOrigin}/me`,
       assign(url) {
         assigned.push(url);
       },
@@ -346,7 +357,7 @@ test("app native core accepts same-origin relative in-app webview URLs", async (
   const originalWindow = globalThis.window;
   globalThis.window = {
     location: {
-      href: "https://app.testing.rtnn.soolan.xyz/native-diagnostics",
+      href: `${appOrigin}/native-diagnostics`,
       assign(url) {
         assigned.push(url);
       },
@@ -364,7 +375,7 @@ test("app native core accepts same-origin relative in-app webview URLs", async (
       reason: "webview-url-not-allowed",
     });
     assert.deepEqual(assigned, [
-      "https://app.testing.rtnn.soolan.xyz/download",
+      `${appOrigin}/download`,
     ]);
     assert.deepEqual(calls, []);
   } finally {

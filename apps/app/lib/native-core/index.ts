@@ -3,6 +3,36 @@
 export { createAppNativeCore } from "./service";
 export type { NativePermissionStartupMode } from "./permissions";
 export {
+  useBarcodeScanner,
+  type BarcodeImageScanState,
+  type BarcodeScannerState,
+  type UseBarcodeScannerOptions,
+  type UseBarcodeScannerReturn,
+} from "./use-barcode-scanner";
+export {
+  createUnavailableMapCandidates,
+  getVisibleMapCandidates,
+  isMapCandidateActionable,
+  sortMapCandidates,
+  useMapNavigation,
+  type MapNavigationActionState,
+  type MapNavigationPickerState,
+  type UseMapNavigationOptions,
+  type UseMapNavigationReturn,
+} from "./use-map-navigation";
+export {
+  useMediaPicker,
+  type MediaPickerState,
+  type UseMediaPickerOptions,
+  type UseMediaPickerReturn,
+} from "./use-media-picker";
+export {
+  useNotificationAction,
+  type NotificationActionState,
+  type UseNotificationActionOptions,
+  type UseNotificationActionReturn,
+} from "./use-notification-action";
+export {
   isNativeActionCancelled,
   nativeActionReturnSettleMs,
   nativeActionWatchdogMs,

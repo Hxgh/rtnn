@@ -245,8 +245,16 @@ function validateClient(rootDir, clientName, expected) {
     `${clientName} capability 缺少 devUrl remote 授权`,
   );
   assert(
+    capability.remote?.urls?.includes(`${expected.devUrl}/*`),
+    `${clientName} capability 缺少 devUrl 路径 remote 授权`,
+  );
+  assert(
     capability.remote?.urls?.includes(expected.remoteUrl),
     `${clientName} capability 缺少 remote URL 授权`,
+  );
+  assert(
+    capability.remote?.urls?.includes(`${expected.remoteUrl}/*`),
+    `${clientName} capability 缺少 remote URL 路径授权`,
   );
   for (const permission of expected.permissions) {
     assert(

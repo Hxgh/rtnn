@@ -138,6 +138,9 @@ export type AppMessages = {
     safeAreaBottomTitle: string;
     safeAreaBottomDescription: string;
     safeAreaBottomMarker: string;
+    safeAreaMiddleInputPlaceholder: string;
+    safeAreaBottomInputLabel: string;
+    safeAreaBottomInputPlaceholder: string;
     runtime: string;
     platform: string;
     shell: string;
@@ -164,6 +167,7 @@ export type AppMessages = {
     mapPickerCheckingDescription: string;
     mapPickerEmptyDescription: string;
     mapPickerFailedDescription: string;
+    mapWebFallback: string;
     mapVisibilityLimited: string;
     mapCheckUnavailable: string;
     mapOpenFailed: string;
@@ -323,8 +327,8 @@ const zhCN: AppMessages = {
     barcodeScanFromImage: "选择图片识别",
     barcodeImageScanning: "识别中...",
     barcodeCameraTitle: "相机扫码",
-    barcodeCameraDescription: "使用相机取景框识别二维码和条形码，识别成功后自动停止。",
-    barcodeCameraIdle: "点击开始后打开相机取景框",
+    barcodeCameraDescription: "支持相机扫码和图片识别。",
+    barcodeCameraIdle: "将二维码或条形码置于画面中央",
     barcodeScanning: "扫码中...",
     barcodeCopyResult: "复制结果",
     barcodeStart: "开始扫码",
@@ -351,14 +355,17 @@ const zhCN: AppMessages = {
     notificationDescription: "发送本地通知，并按系统策略申请通知权限。",
     notificationSend: "发送通知",
     notificationSent: "通知已发送。",
-    diagnosticsTitle: "设备诊断",
+    diagnosticsTitle: "设备状态",
     diagnosticsDescription: "查看运行环境、权限和系统状态。",
     permissionDescription: "权限由相关操作按需申请。",
     safeAreaTitle: "键盘与安全区",
-    safeAreaDescription: "输入内容时页面适配状态栏、键盘和底部安全区域。",
+    safeAreaDescription: "检查键盘抬起与底部安全区。",
     safeAreaBottomTitle: "底部区域",
     safeAreaBottomDescription: "滚动到底部时，内容会避开系统手势区和底部操作区。",
     safeAreaBottomMarker: "底部内容区域",
+    safeAreaMiddleInputPlaceholder: "中部输入框",
+    safeAreaBottomInputLabel: "底部输入框",
+    safeAreaBottomInputPlaceholder: "检查键盘抬起",
     runtime: "运行环境",
     platform: "平台",
     shell: "客户端类型",
@@ -385,6 +392,7 @@ const zhCN: AppMessages = {
     mapPickerCheckingDescription: "正在检测可用地图应用。",
     mapPickerEmptyDescription: "当前设备未识别到可用地图应用。",
     mapPickerFailedDescription: "当前无法读取地图应用状态。",
+    mapWebFallback: "网页版地图",
     mapVisibilityLimited: "当前设备未识别到该地图应用。",
     mapCheckUnavailable: "当前无法读取地图应用状态。",
     mapOpenFailed: "未能打开地图应用，请选择其他可用地图。",
@@ -544,8 +552,8 @@ const enUS: AppMessages = {
     barcodeScanFromImage: "Choose image",
     barcodeImageScanning: "Scanning...",
     barcodeCameraTitle: "Camera scan",
-    barcodeCameraDescription: "Use the camera viewfinder to read QR codes and barcodes. Scanning stops after a match.",
-    barcodeCameraIdle: "Start scanning to open the camera viewfinder",
+    barcodeCameraDescription: "Scan with the camera or choose an image.",
+    barcodeCameraIdle: "Center the code in the camera view",
     barcodeScanning: "Scanning...",
     barcodeCopyResult: "Copy result",
     barcodeStart: "Start scan",
@@ -576,10 +584,13 @@ const enUS: AppMessages = {
     diagnosticsDescription: "Review runtime, permissions, and system status.",
     permissionDescription: "Permissions are requested by related actions.",
     safeAreaTitle: "Keyboard and safe area",
-    safeAreaDescription: "The page adapts to the status bar, keyboard, and bottom safe area while editing.",
+    safeAreaDescription: "Test keyboard lift and bottom safe area.",
     safeAreaBottomTitle: "Bottom area",
     safeAreaBottomDescription: "When scrolled to the bottom, content clears the gesture area and bottom actions.",
     safeAreaBottomMarker: "Bottom content area",
+    safeAreaMiddleInputPlaceholder: "Middle input",
+    safeAreaBottomInputLabel: "Bottom input",
+    safeAreaBottomInputPlaceholder: "Test keyboard lift",
     runtime: "Runtime",
     platform: "Platform",
     shell: "Client type",
@@ -606,6 +617,7 @@ const enUS: AppMessages = {
     mapPickerCheckingDescription: "Checking available map apps.",
     mapPickerEmptyDescription: "No available map app was detected on this device.",
     mapPickerFailedDescription: "Map app status cannot be read right now.",
+    mapWebFallback: "Web map",
     mapVisibilityLimited: "This map app was not detected on this device.",
     mapCheckUnavailable: "Map app status could not be read.",
     mapOpenFailed: "The map app could not be opened. Choose another available app.",

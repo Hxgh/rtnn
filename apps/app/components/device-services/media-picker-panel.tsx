@@ -1,27 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  createAppNativeCore,
-  isNativeActionCancelled,
-  type NativeCorePickedFile,
-  type NativeCoreService,
-  type NativeMediaSource,
-} from "@/lib/native-core";
+import { useMediaPicker } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
+import {
+  MediaPickerActions,
+  MediaPreviewGrid,
+} from "@/components/native-core";
 import { SurfaceCard } from "@/components/ui/card";
 
 type Messages = AppMessages["nativeCapabilities"];
-type MediaActionState = "idle" | "opening";
-
-function formatFileSize(value: number) {
-  if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
 
 function getMediaMessage(reason: string | null, messages: Messages) {
   if (!reason) {
@@ -45,43 +32,8 @@ function getMediaMessage(reason: string | null, messages: Messages) {
 }
 
 export function MediaPickerPanel({ messages }: { messages: Messages }) {
-  const nativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
-  const [mediaActionState, setMediaActionState] = useState<MediaActionState>("idle");
-  const [images, setImages] = useState<NativeCorePickedFile[]>([]);
-  const [lastMessage, setLastMessage] = useState<string | null>(null);
-
-  async function pickMedia(source: NativeMediaSource) {
-    if (mediaActionState !== "idle") {
-      return;
-    }
-
-    setMediaActionState("opening");
-    setLastMessage(null);
-
-    try {
-      const result = await nativeCore.pickMedia(source, {
-        timeoutMs: 12_000,
-      });
-
-      if (result.ok) {
-        setImages(result.files);
-        return;
-      }
-
-      setLastMessage(
-        isNativeActionCancelled(result)
-          ? null
-          : (result.reason ?? "media-action-failed"),
-      );
-    } catch (error) {
-      setLastMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setMediaActionState("idle");
-    }
-  }
-
-  const displayMessage = getMediaMessage(lastMessage, messages);
-  const isOpening = mediaActionState === "opening";
+  const picker = useMediaPicker();
+  const displayMessage = getMediaMessage(picker.reason, messages);
 
   return (
     <div className="space-y-5">
@@ -93,64 +45,27 @@ export function MediaPickerPanel({ messages }: { messages: Messages }) {
               {messages.mediaDescription}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              disabled={isOpening}
-              onClick={() => pickMedia("album")}
-              type="button"
-              variant="outline"
-            >
-              {isOpening ? messages.openingShort : messages.pickImages}
-            </Button>
-            <Button
-              disabled={isOpening}
-              onClick={() => pickMedia("camera")}
-              type="button"
-            >
-              {isOpening ? messages.openingShort : messages.captureImage}
-            </Button>
-          </div>
+          <MediaPickerActions
+            labels={{
+              captureImage: messages.captureImage,
+              opening: messages.openingShort,
+              pickImages: messages.pickImages,
+            }}
+            picker={picker}
+          />
         </div>
       </SurfaceCard>
 
-      {images.length > 0 ? (
+      {picker.files.length > 0 ? (
         <SurfaceCard className="overflow-hidden">
-          <div className="space-y-3 px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-foreground">
-                {messages.selectedImages}
-              </h2>
-              <Button onClick={() => setImages([])} size="sm" variant="ghost">
-                {messages.clearImages}
-              </Button>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {images.map((image, index) => (
-                <div
-                  className="overflow-hidden rounded-xl border border-border/80 bg-secondary"
-                  key={`${image.name}:${image.size}:${index}`}
-                >
-                  {image.dataUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      alt={image.name}
-                      className="aspect-square w-full object-cover"
-                      src={image.dataUrl}
-                    />
-                  ) : (
-                    <div className="flex aspect-square items-center justify-center px-2 text-center text-[10px] text-muted-foreground">
-                      {image.name}
-                    </div>
-                  )}
-                  <div className="space-y-0.5 px-2 py-1.5">
-                    <p className="truncate text-[10px] text-foreground">{image.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {formatFileSize(image.size)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="px-4 py-4">
+            <MediaPreviewGrid
+              labels={{
+                clear: messages.clearImages,
+                title: messages.selectedImages,
+              }}
+              picker={picker}
+            />
           </div>
         </SurfaceCard>
       ) : null}

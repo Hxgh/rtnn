@@ -166,6 +166,40 @@ body {
   content: "";
 }
 
+.rtnn-barcode-camera-host {
+  overflow: hidden;
+  background: #000;
+}
+
+.rtnn-barcode-camera-host > div {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+.rtnn-barcode-camera-host [id$="__scan_region"] {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.rtnn-barcode-camera-host video {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  background: #000;
+}
+
+.rtnn-barcode-camera-host canvas,
+.rtnn-barcode-camera-host #qr-shaded-region {
+  display: none !important;
+}
+
 .rtnn-app-scroll :is(a, button, input, select, textarea, [tabindex]) {
   scroll-margin-top: var(--rtnn-header-spacing);
   scroll-margin-bottom: var(--rtnn-bottom-nav-page-bottom);

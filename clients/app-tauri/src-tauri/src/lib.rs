@@ -519,8 +519,7 @@ fn open_in_app_webview(app: tauri::AppHandle, url: String) -> CommandResult {
     }
 
     let allowed = trimmed.starts_with("http://localhost:")
-        || trimmed.starts_with("https://app.testing.rtnn.soolan.xyz/")
-        || trimmed.starts_with("https://app.rtnn.soolan.xyz/");
+        || trimmed.starts_with("https://app.rtnn.invalid/");
 
     if !allowed {
         return CommandResult {
