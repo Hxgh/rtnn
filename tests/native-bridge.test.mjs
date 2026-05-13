@@ -1446,7 +1446,11 @@ test("detected Tauri bridge skips unavailable Android camera barcode bridge", as
       if (command === "plugin:barcode-scanner|check_permissions") {
         throw new Error("plugin:barcode-scanner not initialized");
       }
-      throw new Error("unknown command");
+      return {
+        ok: false,
+        reason: "barcode-scan-native-unavailable",
+        codes: [],
+      };
     },
   });
 

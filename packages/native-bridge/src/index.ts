@@ -3293,7 +3293,7 @@ export function createDetectedTauriNativeBridge(
       }
 
       try {
-        return normalizeBarcodeScanResult(
+        const commandResult = normalizeBarcodeScanResult(
           await options.invoke<NativeBarcodeScanResult>(
             options.scanBarcodeCommand ?? "scan_barcode",
             {
@@ -3303,6 +3303,12 @@ export function createDetectedTauriNativeBridge(
             },
           ),
         );
+
+        if (!isBarcodeNativeUnavailableResult(commandResult)) {
+          return commandResult;
+        }
+
+        return fallback.scanBarcode(input);
       } catch {
         return fallback.scanBarcode(input);
       }
@@ -3611,7 +3617,7 @@ export function createTauriNativeBridge(
       }
 
       try {
-        return normalizeBarcodeScanResult(
+        const commandResult = normalizeBarcodeScanResult(
           await options.invoke<NativeBarcodeScanResult>(
             options.scanBarcodeCommand ?? "scan_barcode",
             {
@@ -3621,6 +3627,12 @@ export function createTauriNativeBridge(
             },
           ),
         );
+
+        if (!isBarcodeNativeUnavailableResult(commandResult)) {
+          return commandResult;
+        }
+
+        return scanBarcodeWithBrowser(input);
       } catch {
         return scanBarcodeWithBrowser(input);
       }
