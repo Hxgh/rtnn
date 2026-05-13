@@ -36,6 +36,12 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
               icon={<DeviceFeatureIcon kind="notification" label={messages.notificationTitle} />}
               title={messages.notificationTitle}
             />
+            <ActionRowLink
+              description={messages.safeAreaDescription}
+              href="/device-services/safe-area"
+              icon={<DeviceFeatureIcon kind="safeArea" label={messages.safeAreaTitle} />}
+              title={messages.safeAreaTitle}
+            />
           </div>
         </SurfaceCard>
       </PageSection>
@@ -48,12 +54,6 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
               href="/download"
               icon={<DeviceFeatureIcon kind="download" label={messages.openDownloads} />}
               title={messages.openDownloads}
-            />
-            <ActionRowLink
-              description={messages.diagnosticsEntryDescription}
-              href="/native-diagnostics"
-              icon={<DeviceFeatureIcon kind="diagnostics" label={messages.openDiagnostics} />}
-              title={messages.openDiagnostics}
             />
           </div>
         </SurfaceCard>

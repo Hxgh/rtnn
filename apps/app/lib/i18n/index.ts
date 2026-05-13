@@ -133,8 +133,11 @@ export type AppMessages = {
     diagnosticsTitle: string;
     diagnosticsDescription: string;
     permissionDescription: string;
-    keyboardTitle: string;
-    keyboardDescription: string;
+    safeAreaTitle: string;
+    safeAreaDescription: string;
+    safeAreaBottomTitle: string;
+    safeAreaBottomDescription: string;
+    safeAreaBottomMarker: string;
     runtime: string;
     platform: string;
     shell: string;
@@ -176,8 +179,6 @@ export type AppMessages = {
     keyboardPlaceholder: string;
     openDownloads: string;
     downloadEntryDescription: string;
-    openDiagnostics: string;
-    diagnosticsEntryDescription: string;
     opening: string;
     openingShort: string;
     checkingShort: string;
@@ -353,8 +354,11 @@ const zhCN: AppMessages = {
     diagnosticsTitle: "设备诊断",
     diagnosticsDescription: "查看运行环境、权限和系统状态。",
     permissionDescription: "权限由相关操作按需申请。",
-    keyboardTitle: "键盘与安全区",
-    keyboardDescription: "输入内容时页面会适配键盘和底部安全区域。",
+    safeAreaTitle: "键盘与安全区",
+    safeAreaDescription: "输入内容时页面适配状态栏、键盘和底部安全区域。",
+    safeAreaBottomTitle: "底部区域",
+    safeAreaBottomDescription: "滚动到底部时，内容会避开系统手势区和底部操作区。",
+    safeAreaBottomMarker: "底部内容区域",
     runtime: "运行环境",
     platform: "平台",
     shell: "客户端类型",
@@ -396,8 +400,6 @@ const zhCN: AppMessages = {
     keyboardPlaceholder: "请输入内容",
     openDownloads: "客户端下载",
     downloadEntryDescription: "查看当前环境可下载的客户端安装包。",
-    openDiagnostics: "设备诊断",
-    diagnosticsEntryDescription: "查看设备能力状态。",
     opening: "处理中...",
     openingShort: "处理中",
     checkingShort: "检测中",
@@ -573,8 +575,11 @@ const enUS: AppMessages = {
     diagnosticsTitle: "Device Diagnostics",
     diagnosticsDescription: "Review runtime, permissions, and system status.",
     permissionDescription: "Permissions are requested by related actions.",
-    keyboardTitle: "Keyboard and safe area",
-    keyboardDescription: "The page adapts to the keyboard and bottom safe area while editing.",
+    safeAreaTitle: "Keyboard and safe area",
+    safeAreaDescription: "The page adapts to the status bar, keyboard, and bottom safe area while editing.",
+    safeAreaBottomTitle: "Bottom area",
+    safeAreaBottomDescription: "When scrolled to the bottom, content clears the gesture area and bottom actions.",
+    safeAreaBottomMarker: "Bottom content area",
     runtime: "Runtime",
     platform: "Platform",
     shell: "Client type",
@@ -616,8 +621,6 @@ const enUS: AppMessages = {
     keyboardPlaceholder: "Enter text",
     openDownloads: "Client downloads",
     downloadEntryDescription: "View downloadable client packages for this environment.",
-    openDiagnostics: "Device diagnostics",
-    diagnosticsEntryDescription: "View device capability status.",
     opening: "Processing...",
     openingShort: "Processing",
     checkingShort: "Checking",

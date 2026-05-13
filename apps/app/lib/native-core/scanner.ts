@@ -24,6 +24,21 @@ export type WebBarcodeScanResult = {
 };
 
 export const scannerElementId = "rtnn-h5-barcode-reader";
+export const barcodeScanFormats = [
+  "qr_code",
+  "aztec",
+  "codabar",
+  "code_39",
+  "code_93",
+  "code_128",
+  "data_matrix",
+  "ean_8",
+  "ean_13",
+  "itf",
+  "pdf417",
+  "upc_a",
+  "upc_e",
+];
 
 function normalizeContentType(value: string): ScannerContentType {
   const text = value.trim();
@@ -113,6 +128,25 @@ export function clearScanner(scanner: Html5Qrcode) {
     scanner.clear();
   } catch {
     // Scanner cleanup can throw after permission or route-transition failures.
+  }
+}
+
+export async function stopHtml5QrcodeScanner(
+  scanner: Html5Qrcode,
+  options?: {
+    clear?: boolean;
+  },
+) {
+  try {
+    if (scanner.isScanning) {
+      await scanner.stop();
+    }
+  } catch {
+    // stop() can reject after camera permission changes or route transitions.
+  }
+
+  if (options?.clear) {
+    clearScanner(scanner);
   }
 }
 

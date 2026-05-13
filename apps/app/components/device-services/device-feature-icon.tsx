@@ -5,6 +5,7 @@ export type DeviceFeatureIconKind =
   | "map"
   | "media"
   | "notification"
+  | "safeArea"
   | "download"
   | "diagnostics";
 
@@ -37,6 +38,11 @@ export function DeviceFeatureIcon({
     ) : kind === "notification" ? (
       <span aria-hidden="true" className="relative block h-4 w-3.5 rounded-t-full border border-current">
         <span className="absolute -bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-current" />
+      </span>
+    ) : kind === "safeArea" ? (
+      <span aria-hidden="true" className="relative block h-4 w-3 rounded-[3px] border border-current">
+        <span className="absolute left-1 right-1 top-1 h-px bg-current" />
+        <span className="absolute bottom-1 left-1 right-1 h-px bg-current" />
       </span>
     ) : kind === "download" ? (
       <span aria-hidden="true" className="relative block h-4 w-3 rounded-[2px] border border-current">

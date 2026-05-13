@@ -14,6 +14,7 @@ export {
   navigateToInAppWebView,
 } from "./webview";
 export {
+  barcodeScanFormats,
   clearScanner,
   createHtml5QrcodeScanner,
   getScannerBoxSize,
@@ -21,6 +22,7 @@ export {
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
   scannerElementId,
+  stopHtml5QrcodeScanner,
   type WebBarcodeScanResult,
 } from "./scanner";
 export { installAppNativeViewportInsets } from "./runtime";

@@ -40,7 +40,7 @@ const nativeScannerTitle = either("扫码", "Scan");
 const nativeMapTitle = either("地图导航", "Map navigation");
 const nativeMediaTitle = either("相机相册", "Camera and photos");
 const nativeNotificationTitle = either("通知", "Notifications");
-const nativeDiagnosticsTitle = either("设备诊断", "Device Diagnostics");
+const nativeSafeAreaTitle = either("键盘与安全区", "Keyboard and safe area");
 
 const refreshTokenCookieName = cookieKeys.customerRefreshToken;
 
@@ -247,9 +247,10 @@ test("app 客户端最小闭环验收", async ({ page }) => {
   await expect(page.locator('a[href="/device-services/map"]')).toContainText(nativeMapTitle);
   await expect(page.locator('a[href="/device-services/media"]')).toContainText(nativeMediaTitle);
   await expect(page.locator('a[href="/device-services/notification"]')).toContainText(nativeNotificationTitle);
-  await expect(page.locator('a[href="/native-diagnostics"]')).toContainText(nativeDiagnosticsTitle);
+  await expect(page.locator('a[href="/device-services/safe-area"]')).toContainText(nativeSafeAreaTitle);
+  await expect(page.locator('a[href="/native-diagnostics"]')).toHaveCount(0);
   await expect(page.locator("nav")).toHaveCount(0);
-  await expectContentClearsViewportBottom(page, 'a[href="/native-diagnostics"]');
+  await expectContentClearsViewportBottom(page, 'a[href="/download"]');
 
   await page.goto("/me");
   await expect(page.getByRole("heading", { name: meTitle })).toBeVisible();

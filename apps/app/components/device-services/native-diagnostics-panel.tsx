@@ -11,7 +11,6 @@ import {
 } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SurfaceCard } from "@/components/ui/card";
 
 type Messages = AppMessages["nativeCapabilities"];
@@ -245,20 +244,6 @@ export function NativeDiagnosticsPanel({ messages }: { messages: Messages }) {
               </div>
             ))}
           </dl>
-        </div>
-      </SurfaceCard>
-
-      <SurfaceCard className="overflow-hidden">
-        <div className="space-y-4 px-4 py-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-foreground">{messages.keyboardTitle}</h2>
-            <p className="text-xs leading-5 text-muted-foreground">{messages.keyboardDescription}</p>
-          </div>
-          <Input
-            id="native-keyboard-check"
-            inputMode="text"
-            placeholder={messages.keyboardPlaceholder}
-          />
         </div>
       </SurfaceCard>
 
