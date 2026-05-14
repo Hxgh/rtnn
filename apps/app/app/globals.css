@@ -169,6 +169,10 @@ body {
 .rtnn-barcode-camera-host {
   position: absolute;
   inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
   overflow: hidden;
   background: #000;
   color: transparent;
@@ -176,9 +180,9 @@ body {
 }
 
 .rtnn-barcode-camera-host > div {
-  position: absolute !important;
-  inset: 0 !important;
-  display: block !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: center !important;
   width: 100% !important;
   height: 100% !important;
   min-height: 100% !important;
@@ -186,9 +190,9 @@ body {
 }
 
 .rtnn-barcode-camera-host [id$="__scan_region"] {
-  position: absolute !important;
-  inset: 0 !important;
-  display: block !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: center !important;
   width: 100% !important;
   height: 100% !important;
   min-height: 100% !important;
@@ -202,15 +206,9 @@ body {
 }
 
 .rtnn-barcode-camera-host video {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
   display: block;
-  min-width: 100% !important;
-  min-height: 100% !important;
   width: 100% !important;
   height: 100% !important;
-  transform: translate3d(-50%, -50%, 0) !important;
   object-fit: cover !important;
   object-position: center center !important;
   background: #000;

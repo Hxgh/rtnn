@@ -1974,6 +1974,85 @@ test("native viewport insets writes keyboard CSS variables from visual viewport"
   assert.equal(listeners.size, 0);
 });
 
+test("native viewport insets refreshes and scrolls focused inputs after keyboard focus", () => {
+  const styles = new Map();
+  const root = {
+    style: {
+      setProperty(name, value) {
+        styles.set(name, value);
+      },
+    },
+  };
+  const listeners = new Map();
+  const timers = new Map();
+  const scrolled = [];
+  let timerId = 0;
+  const activeElement = {
+    tagName: "INPUT",
+    isContentEditable: false,
+    scrollIntoView(options) {
+      scrolled.push(options);
+    },
+  };
+  const visualViewport = {
+    height: 760,
+    offsetTop: 0,
+    addEventListener(name, listener) {
+      listeners.set(`viewport:${name}`, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(`viewport:${name}`);
+    },
+  };
+  const win = {
+    innerHeight: 760,
+    visualViewport,
+    document: {
+      activeElement,
+      documentElement: root,
+    },
+    addEventListener(name, listener) {
+      listeners.set(`window:${name}`, listener);
+    },
+    removeEventListener(name) {
+      listeners.delete(`window:${name}`);
+    },
+    requestAnimationFrame(callback) {
+      callback();
+      return 1;
+    },
+    setTimeout(callback) {
+      timerId += 1;
+      timers.set(timerId, callback);
+      return timerId;
+    },
+    clearTimeout(id) {
+      timers.delete(id);
+    },
+  };
+
+  const cleanup = installNativeViewportInsets({ root, window: win });
+
+  visualViewport.height = 500;
+  listeners.get("window:focusin")();
+  assert.equal(styles.get("--rtnn-keyboard-height"), "260px");
+  assert.equal(scrolled.length, 1);
+
+  const delayedRefresh = timers.get(1);
+  timers.delete(1);
+  delayedRefresh();
+  assert.equal(scrolled.length, 2);
+  assert.deepEqual(scrolled[1], {
+    block: "nearest",
+    inline: "nearest",
+    behavior: "auto",
+  });
+
+  cleanup();
+  assert.equal(listeners.size, 0);
+  assert.equal(timers.size, 0);
+});
+
 test("app Android prepare script includes theme bridge and system bar sync", () => {
   const source = readFileSync(
     path.join(repoRoot, "scripts/client/prepare-app-tauri-android.mjs"),

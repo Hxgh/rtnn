@@ -423,6 +423,7 @@ export type NativeViewportInsetsOptions = {
   keyboardVariable?: string;
   keyboardAliasVariable?: string;
   minKeyboardHeight?: number;
+  focusScrollDelayMs?: number;
 };
 
 export const NATIVE_MAP_APPS: NativeMapAppInfo[] = [
@@ -2114,6 +2115,8 @@ export function installNativeViewportInsets(
   const keyboardVariable = options.keyboardVariable ?? "--rtnn-keyboard-height";
   const keyboardAliasVariable = options.keyboardAliasVariable ?? "--skb";
   const minKeyboardHeight = options.minKeyboardHeight ?? 80;
+  const focusScrollDelayMs = options.focusScrollDelayMs ?? 120;
+  let focusScrollTimer: number | null = null;
 
   function updateKeyboardHeight() {
     const viewport = win.visualViewport;
@@ -2126,20 +2129,72 @@ export function installNativeViewportInsets(
     root.style.setProperty(keyboardAliasVariable, `${height}px`);
   }
 
+  function isKeyboardFocusableElement(element: Element | null) {
+    if (!element) {
+      return false;
+    }
+
+    const tagName = element.tagName.toLowerCase();
+
+    return (
+      tagName === "input" ||
+      tagName === "textarea" ||
+      tagName === "select" ||
+      Boolean("isContentEditable" in element && element.isContentEditable)
+    );
+  }
+
+  function scrollFocusedElementIntoView() {
+    const activeElement = win.document.activeElement;
+
+    if (!isKeyboardFocusableElement(activeElement)) {
+      return;
+    }
+
+    activeElement?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: "auto",
+    });
+  }
+
+  function scheduleFocusedViewportRefresh() {
+    updateKeyboardHeight();
+    win.requestAnimationFrame?.(() => {
+      updateKeyboardHeight();
+      scrollFocusedElementIntoView();
+    });
+
+    if (focusScrollTimer !== null) {
+      win.clearTimeout(focusScrollTimer);
+    }
+
+    focusScrollTimer = win.setTimeout(() => {
+      focusScrollTimer = null;
+      updateKeyboardHeight();
+      scrollFocusedElementIntoView();
+    }, focusScrollDelayMs);
+  }
+
   updateKeyboardHeight();
 
   const viewport = win.visualViewport;
   viewport?.addEventListener("resize", updateKeyboardHeight);
   viewport?.addEventListener("scroll", updateKeyboardHeight);
   win.addEventListener("resize", updateKeyboardHeight);
-  win.addEventListener("focusin", updateKeyboardHeight);
+  win.addEventListener("focusin", scheduleFocusedViewportRefresh);
   win.addEventListener("focusout", updateKeyboardHeight);
 
   return () => {
+    if (focusScrollTimer !== null) {
+      win.clearTimeout(focusScrollTimer);
+      focusScrollTimer = null;
+    }
+
     viewport?.removeEventListener("resize", updateKeyboardHeight);
     viewport?.removeEventListener("scroll", updateKeyboardHeight);
     win.removeEventListener("resize", updateKeyboardHeight);
-    win.removeEventListener("focusin", updateKeyboardHeight);
+    win.removeEventListener("focusin", scheduleFocusedViewportRefresh);
     win.removeEventListener("focusout", updateKeyboardHeight);
   };
 }
