@@ -243,9 +243,17 @@ export function useBarcodeScanner(
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          disableFlip: false,
+          fps: 5,
+          disableFlip: true,
           videoConstraints: {
+            width: {
+              ideal: 1280,
+              max: 1280,
+            },
+            height: {
+              ideal: 720,
+              max: 720,
+            },
             facingMode: {
               ideal: "environment",
             },
