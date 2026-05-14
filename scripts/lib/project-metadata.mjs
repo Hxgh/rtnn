@@ -81,7 +81,7 @@ function defaultReleaseExecution() {
       targets: {
         android: {
           enabled: true,
-          defaultMode: "server-local",
+          defaultMode: "github-hosted",
         },
         macos: {
           enabled: false,

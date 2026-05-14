@@ -201,6 +201,8 @@ async function main() {
     "-f",
     `channel=${args.channel}`,
     "-f",
+    "execution_mode=github-hosted",
+    "-f",
     "dry_run=true",
     "-f",
     "publish_github_release=false",

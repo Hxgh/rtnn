@@ -46,3 +46,20 @@ Recommended admin flow:
 - inspect source and distribution URLs;
 - manage update/download policy;
 - avoid triggering builds from the release center unless a project explicitly adds that capability.
+
+## Build Operations
+
+Client package builds should not share the default runtime server unless the
+operator explicitly accepts that cost.
+
+Recommended defaults:
+
+- use local builds for quick Android device validation;
+- use GitHub-hosted runners for release package builds;
+- keep `server-local` only as an explicit fallback with a confirmation flag and
+  free-disk gate;
+- never trigger client package builds from ordinary business deployments.
+
+The deploy repository may still distribute finished package artifacts to
+self-hosted storage. Distribution is a file sync operation; compiling Android,
+iOS, macOS, or Windows packages is a separate build workload.

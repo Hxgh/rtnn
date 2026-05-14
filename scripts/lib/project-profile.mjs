@@ -20,7 +20,7 @@ export const CLIENT_TARGETS = Object.freeze({
 export const CLIENT_TARGET_EXECUTION = Object.freeze({
   android: Object.freeze({
     defaultEnabled: true,
-    defaultMode: "server-local",
+    defaultMode: "github-hosted",
     allowedModes: Object.freeze(["server-local", "github-hosted"]),
     runners: Object.freeze({
       "server-local": "self-hosted",

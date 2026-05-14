@@ -210,6 +210,7 @@ test("resolve-client-release-context emits client build matrix from delivery pro
         CLIENT_RELEASE_TAG: "v1.2.3",
         CLIENT_RELEASE_PUBLISH_GITHUB_RELEASE: "true",
         CLIENT_RELEASE_SYNC_DEPLOY_FACTS: "true",
+        CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
         GITHUB_REF: "refs/heads/main",
         GITHUB_REF_NAME: "main",
         GITHUB_SHA: "1234567890abcdef",
@@ -220,7 +221,7 @@ test("resolve-client-release-context emits client build matrix from delivery pro
       assert.equal(output.dry_run, "false");
       assert.equal(output.publish_github_release, "true");
       assert.equal(output.sync_deploy_facts, "true");
-      assert.equal(output.release_execution_mode, "server-local");
+      assert.equal(output.release_execution_mode, "github-hosted");
       assert.equal(output.release_channel, "testing");
       assert.equal(output.release_version, "1.2.3");
       assert.equal(output.release_tag, "v1.2.3");
@@ -235,7 +236,7 @@ test("resolve-client-release-context emits client build matrix from delivery pro
           item.runner,
           item.execution_mode,
         ]),
-        [["appMobile", "android", "self-hosted", "server-local"]],
+        [["appMobile", "android", "ubuntu-latest", "github-hosted"]],
       );
       assert.equal(matrix.include[0].package, "@rtnn/app-tauri");
       assert.equal(
@@ -250,6 +251,137 @@ test("resolve-client-release-context emits client build matrix from delivery pro
       );
       assert.equal(matrix.include[0].release_kind, "mobile-manifest-only");
       assert.equal(matrix.include[0].desktop_build, false);
+    },
+  );
+});
+
+test("resolve-client-release-context defaults Android package builds to GitHub-hosted", () => {
+  withTempProject(
+    {
+      project: {
+        role: "business-source",
+        projectId: "acme",
+      },
+      domains: {
+        testing: {
+          app: "app.testing.acme.test",
+        },
+      },
+      releaseExecution: {
+        defaultMode: "server-local",
+        allowedModes: ["server-local", "github-hosted"],
+        githubHosted: {
+          enabled: true,
+          requiresExplicitOptIn: false,
+        },
+        clientBuild: {
+          targets: {
+            android: {
+              enabled: true,
+              defaultMode: "github-hosted",
+            },
+          },
+        },
+      },
+      delivery: {
+        clients: {
+          appMobile: {
+            enabled: true,
+            targets: ["android"],
+            channel: "testing",
+          },
+        },
+      },
+    },
+    (rootDir) => {
+      const output = runContext(rootDir, {
+        CLIENT_RELEASE_VERSION: "1.2.3",
+        GITHUB_REF: "refs/heads/main",
+        GITHUB_REF_NAME: "main",
+        GITHUB_SHA: "1234567890abcdef",
+      });
+      const matrix = JSON.parse(output.client_matrix);
+
+      assert.equal(output.enabled, "true");
+      assert.equal(output.release_execution_mode, "server-local");
+      assert.deepEqual(
+        matrix.include.map((item) => [
+          item.client,
+          item.target,
+          item.runner,
+          item.execution_mode,
+          item.runner_kind,
+        ]),
+        [["appMobile", "android", "ubuntu-latest", "github-hosted", "github-hosted"]],
+      );
+    },
+  );
+});
+
+test("resolve-client-release-context requires confirmation for server-local non-dry-run client builds", () => {
+  withTempProject(
+    {
+      project: {
+        role: "business-source",
+        projectId: "acme",
+      },
+      domains: {
+        testing: {
+          app: "app.testing.acme.test",
+        },
+      },
+      releaseExecution: {
+        defaultMode: "server-local",
+        allowedModes: ["server-local", "github-hosted"],
+        clientBuild: {
+          targets: {
+            android: {
+              enabled: true,
+              defaultMode: "server-local",
+            },
+          },
+        },
+      },
+      delivery: {
+        clients: {
+          appMobile: {
+            enabled: true,
+            targets: ["android"],
+            channel: "testing",
+          },
+        },
+      },
+    },
+    (rootDir) => {
+      const blocked = spawnSync(process.execPath, [scriptPath], {
+        cwd: rootDir,
+        encoding: "utf8",
+        env: childProcessEnv({
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_RELEASE_DRY_RUN: "false",
+          CLIENT_RELEASE_EXECUTION_MODE: "server-local",
+          GITHUB_REF: "refs/heads/main",
+          GITHUB_REF_NAME: "main",
+          GITHUB_SHA: "1234567890abcdef",
+        }),
+      });
+
+      assert.notEqual(blocked.status, 0);
+      assert.match(blocked.stderr, /CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD=true/);
+
+      const confirmed = runContext(rootDir, {
+        CLIENT_RELEASE_VERSION: "1.2.3",
+        CLIENT_RELEASE_DRY_RUN: "false",
+        CLIENT_RELEASE_EXECUTION_MODE: "server-local",
+        CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD: "true",
+        GITHUB_REF: "refs/heads/main",
+        GITHUB_REF_NAME: "main",
+        GITHUB_SHA: "1234567890abcdef",
+      });
+      const matrix = JSON.parse(confirmed.client_matrix);
+
+      assert.equal(confirmed.enabled, "true");
+      assert.equal(matrix.include[0].runner_kind, "self-hosted");
     },
   );
 });
@@ -401,6 +533,7 @@ test("resolve-client-release-context requires concrete client web URL", () => {
         encoding: "utf8",
         env: childProcessEnv({
           CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
           GITHUB_REF: "refs/heads/main",
           GITHUB_REF_NAME: "main",
           GITHUB_SHA: "1234567890abcdef",
@@ -442,6 +575,7 @@ test("resolve-client-release-context resolves channel-specific client web URLs",
       const output = runContext(rootDir, {
         CLIENT_RELEASE_VERSION: "1.2.3",
         CLIENT_RELEASE_CHANNEL: "testing",
+        CLIENT_RELEASE_EXECUTION_MODE: "github-hosted",
         GITHUB_REF: "refs/heads/main",
         GITHUB_REF_NAME: "main",
         GITHUB_SHA: "1234567890abcdef",
@@ -2269,14 +2403,26 @@ test("release-clients workflow constrains server-local Android build resources",
   );
 
   assert.match(workflow, /name: Check server-local client build disk capacity/);
-  assert.match(workflow, /CLIENT_BUILD_MIN_FREE_DISK_MB/);
+  assert.match(workflow, /CLIENT_BUILD_MIN_FREE_DISK_MB: \$\{\{ vars\.CLIENT_BUILD_MIN_FREE_DISK_MB \|\| '8192' \}\}/);
   assert.match(workflow, /check-client-build-capacity\.mjs/);
   assert.match(workflow, /ANDROID_BUILD_TARGETS: \$\{\{ vars\.ANDROID_BUILD_TARGETS \|\| 'aarch64' \}\}/);
-  assert.match(workflow, /ANDROID_MIN_FREE_DISK_MB/);
+  assert.match(workflow, /ANDROID_MIN_FREE_DISK_MB: \$\{\{ vars\.ANDROID_MIN_FREE_DISK_MB \|\| '8192' \}\}/);
   assert.match(workflow, /org\.gradle\.workers\.max/);
   assert.match(workflow, /CARGO_BUILD_JOBS/);
   assert.match(workflow, /--target "\$target"/);
   assert.doesNotMatch(workflow, /tauri android build "\$\{build_args\[@\]\}" --/);
+});
+
+test("release-clients workflow defaults package builds away from the server runner", () => {
+  const workflow = readFileSync(
+    path.join(repoRoot, ".github/workflows/release-clients.yml"),
+    "utf8",
+  );
+
+  assert.match(workflow, /default: github-hosted/);
+  assert.match(workflow, /confirm_server_local_build:/);
+  assert.match(workflow, /CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD/);
+  assert.match(workflow, /inputs\.execution_mode == 'server-local'[\s\S]*'self-hosted' \|\| 'ubuntu-latest'/);
 });
 
 test("release-clients workflow avoids server-local gh and pnpm cache assumptions", () => {

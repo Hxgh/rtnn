@@ -192,6 +192,10 @@ function resolveSyncDeployFacts() {
   return false;
 }
 
+function resolveConfirmServerLocalBuild() {
+  return resolveBooleanFlag(process.env.CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD);
+}
+
 function resolveReleaseChannel(clientProfile) {
   const explicit = normalizeString(process.env.CLIENT_RELEASE_CHANNEL);
   if (explicit) {
@@ -277,6 +281,7 @@ function main() {
   const dryRun = resolveDryRun();
   const publishGithubRelease = resolvePublishGithubRelease();
   const syncDeployFacts = resolveSyncDeployFacts();
+  const confirmServerLocalBuild = resolveConfirmServerLocalBuild();
   const matrix = [];
 
   for (const {
@@ -323,6 +328,16 @@ function main() {
   if (matrix.length === 0) {
     writeDisabled("no-enabled-clients");
     return;
+  }
+
+  if (
+    !dryRun &&
+    !confirmServerLocalBuild &&
+    matrix.some((item) => item.runner_kind === "self-hosted")
+  ) {
+    throw new Error(
+      "server-local 客户端真打包需要显式确认：设置 CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD=true。建议优先使用 github-hosted 或本地真机快测，避免占用业务服务器。",
+    );
   }
 
   const releaseChannels = [...new Set(matrix.map((item) => item.channel))].sort();

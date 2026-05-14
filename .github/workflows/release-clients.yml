@@ -31,13 +31,18 @@ on:
         default: false
         type: boolean
       execution_mode:
-        description: Client build execution mode. Default uses the server self-hosted runner; GitHub-hosted is explicit opt-in.
+        description: Client build execution mode. Defaults to GitHub-hosted so package builds do not occupy the server runner.
         required: false
-        default: server-local
+        default: github-hosted
         type: choice
         options:
-          - server-local
           - github-hosted
+          - server-local
+      confirm_server_local_build:
+        description: Required only when running a non-dry-run client package build on the self-hosted server runner.
+        required: false
+        default: false
+        type: boolean
       targets:
         description: Optional comma separated client targets, such as appMobile:android or adminDesktop:macos.
         required: false
@@ -57,7 +62,7 @@ jobs:
   resolve-client-release-context:
     name: Resolve Client Release Context
     if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' }}
-    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'server-local') || (github.event_name != 'workflow_dispatch' && vars.CLIENT_RELEASE_EXECUTION_MODE == 'server-local')) && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10
     outputs:
       enabled: ${{ steps.context.outputs.enabled }}
@@ -91,14 +96,15 @@ jobs:
           CLIENT_RELEASE_DRY_RUN: ${{ github.event.inputs.dry_run || '' }}
           CLIENT_RELEASE_PUBLISH_GITHUB_RELEASE: ${{ github.event.inputs.publish_github_release || '' }}
           CLIENT_RELEASE_SYNC_DEPLOY_FACTS: ${{ github.event.inputs.sync_deploy_facts || vars.CLIENT_RELEASE_SYNC_DEPLOY_FACTS || '' }}
-          CLIENT_RELEASE_EXECUTION_MODE: ${{ github.event.inputs.execution_mode || vars.CLIENT_RELEASE_EXECUTION_MODE || '' }}
+          CLIENT_RELEASE_EXECUTION_MODE: ${{ github.event.inputs.execution_mode || vars.CLIENT_RELEASE_EXECUTION_MODE || 'github-hosted' }}
+          CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD: ${{ github.event.inputs.confirm_server_local_build || vars.CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD || '' }}
           CLIENT_RELEASE_TARGETS: ${{ github.event.inputs.targets || vars.CLIENT_RELEASE_TARGETS || '' }}
-          CLIENT_RELEASE_ALLOW_GITHUB_HOSTED: ${{ (github.event.inputs.execution_mode == 'github-hosted' && 'true') || vars.CLIENT_RELEASE_ALLOW_GITHUB_HOSTED || '' }}
+          CLIENT_RELEASE_ALLOW_GITHUB_HOSTED: ${{ ((github.event.inputs.execution_mode == 'github-hosted' || (github.event_name != 'workflow_dispatch' && (vars.CLIENT_RELEASE_EXECUTION_MODE == '' || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted'))) && 'true') || vars.CLIENT_RELEASE_ALLOW_GITHUB_HOSTED || '' }}
         run: node scripts/release/resolve-client-release-context.mjs
 
   skip-client-release:
     name: Skip Client Release
-    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'server-local') || (github.event_name != 'workflow_dispatch' && vars.CLIENT_RELEASE_EXECUTION_MODE == 'server-local')) && 'self-hosted' || 'ubuntu-latest' }}
     needs: resolve-client-release-context
     if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled != 'true' }}
     steps:
@@ -148,7 +154,7 @@ jobs:
         if: ${{ matrix.runner_kind == 'self-hosted' }}
         shell: bash
         env:
-          CLIENT_BUILD_MIN_FREE_DISK_MB: ${{ vars.CLIENT_BUILD_MIN_FREE_DISK_MB || '2048' }}
+          CLIENT_BUILD_MIN_FREE_DISK_MB: ${{ vars.CLIENT_BUILD_MIN_FREE_DISK_MB || '8192' }}
         run: node scripts/release/check-client-build-capacity.mjs
 
       - name: Setup Rust
@@ -401,7 +407,7 @@ jobs:
           ANDROID_SPLIT_PER_ABI: ${{ vars.ANDROID_SPLIT_PER_ABI || 'false' }}
           ANDROID_GRADLE_MAX_WORKERS: ${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
           CARGO_BUILD_JOBS: ${{ vars.ANDROID_CARGO_BUILD_JOBS || '2' }}
-          ANDROID_MIN_FREE_DISK_MB: ${{ vars.ANDROID_MIN_FREE_DISK_MB || '4096' }}
+          ANDROID_MIN_FREE_DISK_MB: ${{ vars.ANDROID_MIN_FREE_DISK_MB || '8192' }}
           GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
           GRADLE_OPTS: -Dorg.gradle.internal.http.connectionTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.internal.http.socketTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.workers.max=${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
         run: |
@@ -773,7 +779,7 @@ jobs:
       - resolve-client-release-context
       - validate-client-release
     if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' }}
-    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ${{ needs.resolve-client-release-context.outputs.release_execution_mode == 'server-local' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -817,7 +823,7 @@ jobs:
       - validate-client-release
       - merge-tauri-updater-manifests
     if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' && needs.resolve-client-release-context.outputs.enabled == 'true' && needs.resolve-client-release-context.outputs.dry_run != 'true' && needs.resolve-client-release-context.outputs.publish_github_release == 'true' }}
-    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ${{ needs.resolve-client-release-context.outputs.release_execution_mode == 'server-local' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: write
@@ -939,7 +945,7 @@ jobs:
           needs.merge-tauri-updater-manifests.result == 'success'
         )
       }}
-    runs-on: ${{ ((github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'github-hosted') || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ${{ needs.resolve-client-release-context.outputs.release_execution_mode == 'server-local' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10
     permissions:
       contents: read

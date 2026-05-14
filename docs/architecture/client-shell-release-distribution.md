@@ -15,7 +15,10 @@ installer configuration.
 large installer files.
 - The app `/download` page is the user-facing download entry.
 - Admin "Release Center" shows real release facts, package distribution status,
-blockers, and update policy.
+  blockers, and update policy.
+- Client package builds default to GitHub-hosted runners or local developer
+  machines. `server-local` is reserved for explicit, confirmed low-frequency
+  builds because it can compete with the runtime server.
 
 ## Distribution Providers
 
@@ -60,6 +63,23 @@ The static server maps:
 ```
 
 Installer files should live outside the deploy repository and outside git.
+
+## Build Execution
+
+Client package builds are heavier than normal web/backend releases. The
+recommended execution model is:
+
+- Normal `main` pushes and `v*` tags do not build client packages.
+- Manual `release-clients` and `client-*` tags are the only package release
+  entries.
+- The default client package execution mode is `github-hosted`.
+- Local Android builds are preferred for fast real-device validation.
+- `server-local` must be explicitly selected and confirmed for non-dry-run
+  builds. The workflow also checks free disk before entering Android build
+  steps.
+
+This keeps RTNN's business runtime and any server-side relay services from
+competing with Gradle, Rust, Android SDK, or Tauri build workloads.
 
 ## Icon System
 

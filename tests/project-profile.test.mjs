@@ -84,7 +84,7 @@ test("buildProjectProfile keeps current service compatibility without delivery c
   assert.deepEqual(profile.enabledClients, []);
 });
 
-test("buildProjectProfile disables optional services and expands server-local client targets", () => {
+test("buildProjectProfile disables optional services and keeps hosted client targets behind opt-in", () => {
   const profile = buildProjectProfile({
     project: {
       role: "business-source",
@@ -116,6 +116,92 @@ test("buildProjectProfile disables optional services and expands server-local cl
     "delivery.services.enabled=false",
   );
   assert.deepEqual(profile.enabledClients, ["appMobile"]);
+  assert.deepEqual(profile.enabledClientBuildTargets, []);
+  assert.equal(
+    profile.disabledReasons.clientTargets["appMobile:android"],
+    "github-hosted-requires-explicit-opt-in",
+  );
+  assert.equal(
+    profile.disabledReasons.clientTargets["appMobile:ios"],
+    "releaseExecution.clientBuild.targets.enabled=false",
+  );
+
+  const githubHostedProfile = buildProjectProfile(
+    {
+      project: {
+        role: "business-source",
+      },
+      delivery: {
+        services: {
+          app: { enabled: false },
+          weapp: { enabled: false },
+        },
+        clients: {
+          appMobile: {
+            enabled: true,
+            targets: ["android", "ios"],
+            webUrl: "https://app.example.com",
+            webUrls: {
+              testing: "https://app.testing.example.com",
+              production: "https://app.example.com",
+            },
+            channel: "testing",
+          },
+        },
+      },
+    },
+    {
+      releaseExecutionMode: "github-hosted",
+      allowGithubHosted: true,
+    },
+  );
+
+  assert.deepEqual(githubHostedProfile.enabledClientBuildTargets, [
+    {
+      client: "appMobile",
+      target: "android",
+      executionMode: "github-hosted",
+      runner: "ubuntu-latest",
+      runnerKind: "github-hosted",
+    },
+  ]);
+  assert.equal(githubHostedProfile.clients.appMobile.webUrl, "https://app.example.com");
+  assert.deepEqual(githubHostedProfile.clients.appMobile.webUrls, {
+    testing: "https://app.testing.example.com",
+    production: "https://app.example.com",
+  });
+  assert.equal(githubHostedProfile.clients.appMobile.channel, "testing");
+});
+
+test("buildProjectProfile allows server-local Android builds only when configured or requested", () => {
+  const metadata = {
+    project: {
+      role: "business-source",
+    },
+    releaseExecution: {
+      defaultMode: "server-local",
+      allowedModes: ["server-local", "github-hosted"],
+      clientBuild: {
+        targets: {
+          android: {
+            enabled: true,
+            defaultMode: "server-local",
+          },
+        },
+      },
+    },
+    delivery: {
+      clients: {
+        appMobile: {
+          enabled: true,
+          targets: ["android"],
+        },
+      },
+    },
+  };
+
+  const profile = buildProjectProfile(metadata);
+
   assert.deepEqual(profile.enabledClientBuildTargets, [
     {
       client: "appMobile",
@@ -125,16 +211,6 @@ test("buildProjectProfile disables optional services and expands server-local cl
       runnerKind: "self-hosted",
     },
   ]);
-  assert.equal(profile.clients.appMobile.webUrl, "https://app.example.com");
-  assert.deepEqual(profile.clients.appMobile.webUrls, {
-    testing: "https://app.testing.example.com",
-    production: "https://app.example.com",
-  });
-  assert.equal(profile.clients.appMobile.channel, "testing");
-  assert.equal(
-    profile.disabledReasons.clientTargets["appMobile:ios"],
-    "releaseExecution.clientBuild.targets.enabled=false",
-  );
 });
 
 test("buildProjectProfile requires explicit opt-in for GitHub-hosted client targets", () => {
@@ -221,7 +297,7 @@ test("buildBusinessProjectMetadata preserves existing delivery configuration", (
     assert.equal(metadata.releaseExecution.githubHosted.enabled, false);
     assert.deepEqual(metadata.releaseExecution.clientBuild.targets.android, {
       enabled: true,
-      defaultMode: "server-local",
+      defaultMode: "github-hosted",
     });
   });
 });
