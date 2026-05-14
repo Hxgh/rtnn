@@ -255,6 +255,10 @@ function patchGradle(buildGradlePath) {
   let source = readFileSync(buildGradlePath, "utf8");
   const dependencies = [
     'implementation("androidx.activity:activity-ktx:1.10.1")',
+    'implementation("androidx.camera:camera-camera2:1.5.1")',
+    'implementation("androidx.camera:camera-core:1.5.1")',
+    'implementation("androidx.camera:camera-lifecycle:1.5.1")',
+    'implementation("androidx.camera:camera-view:1.5.1")',
     'implementation("androidx.core:core-ktx:1.15.0")',
     'implementation("androidx.core:core:1.15.0")',
     'implementation("com.google.mlkit:barcode-scanning:17.3.0")',
@@ -405,7 +409,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Base64
+import android.util.Size
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
@@ -413,8 +419,16 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
@@ -426,7 +440,10 @@ import com.google.mlkit.vision.common.InputImage
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -446,6 +463,11 @@ class MainActivity : TauriActivity() {
   private var pendingWebChromePermissionRequest: PermissionRequest? = null
   @Volatile
   private var nativePermissionResultJson: String? = null
+  private var barcodeOverlayRoot: FrameLayout? = null
+  private var barcodePreviewView: PreviewView? = null
+  private var barcodeCameraExecutor: ExecutorService? = null
+  private var barcodeScanActive = AtomicBoolean(false)
+  private var barcodeFrameProcessing = AtomicBoolean(false)
   private var currentTheme = "light"
   private var currentThemeMode = "system"
 
@@ -524,6 +546,13 @@ class MainActivity : TauriActivity() {
       applySystemBars(currentTheme)
       notifyNativeThemeChanged()
     }
+  }
+
+  override fun onDestroy() {
+    stopNativeBarcodeCameraScan()
+    barcodeCameraExecutor?.shutdown()
+    barcodeCameraExecutor = null
+    super.onDestroy()
   }
 
   private fun setupWebViewWithRetry(attempt: Int = 0) {
@@ -1086,6 +1115,65 @@ class MainActivity : TauriActivity() {
       return decoded
     }
 
+    @JavascriptInterface
+    fun startCameraScan(optionsJson: String?): String {
+      val options = parseBarcodeOptions(optionsJson)
+
+      if (!isPermissionGranted("camera")) {
+        val requested = PermissionBridge().requestPermission("camera", "scan-barcode")
+        val permission = JSONObject(requested)
+        if (!permission.optBoolean("ok", false) || permission.optString("status") != "granted") {
+          return barcodeError(permission.optString("reason", "camera-permission-denied"))
+        }
+      }
+
+      return try {
+        runOnUiThread {
+          startNativeBarcodeCameraScan(options)
+        }
+        val result = JSONObject()
+        result.put("ok", true)
+        result.put("dispatched", true)
+        result.toString()
+      } catch (error: Exception) {
+        barcodeError(error.javaClass.simpleName)
+      }
+    }
+
+    @JavascriptInterface
+    fun updateCameraScanRect(optionsJson: String?): String {
+      val options = parseBarcodeOptions(optionsJson)
+
+      return try {
+        runOnUiThread {
+          updateNativeBarcodeCameraRect(options)
+        }
+        val result = JSONObject()
+        result.put("ok", true)
+        result.toString()
+      } catch (error: Exception) {
+        barcodeError(error.javaClass.simpleName)
+      }
+    }
+
+    @JavascriptInterface
+    fun stopCameraScan(): String {
+      runOnUiThread {
+        stopNativeBarcodeCameraScan()
+      }
+      val result = JSONObject()
+      result.put("ok", true)
+      return result.toString()
+    }
+
+    private fun parseBarcodeOptions(optionsJson: String?): JSONObject {
+      return try {
+        if (optionsJson.isNullOrBlank()) JSONObject() else JSONObject(optionsJson)
+      } catch (_: Exception) {
+        JSONObject()
+      }
+    }
+
     private fun barcodeError(reason: String): String {
       val result = JSONObject()
       result.put("ok", false)
@@ -1149,6 +1237,219 @@ class MainActivity : TauriActivity() {
       }
 
       return output.toString()
+    }
+  }
+
+  private fun startNativeBarcodeCameraScan(options: JSONObject) {
+    findWebView() ?: run {
+      dispatchBarcodeScanResult(barcodeResult(null, "native-webview-unavailable"))
+      return
+    }
+    options.optJSONObject("rect") ?: run {
+      dispatchBarcodeScanResult(barcodeResult(null, "native-camera-rect-missing"))
+      return
+    }
+
+    stopNativeBarcodeCameraScan()
+
+    val root = ensureBarcodeOverlayRoot() ?: run {
+      dispatchBarcodeScanResult(barcodeResult(null, "native-camera-root-unavailable"))
+      return
+    }
+
+    barcodeScanActive.set(true)
+    barcodeFrameProcessing.set(false)
+
+    val previewView = PreviewView(this).apply {
+      implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+      scaleType = PreviewView.ScaleType.FILL_CENTER
+      setBackgroundColor(android.graphics.Color.BLACK)
+      alpha = 1f
+    }
+    barcodePreviewView = previewView
+    root.addView(previewView)
+    updateNativeBarcodeCameraRect(options)
+
+    val executor = barcodeCameraExecutor ?: Executors.newSingleThreadExecutor().also {
+      barcodeCameraExecutor = it
+    }
+    val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
+    cameraProviderFuture.addListener({
+      try {
+        if (!barcodeScanActive.get()) {
+          return@addListener
+        }
+
+        val cameraProvider = cameraProviderFuture.get()
+        val preview = Preview.Builder()
+          .setTargetResolution(Size(1280, 720))
+          .build()
+          .also { it.setSurfaceProvider(previewView.surfaceProvider) }
+        val analyzer = ImageAnalysis.Builder()
+          .setTargetResolution(Size(1280, 720))
+          .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+          .build()
+          .also {
+            it.setAnalyzer(executor) { imageProxy ->
+              analyzeBarcodeFrame(imageProxy)
+            }
+          }
+
+        cameraProvider.unbindAll()
+        cameraProvider.bindToLifecycle(
+          this,
+          CameraSelector.DEFAULT_BACK_CAMERA,
+          preview,
+          analyzer
+        )
+      } catch (error: Exception) {
+        dispatchBarcodeScanResult(barcodeResult(null, error.javaClass.simpleName))
+        stopNativeBarcodeCameraScan()
+      }
+    }, ContextCompat.getMainExecutor(this))
+  }
+
+  private fun ensureBarcodeOverlayRoot(): FrameLayout? {
+    val existingRoot = barcodeOverlayRoot
+    if (existingRoot != null && existingRoot.parent != null) {
+      return existingRoot
+    }
+
+    val decorRoot = window.decorView as? ViewGroup ?: return null
+    val overlayRoot = FrameLayout(this).apply {
+      setBackgroundColor(android.graphics.Color.TRANSPARENT)
+      clipChildren = true
+      clipToPadding = true
+      isClickable = false
+      isFocusable = false
+      layoutParams = ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT
+      )
+    }
+
+    decorRoot.addView(overlayRoot)
+    barcodeOverlayRoot = overlayRoot
+    return overlayRoot
+  }
+
+  private fun updateNativeBarcodeCameraRect(options: JSONObject) {
+    val rect = options.optJSONObject("rect") ?: return
+    val previewView = barcodePreviewView ?: return
+    val params = FrameLayout.LayoutParams(
+      rect.optInt("width", 0).coerceAtLeast(1),
+      rect.optInt("height", 0).coerceAtLeast(1)
+    )
+
+    params.leftMargin = rect.optInt("x", 0)
+    params.topMargin = rect.optInt("y", 0)
+    previewView.layoutParams = params
+    previewView.bringToFront()
+  }
+
+  private fun stopNativeBarcodeCameraScan() {
+    barcodeScanActive.set(false)
+    barcodeFrameProcessing.set(false)
+    try {
+      ProcessCameraProvider.getInstance(this).get().unbindAll()
+    } catch (_: Exception) {
+    }
+
+    barcodePreviewView?.let { preview ->
+      (preview.parent as? ViewGroup)?.removeView(preview)
+    }
+    barcodePreviewView = null
+    barcodeOverlayRoot?.let { overlay ->
+      if (overlay.childCount == 0) {
+        (overlay.parent as? ViewGroup)?.removeView(overlay)
+        barcodeOverlayRoot = null
+      }
+    }
+  }
+
+  @androidx.annotation.OptIn(ExperimentalGetImage::class)
+  private fun analyzeBarcodeFrame(imageProxy: ImageProxy) {
+    if (!barcodeScanActive.get() || !barcodeFrameProcessing.compareAndSet(false, true)) {
+      imageProxy.close()
+      return
+    }
+
+    val mediaImage = imageProxy.image
+    if (mediaImage == null) {
+      barcodeFrameProcessing.set(false)
+      imageProxy.close()
+      return
+    }
+
+    val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+    val scannerOptions = BarcodeScannerOptions.Builder()
+      .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+      .build()
+
+    BarcodeScanning.getClient(scannerOptions)
+      .process(inputImage)
+      .addOnSuccessListener { barcodes ->
+        val codes = org.json.JSONArray()
+        for (barcode in barcodes) {
+          val rawValue = barcode.rawValue
+          if (!rawValue.isNullOrBlank()) {
+            val code = JSONObject()
+            code.put("rawValue", rawValue)
+            code.put("format", barcode.format.toString())
+            codes.put(code)
+          }
+        }
+
+        if (codes.length() > 0 && barcodeScanActive.compareAndSet(true, false)) {
+          val result = JSONObject()
+          result.put("ok", true)
+          result.put("codes", codes)
+          dispatchBarcodeScanResult(result)
+          runOnUiThread {
+            stopNativeBarcodeCameraScan()
+          }
+        }
+      }
+      .addOnFailureListener { error ->
+        if (barcodeScanActive.get()) {
+          android.util.Log.e("MainActivity", "Native barcode camera analyze failed", error)
+        }
+      }
+      .addOnCompleteListener {
+        barcodeFrameProcessing.set(false)
+        imageProxy.close()
+      }
+  }
+
+  private fun barcodeResult(codes: org.json.JSONArray?, reason: String?): JSONObject {
+    val result = JSONObject()
+    val normalizedCodes = codes ?: org.json.JSONArray()
+    result.put("ok", normalizedCodes.length() > 0)
+    result.put("codes", normalizedCodes)
+    if (reason != null) result.put("reason", reason)
+    return result
+  }
+
+  private fun dispatchBarcodeScanResult(result: JSONObject) {
+    val webView = findWebView() ?: return
+    val payload = JSONObject.quote(result.toString())
+    webView.post {
+      webView.evaluateJavascript(
+        """
+        (function() {
+          var detail = JSON.parse(\${payload});
+          try {
+            window.dispatchEvent(new CustomEvent('rtnn:android-barcode-scan-result', { detail: detail }));
+          } catch (error) {
+            var event = document.createEvent('CustomEvent');
+            event.initCustomEvent('rtnn:android-barcode-scan-result', false, false, detail);
+            window.dispatchEvent(event);
+          }
+        })();
+        """.trimIndent(),
+        null
+      )
     }
   }
 

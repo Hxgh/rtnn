@@ -403,6 +403,119 @@ test("app barcode scanner falls back to web only when native scan is unavailable
   assert.equal(shouldFallbackBarcodeScanToWeb("file-picker-timeout"), false);
 });
 
+test("app barcode scanner can drive Android native camera session", async () => {
+  const {
+    nativeBarcodeCameraResultEvent,
+    startNativeBarcodeCameraSession,
+    subscribeNativeBarcodeCameraResult,
+  } = await importAppNativeCore();
+  const originalWindow = globalThis.window;
+  const calls = [];
+  const listeners = new Map();
+  let rafCallback = null;
+
+  globalThis.window = {
+    devicePixelRatio: 3,
+    AndroidBarcode: {
+      startCameraScan(optionsJson) {
+        calls.push(["start", JSON.parse(optionsJson)]);
+        return JSON.stringify({ ok: true, dispatched: true, codes: [] });
+      },
+      updateCameraScanRect(optionsJson) {
+        calls.push(["update", JSON.parse(optionsJson)]);
+        return JSON.stringify({ ok: true, codes: [] });
+      },
+      stopCameraScan() {
+        calls.push(["stop"]);
+        return JSON.stringify({ ok: true, codes: [] });
+      },
+    },
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    removeEventListener(type) {
+      listeners.delete(type);
+    },
+    requestAnimationFrame(callback) {
+      rafCallback = callback;
+      return 1;
+    },
+    visualViewport: {
+      addEventListener(type, listener) {
+        listeners.set(`visualViewport:${type}`, listener);
+      },
+      removeEventListener(type) {
+        listeners.delete(`visualViewport:${type}`);
+      },
+    },
+  };
+
+  try {
+    const element = {
+      getBoundingClientRect() {
+        return {
+          left: 11,
+          top: 17,
+          width: 240,
+          height: 360,
+        };
+      },
+    };
+    const result = startNativeBarcodeCameraSession({ element });
+
+    assert.equal(result.ok, true);
+    assert.deepEqual(calls[0], [
+      "start",
+      {
+        source: "camera",
+        rect: {
+          x: 33,
+          y: 51,
+          width: 720,
+          height: 1080,
+        },
+      },
+    ]);
+
+    listeners.get("resize")?.();
+    rafCallback?.();
+    assert.equal(calls[1][0], "update");
+    assert.deepEqual(calls[1][1].rect, {
+      x: 33,
+      y: 51,
+      width: 720,
+      height: 1080,
+    });
+
+    const handled = [];
+    const unsubscribe = subscribeNativeBarcodeCameraResult((scanResult) => {
+      handled.push(scanResult);
+    });
+    listeners.get(nativeBarcodeCameraResultEvent)?.({
+      detail: {
+        ok: true,
+        codes: [{ rawValue: "6901234567890", format: "ean_13" }],
+      },
+    });
+    unsubscribe();
+    assert.deepEqual(handled, [
+      {
+        ok: true,
+        codes: [{ rawValue: "6901234567890", format: "ean_13" }],
+        reason: undefined,
+      },
+    ]);
+
+    result.session.stop();
+    assert.deepEqual(calls.at(-1), ["stop"]);
+    assert.equal(listeners.has("resize"), false);
+    assert.equal(listeners.has("visualViewport:resize"), false);
+    assert.equal(listeners.has("visualViewport:scroll"), false);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
 test("app native core requests only the permission needed by media action", async () => {
   const { createAppNativeCore } = await importAppNativeCore();
   const calls = [];

@@ -15,11 +15,18 @@ import {
 } from "react";
 import {
   createHtml5QrcodeScanner,
+  normalizeBarcodeValue,
   normalizeWebBarcodeResult,
   scanBarcodeImageFile,
+  shouldFallbackBarcodeScanToWeb,
   stopHtml5QrcodeScanner,
   type WebBarcodeScanResult,
 } from "./scanner";
+import {
+  startNativeBarcodeCameraSession,
+  subscribeNativeBarcodeCameraResult,
+  type NativeBarcodeCameraSession,
+} from "./native-barcode-camera";
 
 export type BarcodeScannerState =
   | "idle"
@@ -108,6 +115,7 @@ export function useBarcodeScanner(
   const imageScannerElementId =
     options.imageScannerElementId ?? `${scannerElementId}-image`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const nativeCameraSessionRef = useRef<NativeBarcodeCameraSession | null>(null);
   const completedRef = useRef(false);
   const manualStopRef = useRef(false);
   const scanRunIdRef = useRef(0);
@@ -168,6 +176,16 @@ export function useBarcodeScanner(
         }
         scanRunIdRef.current += 1;
         setErrorReason(null);
+      }
+
+      const nativeSession = nativeCameraSessionRef.current;
+
+      if (nativeSession) {
+        nativeCameraSessionRef.current = null;
+        setState("stopping");
+        nativeSession.stop();
+        setState("idle");
+        return;
       }
 
       const scanner = scannerRef.current;
@@ -231,10 +249,28 @@ export function useBarcodeScanner(
         return;
       }
 
-      await waitForScannerHost(scannerElementId);
+      const scannerHost = await waitForScannerHost(scannerElementId);
 
       if (manualStopRef.current || scanRunId !== scanRunIdRef.current) {
         setState("idle");
+        return;
+      }
+
+      const nativeCameraSession = startNativeBarcodeCameraSession({
+        element: scannerHost,
+      });
+
+      if (nativeCameraSession.ok) {
+        nativeCameraSessionRef.current = nativeCameraSession.session;
+        nativeCameraSession.session.updateRect();
+        setState("scanning");
+        return;
+      }
+
+      if (!shouldFallbackBarcodeScanToWeb(nativeCameraSession.reason)) {
+        setErrorReason(nativeCameraSession.reason);
+        setState("failed");
+        await stopCameraScan({ expected: true, clear: true });
         return;
       }
 
@@ -276,6 +312,39 @@ export function useBarcodeScanner(
       await stopCameraScan({ expected: true, clear: true });
     }
   }, [handleSuccess, scannerElementId, setState, stopCameraScan]);
+
+  useEffect(() => {
+    return subscribeNativeBarcodeCameraResult(async (result) => {
+      if (!nativeCameraSessionRef.current || completedRef.current) {
+        return;
+      }
+
+      if (result.codes.length > 0) {
+        const code = result.codes[0];
+
+        completedRef.current = true;
+        commitResult(normalizeBarcodeValue(code.rawValue, code.format));
+        await stopCameraScan({ expected: true, preserveResult: true });
+        return;
+      }
+
+      if (!result.ok) {
+        const reason = result.reason ?? "barcode-scan-failed";
+
+        if (
+          reason === "barcode-scan-cancelled" ||
+          manualStopRef.current ||
+          completedRef.current
+        ) {
+          return;
+        }
+
+        setErrorReason(reason);
+        setState("failed");
+        await stopCameraScan({ expected: true, clear: true });
+      }
+    });
+  }, [commitResult, setState, stopCameraScan]);
 
   const scanImageFile = useCallback(
     async (file: File | null) => {
@@ -322,7 +391,11 @@ export function useBarcodeScanner(
       scanRunIdRef.current += 1;
       manualStopRef.current = true;
       const scanner = scannerRef.current;
+      const nativeSession = nativeCameraSessionRef.current;
       scannerRef.current = null;
+      nativeCameraSessionRef.current = null;
+
+      nativeSession?.stop();
 
       if (scanner) {
         void stopHtml5QrcodeScanner(scanner);

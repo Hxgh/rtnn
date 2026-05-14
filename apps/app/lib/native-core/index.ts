@@ -56,6 +56,12 @@ export {
   stopHtml5QrcodeScanner,
   type WebBarcodeScanResult,
 } from "./scanner";
+export {
+  nativeBarcodeCameraResultEvent,
+  startNativeBarcodeCameraSession,
+  subscribeNativeBarcodeCameraResult,
+  type NativeBarcodeCameraSession,
+} from "./native-barcode-camera";
 export { installAppNativeViewportInsets } from "./runtime";
 export {
   installAppNativeThemeListener,

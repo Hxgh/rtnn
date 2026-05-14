@@ -292,6 +292,9 @@ type AndroidMediaBridge = {
 };
 type AndroidBarcodeBridge = {
   scanBarcode?: (optionsJson?: string) => string | NativeBarcodeScanResult | boolean;
+  startCameraScan?: (optionsJson?: string) => string | NativeBarcodeScanResult | boolean;
+  updateCameraScanRect?: (optionsJson?: string) => string | NativeBarcodeScanResult | boolean;
+  stopCameraScan?: () => string | NativeBarcodeScanResult | boolean;
 };
 type AndroidDiagnosticsBridge = {
   getBridgeStatus?: () => string | Record<string, unknown>;
