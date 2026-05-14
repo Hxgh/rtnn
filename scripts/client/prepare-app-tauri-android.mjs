@@ -307,6 +307,24 @@ function patchAndroidVersionCode(buildGradlePath) {
   }
 }
 
+function patchTauriAndroidProperties(androidDir) {
+  const versionCode = resolveAndroidVersionCode();
+  const propertiesPath = path.join(androidDir, "app", "tauri.properties");
+  if (!versionCode || !existsSync(propertiesPath)) {
+    return;
+  }
+
+  const source = readFileSync(propertiesPath, "utf8");
+  const nextSource = source.includes("tauri.android.versionCode=")
+    ? source.replace(
+        /tauri\.android\.versionCode=\d+/,
+        `tauri.android.versionCode=${versionCode}`,
+      )
+    : `${source.replace(/\s*$/, "\n")}tauri.android.versionCode=${versionCode}\n`;
+
+  writeFileIfChanged(propertiesPath, nextSource);
+}
+
 function patchTauriAndroidVersionCode(configPath, tauriConfig) {
   const versionCode = resolveAndroidVersionCode();
   if (!versionCode) {
@@ -444,6 +462,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -465,9 +484,11 @@ class MainActivity : TauriActivity() {
   private var nativePermissionResultJson: String? = null
   private var barcodeOverlayRoot: FrameLayout? = null
   private var barcodePreviewView: PreviewView? = null
+  private var barcodeCameraProvider: ProcessCameraProvider? = null
   private var barcodeCameraExecutor: ExecutorService? = null
   private var barcodeScanActive = AtomicBoolean(false)
   private var barcodeFrameProcessing = AtomicBoolean(false)
+  private var barcodeScanSessionId = AtomicInteger(0)
   private var currentTheme = "light"
   private var currentThemeMode = "system"
 
@@ -1250,13 +1271,17 @@ class MainActivity : TauriActivity() {
       return
     }
 
-    stopNativeBarcodeCameraScan()
+    barcodeScanSessionId.incrementAndGet()
+    barcodeScanActive.set(false)
+    barcodeFrameProcessing.set(false)
+    removeNativeBarcodeCameraPreview()
 
     val root = ensureBarcodeOverlayRoot() ?: run {
       dispatchBarcodeScanResult(barcodeResult(null, "native-camera-root-unavailable"))
       return
     }
 
+    val sessionId = barcodeScanSessionId.incrementAndGet()
     barcodeScanActive.set(true)
     barcodeFrameProcessing.set(false)
 
@@ -1277,11 +1302,16 @@ class MainActivity : TauriActivity() {
 
     cameraProviderFuture.addListener({
       try {
-        if (!barcodeScanActive.get()) {
+        if (
+          !barcodeScanActive.get() ||
+          sessionId != barcodeScanSessionId.get() ||
+          barcodePreviewView !== previewView
+        ) {
           return@addListener
         }
 
         val cameraProvider = cameraProviderFuture.get()
+        barcodeCameraProvider = cameraProvider
         val preview = Preview.Builder()
           .setTargetResolution(Size(1280, 720))
           .build()
@@ -1297,6 +1327,13 @@ class MainActivity : TauriActivity() {
           }
 
         cameraProvider.unbindAll()
+        if (
+          !barcodeScanActive.get() ||
+          sessionId != barcodeScanSessionId.get() ||
+          barcodePreviewView !== previewView
+        ) {
+          return@addListener
+        }
         cameraProvider.bindToLifecycle(
           this,
           CameraSelector.DEFAULT_BACK_CAMERA,
@@ -1304,8 +1341,10 @@ class MainActivity : TauriActivity() {
           analyzer
         )
       } catch (error: Exception) {
-        dispatchBarcodeScanResult(barcodeResult(null, error.javaClass.simpleName))
-        stopNativeBarcodeCameraScan()
+        if (sessionId == barcodeScanSessionId.get()) {
+          dispatchBarcodeScanResult(barcodeResult(null, error.javaClass.simpleName))
+          stopNativeBarcodeCameraScan()
+        }
       }
     }, ContextCompat.getMainExecutor(this))
   }
@@ -1349,15 +1388,38 @@ class MainActivity : TauriActivity() {
   }
 
   private fun stopNativeBarcodeCameraScan() {
+    val stopSessionId = barcodeScanSessionId.incrementAndGet()
     barcodeScanActive.set(false)
     barcodeFrameProcessing.set(false)
-    try {
-      ProcessCameraProvider.getInstance(this).get().unbindAll()
-    } catch (_: Exception) {
+    removeNativeBarcodeCameraPreview()
+
+    val currentProvider = barcodeCameraProvider
+    if (currentProvider != null) {
+      try {
+        currentProvider.unbindAll()
+      } catch (_: Exception) {
+      }
+      barcodeCameraProvider = null
+      return
     }
 
-    barcodePreviewView?.let { preview ->
-      (preview.parent as? ViewGroup)?.removeView(preview)
+    val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+    cameraProviderFuture.addListener({
+      try {
+        if (stopSessionId == barcodeScanSessionId.get() && !barcodeScanActive.get()) {
+          cameraProviderFuture.get().unbindAll()
+        }
+      } catch (_: Exception) {
+      }
+    }, ContextCompat.getMainExecutor(this))
+  }
+
+  private fun removeNativeBarcodeCameraPreview() {
+    try {
+      barcodePreviewView?.let { preview ->
+        (preview.parent as? ViewGroup)?.removeView(preview)
+      }
+    } catch (_: Exception) {
     }
     barcodePreviewView = null
     barcodeOverlayRoot?.let { overlay ->
@@ -1815,6 +1877,7 @@ function main() {
   patchAndroidManifest(manifestPath);
   patchGradle(gradlePath);
   patchAndroidVersionCode(gradlePath);
+  patchTauriAndroidProperties(androidDir);
   writeFileIfChanged(
     filePathsPath,
     [
