@@ -23,6 +23,13 @@ export type WebBarcodeScanResult = {
   contentType: ScannerContentType;
 };
 
+let browserBarcodeFeedbackAudioContext: AudioContext | null = null;
+
+type BrowserAudioWindow = Window & {
+  AudioContext?: typeof AudioContext;
+  webkitAudioContext?: typeof AudioContext;
+};
+
 export const scannerElementId = "rtnn-h5-barcode-reader";
 export const barcodeScanFormats = [
   "qr_code",
@@ -91,6 +98,41 @@ export function normalizeBarcodeValue(
     scannedAt: new Date().toISOString(),
     contentType: normalizeContentType(rawValue),
   };
+}
+
+export function playBarcodeSuccessFeedback() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const audioWindow = window as BrowserAudioWindow;
+    const AudioContextConstructor =
+      audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
+    if (!AudioContextConstructor) {
+      return;
+    }
+
+    const audioContext =
+      browserBarcodeFeedbackAudioContext ?? new AudioContextConstructor();
+    browserBarcodeFeedbackAudioContext = audioContext;
+    void audioContext.resume?.();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const startedAt = audioContext.currentTime;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, startedAt);
+    gain.gain.setValueAtTime(0.0001, startedAt);
+    gain.gain.exponentialRampToValueAtTime(0.18, startedAt + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startedAt + 0.16);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startedAt);
+    oscillator.stop(startedAt + 0.18);
+  } catch {
+    // Success feedback should never block scan completion.
+  }
 }
 
 export async function createHtml5QrcodeScanner(elementId = scannerElementId) {

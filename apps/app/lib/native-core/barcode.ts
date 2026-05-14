@@ -29,6 +29,7 @@ export async function scanBarcode(
     source,
     formats: options.formats,
     timeoutMs: options.timeoutMs,
+    successFeedback: options.successFeedback,
   });
 
   return {

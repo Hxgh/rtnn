@@ -17,6 +17,7 @@ import {
   createHtml5QrcodeScanner,
   normalizeBarcodeValue,
   normalizeWebBarcodeResult,
+  playBarcodeSuccessFeedback,
   scanBarcodeImageFile,
   shouldFallbackBarcodeScanToWeb,
   stopHtml5QrcodeScanner,
@@ -46,6 +47,7 @@ export type UseBarcodeScannerOptions = {
   scannerElementId?: string;
   imageScannerElementId?: string;
   onResult?: (result: WebBarcodeScanResult) => void;
+  successFeedback?: boolean;
 };
 
 export type UseBarcodeScannerReturn = {
@@ -167,6 +169,12 @@ export function useBarcodeScanner(
     onResultRef.current?.(result);
   }, []);
 
+  const playSuccessFeedback = useCallback(() => {
+    if (options.successFeedback !== false) {
+      playBarcodeSuccessFeedback();
+    }
+  }, [options.successFeedback]);
+
   const stopCameraScan = useCallback(
     async (stopOptions?: StopBarcodeCameraScanOptions) => {
       if (stopOptions?.expected) {
@@ -222,10 +230,11 @@ export function useBarcodeScanner(
       }
 
       completedRef.current = true;
+      playSuccessFeedback();
       commitResult(normalizeWebBarcodeResult(decodedText, result));
       await stopCameraScan({ expected: true, preserveResult: true });
     },
-    [commitResult, stopCameraScan],
+    [commitResult, playSuccessFeedback, stopCameraScan],
   );
 
   const startCameraScan = useCallback(async () => {
@@ -258,6 +267,7 @@ export function useBarcodeScanner(
 
       const nativeCameraSession = startNativeBarcodeCameraSession({
         element: scannerHost,
+        successFeedback: options.successFeedback,
       });
 
       if (nativeCameraSession.ok) {
@@ -311,7 +321,13 @@ export function useBarcodeScanner(
       setState("failed");
       await stopCameraScan({ expected: true, clear: true });
     }
-  }, [handleSuccess, scannerElementId, setState, stopCameraScan]);
+  }, [
+    handleSuccess,
+    options.successFeedback,
+    scannerElementId,
+    setState,
+    stopCameraScan,
+  ]);
 
   useEffect(() => {
     return subscribeNativeBarcodeCameraResult(async (result) => {
@@ -323,6 +339,9 @@ export function useBarcodeScanner(
         const code = result.codes[0];
 
         completedRef.current = true;
+        if (result.feedbackPlayed !== true) {
+          playSuccessFeedback();
+        }
         commitResult(normalizeBarcodeValue(code.rawValue, code.format));
         await stopCameraScan({ expected: true, preserveResult: true });
         return;
@@ -344,7 +363,7 @@ export function useBarcodeScanner(
         await stopCameraScan({ expected: true, clear: true });
       }
     });
-  }, [commitResult, setState, stopCameraScan]);
+  }, [commitResult, playSuccessFeedback, setState, stopCameraScan]);
 
   const scanImageFile = useCallback(
     async (file: File | null) => {
@@ -369,6 +388,7 @@ export function useBarcodeScanner(
       try {
         const result = await scanBarcodeImageFile(file, imageScannerElementId);
 
+        playSuccessFeedback();
         commitResult(result);
         return result;
       } catch (error) {
@@ -378,7 +398,7 @@ export function useBarcodeScanner(
         setImageScanState("idle");
       }
     },
-    [commitResult, imageScannerElementId, setImageScanState],
+    [commitResult, imageScannerElementId, playSuccessFeedback, setImageScanState],
   );
 
   const resetResult = useCallback(() => {

@@ -157,6 +157,7 @@ export type NativeBarcodeScanInput = {
   source?: "camera" | "image";
   formats?: string[];
   timeoutMs?: number;
+  successFeedback?: boolean;
 };
 
 export type NativeBarcode = {
@@ -167,6 +168,7 @@ export type NativeBarcode = {
 export type NativeBarcodeScanResult = NativeBridgeActionResult & {
   codes: NativeBarcode[];
   files?: NativePickedFile[];
+  feedbackPlayed?: boolean;
 };
 
 export type NativeNotificationInput = {
@@ -266,6 +268,27 @@ type BrowserBarcodeDetectorConstructor = {
   new (options?: { formats?: string[] }): BrowserBarcodeDetector;
   getSupportedFormats?: () => Promise<string[]>;
 };
+type BrowserAudioContextConstructor = {
+  new (): {
+    currentTime: number;
+    createOscillator: () => {
+      type: OscillatorType;
+      frequency: { setValueAtTime: (value: number, startTime: number) => void };
+      connect: (destination: unknown) => void;
+      start: (when?: number) => void;
+      stop: (when?: number) => void;
+    };
+    createGain: () => {
+      gain: {
+        setValueAtTime: (value: number, startTime: number) => void;
+        exponentialRampToValueAtTime: (value: number, endTime: number) => void;
+      };
+      connect: (destination: unknown) => void;
+    };
+    destination: unknown;
+    close?: () => Promise<void>;
+  };
+};
 type AndroidMapBridge = {
   isAppInstalled?: (packageName: string) => boolean;
   checkAppInstalled?: (packageName: string) => string | NativeMapInstallResult | boolean;
@@ -323,6 +346,8 @@ type TauriGlobalScope = {
   CustomEvent?: typeof CustomEvent;
   Notification?: BrowserNotificationApi;
   BarcodeDetector?: BrowserBarcodeDetectorConstructor;
+  AudioContext?: BrowserAudioContextConstructor;
+  webkitAudioContext?: BrowserAudioContextConstructor;
   createImageBitmap?: (source: Blob) => Promise<unknown>;
   AndroidMap?: AndroidMapBridge;
   AndroidPermission?: AndroidPermissionBridge;
@@ -666,6 +691,47 @@ function buildAndroidJsonInput(input: unknown) {
     return JSON.stringify(input ?? {});
   } catch {
     return "{}";
+  }
+}
+
+function shouldPlayBarcodeSuccessFeedback(input: NativeBarcodeScanInput) {
+  return input.successFeedback !== false;
+}
+
+function playBrowserBarcodeSuccessFeedback(
+  input: NativeBarcodeScanInput,
+  globalScope: TauriGlobalScope | undefined,
+) {
+  if (!shouldPlayBarcodeSuccessFeedback(input)) {
+    return;
+  }
+
+  try {
+    const AudioContextConstructor =
+      globalScope?.AudioContext ?? globalScope?.webkitAudioContext;
+    if (!AudioContextConstructor) {
+      return;
+    }
+
+    const audioContext = new AudioContextConstructor();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const startedAt = audioContext.currentTime;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, startedAt);
+    gain.gain.setValueAtTime(0.0001, startedAt);
+    gain.gain.exponentialRampToValueAtTime(0.18, startedAt + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startedAt + 0.16);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startedAt);
+    oscillator.stop(startedAt + 0.18);
+    globalScope?.setTimeout?.(() => {
+      void audioContext.close?.();
+    }, 300);
+  } catch {
+    // Audio feedback must never block scan completion.
   }
 }
 
@@ -1151,6 +1217,7 @@ function normalizeBarcodeScanResult(
       dispatched: result.dispatched,
       codes: [],
       files: Array.isArray(result.files) ? result.files : undefined,
+      feedbackPlayed: result.feedbackPlayed === true,
     };
   }
 
@@ -1161,6 +1228,7 @@ function normalizeBarcodeScanResult(
     dispatched: result.dispatched,
     codes,
     files: Array.isArray(result.files) ? result.files : undefined,
+    feedbackPlayed: result.feedbackPlayed === true,
   };
 }
 
@@ -1260,6 +1328,18 @@ function normalizeTauriBarcodePluginResult(value: unknown): NativeBarcodeScanRes
     reason: codes.length > 0 ? undefined : "barcode-not-found",
     codes,
   };
+}
+
+function withBarcodeSuccessFeedback(
+  result: NativeBarcodeScanResult,
+  input: NativeBarcodeScanInput,
+  globalScope: TauriGlobalScope | undefined,
+) {
+  if (result.codes.length > 0) {
+    playBrowserBarcodeSuccessFeedback(input, globalScope);
+  }
+
+  return result;
 }
 
 function isTauriBarcodePluginUnavailable(reason: string) {
@@ -1427,7 +1507,11 @@ async function scanBarcodeWithTauriPlugin(
         ? await scanner.scan(scanOptions)
         : await invoke("plugin:barcode-scanner|scan", scanOptions);
 
-    return normalizeTauriBarcodePluginResult(result);
+    return withBarcodeSuccessFeedback(
+      normalizeTauriBarcodePluginResult(result),
+      input,
+      globalScope,
+    );
   } catch (error) {
     const reason = normalizeErrorReason(error);
 
@@ -1518,12 +1602,12 @@ async function scanBarcodeWithBrowser(
           format: item.format,
         })) ?? [];
 
-    return {
+    return withBarcodeSuccessFeedback({
       ok: codes.length > 0,
       reason: codes.length > 0 ? undefined : "barcode-not-found",
       codes,
       files: picked.pickedFile ? [picked.pickedFile] : [],
-    };
+    }, input, globalScope);
   } catch (error) {
     return {
       ok: false,

@@ -154,6 +154,7 @@ function createBridge(calls, overrides = {}) {
         input?.timeoutMs ?? null,
         input?.source ?? null,
         input?.formats ?? null,
+        input?.successFeedback ?? null,
       ]);
       return {
         ok: true,
@@ -503,6 +504,7 @@ test("app barcode scanner can drive Android native camera session", async () => 
         ok: true,
         codes: [{ rawValue: "6901234567890", format: "ean_13" }],
         reason: undefined,
+        feedbackPlayed: false,
       },
     ]);
 
@@ -576,7 +578,7 @@ test("app native core keeps barcode and notification behind core service actions
     message: "notification-dispatched",
   });
   assert.deepEqual(calls, [
-    ["scanBarcode", 1234, "camera", null],
+    ["scanBarcode", 1234, "camera", null, null],
     ["ensurePermission", "notification", "on-demand", "enable-notification"],
     ["showNotification", "RTNN"],
   ]);
@@ -588,12 +590,18 @@ test("app native core can scan barcode from an image source", async () => {
   const core = createAppNativeCore(createBridge(calls));
 
   assert.equal(
-    (await core.scanBarcode({ source: "image", timeoutMs: 2000 })).codes[0].rawValue,
+    (
+      await core.scanBarcode({
+        source: "image",
+        timeoutMs: 2000,
+        successFeedback: false,
+      })
+    ).codes[0].rawValue,
     "rtnn-test",
   );
   assert.deepEqual(calls, [
     ["checkPermission", "photo-library", "on-demand"],
-    ["scanBarcode", 2000, "image", null],
+    ["scanBarcode", 2000, "image", null, false],
   ]);
 });
 

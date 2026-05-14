@@ -87,6 +87,7 @@ export type NativeBarcodeScanOptions = {
   timeoutMs?: number;
   formats?: string[];
   source?: "camera" | "image";
+  successFeedback?: boolean;
 };
 
 export type NativeBarcodeScanActionResult = NativeBarcodeScanResult & {

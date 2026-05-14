@@ -1293,7 +1293,13 @@ test("detected Tauri bridge uses Android barcode bridge for image scan", async (
     },
   });
 
-  assert.deepEqual(await bridge.scanBarcode({ source: "image", timeoutMs: 2000 }), {
+  assert.deepEqual(
+    await bridge.scanBarcode({
+      source: "image",
+      timeoutMs: 2000,
+      successFeedback: false,
+    }),
+    {
     ok: true,
     message: undefined,
     reason: undefined,
@@ -1305,9 +1311,14 @@ test("detected Tauri bridge uses Android barcode bridge for image scan", async (
       },
     ],
     files: undefined,
-  });
+    feedbackPlayed: false,
+    },
+  );
   assert.deepEqual(calls, [
-    ["AndroidBarcode.scanBarcode", { source: "image", timeoutMs: 2000 }],
+    [
+      "AndroidBarcode.scanBarcode",
+      { source: "image", timeoutMs: 2000, successFeedback: false },
+    ],
   ]);
 });
 
@@ -1346,6 +1357,7 @@ test("detected Tauri bridge falls back to Android barcode bridge when plugin is 
     dispatched: undefined,
     codes: [{ rawValue: "android", format: "qr_code" }],
     files: undefined,
+    feedbackPlayed: false,
   });
   assert.deepEqual(calls, [
     ["invoke", "plugin:barcode-scanner|check_permissions"],
@@ -1535,6 +1547,7 @@ test("image barcode scan skips camera plugin and uses Android image source direc
       },
     ],
     files: undefined,
+    feedbackPlayed: false,
   });
   assert.deepEqual(calls, [
     ["AndroidBarcode.scanBarcode", { source: "image", timeoutMs: 2000 }],
@@ -1687,6 +1700,7 @@ test("detected Tauri bridge retries Android media and barcode when bridge object
     dispatched: undefined,
     codes: [{ rawValue: "READY", format: "QR_CODE" }],
     files: undefined,
+    feedbackPlayed: false,
   });
   assert.deepEqual(calls, [
     ["AndroidMedia.pickImages", "not-ready"],

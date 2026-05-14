@@ -26,6 +26,7 @@ export type NativeBarcodeCameraSessionOptions = {
   element: HTMLElement;
   formats?: string[];
   timeoutMs?: number;
+  successFeedback?: boolean;
 };
 
 export type NativeBarcodeCameraSession = {
@@ -95,6 +96,7 @@ function normalizeBridgeResult(
     ok: Boolean(value.ok || codes.length > 0),
     reason: codes.length > 0 ? undefined : value.reason,
     codes,
+    feedbackPlayed: value.feedbackPlayed === true,
   };
 }
 
@@ -129,6 +131,7 @@ function buildCameraScanOptions(
     source: "camera",
     formats: options.formats,
     timeoutMs: options.timeoutMs,
+    successFeedback: options.successFeedback,
     rect,
   };
 }

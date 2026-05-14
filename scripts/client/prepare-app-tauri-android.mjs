@@ -421,6 +421,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -489,6 +491,7 @@ class MainActivity : TauriActivity() {
   private var barcodeScanActive = AtomicBoolean(false)
   private var barcodeFrameProcessing = AtomicBoolean(false)
   private var barcodeScanSessionId = AtomicInteger(0)
+  private var barcodeSuccessFeedbackEnabled = true
   private var currentTheme = "light"
   private var currentThemeMode = "system"
 
@@ -1131,7 +1134,7 @@ class MainActivity : TauriActivity() {
         return barcodeError("barcode-image-decoder-unavailable")
       }
 
-      val decoded = decodeBarcode(bitmap)
+      val decoded = decodeBarcode(bitmap, shouldPlayBarcodeSuccessFeedback(options))
       bitmap.recycle()
       return decoded
     }
@@ -1215,7 +1218,11 @@ class MainActivity : TauriActivity() {
       }
     }
 
-    private fun decodeBarcode(bitmap: Bitmap): String {
+    private fun shouldPlayBarcodeSuccessFeedback(options: JSONObject): Boolean {
+      return !options.has("successFeedback") || options.optBoolean("successFeedback", true)
+    }
+
+    private fun decodeBarcode(bitmap: Bitmap, playSuccessFeedback: Boolean): String {
       val latch = CountDownLatch(1)
       val output = JSONObject()
       val inputImage = InputImage.fromBitmap(bitmap, 0)
@@ -1238,6 +1245,10 @@ class MainActivity : TauriActivity() {
           }
           output.put("ok", codes.length() > 0)
           output.put("codes", codes)
+          if (codes.length() > 0 && playSuccessFeedback) {
+            playBarcodeSuccessFeedback()
+            output.put("feedbackPlayed", true)
+          }
           if (codes.length() == 0) {
             output.put("reason", "barcode-not-found")
           }
@@ -1274,6 +1285,7 @@ class MainActivity : TauriActivity() {
     barcodeScanSessionId.incrementAndGet()
     barcodeScanActive.set(false)
     barcodeFrameProcessing.set(false)
+    barcodeSuccessFeedbackEnabled = shouldPlayBarcodeSuccessFeedback(options)
     removeNativeBarcodeCameraPreview()
 
     val root = ensureBarcodeOverlayRoot() ?: run {
@@ -1467,6 +1479,10 @@ class MainActivity : TauriActivity() {
           val result = JSONObject()
           result.put("ok", true)
           result.put("codes", codes)
+          if (barcodeSuccessFeedbackEnabled) {
+            playBarcodeSuccessFeedback()
+            result.put("feedbackPlayed", true)
+          }
           dispatchBarcodeScanResult(result)
           runOnUiThread {
             stopNativeBarcodeCameraScan()
@@ -1491,6 +1507,24 @@ class MainActivity : TauriActivity() {
     result.put("codes", normalizedCodes)
     if (reason != null) result.put("reason", reason)
     return result
+  }
+
+  private fun shouldPlayBarcodeSuccessFeedback(options: JSONObject): Boolean {
+    return !options.has("successFeedback") || options.optBoolean("successFeedback", true)
+  }
+
+  private fun playBarcodeSuccessFeedback() {
+    try {
+      val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+      tone.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
+      window.decorView.postDelayed({
+        try {
+          tone.release()
+        } catch (_: Exception) {
+        }
+      }, 200)
+    } catch (_: Exception) {
+    }
   }
 
   private fun dispatchBarcodeScanResult(result: JSONObject) {
