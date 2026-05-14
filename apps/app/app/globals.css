@@ -169,6 +169,8 @@ body {
 .rtnn-barcode-camera-host {
   overflow: hidden;
   background: #000;
+  color: transparent;
+  font-size: 0;
 }
 
 .rtnn-barcode-camera-host > div {
@@ -184,6 +186,12 @@ body {
   place-items: center !important;
   width: 100% !important;
   height: 100% !important;
+}
+
+.rtnn-barcode-camera-host [id$="__dashboard_section"],
+.rtnn-barcode-camera-host [id$="__header_message"],
+.rtnn-barcode-camera-host [id$="__status_span"] {
+  display: none !important;
 }
 
 .rtnn-barcode-camera-host video {

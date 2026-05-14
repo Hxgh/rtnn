@@ -20,18 +20,18 @@ function getMediaPickerInput(
     return {
       accept: "image/*",
       capture: "environment" as const,
-      maxFiles: 1,
+      maxFiles: options.maxFiles ?? 1,
       multiple: false,
-      readAsDataUrl: true,
+      readAsDataUrl: options.readAsDataUrl ?? true,
       timeoutMs: options.timeoutMs,
     };
   }
 
   return {
     accept: "image/*",
-    maxFiles: 3,
-    multiple: true,
-    readAsDataUrl: true,
+    maxFiles: options.maxFiles ?? 9,
+    multiple: options.multiple ?? true,
+    readAsDataUrl: options.readAsDataUrl ?? true,
     timeoutMs: options.timeoutMs,
   };
 }

@@ -8,7 +8,7 @@ type Messages = AppMessages["nativeCapabilities"];
 
 export function SafeAreaPanel({ messages }: { messages: Messages }) {
   return (
-    <div className="grid min-h-[calc(100dvh-9rem)] grid-rows-[auto_1fr_auto] gap-5 pb-[max(1rem,var(--rtnn-safe-bottom))]">
+    <div className="grid min-h-[calc(100dvh-9rem)] grid-rows-[auto_1fr_auto] gap-5">
       <SurfaceCard className="overflow-hidden">
         <div className="space-y-4 px-4 py-4">
           <div className="space-y-1">
@@ -29,7 +29,7 @@ export function SafeAreaPanel({ messages }: { messages: Messages }) {
 
       <div aria-hidden="true" />
 
-      <div className="sticky bottom-0 border-t border-border bg-background pt-3 pb-[calc(0.75rem+max(var(--rtnn-safe-bottom),var(--rtnn-keyboard-height)))]">
+      <div className="rtnn-native-bottom-surface sticky bottom-0 border-t border-border bg-background pt-3 pb-3">
         <Input
           id="native-safe-area-bottom-input"
           inputMode="text"

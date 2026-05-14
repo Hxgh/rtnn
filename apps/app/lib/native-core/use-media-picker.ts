@@ -4,6 +4,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { NativePickedFile as NativeCorePickedFile } from "@rtnn/native-bridge";
 import { createAppNativeCore } from "./service";
 import { isNativeActionCancelled } from "./actions";
+import {
+  compressPickedImages,
+  type ImageCompressionOptions,
+} from "./image-compression";
 import type {
   NativeCoreService,
   NativeMediaSource,
@@ -12,6 +16,8 @@ import type {
 export type MediaPickerState = "idle" | "opening";
 
 export type UseMediaPickerOptions = {
+  compress?: boolean | ImageCompressionOptions;
+  maxFiles?: number;
   nativeCore?: NativeCoreService;
   timeoutMs?: number;
 };
@@ -19,10 +25,12 @@ export type UseMediaPickerOptions = {
 export type UseMediaPickerReturn = {
   state: MediaPickerState;
   files: NativeCorePickedFile[];
+  maxFiles: number;
   reason: string | null;
   isOpening: boolean;
   pickMedia: (source: NativeMediaSource) => Promise<void>;
   clearFiles: () => void;
+  removeFile: (index: number) => void;
 };
 
 export function useMediaPicker(
@@ -32,14 +40,33 @@ export function useMediaPicker(
   const nativeCore = options.nativeCore ?? fallbackNativeCore;
   const runIdRef = useRef(0);
   const stateRef = useRef<MediaPickerState>("idle");
+  const filesRef = useRef<NativeCorePickedFile[]>([]);
   const [state, setState] = useState<MediaPickerState>("idle");
   const [files, setFiles] = useState<NativeCorePickedFile[]>([]);
   const [reason, setReason] = useState<string | null>(null);
+  const maxFiles = Math.max(1, Math.floor(options.maxFiles ?? 9));
 
   const setPickerState = useCallback((next: MediaPickerState) => {
     stateRef.current = next;
     setState(next);
   }, []);
+
+  const updateFiles = useCallback(
+    (
+      updater:
+        | NativeCorePickedFile[]
+        | ((current: NativeCorePickedFile[]) => NativeCorePickedFile[]),
+    ) => {
+      setFiles((current) => {
+        const next =
+          typeof updater === "function" ? updater(current) : updater;
+        const bounded = next.slice(0, maxFiles);
+        filesRef.current = bounded;
+        return bounded;
+      });
+    },
+    [maxFiles],
+  );
 
   async function pickMedia(source: NativeMediaSource) {
     if (stateRef.current !== "idle") {
@@ -112,7 +139,10 @@ export function useMediaPicker(
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     try {
+      const remaining = Math.max(1, maxFiles - filesRef.current.length);
       const result = await nativeCore.pickMedia(source, {
+        maxFiles: remaining,
+        multiple: remaining > 1,
         timeoutMs: options.timeoutMs ?? 3_000,
       });
 
@@ -121,7 +151,11 @@ export function useMediaPicker(
       }
 
       if (result.ok) {
-        setFiles(result.files);
+        const nextFiles = await compressPickedImages(
+          result.files,
+          options.compress ?? true,
+        );
+        updateFiles((current) => current.concat(nextFiles));
         return;
       }
 
@@ -146,9 +180,13 @@ export function useMediaPicker(
   return {
     state,
     files,
+    maxFiles,
     reason,
     isOpening: state === "opening",
     pickMedia,
-    clearFiles: () => setFiles([]),
+    clearFiles: () => updateFiles([]),
+    removeFile: (index) => {
+      updateFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    },
   };
 }

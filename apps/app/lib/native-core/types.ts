@@ -77,6 +77,9 @@ export type NativeMediaPickResult = NativeBridgeActionResult & {
 };
 
 export type NativeMediaPickOptions = {
+  maxFiles?: number;
+  multiple?: boolean;
+  readAsDataUrl?: boolean;
   timeoutMs?: number;
 };
 

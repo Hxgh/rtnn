@@ -178,8 +178,7 @@ export type AppMessages = {
     webviewLoadFailed: string;
     openMap: string;
     pickImages: string;
-    captureImage: string;
-    clearImages: string;
+    removeImage: string;
     keyboardPlaceholder: string;
     openDownloads: string;
     downloadEntryDescription: string;
@@ -321,7 +320,7 @@ const zhCN: AppMessages = {
     mapDescription: "检测可用地图应用后选择并打开导航。",
     mapDiagnosticDescription: "查看当前客户端识别到的地图应用状态。",
     mediaTitle: "相机相册",
-    mediaDescription: "选择相册图片，或调用相机拍摄图片。",
+    mediaDescription: "选择一张或多张图片，系统选择器可按设备能力提供拍照入口。",
     barcodeTitle: "扫码",
     barcodeDescription: "识别二维码和常见条形码。",
     barcodeScanFromImage: "选择图片识别",
@@ -403,8 +402,7 @@ const zhCN: AppMessages = {
     webviewLoadFailed: "操作未完成，请返回后重试。",
     openMap: "打开地图",
     pickImages: "选择图片",
-    captureImage: "拍照",
-    clearImages: "清空图片",
+    removeImage: "删除图片",
     keyboardPlaceholder: "请输入内容",
     openDownloads: "客户端下载",
     downloadEntryDescription: "查看当前环境可下载的客户端安装包。",
@@ -546,7 +544,7 @@ const enUS: AppMessages = {
     mapDescription: "Check available map apps, then choose one for navigation.",
     mapDiagnosticDescription: "Inspect map app availability detected by the client.",
     mediaTitle: "Camera and photos",
-    mediaDescription: "Choose photos or capture a new image with the camera.",
+    mediaDescription: "Choose one or more images. The system picker may provide camera capture when available.",
     barcodeTitle: "Scan",
     barcodeDescription: "Read QR codes and common barcodes.",
     barcodeScanFromImage: "Choose image",
@@ -628,8 +626,7 @@ const enUS: AppMessages = {
     webviewLoadFailed: "The action was not completed. Go back and retry.",
     openMap: "Open map",
     pickImages: "Pick images",
-    captureImage: "Capture image",
-    clearImages: "Clear images",
+    removeImage: "Remove image",
     keyboardPlaceholder: "Enter text",
     openDownloads: "Client downloads",
     downloadEntryDescription: "View downloadable client packages for this environment.",

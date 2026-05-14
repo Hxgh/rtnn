@@ -125,9 +125,9 @@ export function BarcodeScannerControl({
               </div>
             </div>
 
-            <div className="relative grid min-h-0 flex-1 place-items-center overflow-hidden bg-black">
+            <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
               <div
-                className="rtnn-barcode-camera-host h-full w-full"
+                className="rtnn-barcode-camera-host absolute inset-0"
                 id={scanner.scannerElementId}
                 suppressHydrationWarning
               />

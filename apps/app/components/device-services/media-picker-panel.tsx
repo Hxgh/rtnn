@@ -3,8 +3,7 @@
 import { useMediaPicker } from "@/lib/native-core";
 import type { AppMessages } from "@/lib/i18n";
 import {
-  MediaPickerActions,
-  MediaPreviewGrid,
+  MediaImagePicker,
 } from "@/components/native-core";
 import { SurfaceCard } from "@/components/ui/card";
 
@@ -32,7 +31,14 @@ function getMediaMessage(reason: string | null, messages: Messages) {
 }
 
 export function MediaPickerPanel({ messages }: { messages: Messages }) {
-  const picker = useMediaPicker();
+  const picker = useMediaPicker({
+    compress: {
+      enabled: true,
+      maxDimension: 1600,
+      quality: 0.82,
+    },
+    maxFiles: 9,
+  });
   const displayMessage = getMediaMessage(picker.reason, messages);
 
   return (
@@ -45,30 +51,16 @@ export function MediaPickerPanel({ messages }: { messages: Messages }) {
               {messages.mediaDescription}
             </p>
           </div>
-          <MediaPickerActions
+          <MediaImagePicker
             labels={{
-              captureImage: messages.captureImage,
               opening: messages.openingShort,
               pickImages: messages.pickImages,
+              remove: messages.removeImage,
             }}
             picker={picker}
           />
         </div>
       </SurfaceCard>
-
-      {picker.files.length > 0 ? (
-        <SurfaceCard className="overflow-hidden">
-          <div className="px-4 py-4">
-            <MediaPreviewGrid
-              labels={{
-                clear: messages.clearImages,
-                title: messages.selectedImages,
-              }}
-              picker={picker}
-            />
-          </div>
-        </SurfaceCard>
-      ) : null}
 
       {displayMessage ? (
         <p className="break-words rounded-xl bg-secondary px-3 py-2 text-xs leading-5 text-muted-foreground">
