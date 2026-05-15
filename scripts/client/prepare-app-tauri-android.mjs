@@ -52,6 +52,14 @@ function writeBinaryFileIfChanged(filePath, content) {
   return true;
 }
 
+function escapeXml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function buildAdaptiveForegroundIcon(sourceIcon) {
   // The checked-in icon is already the centered RTNN adaptive foreground.
   // Keeping this seam makes generated Android resources explicit without
@@ -249,6 +257,40 @@ function patchAndroidManifest(manifestPath) {
   );
 
   writeFileIfChanged(manifestPath, source);
+}
+
+function patchAndroidStrings(stringsPath, appName) {
+  const escapedName = escapeXml(appName);
+  const fallback = [
+    "<resources>",
+    `    <string name="app_name">${escapedName}</string>`,
+    `    <string name="main_activity_title">${escapedName}</string>`,
+    "</resources>",
+    "",
+  ].join("\n");
+
+  if (!existsSync(stringsPath)) {
+    writeFileIfChanged(stringsPath, fallback);
+    return;
+  }
+
+  let source = readFileSync(stringsPath, "utf8");
+  for (const key of ["app_name", "main_activity_title"]) {
+    const regexp = new RegExp(`<string name="${key}">[^<]*</string>`);
+    if (regexp.test(source)) {
+      source = source.replace(
+        regexp,
+        `<string name="${key}">${escapedName}</string>`,
+      );
+    } else {
+      source = source.replace(
+        /\s*<\/resources>/,
+        `\n    <string name="${key}">${escapedName}</string>\n</resources>`,
+      );
+    }
+  }
+
+  writeFileIfChanged(stringsPath, source);
 }
 
 function patchGradle(buildGradlePath) {
@@ -1901,6 +1943,7 @@ function main() {
 
   const mainActivityPath = findMainActivity(androidDir, packageName);
   const manifestPath = path.join(androidDir, "app", "src", "main", "AndroidManifest.xml");
+  const stringsPath = path.join(androidDir, "app", "src", "main", "res", "values", "strings.xml");
   const gradlePath = path.join(androidDir, "app", "build.gradle.kts");
   const filePathsPath = path.join(androidDir, "app", "src", "main", "res", "xml", "file_paths.xml");
   const iconPath = path.join(srcTauriDir, "icons", "icon.png");
@@ -1909,6 +1952,7 @@ function main() {
   writeFileIfChanged(mainActivityPath, buildMainActivitySource(packageName));
   patchLauncherIcon(androidDir, iconPath);
   patchAndroidManifest(manifestPath);
+  patchAndroidStrings(stringsPath, normalizeString(tauriConfig.productName, "RTNN"));
   patchGradle(gradlePath);
   patchAndroidVersionCode(gradlePath);
   patchTauriAndroidProperties(androidDir);
