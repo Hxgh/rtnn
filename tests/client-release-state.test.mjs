@@ -258,7 +258,7 @@ function setupProject() {
       bundleId: "com.acme.app",
       distribution: "testflight",
       artifactType: "ipa",
-      ipaFileName: "RTNN App.ipa",
+      ipaFileName: "RTNN.ipa",
     },
   );
 
@@ -354,7 +354,7 @@ test("sync-client-release-state checks and writes client liveState facts", () =>
         status: "uploaded",
         distribution: "testflight",
         bundleId: "com.acme.app",
-        ipaFileName: "RTNN App.ipa",
+        ipaFileName: "RTNN.ipa",
       },
       blockers: [],
     });

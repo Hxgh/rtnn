@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  formatClientPackageName,
+  formatClientRole,
+  formatClientTarget,
+} from "@rtnn/config";
 import { updateClientReleasePolicyAction } from "@/app/(dashboard)/client-releases/actions";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
@@ -161,8 +166,8 @@ export default async function ClientReleaseDetailPage({
               <TableBody>
                 {release.packages.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.client}</TableCell>
-                    <TableCell>{item.target}</TableCell>
+                    <TableCell>{formatClientPackageName(item.client, item.target, locale)}</TableCell>
+                    <TableCell>{formatClientTarget(item.target)}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div>{item.fileName || "-"}</div>
@@ -225,8 +230,8 @@ export default async function ClientReleaseDetailPage({
                       <input name="releaseId" type="hidden" value={release.id} />
                       <input name="policyId" type="hidden" value={policy.id} />
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">{policy.client}</Badge>
-                        <Badge variant="outline">{policy.target}</Badge>
+                        <Badge variant="outline">{formatClientRole(policy.client, locale)}</Badge>
+                        <Badge variant="outline">{formatClientTarget(policy.target)}</Badge>
                         <Badge variant="outline">{policy.channel}</Badge>
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">

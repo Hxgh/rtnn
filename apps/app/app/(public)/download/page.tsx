@@ -1,17 +1,15 @@
 import type { ClientDownloadInfo } from "@rtnn/shared-types";
+import {
+  formatClientPackageName,
+  formatClientRole,
+  formatClientTarget,
+} from "@rtnn/config";
 import { NativeDownloadButton } from "@/components/download/native-download-button";
 import { PageSection, PageShell } from "@/components/site/page-shell";
 import { SurfaceCard } from "@/components/ui/card";
 import { getServerI18n } from "@/lib/i18n/server";
 import { listClientDownloads } from "@/lib/server/api-client";
 import { cn } from "@/lib/utils";
-
-const targetLabels: Record<string, string> = {
-  android: "Android",
-  ios: "iOS",
-  macos: "macOS",
-  windows: "Windows",
-};
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +25,6 @@ async function resolveDownloads(channel: string): Promise<ClientDownloadInfo[]> 
   } catch {
     return [];
   }
-}
-
-function formatDownloadLabel(info: ClientDownloadInfo) {
-  return targetLabels[info.target] ?? info.target;
 }
 
 function formatSize(value?: number | null) {
@@ -97,10 +91,10 @@ export default async function DownloadPage({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h2 className="text-sm font-semibold text-foreground">
-                        {formatDownloadLabel(info)}
+                        {formatClientPackageName(info.client, info.target, locale)}
                       </h2>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {info.client} / {info.target}
+                        {formatClientRole(info.client, locale)} / {formatClientTarget(info.target)}
                       </p>
                     </div>
                     <span

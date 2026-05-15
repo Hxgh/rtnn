@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "RTNN App",
+  "productName": "RTNN",
   "version": "0.1.0",
   "identifier": "com.rtnn.app",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "RTNN App",
+        "title": "RTNN",
         "width": 390,
         "height": 844,
         "resizable": true,

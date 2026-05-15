@@ -11,12 +11,17 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import { getClientBranding, resolveTemplateEnv } from "../lib/template-env.mjs";
+
+const ROOT_DIR = path.resolve(import.meta.dirname, "..", "..");
+const CLIENT_BRANDING = getClientBranding(resolveTemplateEnv(ROOT_DIR));
+const ANDROID_APP_LABEL = CLIENT_BRANDING.clients.appMobile.installName;
 
 const REQUIRED_BADGING_SNIPPETS = Object.freeze([
   "package: name='com.rtnn.app'",
-  "application-label:'RTNN App'",
+  `application-label:'${ANDROID_APP_LABEL}'`,
   "application-icon-",
-  "application: label='RTNN App'",
+  `application: label='${ANDROID_APP_LABEL}'`,
 ]);
 
 const REQUIRED_MANIFEST_SNIPPETS = Object.freeze([

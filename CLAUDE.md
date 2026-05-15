@@ -74,6 +74,15 @@
 - `backend` 的通用错误响应允许保留稳定错误码，但返回给前端的 message 应具备 locale 感知能力
 - 模板工程后续新增端（如 `weapp`）时，沿用同一套 locale 常量、cookie/存储 key 命名和回退策略
 
+## 品牌、客户端命名与图标规则
+
+- 用户可见主品牌、客户端展示名、安装名与图标文字统一来自 `packages/config`，默认主品牌为 `RTNN`
+- 端类型只作为上下文标签，例如 `移动端`、`管理端`、`Android`、`macOS`；不要把端类型散落硬拼进主品牌文案
+- 内部 client key 必须保持稳定，例如 `appMobile`、`adminDesktop`；不得用展示名称替代内部 key
+- 图标只维护一个品牌源；Web brand mark、favicon、Tauri icon、Android launcher icon 必须通过 `scripts/client/sync-client-branding.mjs` 同步生成
+- 禁止在 `app`、`admin`、`clients`、脚本中手写分散的品牌名、安装名、图标 SVG 或默认框架图标
+- 更新品牌、名称或图标时，必须先改统一配置，再运行客户端品牌同步脚本和客户端检查脚本，确保各端一次性一致
+
 ## 前端 Skills 编排（统一入口）
 
 前端任务按需使用以下 skill 组合：

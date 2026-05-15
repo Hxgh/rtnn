@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { resolveTemplateEnv } from "../lib/template-env.mjs";
+import { getClientBranding, resolveTemplateEnv } from "../lib/template-env.mjs";
 
 const ROOT_DIR = path.resolve(import.meta.dirname, "..", "..");
 const ICON_BASE_SIZE = 1024;
@@ -194,9 +194,10 @@ function syncTauriConfig(clientName, displayName) {
 
 function main() {
   const env = resolveTemplateEnv(ROOT_DIR);
-  const iconText = normalizeIconText(env.RTNN_APP_ICON_TEXT);
-  const adminName = normalizeString(env.RTNN_ADMIN_DESKTOP_NAME, `${env.TEMPLATE_BRAND_NAME} Admin`);
-  const appName = normalizeString(env.RTNN_APP_MOBILE_NAME, `${env.TEMPLATE_BRAND_NAME} App`);
+  const branding = getClientBranding(env);
+  const iconText = normalizeIconText(branding.iconText);
+  const adminName = normalizeString(branding.clients.adminDesktop.installName);
+  const appName = normalizeString(branding.clients.appMobile.installName);
   const brandMarkSvg = resolveBrandMarkAsset();
   const tmpDir = mkdtempSync(path.join(tmpdir(), "rtnn-client-branding-"));
   const iconSvgPath = path.join(tmpDir, "shell-icon.svg");

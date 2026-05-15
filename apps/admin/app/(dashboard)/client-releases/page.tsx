@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { formatClientRole, formatClientTarget } from "@rtnn/config";
 import { FormSelect } from "@/src/components/admin/form-select";
 import {
   AdminTableActionLink,
@@ -77,11 +78,17 @@ function statusClassName(status: string) {
   return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300";
 }
 
-function BadgeList({ values }: { values: string[] }) {
+function BadgeList({
+  formatValue = (value) => value,
+  values,
+}: {
+  formatValue?: (value: string) => string;
+  values: string[];
+}) {
   return (
     <div className="flex flex-wrap gap-1">
       {values.length > 0 ? values.map((value) => (
-        <Badge key={value} variant="outline">{value}</Badge>
+        <Badge key={value} variant="outline">{formatValue(value)}</Badge>
       )) : "-"}
     </div>
   );
@@ -152,12 +159,22 @@ export default async function ClientReleasesPage({
     {
       id: "clients",
       header: dictionary.clientReleases.client,
-      cell: (item) => <BadgeList values={item.clients} />,
+      cell: (item) => (
+        <BadgeList
+          formatValue={(value) => formatClientRole(value, locale)}
+          values={item.clients}
+        />
+      ),
     },
     {
       id: "targets",
       header: dictionary.clientReleases.targets,
-      cell: (item) => <BadgeList values={item.targets} />,
+      cell: (item) => (
+        <BadgeList
+          formatValue={formatClientTarget}
+          values={item.targets}
+        />
+      ),
     },
     {
       id: "distributionStatus",
@@ -244,7 +261,7 @@ export default async function ClientReleasesPage({
             defaultValue={filters.client}
             emptyLabel={dictionary.clientReleases.allClients}
             name="client"
-            options={clients.map((value) => ({ label: value, value }))}
+            options={clients.map((value) => ({ label: formatClientRole(value, locale), value }))}
             triggerClassName="w-full lg:w-44"
           />
           <FormSelect
@@ -252,7 +269,7 @@ export default async function ClientReleasesPage({
             defaultValue={filters.target}
             emptyLabel={dictionary.clientReleases.allTargets}
             name="target"
-            options={targets.map((value) => ({ label: value, value }))}
+            options={targets.map((value) => ({ label: formatClientTarget(value), value }))}
             triggerClassName="w-full lg:w-36"
           />
           <FormSelect

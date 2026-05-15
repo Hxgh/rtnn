@@ -65,7 +65,7 @@ const adminDesktopName = readEnv(
 );
 const appMobileName = readEnv(
   ["NEXT_PUBLIC_RTNN_APP_MOBILE_NAME", "RTNN_APP_MOBILE_NAME"],
-  `${templateBrandName} App`,
+  templateBrandName,
 );
 const appIconText = readEnv(
   ["NEXT_PUBLIC_RTNN_APP_ICON_TEXT", "RTNN_APP_ICON_TEXT"],
@@ -184,14 +184,73 @@ export const TEMPLATE_IDENTITY = {
 
 export const TEMPLATE_DISPLAY = {
   brand: templateBrandName,
-  adminAppZh: `${templateBrandName} 管理后台`,
+  adminAppZh: `${templateBrandName} 管理端`,
   adminAppEn: `${templateBrandName} Admin`,
-  appZh: `${templateBrandName} 客户端`,
-  appEn: `${templateBrandName} App`,
+  appZh: templateBrandName,
+  appEn: templateBrandName,
   adminDesktopName,
   appMobileName,
   appIconText,
 } as const;
+
+export const CLIENT_BRANDING = {
+  brandName: templateBrandName,
+  iconText: appIconText,
+  clients: {
+    appMobile: {
+      key: "appMobile",
+      displayName: templateBrandName,
+      installName: appMobileName,
+      roleLabelZh: "移动端",
+      roleLabelEn: "Mobile",
+    },
+    adminDesktop: {
+      key: "adminDesktop",
+      displayName: `${templateBrandName} 管理端`,
+      installName: adminDesktopName,
+      roleLabelZh: "管理端",
+      roleLabelEn: "Admin",
+    },
+  },
+  targets: {
+    android: "Android",
+    ios: "iOS",
+    macos: "macOS",
+    windows: "Windows",
+  },
+} as const;
+
+function isZhLocale(locale?: string): boolean {
+  return (locale ?? DEFAULT_LOCALE).startsWith("zh");
+}
+
+export function formatClientName(client: string, locale?: string): string {
+  const item = CLIENT_BRANDING.clients[client as keyof typeof CLIENT_BRANDING.clients];
+
+  if (!item) {
+    return client;
+  }
+
+  return isZhLocale(locale) ? item.displayName : item.installName;
+}
+
+export function formatClientRole(client: string, locale?: string): string {
+  const item = CLIENT_BRANDING.clients[client as keyof typeof CLIENT_BRANDING.clients];
+
+  if (!item) {
+    return client;
+  }
+
+  return isZhLocale(locale) ? item.roleLabelZh : item.roleLabelEn;
+}
+
+export function formatClientTarget(target: string): string {
+  return CLIENT_BRANDING.targets[target as keyof typeof CLIENT_BRANDING.targets] ?? target;
+}
+
+export function formatClientPackageName(client: string, target: string, locale?: string): string {
+  return `${formatClientName(client, locale)} · ${formatClientTarget(target)}`;
+}
 
 export const UI_COOKIE_KEYS = {
   adminLocale: `${templateCookiePrefix}_admin_locale`,

@@ -1,10 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { getClientBranding, resolveTemplateEnv } from "../lib/template-env.mjs";
 
 const CLIENTS = {
   "admin-tauri": {
     packageName: "@rtnn/admin-tauri",
-    productName: "RTNN Admin",
+    clientKey: "adminDesktop",
     identifier: "com.rtnn.admin",
     devUrl: "http://localhost:5101",
     remoteUrl: "https://admin.rtnn.invalid",
@@ -22,7 +23,7 @@ const CLIENTS = {
   },
   "app-tauri": {
     packageName: "@rtnn/app-tauri",
-    productName: "RTNN App",
+    clientKey: "appMobile",
     identifier: "com.rtnn.app",
     devUrl: "http://localhost:5102",
     remoteUrl: "https://app.rtnn.invalid",
@@ -159,9 +160,9 @@ const CLIENTS = {
         "PermissionRequest.RESOURCE_VIDEO_CAPTURE",
       ],
       "../../scripts/client/sync-client-branding.mjs": [
-        "RTNN_ADMIN_DESKTOP_NAME",
-        "RTNN_APP_MOBILE_NAME",
-        "RTNN_APP_ICON_TEXT",
+        "getClientBranding",
+        "clients.adminDesktop.installName",
+        "clients.appMobile.installName",
         "resolveBrandMarkAsset",
         "buildShellIconSvg",
         "qlmanage",
@@ -244,7 +245,19 @@ function validateClient(rootDir, clientName, expected) {
     `${clientName} 缺少 @tauri-apps/cli`,
   );
 
-  assert(tauriConfig.productName === expected.productName, `${clientName} productName 不匹配`);
+  const branding = getClientBranding(resolveTemplateEnv(rootDir));
+  const clientBranding = branding.clients[expected.clientKey];
+  assert(clientBranding, `${clientName} 缺少客户端品牌配置: ${expected.clientKey}`);
+  assert(
+    tauriConfig.productName === clientBranding.installName,
+    `${clientName} productName 不匹配`,
+  );
+  for (const windowConfig of tauriConfig.app?.windows ?? []) {
+    assert(
+      windowConfig.title === clientBranding.installName,
+      `${clientName} window title 不匹配`,
+    );
+  }
   assert(tauriConfig.identifier === expected.identifier, `${clientName} identifier 不匹配`);
   assert(tauriConfig.build?.devUrl === expected.devUrl, `${clientName} devUrl 不匹配`);
   assert(
@@ -414,6 +427,82 @@ function assertSharedWebBrandMarks(rootDir) {
   );
 }
 
+function assertNoUserFacingLegacyBranding(rootDir) {
+  const ignoredDirs = new Set([
+    ".git",
+    ".next",
+    "dist",
+    "node_modules",
+    "target",
+    "src-tauri",
+    ".turbo",
+  ]);
+  const ignoredFiles = new Set([
+    path.normalize("scripts/client/check-tauri-clients.mjs"),
+    path.normalize("apps/backend/openapi.json"),
+    path.normalize("packages/api-sdk/src/generated/openapi.ts"),
+  ]);
+  const targetDirs = ["apps", "clients", "packages", "scripts"].map((item) =>
+    path.join(rootDir, item),
+  );
+  const blockedPatterns = [
+    {
+      pattern: new RegExp(`\\b${["RTNN", "App"].join(" ")}\\b`),
+      label: ["RTNN", "App"].join(" "),
+    },
+    {
+      pattern: new RegExp(`application-label:'${["RTNN", "App"].join(" ")}'`),
+      label: `APK ${["RTNN", "App"].join(" ")} label`,
+    },
+  ];
+
+  function collectFiles(dir) {
+    const files = [];
+
+    function visit(currentDir) {
+      for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+          if (!ignoredDirs.has(entry.name)) {
+            visit(path.join(currentDir, entry.name));
+          }
+          continue;
+        }
+        if (!entry.isFile()) {
+          continue;
+        }
+        const filePath = path.join(currentDir, entry.name);
+        const relativePath = path.normalize(path.relative(rootDir, filePath));
+        if (ignoredFiles.has(relativePath)) {
+          continue;
+        }
+        if (!/\.(ts|tsx|js|mjs|json|md|html|xml|toml)$/.test(entry.name)) {
+          continue;
+        }
+        files.push(filePath);
+      }
+    }
+    visit(dir);
+    return files;
+  }
+
+  const files = targetDirs.flatMap(collectFiles);
+  const violations = [];
+
+  for (const filePath of files) {
+    const source = readFileSync(filePath, "utf8");
+    for (const item of blockedPatterns) {
+      if (item.pattern.test(source)) {
+        violations.push(`${path.relative(rootDir, filePath)}: ${item.label}`);
+      }
+    }
+  }
+
+  assert(
+    violations.length === 0,
+    `发现旧客户端品牌硬编码:\n${violations.join("\n")}`,
+  );
+}
+
 function main() {
   const rootDir = findWorkspaceRoot(process.cwd());
   const requested = process.argv.slice(2);
@@ -435,6 +524,8 @@ function main() {
     console.log("[tauri-client-check] web brand mark 一致性通过");
     assertBrandIconGuide(rootDir);
     console.log("[tauri-client-check] 图标体系说明通过");
+    assertNoUserFacingLegacyBranding(rootDir);
+    console.log("[tauri-client-check] 用户可见旧品牌硬编码检查通过");
   }
 }
 

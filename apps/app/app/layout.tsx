@@ -6,8 +6,8 @@ import { getServerPreferencesFromRequest } from "@/lib/i18n/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: TEMPLATE_DISPLAY.appZh,
-  description: TEMPLATE_DISPLAY.appZh,
+  title: TEMPLATE_DISPLAY.brand,
+  description: TEMPLATE_DISPLAY.brand,
   icons: {
     icon: "/brand/brand-mark.svg",
     shortcut: "/brand/brand-mark.svg",

@@ -1819,7 +1819,7 @@ test("prepare-app-store-connect-upload resolves IPA without leaking private key"
       path.join(dir, "clients/app-tauri/src-tauri/tauri.conf.json"),
       `${JSON.stringify({ identifier: "com.acme.app" }, null, 2)}\n`,
     );
-    writeFileSync(path.join(releaseDir, "RTNN App.ipa"), "ipa");
+    writeFileSync(path.join(releaseDir, "RTNN.ipa"), "ipa");
 
     const result = spawnSync(
       process.execPath,
@@ -1855,7 +1855,7 @@ test("prepare-app-store-connect-upload resolves IPA without leaking private key"
     assert.equal(report.status, "ready-for-upload");
     assert.equal(report.bundleId, "com.acme.app");
     assert.equal(report.distribution, "testflight");
-    assert.equal(report.ipaFile.endsWith("RTNN App.ipa"), true);
+    assert.equal(report.ipaFile.endsWith("RTNN.ipa"), true);
     assert.deepEqual(report.blockers, []);
     assert.equal(reportText.includes("api-key-secret-must-not-leak"), false);
     assert.equal(
@@ -1891,7 +1891,7 @@ test("write-app-store-connect-release-report emits uploaded and skipped facts", 
           distribution: "testflight",
           artifactType: "ipa",
           ipaFile:
-            "artifacts/client-release/app-mobile-ios-1.2.3/mobile/arm64/RTNN App.ipa",
+            "artifacts/client-release/app-mobile-ios-1.2.3/mobile/arm64/RTNN.ipa",
           blockers: [],
         },
         null,
@@ -1929,7 +1929,7 @@ test("write-app-store-connect-release-report emits uploaded and skipped facts", 
     );
     assert.equal(uploadedReport.status, "uploaded");
     assert.equal(uploadedReport.bundleId, "com.acme.app");
-    assert.equal(uploadedReport.ipaFileName, "RTNN App.ipa");
+    assert.equal(uploadedReport.ipaFileName, "RTNN.ipa");
 
     const skipped = spawnSync(
       process.execPath,

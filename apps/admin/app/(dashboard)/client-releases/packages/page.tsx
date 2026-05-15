@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  formatClientPackageName,
+  formatClientRole,
+  formatClientTarget,
+} from "@rtnn/config";
 import { FormSelect } from "@/src/components/admin/form-select";
 import {
   AdminTableActionLink,
@@ -140,8 +145,10 @@ export default async function ClientPackagesPage({
       header: dictionary.clientReleases.client,
       cell: (item) => (
         <div className="space-y-1">
-          <div>{item.client}</div>
-          <div className="text-xs text-muted-foreground">{item.target}</div>
+          <div>{formatClientPackageName(item.client, item.target, locale)}</div>
+          <div className="text-xs text-muted-foreground">
+            {formatClientRole(item.client, locale)} / {formatClientTarget(item.target)}
+          </div>
         </div>
       ),
     },
@@ -274,7 +281,7 @@ export default async function ClientPackagesPage({
             defaultValue={filters.client}
             emptyLabel={dictionary.clientReleases.allClients}
             name="client"
-            options={clients.map((value) => ({ label: value, value }))}
+            options={clients.map((value) => ({ label: formatClientRole(value, locale), value }))}
             triggerClassName="w-full lg:w-44"
           />
           <FormSelect
@@ -282,7 +289,7 @@ export default async function ClientPackagesPage({
             defaultValue={filters.target}
             emptyLabel={dictionary.clientReleases.allTargets}
             name="target"
-            options={targets.map((value) => ({ label: value, value }))}
+            options={targets.map((value) => ({ label: formatClientTarget(value), value }))}
             triggerClassName="w-full lg:w-36"
           />
           <FormSelect

@@ -231,7 +231,7 @@ function deriveTemplateEnv(values) {
   const adminDesktopName =
     normalized.RTNN_ADMIN_DESKTOP_NAME ?? `${brandName} Admin`;
   const appMobileName =
-    normalized.RTNN_APP_MOBILE_NAME ?? `${brandName} App`;
+    normalized.RTNN_APP_MOBILE_NAME ?? brandName;
   const appIconText = normalized.RTNN_APP_ICON_TEXT ?? brandName;
 
   return {
@@ -479,10 +479,42 @@ export function getTemplateDisplayNames(templateEnv) {
 
   return {
     brand,
-    adminAppZh: `${brand} 管理后台`,
+    adminAppZh: `${brand} 管理端`,
     adminAppEn: `${brand} Admin`,
-    appZh: `${brand} 客户端`,
-    appEn: `${brand} App`,
+    appZh: brand,
+    appEn: brand,
+  };
+}
+
+export function getClientBranding(templateEnv) {
+  const resolved = deriveTemplateEnv(templateEnv);
+  const brand = resolved.TEMPLATE_BRAND_NAME;
+
+  return {
+    brandName: brand,
+    iconText: resolved.RTNN_APP_ICON_TEXT,
+    clients: {
+      appMobile: {
+        key: "appMobile",
+        displayName: brand,
+        installName: resolved.RTNN_APP_MOBILE_NAME,
+        roleLabelZh: "移动端",
+        roleLabelEn: "Mobile",
+      },
+      adminDesktop: {
+        key: "adminDesktop",
+        displayName: `${brand} 管理端`,
+        installName: resolved.RTNN_ADMIN_DESKTOP_NAME,
+        roleLabelZh: "管理端",
+        roleLabelEn: "Admin",
+      },
+    },
+    targets: {
+      android: "Android",
+      ios: "iOS",
+      macos: "macOS",
+      windows: "Windows",
+    },
   };
 }
 

@@ -83,7 +83,9 @@ competing with Gradle, Rust, Android SDK, or Tauri build workloads.
 
 ## Icon System
 
-图标体系由同一组 shell brand assets 统一维护。
+图标体系由同一组 shell brand assets 统一维护。用户可见品牌名、
+安装名、图标文字和端类型标签以 `packages/config` 为唯一来源。
+端类型只作为上下文标签，不写进主品牌。
 
 RTNN treats the brand mark as one client-shell asset set, not as separate
 per-platform decorations.
@@ -112,10 +114,11 @@ uses a neutral background so the visible launcher shape is a normal app icon
 surface with the RTNN round mark centered inside it. The Android generated
 project is disposable; do not edit its generated icon files by hand.
 
-When a business project changes branding, update the shell icon files first,
-then regenerate matching favicon/brand mark files and run:
+When a business project changes branding, update the shared branding config,
+run the branding sync script, then run the client checks:
 
 ```bash
+node scripts/client/sync-client-branding.mjs
 pnpm run check:clients
 ```
 

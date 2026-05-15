@@ -2,40 +2,16 @@ import type * as React from "react";
 import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { cn } from "@/lib/utils";
 
-type BrandLogoMarkProps = React.SVGProps<SVGSVGElement>;
+type BrandLogoMarkProps = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "alt" | "src">;
 
 export function BrandLogoMark({ className, ...props }: BrandLogoMarkProps) {
   return (
-    <svg
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+    <img
+      alt=""
       className={cn("size-8 shrink-0", className)}
+      src="/brand/brand-mark.svg"
       {...props}
-    >
-      <circle cx="32" cy="32" r="28" fill="black" />
-      <path
-        d="M23 18H35.5C42.404 18 47 22.104 47 28.2C47 32.945 43.966 36.149 39.2 37.33L47.5 46"
-        stroke="white"
-        strokeWidth="5.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M23 18V46"
-        stroke="white"
-        strokeWidth="5.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M23 33.25H35"
-        stroke="white"
-        strokeWidth="5.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    />
   );
 }
 
