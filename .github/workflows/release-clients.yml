@@ -243,7 +243,24 @@ jobs:
         run: rustup target add aarch64-apple-ios
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        shell: bash
+        env:
+          RTNN_CLIENT_BUILD_LOCK_ROOT: ${{ vars.RTNN_RUNTIME_LOCK_ROOT || '/tmp/rtnn-runtime-locks' }}
+          RTNN_CLIENT_BUILD_LOCK_TIMEOUT_SECONDS: ${{ vars.RTNN_RUNTIME_LOCK_TIMEOUT_SECONDS || '7200' }}
+          RTNN_CLIENT_BUILD_LOCK_STALE_SECONDS: ${{ vars.RTNN_RUNTIME_LOCK_STALE_SECONDS || '21600' }}
+          RTNN_CLIENT_BUILD_LOCK_POLL_SECONDS: ${{ vars.RTNN_RUNTIME_LOCK_POLL_SECONDS || '5' }}
+        run: |
+          if [[ "${{ matrix.runner_kind }}" == "self-hosted" ]]; then
+            node scripts/release/with-client-build-lock.mjs \
+              --label "client-deps-${{ matrix.client }}-${{ matrix.target }}" \
+              --root "$RTNN_CLIENT_BUILD_LOCK_ROOT" \
+              --timeout-seconds "$RTNN_CLIENT_BUILD_LOCK_TIMEOUT_SECONDS" \
+              --stale-seconds "$RTNN_CLIENT_BUILD_LOCK_STALE_SECONDS" \
+              --poll-seconds "$RTNN_CLIENT_BUILD_LOCK_POLL_SECONDS" \
+              -- pnpm install --no-frozen-lockfile
+          else
+            pnpm install --no-frozen-lockfile
+          fi
 
       - name: Validate client shell
         shell: bash
@@ -399,6 +416,9 @@ jobs:
         if: ${{ matrix.target == 'android' && steps.android_signing.outputs.configured == 'true' }}
         shell: bash
         env:
+          CLIENT_NAME: ${{ matrix.client }}
+          CLIENT_PACKAGE: ${{ matrix.package }}
+          CLIENT_DIR: ${{ matrix.client_dir }}
           RTNN_CLIENT_CHANNEL: ${{ matrix.channel }}
           RTNN_CLIENT_SOURCE_SHA: ${{ needs.resolve-client-release-context.outputs.source_sha }}
           CLIENT_ANDROID_VERSION_CODE: ${{ github.run_number }}
@@ -410,39 +430,58 @@ jobs:
           ANDROID_MIN_FREE_DISK_MB: ${{ vars.ANDROID_MIN_FREE_DISK_MB || '8192' }}
           GRADLE_WRAPPER_NETWORK_TIMEOUT: ${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }}
           GRADLE_OPTS: -Dorg.gradle.internal.http.connectionTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.internal.http.socketTimeout=${{ vars.GRADLE_WRAPPER_NETWORK_TIMEOUT || '120000' }} -Dorg.gradle.workers.max=${{ vars.ANDROID_GRADLE_MAX_WORKERS || '2' }}
+          RTNN_CLIENT_BUILD_LOCK_ROOT: ${{ vars.RTNN_RUNTIME_LOCK_ROOT || '/tmp/rtnn-runtime-locks' }}
+          RTNN_CLIENT_BUILD_LOCK_TIMEOUT_SECONDS: ${{ vars.RTNN_RUNTIME_LOCK_TIMEOUT_SECONDS || '7200' }}
+          RTNN_CLIENT_BUILD_LOCK_STALE_SECONDS: ${{ vars.RTNN_RUNTIME_LOCK_STALE_SECONDS || '21600' }}
+          RTNN_CLIENT_BUILD_LOCK_POLL_SECONDS: ${{ vars.RTNN_RUNTIME_LOCK_POLL_SECONDS || '5' }}
         run: |
-          if [[ "${{ matrix.client }}" == "appMobile" ]]; then
-            CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run prepare:android
-            CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run check:android
-          fi
+          run_android_build() {
+            if [[ "$CLIENT_NAME" == "appMobile" ]]; then
+              CLIENT_DIR="$CLIENT_DIR" pnpm --filter "$CLIENT_PACKAGE" run prepare:android
+              CLIENT_DIR="$CLIENT_DIR" pnpm --filter "$CLIENT_PACKAGE" run check:android
+            fi
 
-          free_mb="$(df -Pm . | awk 'NR==2 { print $4 }')"
-          if [[ -n "$ANDROID_MIN_FREE_DISK_MB" && "$free_mb" -lt "$ANDROID_MIN_FREE_DISK_MB" ]]; then
-            echo "::error::Insufficient disk for Android client build: ${free_mb}MB free, require ${ANDROID_MIN_FREE_DISK_MB}MB. Clean runner artifacts or use a dedicated/GitHub-hosted runner."
-            exit 1
-          fi
+            free_mb="$(df -Pm . | awk 'NR==2 { print $4 }')"
+            if [[ -n "$ANDROID_MIN_FREE_DISK_MB" && "$free_mb" -lt "$ANDROID_MIN_FREE_DISK_MB" ]]; then
+              echo "::error::Insufficient disk for Android client build: ${free_mb}MB free, require ${ANDROID_MIN_FREE_DISK_MB}MB. Clean runner artifacts or use a dedicated/GitHub-hosted runner."
+              exit 1
+            fi
 
-          build_args=()
-          normalized_targets="$(printf '%s' "$ANDROID_BUILD_TARGETS" | tr ',' ' ')"
-          if [[ -n "${normalized_targets// /}" && "$normalized_targets" != "all" ]]; then
-            for target in $normalized_targets; do
-              build_args+=(--target "$target")
-            done
-          fi
+            build_args=()
+            normalized_targets="$(printf '%s' "$ANDROID_BUILD_TARGETS" | tr ',' ' ')"
+            if [[ -n "${normalized_targets// /}" && "$normalized_targets" != "all" ]]; then
+              for target in $normalized_targets; do
+                build_args+=(--target "$target")
+              done
+            fi
 
-          if [[ "$ANDROID_SPLIT_PER_ABI" == "true" ]]; then
-            build_args+=(--split-per-abi)
-          fi
+            if [[ "$ANDROID_SPLIT_PER_ABI" == "true" ]]; then
+              build_args+=(--split-per-abi)
+            fi
 
-          if [[ "$ANDROID_ARTIFACT_TYPE" == "apk" ]]; then
-            build_args+=(--apk)
+            if [[ "$ANDROID_ARTIFACT_TYPE" == "apk" ]]; then
+              build_args+=(--apk)
+            else
+              build_args+=(--aab)
+            fi
+
+            pnpm --filter "$CLIENT_PACKAGE" tauri android build "${build_args[@]}"
+            if [[ "$CLIENT_NAME" == "appMobile" ]]; then
+              CLIENT_DIR="$CLIENT_DIR" pnpm --filter "$CLIENT_PACKAGE" run check:android
+            fi
+          }
+
+          if [[ "${{ matrix.runner_kind }}" == "self-hosted" ]]; then
+            export -f run_android_build
+            node scripts/release/with-client-build-lock.mjs \
+              --label "client-build-${{ matrix.client }}-${{ matrix.target }}" \
+              --root "$RTNN_CLIENT_BUILD_LOCK_ROOT" \
+              --timeout-seconds "$RTNN_CLIENT_BUILD_LOCK_TIMEOUT_SECONDS" \
+              --stale-seconds "$RTNN_CLIENT_BUILD_LOCK_STALE_SECONDS" \
+              --poll-seconds "$RTNN_CLIENT_BUILD_LOCK_POLL_SECONDS" \
+              -- bash -lc run_android_build
           else
-            build_args+=(--aab)
-          fi
-
-          pnpm --filter "${{ matrix.package }}" tauri android build "${build_args[@]}"
-          if [[ "${{ matrix.client }}" == "appMobile" ]]; then
-            CLIENT_DIR="${{ matrix.client_dir }}" pnpm --filter "${{ matrix.package }}" run check:android
+            run_android_build
           fi
 
       - name: Build signed iOS client

@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { UseMediaPickerReturn } from "@/lib/native-core";
 import { cn } from "@/lib/utils";
 
 export type MediaImagePickerLabels = {
+  closePreview: string;
   opening: string;
   pickImages: string;
+  preview: string;
   remove: string;
 };
 
@@ -59,29 +62,57 @@ export function MediaImagePicker({
   labels: MediaImagePickerLabels;
   picker: UseMediaPickerReturn;
 }) {
+  const [previewImage, setPreviewImage] = useState<
+    UseMediaPickerReturn["files"][number] | null
+  >(null);
+
+  useEffect(() => {
+    if (!previewImage) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setPreviewImage(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewImage]);
+
   return (
     <div className={cn("space-y-3", className)}>
       <div className="grid grid-cols-3 gap-2">
         {picker.files.map((image, index) => (
           <div
-            className="relative overflow-hidden rounded-2xl border border-border/80 bg-secondary"
+            className="relative aspect-square overflow-hidden rounded-2xl border border-border/80 bg-secondary"
             key={`${image.name}:${image.size}:${index}`}
           >
-            {image.dataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt={image.name}
-                className="aspect-square w-full object-cover"
-                src={image.dataUrl}
-              />
-            ) : (
-              <div className="flex aspect-square items-center justify-center px-2 text-center text-[10px] text-muted-foreground">
-                {image.name}
-              </div>
-            )}
+            <button
+              aria-label={`${labels.preview} ${index + 1}`}
+              className="absolute inset-0 block size-full overflow-hidden text-left"
+              onClick={() => setPreviewImage(image)}
+              type="button"
+            >
+              {image.dataUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    alt={image.name}
+                    className="size-full object-cover"
+                    src={image.dataUrl}
+                  />
+                </>
+              ) : (
+                <span className="flex size-full items-center justify-center px-2 text-center text-[10px] text-muted-foreground">
+                  {image.name}
+                </span>
+              )}
+            </button>
             <button
               aria-label={`${labels.remove} ${index + 1}`}
-              className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur active:bg-background"
+              className="absolute right-1.5 top-1.5 z-10 grid size-7 place-items-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur active:bg-background"
               onClick={() => picker.removeFile(index)}
               type="button"
             >
@@ -89,7 +120,7 @@ export function MediaImagePicker({
                 ×
               </span>
             </button>
-            <p className="absolute bottom-0 left-0 right-0 truncate bg-black/55 px-2 py-1 text-[10px] text-white">
+            <p className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 truncate bg-black/55 px-2 py-1 text-[10px] text-white">
               {formatNativeFileSize(image.size)}
             </p>
           </div>
@@ -98,6 +129,50 @@ export function MediaImagePicker({
           <MediaAddTile labels={labels} picker={picker} />
         ) : null}
       </div>
+
+      {previewImage ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex flex-col bg-background/95 text-foreground backdrop-blur-xl"
+          role="dialog"
+        >
+          <div className="flex min-h-14 items-center justify-between gap-3 border-b border-border/70 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{previewImage.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatNativeFileSize(previewImage.size)}
+              </p>
+            </div>
+            <button
+              aria-label={labels.closePreview}
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-border/80 bg-secondary text-lg leading-none active:bg-secondary/70"
+              onClick={() => setPreviewImage(null)}
+              type="button"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <button
+            aria-label={labels.closePreview}
+            className="flex min-h-0 flex-1 items-center justify-center p-4"
+            onClick={() => setPreviewImage(null)}
+            type="button"
+          >
+            {previewImage.dataUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt={previewImage.name}
+                className="max-h-full max-w-full object-contain"
+                src={previewImage.dataUrl}
+              />
+            ) : (
+              <span className="break-all text-sm text-muted-foreground">
+                {previewImage.name}
+              </span>
+            )}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

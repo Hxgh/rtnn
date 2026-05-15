@@ -44,7 +44,7 @@ function MeIcon() {
 export function BottomTabBar({ enabled = true }: { enabled?: boolean }) {
   const pathname = usePathname();
   const { messages } = usePreferences();
-  const showTabBar = enabled && (pathname === "/" || pathname === "/me");
+  const showTabBar = enabled && (pathname === "/home" || pathname === "/me");
 
   if (!showTabBar) {
     return null;
@@ -52,9 +52,9 @@ export function BottomTabBar({ enabled = true }: { enabled?: boolean }) {
 
   const tabs = [
     {
-      href: "/",
+      href: "/home",
       label: messages.common.nav.home,
-      active: pathname === "/",
+      active: pathname === "/home",
       icon: HomeIcon,
     },
     {

@@ -45,6 +45,7 @@ export type AppMessages = {
   home: {
     badge: string;
     title: string;
+    greeting: string;
     description: string;
     quickActions: string;
     accountSummary: string;
@@ -178,6 +179,8 @@ export type AppMessages = {
     webviewLoadFailed: string;
     openMap: string;
     pickImages: string;
+    previewImage: string;
+    closeImagePreview: string;
     removeImage: string;
     keyboardPlaceholder: string;
     openDownloads: string;
@@ -260,6 +263,7 @@ const zhCN: AppMessages = {
   home: {
     badge: "账户首页",
     title: "欢迎回来",
+    greeting: "{name}，你好",
     description: "查看当前账户状态、常用入口和个人设置。",
     quickActions: "常用入口",
     accountSummary: "账户摘要",
@@ -402,6 +406,8 @@ const zhCN: AppMessages = {
     webviewLoadFailed: "操作未完成，请返回后重试。",
     openMap: "打开地图",
     pickImages: "选择图片",
+    previewImage: "查看图片",
+    closeImagePreview: "关闭图片预览",
     removeImage: "删除图片",
     keyboardPlaceholder: "请输入内容",
     openDownloads: "客户端下载",
@@ -484,6 +490,7 @@ const enUS: AppMessages = {
   home: {
     badge: "Account Home",
     title: "Welcome back",
+    greeting: "Hello, {name}",
     description: "Review account status, common destinations, and personal settings.",
     quickActions: "Quick actions",
     accountSummary: "Account summary",
@@ -626,6 +633,8 @@ const enUS: AppMessages = {
     webviewLoadFailed: "The action was not completed. Go back and retry.",
     openMap: "Open map",
     pickImages: "Pick images",
+    previewImage: "Preview image",
+    closeImagePreview: "Close image preview",
     removeImage: "Remove image",
     keyboardPlaceholder: "Enter text",
     openDownloads: "Client downloads",

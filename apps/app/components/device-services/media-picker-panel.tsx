@@ -53,8 +53,10 @@ export function MediaPickerPanel({ messages }: { messages: Messages }) {
           </div>
           <MediaImagePicker
             labels={{
+              closePreview: messages.closeImagePreview,
               opening: messages.openingShort,
               pickImages: messages.pickImages,
+              preview: messages.previewImage,
               remove: messages.removeImage,
             }}
             picker={picker}

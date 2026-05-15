@@ -31,7 +31,7 @@ export function SiteHeader() {
     pathname.startsWith("/native-diagnostics");
   const isDownloadPage = pathname.startsWith("/download");
   const isSubPage = isAccountPage || isDeviceServicesPage || isDownloadPage;
-  const backHref = isAccountPage || isDeviceServicesPage ? "/me" : "/";
+  const backHref = isAccountPage || isDeviceServicesPage ? "/me" : "/home";
   const currentTitle =
     isAccountPage
       ? messages.security.title
@@ -67,7 +67,7 @@ export function SiteHeader() {
             >
               <BackIcon />
             </Link>
-          ) : pathname === "/" ? (
+          ) : pathname === "/" || pathname === "/home" ? (
             <div className="flex size-10 items-center justify-center">
               <BrandLogoMark className="size-7" />
             </div>

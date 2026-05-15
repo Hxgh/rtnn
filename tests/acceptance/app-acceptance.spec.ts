@@ -52,7 +52,7 @@ async function loginCustomer(page: Page) {
   await page.getByLabel(emailLabel).fill(customerEmail);
   await page.getByLabel(passwordLabel).fill(customerPassword);
 
-  const homeNavigation = page.waitForURL((url) => url.pathname === "/");
+  const homeNavigation = page.waitForURL((url) => url.pathname === "/home");
   await page.getByRole("button", { name: loginButtonText }).click();
   await homeNavigation;
 

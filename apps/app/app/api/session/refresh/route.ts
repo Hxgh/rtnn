@@ -11,7 +11,7 @@ import { cookies } from "next/headers";
 
 function normalizeRedirectTo(value: string | null) {
   if (!value || !value.startsWith("/")) {
-    return "/me";
+    return "/home";
   }
   return value;
 }

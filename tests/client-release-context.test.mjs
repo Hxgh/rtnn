@@ -2405,6 +2405,10 @@ test("release-clients workflow constrains server-local Android build resources",
   assert.match(workflow, /name: Check server-local client build disk capacity/);
   assert.match(workflow, /CLIENT_BUILD_MIN_FREE_DISK_MB: \$\{\{ vars\.CLIENT_BUILD_MIN_FREE_DISK_MB \|\| '8192' \}\}/);
   assert.match(workflow, /check-client-build-capacity\.mjs/);
+  assert.match(workflow, /with-client-build-lock\.mjs/);
+  assert.match(workflow, /client-deps-\$\{\{ matrix\.client \}\}-\$\{\{ matrix\.target \}\}/);
+  assert.match(workflow, /client-build-\$\{\{ matrix\.client \}\}-\$\{\{ matrix\.target \}\}/);
+  assert.match(workflow, /RTNN_CLIENT_BUILD_LOCK_ROOT: \$\{\{ vars\.RTNN_RUNTIME_LOCK_ROOT \|\| '\/tmp\/rtnn-runtime-locks' \}\}/);
   assert.match(workflow, /ANDROID_BUILD_TARGETS: \$\{\{ vars\.ANDROID_BUILD_TARGETS \|\| 'aarch64' \}\}/);
   assert.match(workflow, /ANDROID_MIN_FREE_DISK_MB: \$\{\{ vars\.ANDROID_MIN_FREE_DISK_MB \|\| '8192' \}\}/);
   assert.match(workflow, /org\.gradle\.workers\.max/);

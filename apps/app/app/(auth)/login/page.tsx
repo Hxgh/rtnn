@@ -11,12 +11,12 @@ export default async function LoginPage({
 }) {
   const session = await readSession({ redirectTo: "/login" });
   if (session) {
-    redirect("/");
+    redirect("/home");
   }
 
   const { messages } = await getServerI18n();
   const params = searchParams ? await searchParams : undefined;
-  const redirectTo = params?.redirectTo?.startsWith("/") ? params.redirectTo : "/";
+  const redirectTo = params?.redirectTo?.startsWith("/") ? params.redirectTo : "/home";
   const errorMessage =
     params?.error === "invalid"
       ? messages.login.invalid

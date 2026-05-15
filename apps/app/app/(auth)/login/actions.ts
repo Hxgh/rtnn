@@ -9,7 +9,7 @@ import { resolveBaseUrl } from "@/lib/server/api-client";
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const redirectTo = String(formData.get("redirectTo") ?? "/").trim() || "/";
+  const redirectTo = String(formData.get("redirectTo") ?? "/home").trim() || "/home";
   if (!email || !password) {
     redirect(`/login?error=required&redirectTo=${encodeURIComponent(redirectTo)}`);
   }
@@ -34,5 +34,5 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=invalid&redirectTo=${encodeURIComponent(redirectTo)}`);
   }
 
-  redirect(redirectTo.startsWith("/") ? redirectTo : "/");
+  redirect(redirectTo.startsWith("/") ? redirectTo : "/home");
 }

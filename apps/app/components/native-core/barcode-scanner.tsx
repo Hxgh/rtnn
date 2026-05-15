@@ -85,7 +85,10 @@ export function BarcodeScannerControl({
     }
 
     cameraSessionRef.current = false;
-    setCameraLayerOpen(false);
+    const frame = window.requestAnimationFrame(() => {
+      setCameraLayerOpen(false);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [cameraLayerOpen, scanner.state]);
 
   async function closeCameraLayer() {
