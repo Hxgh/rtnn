@@ -808,6 +808,113 @@ describe('ClientReleasesService', () => {
     });
   });
 
+  it('counts GitHub fallback packages as downloadable in release summaries', async () => {
+    const release = {
+      id: 'rel_1',
+      releaseVersion: '1.2.3',
+      channel: 'testing',
+      sourceRepository: 'acme/business-source',
+      sourceRunId: '12345',
+      sourceSha: '1234567890abcdef',
+      sourceRef: 'refs/tags/client-1.2.3',
+      dryRun: false,
+      status: 'partial',
+      generatedAt: now,
+      syncedAt: now,
+      rawFacts: {},
+      createdAt: now,
+      updatedAt: now,
+      packages: [
+        {
+          id: 'pkg_source',
+          client: 'appMobile',
+          target: 'android',
+          shell: 'app-mobile',
+          packageName: '@rtnn/app-tauri',
+          artifactName: 'app-mobile-android-1.2.3',
+          shellVersion: '0.3.0',
+          releaseKind: 'android-signed-apk',
+          webUrl: 'https://app.example.com',
+          sourceUrl:
+            'https://github.com/acme/business-source/releases/download/client-1.2.3/app.apk',
+          distributionProvider: 'self-hosted-static',
+          distributionUrl: null,
+          distributionStatus: 'failed',
+          fileName: 'app.apk',
+          fileSize: 1024,
+          sha256: 'a'.repeat(64),
+          signingStatus: null,
+          buildStatus: 'built',
+          updaterStatus: null,
+          updaterUrl: null,
+          storeProvider: null,
+          storeStatus: null,
+          blockers: [],
+          syncedAt: null,
+          prunedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'pkg_pending',
+          client: 'appMobile',
+          target: 'ios',
+          shell: 'app-mobile',
+          packageName: '@rtnn/app-tauri',
+          artifactName: 'app-mobile-ios-1.2.3',
+          shellVersion: '0.3.0',
+          releaseKind: 'mobile-manifest-only',
+          webUrl: 'https://app.example.com',
+          sourceUrl: null,
+          distributionProvider: 'self-hosted-static',
+          distributionUrl: null,
+          distributionStatus: 'pending',
+          fileName: null,
+          fileSize: null,
+          sha256: null,
+          signingStatus: null,
+          buildStatus: 'blocked',
+          updaterStatus: null,
+          updaterUrl: null,
+          storeProvider: null,
+          storeStatus: null,
+          blockers: ['missing-ios-signing-config'],
+          syncedAt: null,
+          prunedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    };
+    const prisma = {
+      $transaction: jest.fn((operations: Array<Promise<unknown>>) =>
+        Promise.all(operations),
+      ),
+      clientRelease: {
+        count: jest.fn().mockResolvedValue(1),
+        findMany: jest.fn().mockResolvedValue([release]),
+      },
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.list({
+        page: 1,
+        pageSize: 20,
+        channel: 'testing',
+      }),
+    ).resolves.toMatchObject({
+      data: [
+        {
+          id: 'rel_1',
+          packageCount: 2,
+          downloadablePackageCount: 1,
+          distributionStatuses: ['failed', 'pending'],
+        },
+      ],
+    });
+  });
+
   it('rejects recommended releases outside the policy client target channel', async () => {
     const prisma = {
       $transaction: jest.fn((operations: Array<Promise<unknown>>) =>

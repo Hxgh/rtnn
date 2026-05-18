@@ -879,7 +879,7 @@ export class ClientReleasesService {
       syncedAt: release.syncedAt?.toISOString() ?? null,
       packageCount: packages.length,
       downloadablePackageCount: packages.filter(
-        (item) => item.distributionStatus === 'synced' && item.distributionUrl,
+        (item) => this.isPackageDownloadable(item),
       ).length,
       clients: unique(packages.map((item) => item.client)),
       targets: unique(packages.map((item) => item.target)),
@@ -1122,6 +1122,18 @@ export class ClientReleasesService {
       return selected.distributionUrl;
     }
     return allowGithubFallback ? selected.sourceUrl : null;
+  }
+
+  private isPackageDownloadable(
+    selected: Pick<
+      PackageWithRelease,
+      'distributionStatus' | 'distributionUrl' | 'sourceUrl'
+    >,
+  ) {
+    return Boolean(
+      (selected.distributionStatus === 'synced' && selected.distributionUrl) ||
+        selected.sourceUrl,
+    );
   }
 }
 
