@@ -12,6 +12,7 @@ import {
 import { useFormStatus } from "react-dom";
 import { FormSelect } from "@/src/components/admin/form-select";
 import { SelectionCard, SelectionCards } from "@/src/components/admin/selection-cards";
+import { AdminTableActionButton } from "@/src/components/admin/table-page";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
@@ -107,9 +108,9 @@ export function EditUserDialog({
       roles={roles}
       title={dictionary.users.editUser}
       trigger={
-        <Button className="h-auto px-2 py-1" size="sm" variant="ghost">
+        <AdminTableActionButton>
           {dictionary.common.update}
-        </Button>
+        </AdminTableActionButton>
       }
       user={user}
       variant="edit"

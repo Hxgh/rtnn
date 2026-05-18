@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useFormStatus } from "react-dom";
 import { SelectionCard, SelectionCards } from "@/src/components/admin/selection-cards";
+import { AdminTableActionButton } from "@/src/components/admin/table-page";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
@@ -108,9 +109,9 @@ export function EditRoleDialog({
       role={role}
       title={dictionary.roles.editRole}
       trigger={
-        <Button className="h-auto px-2 py-1" size="sm" variant="ghost">
+        <AdminTableActionButton>
           {dictionary.common.update}
-        </Button>
+        </AdminTableActionButton>
       }
       variant="edit"
     />

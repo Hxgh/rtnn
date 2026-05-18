@@ -5,7 +5,9 @@ import {
   formatClientRole,
   formatClientTarget,
 } from "@rtnn/config";
+import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
+import { AdminStatusBadge } from "@/src/components/admin/status-badge";
 import {
   AdminTableActionLink,
   AdminTablePagination,
@@ -20,11 +22,12 @@ import { Input } from "@/src/components/ui/input";
 import { getAdminI18n } from "@/src/i18n/server";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { listClientPackages } from "@/src/lib/api-client";
+import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { parsePageSize } from "@/src/lib/pagination";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { cn, parsePositiveInt } from "@/src/lib/utils";
+import { parsePositiveInt } from "@/src/lib/utils";
 
 const defaultPageSize = 20;
 const clients = ["adminDesktop", "appMobile"] as const;
@@ -69,31 +72,17 @@ function buildHref(page: number, pageSize: number, filters: ReturnType<typeof no
   return query ? `${adminRoutes.clientReleases.packages}?${query}` : adminRoutes.clientReleases.packages;
 }
 
-function statusClassName(status: string) {
+function distributionStatusTone(status: string) {
   if (status === "synced") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-900/20 dark:text-emerald-300";
+    return "success";
   }
   if (status === "failed") {
-    return "border-red-200 bg-red-50 text-red-700 dark:border-red-400/30 dark:bg-red-900/20 dark:text-red-300";
+    return "danger";
   }
   if (status === "pruned" || status === "disabled") {
-    return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-400/30 dark:bg-slate-900/20 dark:text-slate-300";
+    return "neutral";
   }
-  return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300";
-}
-
-function formatSize(value?: number | null) {
-  if (!value) {
-    return "-";
-  }
-  if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`;
-  }
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function shortHash(value?: string | null) {
-  return value ? value.slice(0, 12) : "-";
+  return "warning";
 }
 
 export default async function ClientPackagesPage({
@@ -184,9 +173,9 @@ export default async function ClientPackagesPage({
       id: "distributionStatus",
       header: dictionary.clientReleases.distributionStatus,
       cell: (item) => (
-        <Badge className={cn("border", statusClassName(item.distributionStatus))} variant="outline">
+        <AdminStatusBadge tone={distributionStatusTone(item.distributionStatus)}>
           {item.distributionStatus}
-        </Badge>
+        </AdminStatusBadge>
       ),
     },
     {
@@ -199,7 +188,7 @@ export default async function ClientPackagesPage({
       header: dictionary.clientReleases.fileSize,
       cell: (item) => (
         <div className="space-y-1 text-xs">
-          <div>{formatSize(item.fileSize)}</div>
+          <div>{formatFileSize(item.fileSize)}</div>
           <div className="font-mono text-muted-foreground">{shortHash(item.sha256)}</div>
         </div>
       ),
@@ -230,12 +219,12 @@ export default async function ClientPackagesPage({
             {dictionary.common.detail}
           </AdminTableActionLink>
           {item.distributionUrl ? (
-            <AdminTableActionLink href={item.distributionUrl}>
+            <AdminTableActionLink external href={item.distributionUrl}>
               {dictionary.clientReleases.openDownload}
             </AdminTableActionLink>
           ) : null}
           {item.sourceUrl && item.sourceUrl !== item.distributionUrl ? (
-            <AdminTableActionLink href={item.sourceUrl}>
+            <AdminTableActionLink external href={item.sourceUrl}>
               {dictionary.clientReleases.openSource}
             </AdminTableActionLink>
           ) : null}
@@ -259,7 +248,7 @@ export default async function ClientPackagesPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
+        <AdminFilterToolbar>
           <input name="pageSize" type="hidden" value={pageSize} />
           <Input
             aria-label={dictionary.common.search}
@@ -300,7 +289,7 @@ export default async function ClientPackagesPage({
             options={distributionStatuses.map((value) => ({ label: value, value }))}
             triggerClassName="w-full lg:w-40"
           />
-          <div className="flex items-center gap-2">
+          <AdminFilterActions>
             <Button type="submit" variant="outline">{dictionary.common.search}</Button>
             {Object.values(filters).some(Boolean) ? (
               <Button asChild type="button" variant="ghost">
@@ -309,8 +298,8 @@ export default async function ClientPackagesPage({
                 </Link>
               </Button>
             ) : null}
-          </div>
-        </form>
+          </AdminFilterActions>
+        </AdminFilterToolbar>
       )}
       pagination={(
         <AdminTablePagination

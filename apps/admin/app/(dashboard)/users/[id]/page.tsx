@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
 import { Badge } from "@/src/components/ui/badge";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
@@ -70,42 +71,35 @@ export default async function UserDetailPage({
       }
     >
       <DataPanel className="p-6">
-        <dl className="grid gap-4 text-sm md:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">{dictionary.users.name}</dt>
-            <dd>{user.name}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.users.email}</dt>
-            <dd>{user.email}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.users.roles}</dt>
-            <dd className="flex flex-wrap gap-2">
-              {user.roles.length > 0 ? (
-                user.roles.map((role) => (
-                  <Badge key={role} variant="outline">
+        <AdminDetailList>
+          <AdminDetailItem label={dictionary.users.name} value={user.name} />
+          <AdminDetailItem label={dictionary.users.email} value={user.email} />
+          <AdminDetailItem
+            label={dictionary.users.roles}
+            value={(
+              <div className="flex flex-wrap gap-2">
+                {user.roles.length > 0 ? (
+                  user.roles.map((role) => (
+                    <Badge key={role} variant="outline">
                     {role}
                   </Badge>
                 ))
               ) : (
-                "-"
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.users.status}</dt>
-            <dd>{getUserStatusLabel(user.status, dictionary)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.users.createdAt}</dt>
-            <dd>{user.createdAt ? new Date(user.createdAt).toLocaleString(locale) : "-"}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.users.lastLoginAt}</dt>
-            <dd>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(locale) : "-"}</dd>
-          </div>
-        </dl>
+                  "-"
+                )}
+              </div>
+            )}
+          />
+          <AdminDetailItem label={dictionary.users.status} value={getUserStatusLabel(user.status, dictionary)} />
+          <AdminDetailItem
+            label={dictionary.users.createdAt}
+            value={user.createdAt ? new Date(user.createdAt).toLocaleString(locale) : "-"}
+          />
+          <AdminDetailItem
+            label={dictionary.users.lastLoginAt}
+            value={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(locale) : "-"}
+          />
+        </AdminDetailList>
       </DataPanel>
     </PageFrame>
   );

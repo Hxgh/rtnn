@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditRoleDialog } from "@/src/components/admin/roles/role-form-dialogs";
 import { Badge } from "@/src/components/ui/badge";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
@@ -65,24 +66,18 @@ export default async function RoleDetailPage({
       }
     >
       <DataPanel className="space-y-4 p-6">
-        <dl className="grid gap-4 text-sm md:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">{dictionary.roles.roleName}</dt>
-            <dd>{role.name}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.roles.description}</dt>
-            <dd>{role.description || "-"}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.roles.createdAt}</dt>
-            <dd>{role.createdAt ? new Date(role.createdAt).toLocaleString(locale) : "-"}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{dictionary.roles.updatedAt}</dt>
-            <dd>{role.updatedAt ? new Date(role.updatedAt).toLocaleString(locale) : "-"}</dd>
-          </div>
-        </dl>
+        <AdminDetailList>
+          <AdminDetailItem label={dictionary.roles.roleName} value={role.name} />
+          <AdminDetailItem label={dictionary.roles.description} value={role.description || "-"} />
+          <AdminDetailItem
+            label={dictionary.roles.createdAt}
+            value={role.createdAt ? new Date(role.createdAt).toLocaleString(locale) : "-"}
+          />
+          <AdminDetailItem
+            label={dictionary.roles.updatedAt}
+            value={role.updatedAt ? new Date(role.updatedAt).toLocaleString(locale) : "-"}
+          />
+        </AdminDetailList>
         <div>
           <p className="mb-2 text-sm text-muted-foreground">{dictionary.roles.permissions}</p>
           <div className="flex flex-wrap gap-2">

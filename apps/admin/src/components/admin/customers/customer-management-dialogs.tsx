@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { EmptyBlock } from "@/src/components/admin/state-block";
+import { AdminTableActionButton } from "@/src/components/admin/table-page";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
@@ -87,7 +89,7 @@ const ActionTriggerButton = forwardRef<
   return (
     <Button
       ref={ref}
-      className={cn("h-auto px-2 py-1", className)}
+      className={cn("h-7 px-2", className)}
       size={size}
       {...props}
     >
@@ -208,7 +210,7 @@ export function CustomerStatusDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <ActionTriggerButton>{dictionary.customers.changeStatus}</ActionTriggerButton>
+        <AdminTableActionButton>{dictionary.customers.changeStatus}</AdminTableActionButton>
       </DialogTrigger>
       <CustomerStatusDialogForm
         key={formKey}
@@ -308,7 +310,7 @@ export function ResetCustomerPasswordDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <ActionTriggerButton>{dictionary.customers.resetPassword}</ActionTriggerButton>
+        <AdminTableActionButton>{dictionary.customers.resetPassword}</AdminTableActionButton>
       </DialogTrigger>
       <ResetCustomerPasswordDialogForm
         key={formKey}
@@ -439,15 +441,12 @@ export function ManageCustomerGroupsDialog({
       <DialogContent className="max-h-[85vh] overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border/70 px-4 py-4">
           <DialogTitle>{dictionary.customers.groups}</DialogTitle>
-          <DialogDescription>{dictionary.customers.manageGroups}</DialogDescription>
         </DialogHeader>
         <div className={cn("grid min-h-0", canManage && "md:grid-cols-[minmax(0,1fr)_320px]")}>
           <div className={cn("min-h-0 overflow-y-auto", canManage && "border-b border-border/70 md:border-r md:border-b-0")}>
             <div className="grid gap-3 p-4">
               {groups.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/70 px-4 py-8 text-sm text-muted-foreground">
-                  {dictionary.customers.groupsEmpty}
-                </div>
+                <EmptyBlock text={dictionary.customers.groupsEmpty} />
               ) : (
                 groups.map((group) => {
                   const count = group.customerCount ?? 0;
@@ -627,15 +626,12 @@ export function ManageCustomerTagsDialog({
       <DialogContent className="max-h-[85vh] overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border/70 px-4 py-4">
           <DialogTitle>{dictionary.customers.tags}</DialogTitle>
-          <DialogDescription>{dictionary.customers.manageTags}</DialogDescription>
         </DialogHeader>
         <div className={cn("grid min-h-0", canManage && "md:grid-cols-[minmax(0,1fr)_320px]")}>
           <div className={cn("min-h-0 overflow-y-auto", canManage && "border-b border-border/70 md:border-r md:border-b-0")}>
             <div className="grid gap-3 p-4">
               {tags.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border/70 px-4 py-8 text-sm text-muted-foreground">
-                  {dictionary.customers.tagsEmpty}
-                </div>
+                <EmptyBlock text={dictionary.customers.tagsEmpty} />
               ) : (
                 tags.map((tag) => {
                   const count = tag.customerCount ?? 0;

@@ -1,13 +1,12 @@
 import { loginAction } from "@/app/(auth)/login/actions";
 import { TEMPLATE_DISPLAY } from "@rtnn/config";
-import { BrandLogoLockup, BrandLogoMark } from "@/src/components/brand/brand-logo";
+import { BrandLogoLockup } from "@/src/components/brand/brand-logo";
 import { LoginHeroCanvas } from "@/src/components/auth/login-hero-canvas";
 import { LoginForm } from "@/src/components/auth/login-form";
 import { PreferenceControls } from "@/src/components/admin/preference-controls";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/src/components/ui/card";
@@ -47,13 +46,8 @@ export default async function LoginPage() {
 
         <div className="flex items-center justify-center lg:justify-end">
           <Card className="animate-fade-up w-full max-w-sm border-border/50 bg-card/88 shadow-xl backdrop-blur-xl">
-            <CardHeader className="gap-2">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                <BrandLogoMark className="size-5" />
-                <span>{dictionary.auth.brand}</span>
-              </div>
+            <CardHeader>
               <CardTitle className="text-xl">{dictionary.auth.signIn}</CardTitle>
-              <CardDescription>{dictionary.auth.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <LoginForm

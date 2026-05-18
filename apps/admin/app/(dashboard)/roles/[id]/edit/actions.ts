@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { updateRole } from "@/src/lib/api-client";
+import { adminRoutes } from "@/src/lib/admin-routes";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
 
@@ -21,5 +22,5 @@ export async function updateRoleAction(id: string, formData: FormData) {
     description: description || undefined,
     permissionKeys,
   });
-  redirect(`/roles/${id}`);
+  redirect(adminRoutes.roles.detail(id));
 }

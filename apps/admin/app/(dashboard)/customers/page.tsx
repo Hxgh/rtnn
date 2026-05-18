@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
 import { CreateCustomerDialog, EditCustomerDialog } from "@/src/components/admin/customers/customer-form-dialogs";
 import {
@@ -29,7 +30,8 @@ import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { cn, parsePositiveInt } from "@/src/lib/utils";
+import { parsePositiveInt } from "@/src/lib/utils";
+import { AdminStatusBadge } from "@/src/components/admin/status-badge";
 
 const defaultCustomersPageSize = 20;
 
@@ -117,19 +119,12 @@ function getCustomerStatusLabel(
   }
 }
 
-function getCustomerStatusClassName(status: CustomerStatus) {
-  switch (status) {
-    case "active":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-900/20 dark:text-emerald-300";
-    case "inactive":
-      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-400/30 dark:bg-slate-900/20 dark:text-slate-300";
-    case "blocked":
-      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300";
-  }
-}
-
 function renderNames(values?: string[]) {
   return values && values.length > 0 ? values.join(", ") : "-";
+}
+
+function getCustomerStatusTone(status: CustomerStatus) {
+  return status === "active" ? "success" : status === "blocked" ? "warning" : "neutral";
 }
 
 function CustomersToolbar({
@@ -150,7 +145,7 @@ function CustomersToolbar({
   tagOptions: Awaited<ReturnType<typeof listCustomerTags>>["data"];
 }) {
   return (
-    <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
+    <AdminFilterToolbar>
       <input name="pageSize" type="hidden" value={pageSize} />
       <Input
         aria-label={dictionary.common.search}
@@ -196,7 +191,7 @@ function CustomersToolbar({
           triggerClassName="w-full lg:w-48"
         />
       ) : null}
-      <div className="flex items-center gap-2">
+      <AdminFilterActions>
         <Button type="submit" variant="outline">
           {dictionary.common.search}
         </Button>
@@ -205,8 +200,8 @@ function CustomersToolbar({
             <Link href={buildCustomersHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
           </Button>
         ) : null}
-      </div>
-    </form>
+      </AdminFilterActions>
+    </AdminFilterToolbar>
   );
 }
 
@@ -297,12 +292,9 @@ export default async function CustomersPage({
       id: "status",
       header: dictionary.customers.status,
       cell: (item) => (
-        <Badge
-          className={cn("border", getCustomerStatusClassName(item.status))}
-          variant="outline"
-        >
+        <AdminStatusBadge tone={getCustomerStatusTone(item.status)}>
           {getCustomerStatusLabel(item.status, dictionary)}
-        </Badge>
+        </AdminStatusBadge>
       ),
     },
     {

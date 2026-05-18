@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageSizeSelect } from "@/src/components/admin/page-size-select";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
-import { buttonVariants } from "@/src/components/ui/button";
+import { Button, buttonVariants } from "@/src/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
 import { resolvePageSizeOptions } from "@/src/lib/pagination";
 import { cn } from "@/src/lib/utils";
@@ -95,17 +95,29 @@ export function AdminTableRowActions({ children }: { children: ReactNode }) {
 export function AdminTableActionLink({
   href,
   children,
+  external = false,
 }: {
   href: string;
   children: ReactNode;
+  external?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-7 px-2")}
+      rel={external ? "noreferrer" : undefined}
+      target={external ? "_blank" : undefined}
     >
       {children}
     </Link>
+  );
+}
+
+export function AdminTableActionButton({ children }: { children: ReactNode }) {
+  return (
+    <Button className="h-7 px-2" size="sm" type="button" variant="ghost">
+      {children}
+    </Button>
   );
 }
 

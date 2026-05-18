@@ -6,6 +6,7 @@ import {
   formatClientTarget,
 } from "@rtnn/config";
 import { updateClientReleasePolicyAction } from "@/app/(dashboard)/client-releases/actions";
+import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { Badge } from "@/src/components/ui/badge";
@@ -24,32 +25,10 @@ import {
 import { Textarea } from "@/src/components/ui/textarea";
 import { getAdminI18n } from "@/src/i18n/server";
 import { getClientReleaseById } from "@/src/lib/api-client";
+import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { hasPermission, assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-
-function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words">{value || "-"}</dd>
-    </div>
-  );
-}
-
-function formatSize(value?: number | null) {
-  if (!value) {
-    return "-";
-  }
-  if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`;
-  }
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function shortHash(value?: string | null) {
-  return value ? value.slice(0, 12) : "-";
-}
 
 function LinkValue({ href }: { href?: string | null }) {
   if (!href) {
@@ -118,30 +97,30 @@ export default async function ClientReleaseDetailPage({
                 ? dictionary.clientReleases.policySaved
                 : dictionary.clientReleases.policySaveFailed}
             </CardContent>
-          </Card>
-        ) : null}
+        </Card>
+      ) : null}
 
         <DataPanel className="p-6">
-          <dl className="grid gap-4 text-sm md:grid-cols-3">
-            <DetailRow label={dictionary.clientReleases.releaseVersion} value={release.releaseVersion} />
-            <DetailRow label={dictionary.clientReleases.channel} value={<Badge variant="outline">{release.channel}</Badge>} />
-            <DetailRow label={dictionary.common.status} value={release.status} />
-            <DetailRow label={dictionary.clientReleases.source} value={release.sourceRepository} />
-            <DetailRow label={dictionary.clientReleases.sourceRun} value={release.sourceRunId || "-"} />
-            <DetailRow label={dictionary.clientReleases.sourceSha} value={<span className="font-mono">{release.sourceSha}</span>} />
-            <DetailRow
+          <AdminDetailList className="md:grid-cols-3">
+            <AdminDetailItem label={dictionary.clientReleases.releaseVersion} value={release.releaseVersion} />
+            <AdminDetailItem label={dictionary.clientReleases.channel} value={<Badge variant="outline">{release.channel}</Badge>} />
+            <AdminDetailItem label={dictionary.common.status} value={release.status} />
+            <AdminDetailItem label={dictionary.clientReleases.source} value={release.sourceRepository} />
+            <AdminDetailItem label={dictionary.clientReleases.sourceRun} value={release.sourceRunId || "-"} />
+            <AdminDetailItem label={dictionary.clientReleases.sourceSha} value={<span className="font-mono">{release.sourceSha}</span>} />
+            <AdminDetailItem
               label={dictionary.clientReleases.generatedAt}
               value={release.generatedAt ? new Date(release.generatedAt).toLocaleString(locale) : "-"}
             />
-            <DetailRow
+            <AdminDetailItem
               label={dictionary.clientReleases.syncedAt}
               value={release.syncedAt ? new Date(release.syncedAt).toLocaleString(locale) : "-"}
             />
-            <DetailRow
+            <AdminDetailItem
               label={dictionary.clientReleases.dryRun}
               value={release.dryRun ? dictionary.common.active : dictionary.common.inactive}
             />
-          </dl>
+          </AdminDetailList>
         </DataPanel>
 
         <DataPanel>
@@ -177,7 +156,7 @@ export default async function ClientReleaseDetailPage({
                     <TableCell>
                       <Badge variant="outline">{item.distributionStatus}</Badge>
                     </TableCell>
-                    <TableCell>{formatSize(item.fileSize)}</TableCell>
+                    <TableCell>{formatFileSize(item.fileSize)}</TableCell>
                     <TableCell className="font-mono text-xs">{shortHash(item.sha256)}</TableCell>
                     <TableCell className="min-w-64 text-xs"><LinkValue href={item.sourceUrl} /></TableCell>
                     <TableCell className="min-w-64 text-xs"><LinkValue href={item.distributionUrl} /></TableCell>

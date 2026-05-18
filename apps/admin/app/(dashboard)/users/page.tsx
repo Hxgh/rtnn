@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { CreateUserDialog, EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
 import {
   AdminTableActionLink,
@@ -157,7 +158,7 @@ export default async function UsersPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
+        <AdminFilterToolbar>
           <input name="pageSize" type="hidden" value={pageSize} />
           <Input
             aria-label={dictionary.common.search}
@@ -166,7 +167,7 @@ export default async function UsersPage({
             name="search"
             placeholder={dictionary.common.search}
           />
-          <div className="flex items-center gap-2">
+          <AdminFilterActions>
             <Button type="submit" variant="outline">
               {dictionary.common.search}
             </Button>
@@ -175,8 +176,8 @@ export default async function UsersPage({
                 <Link href={buildUsersHref(1, "", pageSize)}>{dictionary.common.clearFilters}</Link>
               </Button>
             ) : null}
-          </div>
-        </form>
+          </AdminFilterActions>
+        </AdminFilterToolbar>
       )}
       pagination={(
         <AdminTablePagination

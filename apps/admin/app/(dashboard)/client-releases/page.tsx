@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatClientRole, formatClientTarget } from "@rtnn/config";
 import { FormSelect } from "@/src/components/admin/form-select";
+import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
+import { AdminStatusBadge } from "@/src/components/admin/status-badge";
 import {
   AdminTableActionLink,
   AdminTablePagination,
@@ -20,7 +22,7 @@ import { resolveErrorMessage } from "@/src/lib/errors";
 import { parsePageSize } from "@/src/lib/pagination";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { cn, parsePositiveInt } from "@/src/lib/utils";
+import { parsePositiveInt } from "@/src/lib/utils";
 
 const defaultPageSize = 20;
 const clients = ["adminDesktop", "appMobile"] as const;
@@ -65,17 +67,17 @@ function buildHref(page: number, pageSize: number, filters: ReturnType<typeof no
   return query ? `${adminRoutes.clientReleases.list}?${query}` : adminRoutes.clientReleases.list;
 }
 
-function statusClassName(status: string) {
+function distributionStatusTone(status: string) {
   if (status === "synced") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-900/20 dark:text-emerald-300";
+    return "success";
   }
   if (status === "failed") {
-    return "border-red-200 bg-red-50 text-red-700 dark:border-red-400/30 dark:bg-red-900/20 dark:text-red-300";
+    return "danger";
   }
   if (status === "pruned" || status === "disabled") {
-    return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-400/30 dark:bg-slate-900/20 dark:text-slate-300";
+    return "neutral";
   }
-  return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-900/20 dark:text-amber-300";
+  return "warning";
 }
 
 function BadgeList({
@@ -182,9 +184,9 @@ export default async function ClientReleasesPage({
       cell: (item) => (
         <div className="flex flex-wrap gap-1">
           {item.distributionStatuses.map((status) => (
-            <Badge key={status} className={cn("border", statusClassName(status))} variant="outline">
+            <AdminStatusBadge key={status} tone={distributionStatusTone(status)}>
               {status}
-            </Badge>
+            </AdminStatusBadge>
           ))}
         </div>
       ),
@@ -239,7 +241,7 @@ export default async function ClientReleasesPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
+        <AdminFilterToolbar>
           <input name="pageSize" type="hidden" value={pageSize} />
           <Input
             aria-label={dictionary.common.search}
@@ -280,7 +282,7 @@ export default async function ClientReleasesPage({
             options={distributionStatuses.map((value) => ({ label: value, value }))}
             triggerClassName="w-full lg:w-40"
           />
-          <div className="flex items-center gap-2">
+          <AdminFilterActions>
             <Button type="submit" variant="outline">{dictionary.common.search}</Button>
             {Object.values(filters).some(Boolean) ? (
               <Button asChild type="button" variant="ghost">
@@ -289,8 +291,8 @@ export default async function ClientReleasesPage({
                 </Link>
               </Button>
             ) : null}
-          </div>
-        </form>
+          </AdminFilterActions>
+        </AdminFilterToolbar>
       )}
       pagination={(
         <AdminTablePagination

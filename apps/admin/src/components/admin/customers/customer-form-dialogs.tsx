@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
+import { AdminTableActionButton } from "@/src/components/admin/table-page";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
@@ -98,9 +99,9 @@ export function EditCustomerDialog({
       dictionary={dictionary}
       title={dictionary.customers.editCustomer}
       trigger={
-        <Button className="h-auto px-2 py-1" size="sm" variant="ghost">
+        <AdminTableActionButton>
           {dictionary.common.update}
-        </Button>
+        </AdminTableActionButton>
       }
       variant="edit"
     />

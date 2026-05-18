@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
 import {
   AdminTablePagination,
@@ -190,7 +191,7 @@ export default async function AuditLogsPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <form className="flex flex-col gap-3 lg:flex-row lg:items-center" method="get">
+        <AdminFilterToolbar>
           <input name="pageSize" type="hidden" value={pageSize} />
           <Input
             aria-label={dictionary.common.search}
@@ -217,7 +218,7 @@ export default async function AuditLogsPage({
             }))}
             triggerClassName="w-full lg:w-48"
           />
-          <div className="flex items-center gap-2">
+          <AdminFilterActions>
             <Button type="submit" variant="outline">
               {dictionary.common.search}
             </Button>
@@ -226,8 +227,8 @@ export default async function AuditLogsPage({
                 <Link href={buildAuditLogsHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
               </Button>
             ) : null}
-          </div>
-        </form>
+          </AdminFilterActions>
+        </AdminFilterToolbar>
       )}
       pagination={(
         <AdminTablePagination
