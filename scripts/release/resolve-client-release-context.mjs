@@ -196,6 +196,10 @@ function resolveConfirmServerLocalBuild() {
   return resolveBooleanFlag(process.env.CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD);
 }
 
+function resolveAllowServerLocalAndroidBuild() {
+  return resolveBooleanFlag(process.env.CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD);
+}
+
 function resolveReleaseChannel(clientProfile) {
   const explicit = normalizeString(process.env.CLIENT_RELEASE_CHANNEL);
   if (explicit) {
@@ -282,6 +286,7 @@ function main() {
   const publishGithubRelease = resolvePublishGithubRelease();
   const syncDeployFacts = resolveSyncDeployFacts();
   const confirmServerLocalBuild = resolveConfirmServerLocalBuild();
+  const allowServerLocalAndroidBuild = resolveAllowServerLocalAndroidBuild();
   const matrix = [];
 
   for (const {
@@ -337,6 +342,18 @@ function main() {
   ) {
     throw new Error(
       "server-local 客户端真打包需要显式确认：设置 CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD=true。建议优先使用 github-hosted 或本地真机快测，避免占用业务服务器。",
+    );
+  }
+
+  if (
+    !dryRun &&
+    matrix.some(
+      (item) => item.runner_kind === "self-hosted" && item.target === "android",
+    ) &&
+    !allowServerLocalAndroidBuild
+  ) {
+    throw new Error(
+      "server-local Android 真打包默认禁止占用业务服务器；如确需使用服务器构建，必须同时设置 CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD=true 和 CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD=true。推荐使用 github-hosted、专用构建机或本机打包后只同步发布事实。",
     );
   }
 

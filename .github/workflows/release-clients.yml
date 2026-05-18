@@ -43,6 +43,11 @@ on:
         required: false
         default: false
         type: boolean
+      allow_server_android_build:
+        description: Extra guard for non-dry-run Android package builds on the self-hosted server runner. Prefer GitHub-hosted or a dedicated build runner.
+        required: false
+        default: false
+        type: boolean
       targets:
         description: Optional comma separated client targets, such as appMobile:android or adminDesktop:macos.
         required: false
@@ -98,6 +103,7 @@ jobs:
           CLIENT_RELEASE_SYNC_DEPLOY_FACTS: ${{ github.event.inputs.sync_deploy_facts || vars.CLIENT_RELEASE_SYNC_DEPLOY_FACTS || '' }}
           CLIENT_RELEASE_EXECUTION_MODE: ${{ github.event.inputs.execution_mode || vars.CLIENT_RELEASE_EXECUTION_MODE || 'github-hosted' }}
           CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD: ${{ github.event.inputs.confirm_server_local_build || vars.CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD || '' }}
+          CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD: ${{ github.event.inputs.allow_server_android_build || vars.CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD || '' }}
           CLIENT_RELEASE_TARGETS: ${{ github.event.inputs.targets || vars.CLIENT_RELEASE_TARGETS || '' }}
           CLIENT_RELEASE_ALLOW_GITHUB_HOSTED: ${{ ((github.event.inputs.execution_mode == 'github-hosted' || (github.event_name != 'workflow_dispatch' && (vars.CLIENT_RELEASE_EXECUTION_MODE == '' || vars.CLIENT_RELEASE_EXECUTION_MODE == 'github-hosted'))) && 'true') || vars.CLIENT_RELEASE_ALLOW_GITHUB_HOSTED || '' }}
         run: node scripts/release/resolve-client-release-context.mjs

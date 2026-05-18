@@ -318,7 +318,7 @@ test("resolve-client-release-context defaults Android package builds to GitHub-h
   );
 });
 
-test("resolve-client-release-context requires confirmation for server-local non-dry-run client builds", () => {
+test("resolve-client-release-context requires confirmation and Android guard for server-local non-dry-run client builds", () => {
   withTempProject(
     {
       project: {
@@ -369,11 +369,32 @@ test("resolve-client-release-context requires confirmation for server-local non-
       assert.notEqual(blocked.status, 0);
       assert.match(blocked.stderr, /CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD=true/);
 
+      const confirmedOnly = spawnSync(process.execPath, [scriptPath], {
+        cwd: rootDir,
+        encoding: "utf8",
+        env: childProcessEnv({
+          CLIENT_RELEASE_VERSION: "1.2.3",
+          CLIENT_RELEASE_DRY_RUN: "false",
+          CLIENT_RELEASE_EXECUTION_MODE: "server-local",
+          CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD: "true",
+          GITHUB_REF: "refs/heads/main",
+          GITHUB_REF_NAME: "main",
+          GITHUB_SHA: "1234567890abcdef",
+        }),
+      });
+
+      assert.notEqual(confirmedOnly.status, 0);
+      assert.match(
+        confirmedOnly.stderr,
+        /CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD=true/,
+      );
+
       const confirmed = runContext(rootDir, {
         CLIENT_RELEASE_VERSION: "1.2.3",
         CLIENT_RELEASE_DRY_RUN: "false",
         CLIENT_RELEASE_EXECUTION_MODE: "server-local",
         CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD: "true",
+        CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD: "true",
         GITHUB_REF: "refs/heads/main",
         GITHUB_REF_NAME: "main",
         GITHUB_SHA: "1234567890abcdef",
@@ -2425,7 +2446,9 @@ test("release-clients workflow defaults package builds away from the server runn
 
   assert.match(workflow, /default: github-hosted/);
   assert.match(workflow, /confirm_server_local_build:/);
+  assert.match(workflow, /allow_server_android_build:/);
   assert.match(workflow, /CLIENT_RELEASE_CONFIRM_SERVER_LOCAL_BUILD/);
+  assert.match(workflow, /CLIENT_RELEASE_ALLOW_SERVER_ANDROID_BUILD/);
   assert.match(workflow, /inputs\.execution_mode == 'server-local'[\s\S]*'self-hosted' \|\| 'ubuntu-latest'/);
 });
 
