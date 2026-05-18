@@ -78,6 +78,10 @@ function getFullscreenSnapshot() {
   return document.fullscreenElement ? ("fullscreen" as const) : ("windowed" as const);
 }
 
+function getFullscreenServerSnapshot() {
+  return "unsupported" as const;
+}
+
 function subscribeFullscreenChange(callback: () => void) {
   if (typeof document === "undefined") {
     return () => {};
@@ -93,7 +97,7 @@ export function useFullscreenState(dictionary: AdminDictionary["common"]) {
   const fullscreenSnapshot = useSyncExternalStore(
     subscribeFullscreenChange,
     getFullscreenSnapshot,
-    getFullscreenSnapshot,
+    getFullscreenServerSnapshot,
   );
   const isFullscreenSupported = fullscreenSnapshot !== "unsupported";
   const isFullscreen = fullscreenSnapshot === "fullscreen";
