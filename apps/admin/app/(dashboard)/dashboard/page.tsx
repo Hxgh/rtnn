@@ -5,6 +5,7 @@ import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { resolveErrorMessage } from "@/src/lib/errors";
+import { formatAdminDateTime } from "@/src/lib/utils";
 
 export default async function DashboardPage() {
   const { me, accessToken } = await requireUserSession();
@@ -107,7 +108,7 @@ export default async function DashboardPage() {
                     ) : null}
                   </div>
                   <div className="shrink-0 text-xs text-muted-foreground">
-                    {new Date(item.createdAt).toLocaleString(locale)}
+                    {formatAdminDateTime(locale, item.createdAt)}
                   </div>
                 </div>
               ))

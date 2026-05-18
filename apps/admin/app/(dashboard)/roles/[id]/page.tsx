@@ -9,6 +9,7 @@ import { getRoleById, listPermissions } from "@/src/lib/api-client";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
+import { formatAdminDateTime } from "@/src/lib/utils";
 
 export default async function RoleDetailPage({
   params,
@@ -71,11 +72,11 @@ export default async function RoleDetailPage({
           <AdminDetailItem label={dictionary.roles.description} value={role.description || "-"} />
           <AdminDetailItem
             label={dictionary.roles.createdAt}
-            value={role.createdAt ? new Date(role.createdAt).toLocaleString(locale) : "-"}
+            value={role.createdAt ? formatAdminDateTime(locale, role.createdAt) : "-"}
           />
           <AdminDetailItem
             label={dictionary.roles.updatedAt}
-            value={role.updatedAt ? new Date(role.updatedAt).toLocaleString(locale) : "-"}
+            value={role.updatedAt ? formatAdminDateTime(locale, role.updatedAt) : "-"}
           />
         </AdminDetailList>
         <div>

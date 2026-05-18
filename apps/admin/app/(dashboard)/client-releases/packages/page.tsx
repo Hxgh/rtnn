@@ -27,7 +27,7 @@ import { resolveErrorMessage } from "@/src/lib/errors";
 import { parsePageSize } from "@/src/lib/pagination";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { parsePositiveInt } from "@/src/lib/utils";
+import { formatAdminDateTime, parsePositiveInt } from "@/src/lib/utils";
 
 const defaultPageSize = 20;
 const clients = ["adminDesktop", "appMobile"] as const;
@@ -206,7 +206,7 @@ export default async function ClientPackagesPage({
     {
       id: "syncedAt",
       header: dictionary.clientReleases.syncedAt,
-      cell: (item) => item.syncedAt ? new Date(item.syncedAt).toLocaleString(locale) : "-",
+      cell: (item) => item.syncedAt ? formatAdminDateTime(locale, item.syncedAt) : "-",
     },
     {
       id: "actions",

@@ -51,3 +51,16 @@ export function parsePositiveInt(
 
   return parsed;
 }
+
+export function formatAdminDateTime(locale: string, value: string | Date | null | undefined) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeStyle: "medium",
+    timeZone: "Asia/Shanghai",
+    hour12: false,
+  }).format(new Date(value));
+}

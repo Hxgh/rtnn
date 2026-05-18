@@ -19,7 +19,7 @@ import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { parsePositiveInt } from "@/src/lib/utils";
+import { formatAdminDateTime, parsePositiveInt } from "@/src/lib/utils";
 
 const defaultUsersPageSize = 20;
 
@@ -120,7 +120,7 @@ export default async function UsersPage({
       id: "lastLoginAt",
       header: dictionary.users.lastLoginAt,
       cell: (item) => (
-        item.lastLoginAt ? new Date(item.lastLoginAt).toLocaleString(locale) : "-"
+        item.lastLoginAt ? formatAdminDateTime(locale, item.lastLoginAt) : "-"
       ),
     },
     {

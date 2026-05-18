@@ -17,7 +17,7 @@ import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { parsePositiveInt } from "@/src/lib/utils";
+import { formatAdminDateTime, parsePositiveInt } from "@/src/lib/utils";
 
 const defaultAuditLogsPageSize = 50;
 
@@ -174,7 +174,7 @@ export default async function AuditLogsPage({
     {
       id: "createdAt",
       header: dictionary.auditLogs.createdAt,
-      cell: (item) => new Date(item.createdAt).toLocaleString(locale),
+      cell: (item) => formatAdminDateTime(locale, item.createdAt),
     },
     {
       id: "detail",

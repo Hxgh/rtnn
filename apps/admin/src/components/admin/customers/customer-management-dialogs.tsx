@@ -21,6 +21,7 @@ import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -119,6 +120,7 @@ export function ManageCustomerGroupsDialog({
       <DialogContent className="max-h-[85vh] overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border/70 px-4 py-4">
           <DialogTitle>{dictionary.customers.groups}</DialogTitle>
+          <DialogDescription className="sr-only">{dictionary.customers.groups}</DialogDescription>
         </DialogHeader>
         <div className={cn("grid min-h-0", canManage && "md:grid-cols-[minmax(0,1fr)_320px]")}>
           <div className={cn("min-h-0 overflow-y-auto", canManage && "border-b border-border/70 md:border-r md:border-b-0")}>
@@ -296,6 +298,7 @@ export function ManageCustomerTagsDialog({
       <DialogContent className="max-h-[85vh] overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border/70 px-4 py-4">
           <DialogTitle>{dictionary.customers.tags}</DialogTitle>
+          <DialogDescription className="sr-only">{dictionary.customers.tags}</DialogDescription>
         </DialogHeader>
         <div className={cn("grid min-h-0", canManage && "md:grid-cols-[minmax(0,1fr)_320px]")}>
           <div className={cn("min-h-0 overflow-y-auto", canManage && "border-b border-border/70 md:border-r md:border-b-0")}>

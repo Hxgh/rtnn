@@ -9,6 +9,7 @@ import { getUserById, listRoles } from "@/src/lib/api-client";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
+import { formatAdminDateTime } from "@/src/lib/utils";
 
 function getUserStatusLabel(
   status: Awaited<ReturnType<typeof getUserById>>["status"],
@@ -93,11 +94,11 @@ export default async function UserDetailPage({
           <AdminDetailItem label={dictionary.users.status} value={getUserStatusLabel(user.status, dictionary)} />
           <AdminDetailItem
             label={dictionary.users.createdAt}
-            value={user.createdAt ? new Date(user.createdAt).toLocaleString(locale) : "-"}
+            value={user.createdAt ? formatAdminDateTime(locale, user.createdAt) : "-"}
           />
           <AdminDetailItem
             label={dictionary.users.lastLoginAt}
-            value={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(locale) : "-"}
+            value={user.lastLoginAt ? formatAdminDateTime(locale, user.lastLoginAt) : "-"}
           />
         </AdminDetailList>
       </DataPanel>

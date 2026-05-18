@@ -21,6 +21,7 @@ import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -179,6 +180,7 @@ function RoleDialogForm({
     <DialogContent className="max-h-[85vh] overflow-hidden p-0 sm:max-w-3xl">
       <DialogHeader className="border-b border-border/70 px-4 py-4">
         <DialogTitle>{title}</DialogTitle>
+        <DialogDescription className="sr-only">{title}</DialogDescription>
       </DialogHeader>
       <form action={formAction} className="grid overflow-hidden">
         {variant === "edit" && role ? <input name="id" type="hidden" value={role.id} /> : null}

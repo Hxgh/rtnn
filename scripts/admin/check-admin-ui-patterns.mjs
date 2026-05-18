@@ -112,6 +112,20 @@ function checkRouteErrorBoundaries(findings, filePath, content) {
   }
 }
 
+function checkHydrationSafeFormatting(findings, filePath, content) {
+  if (!filePath.startsWith("apps/admin/app/")) {
+    return;
+  }
+
+  if (/\.toLocaleString\(locale\)/.test(content)) {
+    addFinding(
+      findings,
+      filePath,
+      "后台服务端页面时间展示应使用 formatAdminDateTime，避免服务端与浏览器时区/格式差异导致 hydration 错误",
+    );
+  }
+}
+
 function checkRouteStatePages(findings) {
   const routeStatePages = [
     "apps/admin/app/not-found.tsx",
@@ -138,6 +152,7 @@ function main() {
     checkForbiddenContent(findings, filePath, content);
     checkAdminComponents(findings, filePath, content);
     checkRouteErrorBoundaries(findings, filePath, content);
+    checkHydrationSafeFormatting(findings, filePath, content);
   }
 
   checkRouteStatePages(findings);

@@ -19,7 +19,7 @@ import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { parsePositiveInt } from "@/src/lib/utils";
+import { formatAdminDateTime, parsePositiveInt } from "@/src/lib/utils";
 
 const defaultRolesPageSize = 20;
 
@@ -107,7 +107,7 @@ export default async function RolesPage({
     {
       id: "updatedAt",
       header: dictionary.roles.updatedAt,
-      cell: (item) => (item.updatedAt ? new Date(item.updatedAt).toLocaleString(locale) : "-"),
+      cell: (item) => (item.updatedAt ? formatAdminDateTime(locale, item.updatedAt) : "-"),
     },
     {
       id: "actions",

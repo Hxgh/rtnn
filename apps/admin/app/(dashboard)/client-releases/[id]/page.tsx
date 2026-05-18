@@ -29,6 +29,7 @@ import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { hasPermission, assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
+import { formatAdminDateTime } from "@/src/lib/utils";
 
 function LinkValue({ href }: { href?: string | null }) {
   if (!href) {
@@ -110,11 +111,11 @@ export default async function ClientReleaseDetailPage({
             <AdminDetailItem label={dictionary.clientReleases.sourceSha} value={<span className="font-mono">{release.sourceSha}</span>} />
             <AdminDetailItem
               label={dictionary.clientReleases.generatedAt}
-              value={release.generatedAt ? new Date(release.generatedAt).toLocaleString(locale) : "-"}
+              value={release.generatedAt ? formatAdminDateTime(locale, release.generatedAt) : "-"}
             />
             <AdminDetailItem
               label={dictionary.clientReleases.syncedAt}
-              value={release.syncedAt ? new Date(release.syncedAt).toLocaleString(locale) : "-"}
+              value={release.syncedAt ? formatAdminDateTime(locale, release.syncedAt) : "-"}
             />
             <AdminDetailItem
               label={dictionary.clientReleases.dryRun}
