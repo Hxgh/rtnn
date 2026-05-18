@@ -85,6 +85,7 @@ export default async function DownloadPage({
           ) : null}
           {downloads.map((info) => {
             const available = Boolean(info.downloadUrl);
+            const updatedAt = info.syncedAt ?? info.generatedAt;
             return (
               <SurfaceCard className="overflow-hidden" key={`${info.client}-${info.target}`}>
                 <div className="space-y-4 px-4 py-4">
@@ -129,20 +130,26 @@ export default async function DownloadPage({
                       <dt className="text-muted-foreground">{messages.download.fileSize}</dt>
                       <dd className="text-right">{formatSize(info.fileSize)}</dd>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-muted-foreground">{messages.download.updatedAt}</dt>
-                      <dd className="text-right">
-                        {formatDateTime(info.syncedAt ?? info.generatedAt, locale)}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-muted-foreground">{messages.download.sha256}</dt>
-                      <dd className="font-mono text-xs">{shortHash(info.sha256)}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-muted-foreground">{messages.download.reason}</dt>
-                      <dd className="text-right">{info.reason ?? "-"}</dd>
-                    </div>
+                    {updatedAt ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{messages.download.updatedAt}</dt>
+                        <dd className="text-right">
+                          {formatDateTime(updatedAt, locale)}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {info.sha256 ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{messages.download.sha256}</dt>
+                        <dd className="font-mono text-xs">{shortHash(info.sha256)}</dd>
+                      </div>
+                    ) : null}
+                    {info.reason ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted-foreground">{messages.download.reason}</dt>
+                        <dd className="text-right">{info.reason}</dd>
+                      </div>
+                    ) : null}
                   </dl>
                   {available ? (
                     <NativeDownloadButton

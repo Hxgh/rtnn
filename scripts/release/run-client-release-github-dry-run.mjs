@@ -13,13 +13,13 @@ function usage() {
   --ref <ref>                触发 ref，默认当前 git branch，否则 main
   --version <version>        可选客户端 release version
   --channel <name>           testing 或 production，默认 testing
-  --sync-deploy-facts        触发 deploy 仓同步客户端 facts，默认开启
+  --sync-deploy-facts        触发 deploy 仓同步客户端 facts
   --no-sync-deploy-facts     不触发 deploy facts 同步
   --watch                    触发后等待 workflow 完成
   --skip-prereqs             跳过 GitHub 前置条件 strict 检查
 
 说明:
-  该脚本只触发 release-clients dry-run，不写入 deploy state。
+  该脚本只触发 release-clients dry-run；默认不触发 deploy facts 同步。
 `;
 }
 
@@ -29,7 +29,7 @@ function parseArgs(argv) {
     ref: "",
     version: "",
     channel: "testing",
-    syncDeployFacts: true,
+    syncDeployFacts: false,
     watch: false,
     skipPrereqs: false,
   };

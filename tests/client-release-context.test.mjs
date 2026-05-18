@@ -2452,6 +2452,22 @@ test("release-clients workflow defaults package builds away from the server runn
   assert.match(workflow, /inputs\.execution_mode == 'server-local'[\s\S]*'self-hosted' \|\| 'ubuntu-latest'/);
 });
 
+test("client release GitHub dry-run does not sync deploy facts by default", () => {
+  const packageJson = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+  const dryRunScript = readFileSync(
+    path.join(repoRoot, "scripts/release/run-client-release-github-dry-run.mjs"),
+    "utf8",
+  );
+
+  assert.match(packageJson.scripts["release:clients:github-dry-run"], /--watch/);
+  assert.doesNotMatch(
+    packageJson.scripts["release:clients:github-dry-run"],
+    /--sync-deploy-facts/,
+  );
+  assert.match(dryRunScript, /syncDeployFacts: false/);
+  assert.match(dryRunScript, /sync_deploy_facts=\$\{args\.syncDeployFacts \? "true" : "false"\}/);
+});
+
 test("release-clients workflow avoids server-local gh and pnpm cache assumptions", () => {
   const workflow = readFileSync(
     path.join(repoRoot, ".github/workflows/release-clients.yml"),
