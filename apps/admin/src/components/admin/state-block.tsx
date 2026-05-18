@@ -10,7 +10,7 @@ function variantClassName(variant: AdminStateVariant) {
   if (variant === "warning") {
     return "border-amber-300/45 bg-amber-50/60 dark:border-amber-400/30 dark:bg-amber-900/10";
   }
-  return "border-dashed border-border/70 bg-card";
+  return "border-border/70 bg-muted/20 shadow-none";
 }
 
 function titleClassName(variant: AdminStateVariant) {

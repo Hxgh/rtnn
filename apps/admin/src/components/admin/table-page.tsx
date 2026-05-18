@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageSizeSelect } from "@/src/components/admin/page-size-select";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { AdminStateBlock } from "@/src/components/admin/state-block";
-import { Button, buttonVariants } from "@/src/components/ui/button";
+import { Button, buttonVariants, type ButtonProps } from "@/src/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
 import { resolvePageSizeOptions } from "@/src/lib/pagination";
 import { cn } from "@/src/lib/utils";
@@ -90,7 +90,7 @@ export function AdminTablePage<T>({
 }
 
 export function AdminTableRowActions({ children }: { children: ReactNode }) {
-  return <div className="inline-flex items-center gap-0.5">{children}</div>;
+  return <div className="inline-flex items-center justify-end gap-1 whitespace-nowrap">{children}</div>;
 }
 
 export function AdminTableActionLink({
@@ -114,13 +114,21 @@ export function AdminTableActionLink({
   );
 }
 
-export function AdminTableActionButton({ children }: { children: ReactNode }) {
-  return (
-    <Button className="h-7 px-2" size="sm" type="button" variant="ghost">
+export const AdminTableActionButton = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ children, className, ...props }, ref) => (
+    <Button
+      ref={ref}
+      className={cn("h-7 px-2", className)}
+      size="sm"
+      type="button"
+      variant="ghost"
+      {...props}
+    >
       {children}
     </Button>
-  );
-}
+  ),
+);
+AdminTableActionButton.displayName = "AdminTableActionButton";
 
 export function AdminTablePagination({
   currentPage,

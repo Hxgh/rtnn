@@ -82,6 +82,22 @@ function checkAdminComponents(findings, filePath, content) {
   }
 }
 
+function checkTableActionTrigger(findings) {
+  const filePath = "apps/admin/src/components/admin/table-page.tsx";
+  if (!existsSync(path.join(ROOT_DIR, filePath))) {
+    return;
+  }
+
+  const content = readFile(filePath);
+  if (!/AdminTableActionButton\s*=\s*forwardRef/.test(content)) {
+    addFinding(
+      findings,
+      filePath,
+      "表格行操作按钮必须 forwardRef，确保 DialogTrigger asChild 能打开弹窗",
+    );
+  }
+}
+
 function checkRouteErrorBoundaries(findings, filePath, content) {
   if (!/^apps\/admin\/app\/(?:.*\/)?error\.tsx$/.test(filePath)) {
     return;
@@ -125,6 +141,7 @@ function main() {
   }
 
   checkRouteStatePages(findings);
+  checkTableActionTrigger(findings);
 
   if (findings.length > 0) {
     for (const finding of findings) {
