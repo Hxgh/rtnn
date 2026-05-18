@@ -1,8 +1,11 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { useFormStatus } from "react-dom";
 import { Eye, EyeOff } from "lucide-react";
+import {
+  AdminDialogFooterMessage,
+  AdminDialogSubmitButton,
+} from "@/src/components/admin/form-dialog";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
@@ -27,22 +30,6 @@ const initialDialogState: ChangePasswordFormState = {
   error: null,
   fieldErrors: {},
 };
-
-function SubmitButton({
-  label,
-  loadingLabel,
-}: {
-  label: string;
-  loadingLabel: string;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button disabled={pending} size="sm" type="submit">
-      {pending ? loadingLabel : label}
-    </Button>
-  );
-}
 
 function resolveMessage(
   state: ChangePasswordFormState,
@@ -192,22 +179,14 @@ function ChangePasswordDialogForm({
           }
         />
         <p className="text-xs text-muted-foreground">{dictionary.account.passwordSessionNotice}</p>
-        <p
-          aria-live="polite"
-          className={cn(
-            "min-h-5 text-sm",
-            state.ok ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
-          )}
-        >
-          {message}
-        </p>
+        <AdminDialogFooterMessage success={state.ok}>{message}</AdminDialogFooterMessage>
         <DialogFooter>
           <DialogClose asChild>
             <Button size="sm" type="button" variant="outline">
               {dictionary.common.cancel}
             </Button>
           </DialogClose>
-          <SubmitButton
+          <AdminDialogSubmitButton
             label={dictionary.account.changePassword}
             loadingLabel={dictionary.common.saving}
           />

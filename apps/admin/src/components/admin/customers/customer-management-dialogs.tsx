@@ -7,18 +7,20 @@ import {
   useMemo,
   useState,
   type ComponentPropsWithoutRef,
-  type ReactNode,
 } from "react";
-import { useFormStatus } from "react-dom";
+import {
+  AdminDialogSubmitButton,
+  AdminFormDialogFooter,
+  AdminFormField,
+  resolveRequiredFieldMessage,
+} from "@/src/components/admin/form-dialog";
 import { EmptyBlock } from "@/src/components/admin/state-block";
-import { AdminTableActionButton } from "@/src/components/admin/table-page";
+export { CustomerStatusDialog } from "@/src/components/admin/customers/customer-status-dialog";
+export { ResetCustomerPasswordDialog } from "@/src/components/admin/customers/reset-customer-password-dialog";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -26,10 +28,8 @@ import {
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { Textarea } from "@/src/components/ui/textarea";
-import { FormSelect } from "@/src/components/admin/form-select";
 import type {
   CustomerGroupRecord,
-  CustomerRecord,
   CustomerTagRecord,
 } from "@/src/lib/api-client";
 import { cn } from "@/src/lib/utils";
@@ -37,13 +37,9 @@ import type { AdminDictionary } from "@/src/i18n/dictionaries";
 import {
   createCustomerGroupDialogAction,
   createCustomerTagDialogAction,
-  resetCustomerPasswordDialogAction,
   updateCustomerGroupDialogAction,
-  updateCustomerStatusDialogAction,
   updateCustomerTagDialogAction,
   type CustomerLookupDialogFormState,
-  type CustomerPasswordResetFormState,
-  type CustomerStatusDialogFormState,
 } from "@/app/(dashboard)/customers/dialog-actions";
 
 type CustomerManagementDictionary = Pick<
@@ -51,7 +47,6 @@ type CustomerManagementDictionary = Pick<
   "account" | "common" | "customers"
 >;
 
-type CustomerStatusRecord = Pick<CustomerRecord, "id" | "status">;
 type CustomerGroupCatalogRecord = Pick<
   CustomerGroupRecord,
   "customerCount" | "description" | "id" | "name"
@@ -60,21 +55,6 @@ type CustomerTagCatalogRecord = Pick<
   CustomerTagRecord,
   "color" | "customerCount" | "id" | "name"
 >;
-
-const customerStatusOptions = ["active", "inactive", "blocked"] as const;
-
-const initialStatusState: CustomerStatusDialogFormState = {
-  ok: false,
-  errorMessage: null,
-  fieldErrors: {},
-};
-
-const initialPasswordResetState: CustomerPasswordResetFormState = {
-  ok: false,
-  error: null,
-  errorMessage: null,
-  fieldErrors: {},
-};
 
 const initialLookupState: CustomerLookupDialogFormState = {
   ok: false,
@@ -99,60 +79,6 @@ const ActionTriggerButton = forwardRef<
 });
 ActionTriggerButton.displayName = "ActionTriggerButton";
 
-function SubmitButton({
-  label,
-  loadingLabel,
-}: {
-  label: string;
-  loadingLabel: string;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button disabled={pending} size="sm" type="submit">
-      {pending ? loadingLabel : label}
-    </Button>
-  );
-}
-
-function FormField({
-  children,
-  error,
-  htmlFor,
-  label,
-  message,
-}: {
-  children: ReactNode;
-  error: boolean;
-  htmlFor: string;
-  label: string;
-  message: string;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-      <div className={cn("min-h-3 text-[11px] text-destructive", !error && "opacity-0")}>
-        {error ? message : "\u00A0"}
-      </div>
-    </div>
-  );
-}
-
-function getCustomerStatusLabel(
-  status: CustomerStatusRecord["status"],
-  dictionary: CustomerManagementDictionary,
-) {
-  switch (status) {
-    case "active":
-      return dictionary.common.active;
-    case "inactive":
-      return dictionary.common.inactive;
-    case "blocked":
-      return dictionary.common.blocked;
-  }
-}
-
 function resolveLookupMessage(
   state: CustomerLookupDialogFormState,
   dictionary: CustomerManagementDictionary,
@@ -161,255 +87,7 @@ function resolveLookupMessage(
     return state.errorMessage;
   }
 
-  if (state.fieldErrors.name) {
-    return dictionary.common.requiredFields;
-  }
-
-  return "";
-}
-
-function resolvePasswordMessage(
-  state: CustomerPasswordResetFormState,
-  dictionary: CustomerManagementDictionary,
-) {
-  if (state.errorMessage) {
-    return state.errorMessage;
-  }
-
-  switch (state.error) {
-    case "required":
-      return dictionary.common.requiredFields;
-    case "mismatch":
-      return dictionary.account.passwordMismatch;
-    case "too-short":
-      return dictionary.account.passwordTooShort;
-    case "save-failed":
-      return dictionary.account.passwordSaveFailed;
-    default:
-      return "";
-  }
-}
-
-export function CustomerStatusDialog({
-  customer,
-  dictionary,
-}: {
-  customer: CustomerStatusRecord;
-  dictionary: CustomerManagementDictionary;
-}) {
-  const [open, setOpen] = useState(false);
-  const [formKey, setFormKey] = useState(0);
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      setFormKey((current) => current + 1);
-    }
-    setOpen(nextOpen);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <AdminTableActionButton>{dictionary.customers.changeStatus}</AdminTableActionButton>
-      </DialogTrigger>
-      <CustomerStatusDialogForm
-        key={formKey}
-        customer={customer}
-        dictionary={dictionary}
-        onSuccess={() => handleOpenChange(false)}
-      />
-    </Dialog>
-  );
-}
-
-function CustomerStatusDialogForm({
-  customer,
-  dictionary,
-  onSuccess,
-}: {
-  customer: CustomerStatusRecord;
-  dictionary: CustomerManagementDictionary;
-  onSuccess: () => void;
-}) {
-  const [state, formAction] = useActionState(
-    updateCustomerStatusDialogAction,
-    initialStatusState,
-  );
-
-  useEffect(() => {
-    if (state.ok) {
-      onSuccess();
-    }
-  }, [onSuccess, state.ok]);
-
-  const message = state.errorMessage ?? (state.fieldErrors.status ? dictionary.common.requiredFields : "");
-
-  return (
-    <DialogContent className="max-w-md p-0">
-      <DialogHeader className="border-b border-border/70 px-4 py-4">
-        <DialogTitle>{dictionary.customers.changeStatus}</DialogTitle>
-        <DialogDescription>{dictionary.customers.statusHelp}</DialogDescription>
-      </DialogHeader>
-      <form action={formAction} className="grid">
-        <input name="id" type="hidden" value={customer.id} />
-        <div className="px-4 py-4">
-          <FormField
-            error={Boolean(state.fieldErrors.status)}
-            htmlFor="edit-customer-status"
-            label={dictionary.customers.status}
-            message={dictionary.common.requiredFields}
-          >
-            <FormSelect
-              ariaLabel={dictionary.customers.status}
-              defaultValue={customer.status}
-              id="edit-customer-status"
-              name="status"
-              options={customerStatusOptions.map((status) => ({
-                label: getCustomerStatusLabel(status, dictionary),
-                value: status,
-              }))}
-            />
-          </FormField>
-        </div>
-        <DialogFooter className="border-t border-border/70 px-4 py-3">
-          <p aria-live="polite" className="min-h-5 flex-1 text-sm text-destructive">
-            {message || "\u00A0"}
-          </p>
-          <DialogClose asChild>
-            <Button size="sm" type="button" variant="outline">
-              {dictionary.common.cancel}
-            </Button>
-          </DialogClose>
-          <SubmitButton
-            label={dictionary.common.update}
-            loadingLabel={dictionary.common.saving}
-          />
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  );
-}
-
-export function ResetCustomerPasswordDialog({
-  customerId,
-  dictionary,
-}: {
-  customerId: string;
-  dictionary: CustomerManagementDictionary;
-}) {
-  const [open, setOpen] = useState(false);
-  const [formKey, setFormKey] = useState(0);
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      setFormKey((current) => current + 1);
-    }
-    setOpen(nextOpen);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <AdminTableActionButton>{dictionary.customers.resetPassword}</AdminTableActionButton>
-      </DialogTrigger>
-      <ResetCustomerPasswordDialogForm
-        key={formKey}
-        customerId={customerId}
-        dictionary={dictionary}
-        onSuccess={() => handleOpenChange(false)}
-      />
-    </Dialog>
-  );
-}
-
-function ResetCustomerPasswordDialogForm({
-  customerId,
-  dictionary,
-  onSuccess,
-}: {
-  customerId: string;
-  dictionary: CustomerManagementDictionary;
-  onSuccess: () => void;
-}) {
-  const [state, formAction] = useActionState(
-    resetCustomerPasswordDialogAction,
-    initialPasswordResetState,
-  );
-
-  useEffect(() => {
-    if (state.ok) {
-      onSuccess();
-    }
-  }, [onSuccess, state.ok]);
-
-  const message = useMemo(
-    () => resolvePasswordMessage(state, dictionary),
-    [dictionary, state],
-  );
-
-  return (
-    <DialogContent className="max-w-md p-0">
-      <DialogHeader className="border-b border-border/70 px-4 py-4">
-        <DialogTitle>{dictionary.customers.resetPassword}</DialogTitle>
-        <DialogDescription>{dictionary.customers.passwordHelp}</DialogDescription>
-      </DialogHeader>
-      <form action={formAction} className="grid">
-        <input name="id" type="hidden" value={customerId} />
-        <div className="grid gap-4 px-4 py-4">
-          <FormField
-            error={Boolean(state.fieldErrors.nextPassword)}
-            htmlFor="customer-reset-password-next"
-            label={dictionary.customers.nextPassword}
-            message={dictionary.common.requiredFields}
-          >
-            <Input
-              aria-invalid={Boolean(state.fieldErrors.nextPassword)}
-              className={cn(
-                state.fieldErrors.nextPassword &&
-                  "border-destructive focus-visible:ring-destructive/20",
-              )}
-              id="customer-reset-password-next"
-              minLength={8}
-              name="nextPassword"
-              type="password"
-            />
-          </FormField>
-          <FormField
-            error={Boolean(state.fieldErrors.confirmPassword)}
-            htmlFor="customer-reset-password-confirm"
-            label={dictionary.customers.confirmPassword}
-            message={dictionary.common.requiredFields}
-          >
-            <Input
-              aria-invalid={Boolean(state.fieldErrors.confirmPassword)}
-              className={cn(
-                state.fieldErrors.confirmPassword &&
-                  "border-destructive focus-visible:ring-destructive/20",
-              )}
-              id="customer-reset-password-confirm"
-              minLength={8}
-              name="confirmPassword"
-              type="password"
-            />
-          </FormField>
-        </div>
-        <DialogFooter className="border-t border-border/70 px-4 py-3">
-          <p aria-live="polite" className="min-h-5 flex-1 text-sm text-destructive">
-            {message || "\u00A0"}
-          </p>
-          <DialogClose asChild>
-            <Button size="sm" type="button" variant="outline">
-              {dictionary.common.cancel}
-            </Button>
-          </DialogClose>
-          <SubmitButton
-            label={dictionary.customers.resetPassword}
-            loadingLabel={dictionary.common.saving}
-          />
-        </DialogFooter>
-      </form>
-    </DialogContent>
-  );
+  return resolveRequiredFieldMessage(state.fieldErrors, dictionary);
 }
 
 export function ManageCustomerGroupsDialog({
@@ -552,7 +230,7 @@ function CustomerGroupFormPane({
         ) : null}
       </div>
       <div className="grid gap-4 overflow-y-auto px-4 py-4">
-        <FormField
+        <AdminFormField
           error={Boolean(state.fieldErrors.name)}
           htmlFor="customer-group-name"
           label={dictionary.common.name}
@@ -568,7 +246,7 @@ function CustomerGroupFormPane({
             id="customer-group-name"
             name="name"
           />
-        </FormField>
+        </AdminFormField>
         <div className="grid gap-2">
           <Label htmlFor="customer-group-description">{dictionary.common.description}</Label>
           <Textarea
@@ -579,20 +257,12 @@ function CustomerGroupFormPane({
           />
         </div>
       </div>
-      <DialogFooter className="border-t border-border/70 px-4 py-3">
-        <p aria-live="polite" className="min-h-5 flex-1 text-sm text-destructive">
-          {message || "\u00A0"}
-        </p>
-        <DialogClose asChild>
-          <Button size="sm" type="button" variant="outline">
-            {dictionary.common.cancel}
-          </Button>
-        </DialogClose>
-        <SubmitButton
+      <AdminFormDialogFooter cancelLabel={dictionary.common.cancel} message={message}>
+        <AdminDialogSubmitButton
           label={group ? dictionary.common.update : dictionary.common.create}
           loadingLabel={dictionary.common.saving}
         />
-      </DialogFooter>
+      </AdminFormDialogFooter>
     </form>
   );
 }
@@ -744,7 +414,7 @@ function CustomerTagFormPane({
         ) : null}
       </div>
       <div className="grid gap-4 overflow-y-auto px-4 py-4">
-        <FormField
+        <AdminFormField
           error={Boolean(state.fieldErrors.name)}
           htmlFor="customer-tag-name"
           label={dictionary.common.name}
@@ -760,7 +430,7 @@ function CustomerTagFormPane({
             id="customer-tag-name"
             name="name"
           />
-        </FormField>
+        </AdminFormField>
         <div className="grid gap-2">
           <Label htmlFor="customer-tag-color">{dictionary.common.color}</Label>
           <Input
@@ -771,20 +441,12 @@ function CustomerTagFormPane({
           />
         </div>
       </div>
-      <DialogFooter className="border-t border-border/70 px-4 py-3">
-        <p aria-live="polite" className="min-h-5 flex-1 text-sm text-destructive">
-          {message || "\u00A0"}
-        </p>
-        <DialogClose asChild>
-          <Button size="sm" type="button" variant="outline">
-            {dictionary.common.cancel}
-          </Button>
-        </DialogClose>
-        <SubmitButton
+      <AdminFormDialogFooter cancelLabel={dictionary.common.cancel} message={message}>
+        <AdminDialogSubmitButton
           label={tag ? dictionary.common.update : dictionary.common.create}
           loadingLabel={dictionary.common.saving}
         />
-      </DialogFooter>
+      </AdminFormDialogFooter>
     </form>
   );
 }

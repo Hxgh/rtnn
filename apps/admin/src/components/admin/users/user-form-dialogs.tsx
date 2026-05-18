@@ -7,24 +7,26 @@ import {
   useMemo,
   useState,
   type ReactElement,
-  type ReactNode,
 } from "react";
-import { useFormStatus } from "react-dom";
+import {
+  AdminDialogSubmitButton,
+  AdminFormDialogFooter,
+  AdminFormField,
+  resolveRequiredFieldMessage,
+} from "@/src/components/admin/form-dialog";
 import { FormSelect } from "@/src/components/admin/form-select";
 import { SelectionCard, SelectionCards } from "@/src/components/admin/selection-cards";
+import { EmptyBlock } from "@/src/components/admin/state-block";
 import { AdminTableActionButton } from "@/src/components/admin/table-page";
 import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/src/components/ui/dialog";
 import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
 import type { AdminDictionary } from "@/src/i18n/dictionaries";
 import type { AdminUserRecord, RoleRecord } from "@/src/lib/api-client";
 import { cn } from "@/src/lib/utils";
@@ -44,22 +46,6 @@ const initialDialogState: UserDialogFormState = {
   fieldErrors: {},
 };
 
-function SubmitButton({
-  label,
-  loadingLabel,
-}: {
-  label: string;
-  loadingLabel: string;
-}) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button disabled={pending} size="sm" type="submit">
-      {pending ? loadingLabel : label}
-    </Button>
-  );
-}
-
 function resolveMessage(
   state: UserDialogFormState,
   dictionary: Pick<AdminDictionary, "common">,
@@ -68,11 +54,7 @@ function resolveMessage(
     return state.errorMessage;
   }
 
-  if (Object.values(state.fieldErrors).some(Boolean)) {
-    return dictionary.common.requiredFields;
-  }
-
-  return "";
+  return resolveRequiredFieldMessage(state.fieldErrors, dictionary);
 }
 
 export function CreateUserDialog({
@@ -206,11 +188,11 @@ function UserDialogForm({
               variant === "create" ? "md:grid-cols-2" : "md:grid-cols-[minmax(0,1fr)_200px]",
             )}
           >
-            <FormField
-              dictionary={dictionary}
+            <AdminFormField
               error={Boolean(state.fieldErrors.name)}
               htmlFor={variant === "create" ? "create-user-name" : "edit-user-name"}
               label={dictionary.users.name}
+              message={dictionary.common.requiredFields}
             >
               <Input
                 aria-invalid={Boolean(state.fieldErrors.name)}
@@ -222,15 +204,15 @@ function UserDialogForm({
                 name="name"
                 required
               />
-            </FormField>
+            </AdminFormField>
 
             {variant === "create" ? (
               <>
-                <FormField
-                  dictionary={dictionary}
+                <AdminFormField
                   error={Boolean(state.fieldErrors.email)}
                   htmlFor="create-user-email"
                   label={dictionary.users.email}
+                  message={dictionary.common.requiredFields}
                 >
                   <Input
                     aria-invalid={Boolean(state.fieldErrors.email)}
@@ -244,12 +226,12 @@ function UserDialogForm({
                     type="email"
                     required
                   />
-                </FormField>
-                <FormField
-                  dictionary={dictionary}
+                </AdminFormField>
+                <AdminFormField
                   error={Boolean(state.fieldErrors.password)}
                   htmlFor="create-user-password"
                   label={dictionary.users.password}
+                  message={dictionary.common.requiredFields}
                 >
                   <Input
                     aria-invalid={Boolean(state.fieldErrors.password)}
@@ -262,14 +244,14 @@ function UserDialogForm({
                     type="password"
                     required
                   />
-                </FormField>
+                </AdminFormField>
               </>
             ) : (
-              <FormField
-                dictionary={dictionary}
+              <AdminFormField
                 error={false}
                 htmlFor="edit-user-status"
                 label={dictionary.users.status}
+                message={dictionary.common.requiredFields}
               >
                 <FormSelect
                   ariaLabel={dictionary.users.status}
@@ -287,7 +269,7 @@ function UserDialogForm({
                     },
                   ]}
                 />
-              </FormField>
+              </AdminFormField>
             )}
           </div>
 
@@ -306,55 +288,18 @@ function UserDialogForm({
                   />
                 ))
               ) : (
-                <div className="rounded-xl border border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
-                  {dictionary.roles.empty}
-                </div>
+                <EmptyBlock text={dictionary.roles.empty} />
               )}
             </SelectionCards>
           </div>
         </div>
-        <DialogFooter className="border-t border-border/70 px-4 py-3">
-          <p
-            aria-live="polite"
-            className="min-h-5 flex-1 text-sm text-destructive"
-          >
-            {message || "\u00A0"}
-          </p>
-          <DialogClose asChild>
-            <Button size="sm" type="button" variant="outline">
-              {dictionary.common.cancel}
-            </Button>
-          </DialogClose>
-          <SubmitButton
+        <AdminFormDialogFooter cancelLabel={dictionary.common.cancel} message={message}>
+          <AdminDialogSubmitButton
             label={variant === "create" ? dictionary.common.create : dictionary.common.update}
             loadingLabel={dictionary.common.saving}
           />
-        </DialogFooter>
+        </AdminFormDialogFooter>
       </form>
     </DialogContent>
-  );
-}
-
-function FormField({
-  children,
-  dictionary,
-  error,
-  htmlFor,
-  label,
-}: {
-  children: ReactNode;
-  dictionary: Pick<AdminDictionary, "common">;
-  error: boolean;
-  htmlFor: string;
-  label: string;
-}) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-      <div className={cn("min-h-3 text-[11px] text-destructive", !error && "opacity-0")}>
-        {error ? dictionary.common.requiredFields : "\u00A0"}
-      </div>
-    </div>
   );
 }

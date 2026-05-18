@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageSizeSelect } from "@/src/components/admin/page-size-select";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { AdminStateBlock } from "@/src/components/admin/state-block";
 import { Button, buttonVariants } from "@/src/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
 import { resolvePageSizeOptions } from "@/src/lib/pagination";
@@ -45,7 +46,7 @@ export function AdminTablePage<T>({
         ) : null}
 
         {data.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground">{emptyText}</div>
+          <AdminStateBlock className="m-4" contentClassName="p-4" text={emptyText} />
         ) : (
           <div className="overflow-x-auto">
             <Table>
