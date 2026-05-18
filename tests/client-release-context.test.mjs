@@ -2468,6 +2468,15 @@ test("client release GitHub dry-run does not sync deploy facts by default", () =
   assert.match(dryRunScript, /sync_deploy_facts=\$\{args\.syncDeployFacts \? "true" : "false"\}/);
 });
 
+test("check:client-release includes the client release surface gate", () => {
+  const packageJson = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+
+  assert.match(
+    packageJson.scripts["check:client-release"],
+    /scripts\/release\/check-client-release-surface\.mjs/,
+  );
+});
+
 test("release-clients workflow avoids server-local gh and pnpm cache assumptions", () => {
   const workflow = readFileSync(
     path.join(repoRoot, ".github/workflows/release-clients.yml"),
