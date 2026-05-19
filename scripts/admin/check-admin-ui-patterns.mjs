@@ -3,6 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const ROOT_DIR = path.resolve(import.meta.dirname, "..", "..");
+const LEGACY_APP_BRAND = ["RTNN", "App"].join(" ");
 
 function runGit(args) {
   const result = spawnSync("git", args, {
@@ -37,8 +38,8 @@ function addFinding(findings, filePath, message) {
 function checkForbiddenContent(findings, filePath, content) {
   const checks = [
     {
-      pattern: /\bRTNN App\b/,
-      message: "用户可见名称不应回退为 RTNN App",
+      pattern: new RegExp(`\\b${LEGACY_APP_BRAND}\\b`),
+      message: `用户可见名称不应回退为 ${LEGACY_APP_BRAND}`,
     },
     {
       pattern: /\bNext\.js\b/,
