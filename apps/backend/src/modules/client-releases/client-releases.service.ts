@@ -878,8 +878,8 @@ export class ClientReleasesService {
       generatedAt: release.generatedAt?.toISOString() ?? null,
       syncedAt: release.syncedAt?.toISOString() ?? null,
       packageCount: packages.length,
-      downloadablePackageCount: packages.filter(
-        (item) => this.isPackageDownloadable(item),
+      downloadablePackageCount: packages.filter((item) =>
+        this.isPackageDownloadable(item),
       ).length,
       clients: unique(packages.map((item) => item.client)),
       targets: unique(packages.map((item) => item.target)),
@@ -1132,7 +1132,7 @@ export class ClientReleasesService {
   ) {
     return Boolean(
       (selected.distributionStatus === 'synced' && selected.distributionUrl) ||
-        selected.sourceUrl,
+      selected.sourceUrl,
     );
   }
 }

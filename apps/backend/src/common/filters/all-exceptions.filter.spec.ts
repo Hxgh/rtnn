@@ -1,4 +1,7 @@
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 
 function createHost(options: {
@@ -63,7 +66,10 @@ describe('AllExceptionsFilter', () => {
       host,
     );
 
-    expect(response.setHeader).toHaveBeenCalledWith('Content-Language', 'zh-CN');
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Language',
+      'zh-CN',
+    );
     expect(response.status).toHaveBeenCalledWith(400);
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -87,7 +93,10 @@ describe('AllExceptionsFilter', () => {
 
     filter.catch(new Error('boom'), host);
 
-    expect(response.setHeader).toHaveBeenCalledWith('Content-Language', 'zh-CN');
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Language',
+      'zh-CN',
+    );
     expect(response.status).toHaveBeenCalledWith(500);
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,9 +112,15 @@ describe('AllExceptionsFilter', () => {
       locale: 'en-US',
     });
 
-    filter.catch(new InternalServerErrorException('Internal server error'), host);
+    filter.catch(
+      new InternalServerErrorException('Internal server error'),
+      host,
+    );
 
-    expect(response.setHeader).toHaveBeenCalledWith('Content-Language', 'en-US');
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'Content-Language',
+      'en-US',
+    );
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
         locale: 'en-US',
