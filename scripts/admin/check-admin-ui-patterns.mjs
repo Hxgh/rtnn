@@ -126,6 +126,45 @@ function checkHydrationSafeFormatting(findings, filePath, content) {
   }
 }
 
+function checkDialogA11y(findings, filePath, content) {
+  if (!filePath.startsWith("apps/admin/")) {
+    return;
+  }
+
+  if (!content.includes("<DialogContent")) {
+    return;
+  }
+
+  if (!content.includes("DialogDescription")) {
+    addFinding(
+      findings,
+      filePath,
+      "后台 DialogContent 必须包含 DialogDescription，避免 Radix aria-describedby 警告",
+    );
+  }
+}
+
+function checkExternalStoreHydration(findings, filePath, content) {
+  if (!filePath.startsWith("apps/admin/") || !content.includes("useSyncExternalStore(")) {
+    return;
+  }
+
+  const calls = content.matchAll(
+    /useSyncExternalStore\(\s*([A-Za-z_$][\w$]*)\s*,\s*([A-Za-z_$][\w$]*)\s*,\s*([A-Za-z_$][\w$]*)\s*,?\s*\)/gs,
+  );
+
+  for (const match of calls) {
+    const [, , getSnapshot, getServerSnapshot] = match;
+    if (getSnapshot === getServerSnapshot) {
+      addFinding(
+        findings,
+        filePath,
+        "useSyncExternalStore 的 server snapshot 不能复用浏览器 snapshot，避免 SSR/CSR 首帧不一致",
+      );
+    }
+  }
+}
+
 function checkRouteStatePages(findings) {
   const routeStatePages = [
     "apps/admin/app/not-found.tsx",
@@ -153,6 +192,8 @@ function main() {
     checkAdminComponents(findings, filePath, content);
     checkRouteErrorBoundaries(findings, filePath, content);
     checkHydrationSafeFormatting(findings, filePath, content);
+    checkDialogA11y(findings, filePath, content);
+    checkExternalStoreHydration(findings, filePath, content);
   }
 
   checkRouteStatePages(findings);

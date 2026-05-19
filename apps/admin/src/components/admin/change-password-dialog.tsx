@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -141,6 +142,9 @@ function ChangePasswordDialogForm({
     <DialogContent>
       <DialogHeader>
         <DialogTitle>{dictionary.account.changePassword}</DialogTitle>
+        <DialogDescription className="sr-only">
+          {dictionary.account.passwordSessionNotice}
+        </DialogDescription>
       </DialogHeader>
       <form action={formAction} className="grid gap-4">
         <PasswordField
