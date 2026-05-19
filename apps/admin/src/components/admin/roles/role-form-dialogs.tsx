@@ -27,7 +27,6 @@ import {
   DialogTrigger,
 } from "@/src/components/ui/dialog";
 import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
 import { Textarea } from "@/src/components/ui/textarea";
 import type { AdminDictionary } from "@/src/i18n/dictionaries";
 import type { PermissionRecord, RoleRecord } from "@/src/lib/api-client";
@@ -203,17 +202,18 @@ function RoleDialogForm({
                 required
               />
             </AdminFormField>
-            <div className="grid gap-2">
-              <Label htmlFor={variant === "create" ? "create-role-description" : "edit-role-description"}>
-                {dictionary.roles.description}
-              </Label>
+            <AdminFormField
+              htmlFor={variant === "create" ? "create-role-description" : "edit-role-description"}
+              label={dictionary.roles.description}
+              reserveMessage={false}
+            >
               <Textarea
                 defaultValue={role?.description ?? ""}
                 id={variant === "create" ? "create-role-description" : "edit-role-description"}
                 name="description"
                 rows={3}
               />
-            </div>
+            </AdminFormField>
           </div>
 
           <div className="max-h-72 overflow-y-auto pr-1">

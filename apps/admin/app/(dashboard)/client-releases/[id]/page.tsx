@@ -6,6 +6,7 @@ import {
   formatClientTarget,
 } from "@rtnn/config";
 import { updateClientReleasePolicyAction } from "@/app/(dashboard)/client-releases/actions";
+import { AdminFormField } from "@/src/components/admin/form-dialog";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
@@ -13,7 +14,6 @@ import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
 import {
   Table,
   TableBody,
@@ -215,12 +215,12 @@ export default async function ClientReleaseDetailPage({
                         <Badge variant="outline">{policy.channel}</Badge>
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">
-                        <div className="grid gap-2">
-                          <Label htmlFor={`recommended-${policy.id}`}>
-                            {dictionary.clientReleases.recommendedVersion}
-                          </Label>
+                        <AdminFormField
+                          htmlFor={`recommended-${policy.id}`}
+                          label={dictionary.clientReleases.recommendedVersion}
+                        >
                           <select
-                            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                             defaultValue={policy.recommendedReleaseId ?? ""}
                             disabled={!canManagePolicy}
                             id={`recommended-${policy.id}`}
@@ -233,18 +233,18 @@ export default async function ClientReleaseDetailPage({
                               </option>
                             ))}
                           </select>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor={`minimum-${policy.id}`}>
-                            {dictionary.clientReleases.minimumSupportedVersion}
-                          </Label>
+                        </AdminFormField>
+                        <AdminFormField
+                          htmlFor={`minimum-${policy.id}`}
+                          label={dictionary.clientReleases.minimumSupportedVersion}
+                        >
                           <Input
                             defaultValue={policy.minimumSupportedVersion ?? ""}
                             disabled={!canManagePolicy}
                             id={`minimum-${policy.id}`}
                             name="minimumSupportedVersion"
                           />
-                        </div>
+                        </AdminFormField>
                       </div>
                       <div className="grid gap-3 md:grid-cols-3">
                         {[
@@ -269,8 +269,11 @@ export default async function ClientReleaseDetailPage({
                           </label>
                         ))}
                       </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor={`notes-${policy.id}`}>{dictionary.clientReleases.notes}</Label>
+                      <AdminFormField
+                        htmlFor={`notes-${policy.id}`}
+                        label={dictionary.clientReleases.notes}
+                        reserveMessage={false}
+                      >
                         <Textarea
                           defaultValue={policy.notes ?? ""}
                           disabled={!canManagePolicy}
@@ -278,7 +281,7 @@ export default async function ClientReleaseDetailPage({
                           name="notes"
                           rows={2}
                         />
-                      </div>
+                      </AdminFormField>
                       {canManagePolicy ? (
                         <div>
                           <Button size="sm" type="submit">{dictionary.clientReleases.savePolicy}</Button>

@@ -25,7 +25,6 @@ import {
   DialogTrigger,
 } from "@/src/components/ui/dialog";
 import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
 import type { AdminDictionary } from "@/src/i18n/dictionaries";
 import type { CustomerRecord } from "@/src/lib/api-client";
 import { cn } from "@/src/lib/utils";
@@ -192,16 +191,16 @@ function CustomerDialogForm({
               />
             </AdminFormField>
 
-            <div className="grid gap-2">
-              <Label htmlFor={variant === "create" ? "create-customer-phone" : "edit-customer-phone"}>
-                {dictionary.customers.phone}
-              </Label>
+            <AdminFormField
+              htmlFor={variant === "create" ? "create-customer-phone" : "edit-customer-phone"}
+              label={dictionary.customers.phone}
+            >
               <Input
                 defaultValue={customer?.phone ?? ""}
                 id={variant === "create" ? "create-customer-phone" : "edit-customer-phone"}
                 name="phone"
               />
-            </div>
+            </AdminFormField>
 
             {variant === "create" ? (
               <>
@@ -243,15 +242,19 @@ function CustomerDialogForm({
                 </AdminFormField>
               </>
             ) : (
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="edit-customer-email">{dictionary.customers.email}</Label>
+              <AdminFormField
+                className="md:col-span-2"
+                htmlFor="edit-customer-email"
+                label={dictionary.customers.email}
+                reserveMessage={false}
+              >
                 <Input
                   defaultValue={customer?.email ?? ""}
                   disabled
                   id="edit-customer-email"
                   readOnly
                 />
-              </div>
+              </AdminFormField>
             )}
           </div>
         </div>

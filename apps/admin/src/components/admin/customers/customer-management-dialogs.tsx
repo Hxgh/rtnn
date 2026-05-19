@@ -27,7 +27,6 @@ import {
   DialogTrigger,
 } from "@/src/components/ui/dialog";
 import { Input } from "@/src/components/ui/input";
-import { Label } from "@/src/components/ui/label";
 import { Textarea } from "@/src/components/ui/textarea";
 import type {
   CustomerGroupRecord,
@@ -249,15 +248,18 @@ function CustomerGroupFormPane({
             name="name"
           />
         </AdminFormField>
-        <div className="grid gap-2">
-          <Label htmlFor="customer-group-description">{dictionary.common.description}</Label>
+        <AdminFormField
+          htmlFor="customer-group-description"
+          label={dictionary.common.description}
+          reserveMessage={false}
+        >
           <Textarea
             defaultValue={group?.description ?? ""}
             id="customer-group-description"
             name="description"
             rows={4}
           />
-        </div>
+        </AdminFormField>
       </div>
       <AdminFormDialogFooter cancelLabel={dictionary.common.cancel} message={message}>
         <AdminDialogSubmitButton
@@ -434,15 +436,18 @@ function CustomerTagFormPane({
             name="name"
           />
         </AdminFormField>
-        <div className="grid gap-2">
-          <Label htmlFor="customer-tag-color">{dictionary.common.color}</Label>
+        <AdminFormField
+          htmlFor="customer-tag-color"
+          label={dictionary.common.color}
+          reserveMessage={false}
+        >
           <Input
             defaultValue={tag?.color ?? ""}
             id="customer-tag-color"
             name="color"
             placeholder="#111111"
           />
-        </div>
+        </AdminFormField>
       </div>
       <AdminFormDialogFooter cancelLabel={dictionary.common.cancel} message={message}>
         <AdminDialogSubmitButton

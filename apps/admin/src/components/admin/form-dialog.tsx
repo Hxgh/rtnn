@@ -26,24 +26,30 @@ export function AdminDialogSubmitButton({
 
 export function AdminFormField({
   children,
+  className,
   error,
   htmlFor,
   label,
   message,
+  reserveMessage = true,
 }: {
   children: ReactNode;
+  className?: string;
   error?: boolean;
   htmlFor: string;
   label: string;
-  message: string;
+  message?: ReactNode;
+  reserveMessage?: boolean;
 }) {
   return (
-    <div className="grid gap-2">
+    <div className={cn("grid gap-2", className)}>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      <div className={cn("min-h-3 text-[11px] text-destructive", !error && "opacity-0")}>
-        {error ? message : "\u00A0"}
-      </div>
+      {reserveMessage ? (
+        <div className={cn("min-h-3 text-[11px] text-destructive", !error && "opacity-0")}>
+          {error ? message : "\u00A0"}
+        </div>
+      ) : null}
     </div>
   );
 }
