@@ -1,5 +1,5 @@
 import { TEMPLATE_ACCESS_DEFAULTS } from '@rtnn/config/template-access';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type CustomerGroup, type CustomerTag } from '@prisma/client';
 import { PERMISSION_SEEDS } from '../common/constants/permissions.const';
 import { PasswordService } from '../modules/auth/password.service';
 
@@ -17,6 +17,34 @@ type BootstrapTemplateAccessOptions = {
   skipAdmin?: boolean;
   skipCustomer?: boolean;
 };
+
+const CUSTOMER_GROUP_SEEDS = [
+  {
+    slug: 'default-customers',
+    name: '默认客户',
+    description: '默认客户分组',
+  },
+  {
+    slug: 'trial-customers',
+    name: '试用客户',
+    description: '用于验证客户筛选和分组计数',
+  },
+];
+
+const CUSTOMER_TAG_SEEDS = [
+  {
+    slug: 'key-account',
+    name: '重点客户',
+    color: '#2563eb',
+    description: '高优先级客户标记',
+  },
+  {
+    slug: 'follow-up',
+    name: '待跟进',
+    color: '#f59e0b',
+    description: '需要后续触达的客户标记',
+  },
+];
 
 export async function bootstrapTemplateAccess({
   prisma,
@@ -163,6 +191,82 @@ export async function bootstrapTemplateAccess({
           },
         },
       });
+
+  if (customerAccount) {
+    const customerProfile = await prisma.customerProfile.findUnique({
+      where: { accountId: customerAccount.id },
+    });
+
+    if (customerProfile) {
+      const groups: CustomerGroup[] = [];
+      for (const item of CUSTOMER_GROUP_SEEDS) {
+        const group = await prisma.customerGroup.upsert({
+          where: { slug: item.slug },
+          update: {
+            name: item.name,
+            description: item.description,
+            tenantId: defaultTenant.id,
+          },
+          create: {
+            ...item,
+            tenantId: defaultTenant.id,
+          },
+        });
+        groups.push(group);
+      }
+
+      const tags: CustomerTag[] = [];
+      for (const item of CUSTOMER_TAG_SEEDS) {
+        const tag = await prisma.customerTag.upsert({
+          where: { slug: item.slug },
+          update: {
+            name: item.name,
+            color: item.color,
+            description: item.description,
+            tenantId: defaultTenant.id,
+          },
+          create: {
+            ...item,
+            tenantId: defaultTenant.id,
+          },
+        });
+        tags.push(tag);
+      }
+
+      const [defaultGroup] = groups;
+      if (defaultGroup) {
+        await prisma.customerGroupMember.upsert({
+          where: {
+            groupId_customerId: {
+              groupId: defaultGroup.id,
+              customerId: customerProfile.id,
+            },
+          },
+          update: {},
+          create: {
+            groupId: defaultGroup.id,
+            customerId: customerProfile.id,
+          },
+        });
+      }
+
+      for (const tag of tags) {
+        await prisma.customerTagMember.upsert({
+          where: {
+            tagId_customerId: {
+              tagId: tag.id,
+              customerId: customerProfile.id,
+            },
+          },
+          update: {},
+          create: {
+            tagId: tag.id,
+            customerId: customerProfile.id,
+          },
+        });
+      }
+    }
+  }
 
   if (adminAccount) {
     await prisma.accountRole.upsert({
