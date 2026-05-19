@@ -320,9 +320,6 @@ export function ManageCustomerTagsDialog({
                         />
                         <div className="min-w-0">
                           <div className="truncate font-medium text-foreground">{tag.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {tag.color || "-"}
-                          </div>
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground">
