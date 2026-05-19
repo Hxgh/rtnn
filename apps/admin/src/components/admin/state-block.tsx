@@ -40,12 +40,18 @@ export function AdminStateBlock({
 }) {
   return (
     <Card className={cn("shadow-sm", variantClassName(variant), className)}>
-      <CardContent className={cn("space-y-3 p-6", contentClassName)}>
+      <CardContent
+        className={cn(
+          "flex min-h-24 flex-col items-center justify-center gap-3 p-6 text-center",
+          contentClassName,
+        )}
+        data-admin-state-block=""
+      >
         <p className={cn("text-sm font-medium", titleClassName(variant))}>{text}</p>
         {detail ? (
           <p className="text-xs text-muted-foreground">{detail}</p>
         ) : null}
-        {action ? <div>{action}</div> : null}
+        {action ? <div className="flex justify-center">{action}</div> : null}
       </CardContent>
     </Card>
   );

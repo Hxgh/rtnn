@@ -82,6 +82,41 @@ async function expectDialogFieldGeometry(page: Page, fieldIds: string[]) {
   }
 }
 
+async function expectStateBlockCentered(page: Page, text: string) {
+  const stateBlock = page.locator("[data-admin-state-block]", { hasText: text }).first();
+  if ((await stateBlock.count()) === 0) {
+    return;
+  }
+
+  const metrics = await stateBlock.evaluate((block) => {
+      const textNode = Array.from(block.querySelectorAll("p")).find((item) =>
+        item.textContent?.includes(text),
+      );
+
+      if (!textNode) {
+        return null;
+      }
+
+      const blockRect = block.getBoundingClientRect();
+      const textRect = textNode.getBoundingClientRect();
+
+      return {
+        horizontalDelta: Math.abs(
+          textRect.left + textRect.width / 2 - (blockRect.left + blockRect.width / 2),
+        ),
+        verticalDelta: Math.abs(
+          textRect.top + textRect.height / 2 - (blockRect.top + blockRect.height / 2),
+        ),
+        textAlign: window.getComputedStyle(block).textAlign,
+      };
+    });
+
+  expect(metrics).not.toBeNull();
+  expect(metrics?.textAlign).toBe("center");
+  expect(metrics?.horizontalDelta).toBeLessThanOrEqual(2);
+  expect(metrics?.verticalDelta).toBeLessThanOrEqual(2);
+}
+
 test("admin 管理页基础交互不会退化", async ({ page }) => {
   const consoleErrors = installConsoleGuards(page);
 
@@ -120,6 +155,7 @@ test("admin 管理页基础交互不会退化", async ({ page }) => {
   await expect(groupDialog).toBeVisible();
   await expect(groupDialog.locator("#customer-group-name")).toBeVisible();
   await expect(groupDialog.locator("#customer-group-description")).toBeVisible();
+  await expectStateBlockCentered(page, "暂无客户分组");
   await groupDialog.getByRole("button", { name: "取消" }).click();
   await expect(groupDialog).toBeHidden();
 
@@ -128,6 +164,7 @@ test("admin 管理页基础交互不会退化", async ({ page }) => {
   await expect(tagDialog).toBeVisible();
   await expect(tagDialog.locator("#customer-tag-name")).toBeVisible();
   await expect(tagDialog.locator("#customer-tag-color")).toBeVisible();
+  await expectStateBlockCentered(page, "暂无客户标签");
   await tagDialog.getByRole("button", { name: "取消" }).click();
   await expect(tagDialog).toBeHidden();
 
