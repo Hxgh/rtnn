@@ -53,7 +53,9 @@ test("admin 首发边界界面验收", async ({ page }, testInfo) => {
   await page.goto("/login");
   await expect(page).toHaveTitle(new RegExp(templateDisplay.adminAppZh));
   await expect(page.getByText(templateDisplay.adminAppZh).first()).toBeVisible();
-  await expect(page.getByText("使用管理员账号登录控制台。")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登录" })).toBeVisible();
+  await expect(page.locator("#email")).toBeVisible();
+  await expect(page.locator("#password")).toBeVisible();
 
   await page.locator("#email").fill(adminEmail);
   await page.locator("#password").fill(adminPassword);

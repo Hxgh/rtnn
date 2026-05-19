@@ -145,6 +145,49 @@ function checkDialogA11y(findings, filePath, content) {
   }
 }
 
+function checkDialogFormFields(findings, filePath, content) {
+  if (!filePath.startsWith("apps/admin/")) {
+    return;
+  }
+
+  if (!content.includes("AdminFormField") || !content.includes("<DialogContent")) {
+    return;
+  }
+
+  const dialogBlocks = content.match(/<DialogContent\b[\s\S]*?<\/DialogContent>/g) ?? [];
+  if (dialogBlocks.length === 0) {
+    return;
+  }
+
+  const directLabelPattern = /<Label\b/;
+  const simpleFieldPattern =
+    /<div\s+className=(?:"grid gap-2"|'grid gap-2')[\s\S]*?<Label\b/;
+
+  const hasMixedDialogFields = dialogBlocks.some((block) => {
+    if (!block.includes("AdminFormField")) {
+      return false;
+    }
+
+    const withoutAdminFormFields = block.replace(
+      /<AdminFormField\b[\s\S]*?<\/AdminFormField>/g,
+      "",
+    );
+
+    return (
+      directLabelPattern.test(withoutAdminFormFields) ||
+      simpleFieldPattern.test(withoutAdminFormFields)
+    );
+  });
+
+  if (hasMixedDialogFields) {
+    addFinding(
+      findings,
+      filePath,
+      "后台弹窗表单字段应统一使用 AdminFormField，避免同一弹窗字段高度和错误提示预留不一致",
+    );
+  }
+}
+
 function checkExternalStoreHydration(findings, filePath, content) {
   if (!filePath.startsWith("apps/admin/") || !content.includes("useSyncExternalStore(")) {
     return;
@@ -194,6 +237,7 @@ function main() {
     checkRouteErrorBoundaries(findings, filePath, content);
     checkHydrationSafeFormatting(findings, filePath, content);
     checkDialogA11y(findings, filePath, content);
+    checkDialogFormFields(findings, filePath, content);
     checkExternalStoreHydration(findings, filePath, content);
   }
 

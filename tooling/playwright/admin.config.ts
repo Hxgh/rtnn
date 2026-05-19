@@ -8,7 +8,7 @@ const chromiumChannel = process.env.PLAYWRIGHT_CHROMIUM_CHANNEL?.trim();
 
 export default defineConfig({
   testDir: "../../tests/acceptance",
-  testMatch: "admin-acceptance.spec.ts",
+  testMatch: "admin-*.spec.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,
