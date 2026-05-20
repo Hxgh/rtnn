@@ -1,5 +1,9 @@
 import { TEMPLATE_ACCESS_DEFAULTS } from '@rtnn/config/template-access';
-import { PrismaClient, type CustomerGroup, type CustomerTag } from '@prisma/client';
+import {
+  PrismaClient,
+  type CustomerGroup,
+  type CustomerTag,
+} from '@prisma/client';
 import { PERMISSION_SEEDS } from '../common/constants/permissions.const';
 import { PasswordService } from '../modules/auth/password.service';
 
