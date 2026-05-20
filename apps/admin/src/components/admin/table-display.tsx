@@ -4,7 +4,14 @@ import { cn } from "@/src/lib/utils";
 export type AdminStatusTone = "success" | "warning" | "danger" | "neutral";
 
 export function AdminEmptyValue({ className }: { className?: string }) {
-  return <span className={cn("text-muted-foreground", className)}>-</span>;
+  return (
+    <span
+      aria-label="empty"
+      className={cn("inline-flex min-w-4 justify-center text-muted-foreground", className)}
+    >
+      -
+    </span>
+  );
 }
 
 export function AdminTextValue({
@@ -25,7 +32,7 @@ export function AdminTextValue({
   return (
     <span
       className={cn(
-        "block truncate",
+        "block min-w-0 truncate",
         maxWidthClassName,
         mono && "font-mono text-xs",
         className,
@@ -53,7 +60,7 @@ export function AdminBadgeList({
   }
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", maxWidthClassName)}>
+    <div className={cn("flex min-w-0 flex-wrap gap-1.5", maxWidthClassName)}>
       {values.map((value) => (
         <Badge
           key={value}

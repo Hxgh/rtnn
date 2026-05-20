@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageSizeSelect } from "@/src/components/admin/page-size-select";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
-import { AdminStateBlock } from "@/src/components/admin/state-block";
 import { Button, buttonVariants, type ButtonProps } from "@/src/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
 import { resolvePageSizeOptions } from "@/src/lib/pagination";
@@ -46,7 +45,12 @@ export function AdminTablePage<T>({
         ) : null}
 
         {data.length === 0 ? (
-          <AdminStateBlock className="m-4" contentClassName="p-4" text={emptyText} />
+          <div
+            className="flex min-h-32 items-center justify-center px-4 py-10 text-center"
+            data-admin-table-empty=""
+          >
+            <p className="text-sm font-medium text-muted-foreground">{emptyText}</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -90,7 +94,11 @@ export function AdminTablePage<T>({
 }
 
 export function AdminTableRowActions({ children }: { children: ReactNode }) {
-  return <div className="inline-flex items-center justify-end gap-1 whitespace-nowrap">{children}</div>;
+  return (
+    <div className="inline-flex max-w-80 flex-wrap items-center justify-end gap-1">
+      {children}
+    </div>
+  );
 }
 
 export function AdminTableActionLink({
@@ -166,8 +174,8 @@ export function AdminTablePagination({
   }));
 
   return (
-    <div className="flex justify-end">
-      <div className="flex w-full flex-wrap items-center justify-end gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-3">
+    <div className="flex justify-start md:justify-end">
+      <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-3 md:w-auto md:justify-end">
         <div className="flex items-center gap-1.5 whitespace-nowrap text-sm">
           <span className="text-muted-foreground">{totalItemsLabel}</span>
           <span className="font-medium text-foreground">{total}</span>
@@ -183,7 +191,7 @@ export function AdminTablePagination({
           />
         </div>
         <div className="hidden h-4 w-px bg-border/70 md:block" />
-        <div className="flex items-center gap-3 whitespace-nowrap">
+        <div className="flex w-full items-center justify-between gap-3 whitespace-nowrap sm:w-auto sm:justify-end">
           <span className="min-w-[52px] text-sm text-muted-foreground">
             {currentPage} / {totalPages}
           </span>
