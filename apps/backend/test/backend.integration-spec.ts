@@ -167,20 +167,34 @@ describe('Backend integration', () => {
       .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({
         email: 'new-customer@rtnn.local',
+        groupIds: [groupResponse.body.id],
         name: 'New Customer',
         password: 'Customer123!@#',
         phone: '13800138000',
+        tagIds: [tagResponse.body.id],
       })
       .expect(201);
 
-    await harness.http
+    expect(customerResponse.body.groups).toEqual([
+      expect.objectContaining({ id: groupResponse.body.id }),
+    ]);
+    expect(customerResponse.body.tags).toEqual([
+      expect.objectContaining({ id: tagResponse.body.id }),
+    ]);
+
+    const updatedCustomerResponse = await harness.http
       .patch(`/api/v1/admin/customers/${customerResponse.body.id}`)
       .set('Authorization', `Bearer ${adminAccessToken}`)
       .send({
+        groupIds: [],
         name: 'Updated Customer',
         phone: '13900139000',
+        tagIds: [],
       })
       .expect(200);
+
+    expect(updatedCustomerResponse.body.groups).toEqual([]);
+    expect(updatedCustomerResponse.body.tags).toEqual([]);
 
     await harness.http
       .patch(`/api/v1/admin/customers/${customerResponse.body.id}/status`)
@@ -230,6 +244,129 @@ describe('Backend integration', () => {
     expect(customerCreateLog.resourceType).toBe('customer');
     expect(customerCreateLog.resourceId).toBe(customerResponse.body.id);
     expect(groupResponse.body.name).toBe('VIP Customers');
+  });
+
+  it('maintains customer group and tag associations through create, update, and filters', async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+
+    const groupAlpha = await harness.http
+      .post('/api/v1/admin/customer-groups')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        name: 'Association Group Alpha',
+        slug: 'association-group-alpha',
+      })
+      .expect(201);
+
+    const groupBeta = await harness.http
+      .post('/api/v1/admin/customer-groups')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        name: 'Association Group Beta',
+        slug: 'association-group-beta',
+      })
+      .expect(201);
+
+    const tagAlpha = await harness.http
+      .post('/api/v1/admin/customer-tags')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        name: 'Association Tag Alpha',
+        slug: 'association-tag-alpha',
+      })
+      .expect(201);
+
+    const tagBeta = await harness.http
+      .post('/api/v1/admin/customer-tags')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        name: 'Association Tag Beta',
+        slug: 'association-tag-beta',
+      })
+      .expect(201);
+
+    const customer = await harness.http
+      .post('/api/v1/admin/customers')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        email: 'association-customer@rtnn.local',
+        groupIds: [groupAlpha.body.id],
+        name: 'Association Customer',
+        password: 'Customer123!@#',
+        tagIds: [tagAlpha.body.id],
+      })
+      .expect(201);
+
+    expect(customer.body.groups).toEqual([
+      expect.objectContaining({ id: groupAlpha.body.id }),
+    ]);
+    expect(customer.body.tags).toEqual([
+      expect.objectContaining({ id: tagAlpha.body.id }),
+    ]);
+
+    await harness.http
+      .get('/api/v1/admin/customers')
+      .query({ groupId: groupAlpha.body.id })
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.map((item: { id: string }) => item.id)).toContain(
+          customer.body.id,
+        );
+      });
+
+    await harness.http
+      .get('/api/v1/admin/customers')
+      .query({ tagId: tagAlpha.body.id })
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.map((item: { id: string }) => item.id)).toContain(
+          customer.body.id,
+        );
+      });
+
+    const replaced = await harness.http
+      .patch(`/api/v1/admin/customers/${customer.body.id}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        groupIds: [groupBeta.body.id],
+        name: 'Association Customer Updated',
+        tagIds: [tagBeta.body.id],
+      })
+      .expect(200);
+
+    expect(replaced.body.groups).toEqual([
+      expect.objectContaining({ id: groupBeta.body.id }),
+    ]);
+    expect(replaced.body.tags).toEqual([
+      expect.objectContaining({ id: tagBeta.body.id }),
+    ]);
+
+    await harness.http
+      .get('/api/v1/admin/customers')
+      .query({ groupId: groupAlpha.body.id })
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.map((item: { id: string }) => item.id)).not.toContain(
+          customer.body.id,
+        );
+      });
+
+    const cleared = await harness.http
+      .patch(`/api/v1/admin/customers/${customer.body.id}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        groupIds: [],
+        name: 'Association Customer Cleared',
+        tagIds: [],
+      })
+      .expect(200);
+
+    expect(cleared.body.groups).toEqual([]);
+    expect(cleared.body.tags).toEqual([]);
   });
 
   it('keeps template access bootstrap idempotent', async () => {

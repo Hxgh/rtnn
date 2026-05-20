@@ -938,6 +938,18 @@ export interface components {
             phone?: string;
             /** @example default */
             tenantId?: string;
+            /**
+             * @example [
+             *       "group_01"
+             *     ]
+             */
+            groupIds?: string[];
+            /**
+             * @example [
+             *       "tag_01"
+             *     ]
+             */
+            tagIds?: string[];
         };
         UpdateCustomerDto: {
             /** @example customer@example.com */
@@ -950,6 +962,18 @@ export interface components {
             phone?: string;
             /** @example default */
             tenantId?: string;
+            /**
+             * @example [
+             *       "group_01"
+             *     ]
+             */
+            groupIds?: string[];
+            /**
+             * @example [
+             *       "tag_01"
+             *     ]
+             */
+            tagIds?: string[];
         };
         UpdateCustomerStatusDto: {
             /**

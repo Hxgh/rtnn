@@ -119,8 +119,10 @@ function getCustomerStatusLabel(
   }
 }
 
-function renderNames(values?: string[]) {
-  return values && values.length > 0 ? values.join(", ") : "-";
+function renderLookupNames(values?: Array<{ name: string }>) {
+  return values && values.length > 0
+    ? values.map((item) => item.name).join(", ")
+    : "-";
 }
 
 function getCustomerStatusTone(status: CustomerStatus) {
@@ -281,12 +283,12 @@ export default async function CustomersPage({
     {
       id: "groups",
       header: dictionary.customers.groups,
-      cell: (item) => renderNames(item.groupNames),
+      cell: (item) => renderLookupNames(item.groups),
     },
     {
       id: "tags",
       header: dictionary.customers.tags,
-      cell: (item) => renderNames(item.tagNames),
+      cell: (item) => renderLookupNames(item.tags),
     },
     {
       id: "status",
@@ -314,7 +316,12 @@ export default async function CustomersPage({
       cellClassName: "text-right",
       cell: (item) => (
         <AdminTableRowActions>
-          <EditCustomerDialog dictionary={dictionary} customer={item} />
+          <EditCustomerDialog
+            dictionary={dictionary}
+            customer={item}
+            groups={groupsResult?.data}
+            tags={tagsResult?.data}
+          />
           <CustomerStatusDialog customer={item} dictionary={dictionary} />
           <ResetCustomerPasswordDialog customerId={item.id} dictionary={dictionary} />
         </AdminTableRowActions>
@@ -339,7 +346,13 @@ export default async function CustomersPage({
               tags={tagsResult.data}
             />
           ) : null}
-          {canCreateCustomer ? <CreateCustomerDialog dictionary={dictionary} /> : null}
+          {canCreateCustomer ? (
+            <CreateCustomerDialog
+              dictionary={dictionary}
+              groups={groupsResult?.data}
+              tags={tagsResult?.data}
+            />
+          ) : null}
         </div>
       )
     : null;

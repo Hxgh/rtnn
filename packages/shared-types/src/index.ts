@@ -315,12 +315,16 @@ export interface CreateCustomerInput {
   password: string;
   phone?: string;
   tenantId?: string;
+  groupIds?: string[];
+  tagIds?: string[];
 }
 
 export interface UpdateCustomerInput {
   name?: string;
   password?: string;
   phone?: string;
+  groupIds?: string[];
+  tagIds?: string[];
 }
 
 export interface UpdateCustomerStatusInput {

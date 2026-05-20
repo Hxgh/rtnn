@@ -83,6 +83,8 @@ const createCustomerSchemaBase = z.object({
   password: z.string().min(8).max(128),
   phone: z.string().trim().max(40).optional(),
   tenantId: z.string().trim().min(1).optional(),
+  groupIds: z.array(z.string().trim().min(1)).optional(),
+  tagIds: z.array(z.string().trim().min(1)).optional(),
 });
 
 export const customerListQuerySchema = paginationQuerySchema.extend({

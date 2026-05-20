@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { PrismaService } from '../../core/prisma/prisma.service';
@@ -125,6 +129,9 @@ export class CustomersService {
         throw new NotFoundException('Customer profile was not created');
       }
 
+      await this.replaceCustomerGroups(tx, customerProfile.id, dto.groupIds);
+      await this.replaceCustomerTags(tx, customerProfile.id, dto.tagIds);
+
       await this.auditWriter.write(
         {
           actor,
@@ -136,12 +143,25 @@ export class CustomersService {
           detail: {
             email: created.email,
             status: customerProfile.status,
+            groupCount: dto.groupIds?.length ?? 0,
+            tagCount: dto.tagIds?.length ?? 0,
           },
         },
         tx,
       );
 
-      return customerProfile;
+      const detail = await tx.customerProfile.findUnique({
+        where: { id: customerProfile.id },
+        include: {
+          account: true,
+          groups: { include: { group: true } },
+          tags: { include: { tag: true } },
+        },
+      });
+      if (!detail) {
+        throw new NotFoundException('Customer profile not found');
+      }
+      return detail;
     });
     return this.toCustomerDetail(customer);
   }
@@ -168,6 +188,9 @@ export class CustomersService {
         },
       });
 
+      await this.replaceCustomerGroups(tx, id, dto.groupIds);
+      await this.replaceCustomerTags(tx, id, dto.tagIds);
+
       await this.auditWriter.write(
         {
           actor,
@@ -181,6 +204,8 @@ export class CustomersService {
               ...(dto.name ? ['name'] : []),
               ...(dto.phone !== undefined ? ['phone'] : []),
               ...(dto.password ? ['password'] : []),
+              ...(dto.groupIds !== undefined ? ['groups'] : []),
+              ...(dto.tagIds !== undefined ? ['tags'] : []),
             ],
           },
         },
@@ -604,5 +629,79 @@ export class CustomersService {
         revokedAt,
       },
     });
+  }
+
+  private async replaceCustomerGroups(
+    executor: Prisma.TransactionClient,
+    customerId: string,
+    groupIds?: string[],
+  ) {
+    if (groupIds === undefined) {
+      return;
+    }
+    const uniqueGroupIds = [...new Set(groupIds.filter(Boolean))];
+    await executor.customerGroupMember.deleteMany({
+      where: { customerId },
+    });
+    if (uniqueGroupIds.length === 0) {
+      return;
+    }
+    await this.ensureCustomerGroupsExist(executor, uniqueGroupIds);
+    await executor.customerGroupMember.createMany({
+      data: uniqueGroupIds.map((groupId) => ({
+        customerId,
+        groupId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  private async replaceCustomerTags(
+    executor: Prisma.TransactionClient,
+    customerId: string,
+    tagIds?: string[],
+  ) {
+    if (tagIds === undefined) {
+      return;
+    }
+    const uniqueTagIds = [...new Set(tagIds.filter(Boolean))];
+    await executor.customerTagMember.deleteMany({
+      where: { customerId },
+    });
+    if (uniqueTagIds.length === 0) {
+      return;
+    }
+    await this.ensureCustomerTagsExist(executor, uniqueTagIds);
+    await executor.customerTagMember.createMany({
+      data: uniqueTagIds.map((tagId) => ({
+        customerId,
+        tagId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  private async ensureCustomerGroupsExist(
+    executor: Prisma.TransactionClient,
+    groupIds: string[],
+  ) {
+    const count = await executor.customerGroup.count({
+      where: { id: { in: groupIds } },
+    });
+    if (count !== groupIds.length) {
+      throw new BadRequestException('Customer group not found');
+    }
+  }
+
+  private async ensureCustomerTagsExist(
+    executor: Prisma.TransactionClient,
+    tagIds: string[],
+  ) {
+    const count = await executor.customerTag.count({
+      where: { id: { in: tagIds } },
+    });
+    if (count !== tagIds.length) {
+      throw new BadRequestException('Customer tag not found');
+    }
   }
 }

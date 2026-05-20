@@ -2436,6 +2436,24 @@
           "tenantId": {
             "type": "string",
             "example": "default"
+          },
+          "groupIds": {
+            "example": [
+              "group_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagIds": {
+            "example": [
+              "tag_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -2467,6 +2485,24 @@
           "tenantId": {
             "type": "string",
             "example": "default"
+          },
+          "groupIds": {
+            "example": [
+              "group_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagIds": {
+            "example": [
+              "tag_01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

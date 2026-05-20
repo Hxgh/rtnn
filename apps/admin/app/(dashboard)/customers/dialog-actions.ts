@@ -62,6 +62,22 @@ function normalizeOptionalString(value: FormDataEntryValue | null) {
   return normalized || undefined;
 }
 
+function normalizeStringList(values: FormDataEntryValue[]) {
+  return values
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+}
+
+function normalizeScopedStringList(
+  formData: FormData,
+  scopeName: string,
+  fieldName: string,
+) {
+  return formData.has(scopeName)
+    ? normalizeStringList(formData.getAll(fieldName))
+    : undefined;
+}
+
 function revalidateCustomersPage() {
   revalidatePath(adminRoutes.customers);
 }
@@ -77,6 +93,8 @@ export async function createCustomerDialogAction(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "").trim();
   const phone = normalizeOptionalString(formData.get("phone"));
+  const groupIds = normalizeScopedStringList(formData, "groupIdsScope", "groupIds");
+  const tagIds = normalizeScopedStringList(formData, "tagIdsScope", "tagIds");
 
   const fieldErrors: CustomerDialogFormState["fieldErrors"] = {};
   if (!name) {
@@ -103,6 +121,8 @@ export async function createCustomerDialogAction(
       name,
       password,
       phone,
+      groupIds,
+      tagIds,
     });
   } catch (error) {
     return {
@@ -130,6 +150,8 @@ export async function updateCustomerDialogAction(
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const phone = normalizeOptionalString(formData.get("phone"));
+  const groupIds = normalizeScopedStringList(formData, "groupIdsScope", "groupIds");
+  const tagIds = normalizeScopedStringList(formData, "tagIdsScope", "tagIds");
 
   if (!id || !name) {
     return {
@@ -145,6 +167,8 @@ export async function updateCustomerDialogAction(
     await updateCustomer(accessToken, id, {
       name,
       phone,
+      groupIds,
+      tagIds,
     });
   } catch (error) {
     return {
