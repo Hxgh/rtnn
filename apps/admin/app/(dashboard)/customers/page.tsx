@@ -119,10 +119,31 @@ function getCustomerStatusLabel(
   }
 }
 
-function renderLookupNames(values?: Array<{ name: string }>) {
-  return values && values.length > 0
-    ? values.map((item) => item.name).join(", ")
-    : "-";
+function renderLookupBadges(values?: Array<{ id?: string; name: string }>) {
+  if (!values || values.length === 0) {
+    return <span className="text-muted-foreground">-</span>;
+  }
+
+  return (
+    <div className="flex max-w-64 flex-wrap gap-1.5">
+      {values.map((item) => (
+        <Badge
+          key={item.id ?? item.name}
+          className="max-w-full truncate normal-case tracking-normal"
+          variant="outline"
+        >
+          {item.name}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function findOptionName(
+  id: string | undefined,
+  options: Array<{ id: string; name: string }>,
+) {
+  return id ? options.find((item) => item.id === id)?.name : undefined;
 }
 
 function getCustomerStatusTone(status: CustomerStatus) {
@@ -146,64 +167,92 @@ function CustomersToolbar({
   showTagFilter: boolean;
   tagOptions: Awaited<ReturnType<typeof listCustomerTags>>["data"];
 }) {
+  const activeFilterLabels = [
+    filters.search ? `${dictionary.common.search}: ${filters.search}` : undefined,
+    filters.status
+      ? `${dictionary.customers.status}: ${getCustomerStatusLabel(filters.status, dictionary)}`
+      : undefined,
+    findOptionName(filters.groupId, groupOptions)
+      ? `${dictionary.customers.groups}: ${findOptionName(filters.groupId, groupOptions)}`
+      : undefined,
+    findOptionName(filters.tagId, tagOptions)
+      ? `${dictionary.customers.tags}: ${findOptionName(filters.tagId, tagOptions)}`
+      : undefined,
+  ].filter(Boolean);
+
   return (
-    <AdminFilterToolbar>
-      <input name="pageSize" type="hidden" value={pageSize} />
-      <Input
-        aria-label={dictionary.common.search}
-        className="w-full lg:max-w-xs"
-        defaultValue={filters.search ?? ""}
-        name="search"
-        placeholder={dictionary.common.search}
-      />
-      <FormSelect
-        ariaLabel={dictionary.customers.status}
-        defaultValue={filters.status ?? ""}
-        emptyLabel={dictionary.customers.allStatuses}
-        name="status"
-        options={customerStatuses.map((status) => ({
-          label: getCustomerStatusLabel(status, dictionary),
-          value: status,
-        }))}
-        triggerClassName="w-full lg:w-40"
-      />
-      {showGroupFilter ? (
-        <FormSelect
-          ariaLabel={dictionary.customers.groups}
-          defaultValue={filters.groupId ?? ""}
-          emptyLabel={dictionary.customers.allGroups}
-          name="groupId"
-          options={groupOptions.map((group) => ({
-            label: group.name,
-            value: group.id,
-          }))}
-          triggerClassName="w-full lg:w-48"
+    <div className="grid gap-3">
+      <AdminFilterToolbar>
+        <input name="pageSize" type="hidden" value={pageSize} />
+        <Input
+          aria-label={dictionary.common.search}
+          className="w-full lg:max-w-xs"
+          defaultValue={filters.search ?? ""}
+          name="search"
+          placeholder={dictionary.common.search}
         />
-      ) : null}
-      {showTagFilter ? (
         <FormSelect
-          ariaLabel={dictionary.customers.tags}
-          defaultValue={filters.tagId ?? ""}
-          emptyLabel={dictionary.customers.allTags}
-          name="tagId"
-          options={tagOptions.map((tag) => ({
-            label: tag.name,
-            value: tag.id,
+          ariaLabel={dictionary.customers.status}
+          defaultValue={filters.status ?? ""}
+          emptyLabel={dictionary.customers.allStatuses}
+          name="status"
+          options={customerStatuses.map((status) => ({
+            label: getCustomerStatusLabel(status, dictionary),
+            value: status,
           }))}
-          triggerClassName="w-full lg:w-48"
+          triggerClassName="w-full lg:w-40"
         />
-      ) : null}
-      <AdminFilterActions>
-        <Button type="submit" variant="outline">
-          {dictionary.common.search}
-        </Button>
-        {hasActiveFilters(filters) ? (
-          <Button asChild type="button" variant="ghost">
-            <Link href={buildCustomersHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
-          </Button>
+        {showGroupFilter ? (
+          <FormSelect
+            ariaLabel={dictionary.customers.groups}
+            defaultValue={filters.groupId ?? ""}
+            emptyLabel={dictionary.customers.allGroups}
+            name="groupId"
+            options={groupOptions.map((group) => ({
+              label: group.name,
+              value: group.id,
+            }))}
+            triggerClassName="w-full lg:w-48"
+          />
         ) : null}
-      </AdminFilterActions>
-    </AdminFilterToolbar>
+        {showTagFilter ? (
+          <FormSelect
+            ariaLabel={dictionary.customers.tags}
+            defaultValue={filters.tagId ?? ""}
+            emptyLabel={dictionary.customers.allTags}
+            name="tagId"
+            options={tagOptions.map((tag) => ({
+              label: tag.name,
+              value: tag.id,
+            }))}
+            triggerClassName="w-full lg:w-48"
+          />
+        ) : null}
+        <AdminFilterActions>
+          <Button type="submit" variant="outline">
+            {dictionary.common.search}
+          </Button>
+          {hasActiveFilters(filters) ? (
+            <Button asChild type="button" variant="ghost">
+              <Link href={buildCustomersHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
+            </Button>
+          ) : null}
+        </AdminFilterActions>
+      </AdminFilterToolbar>
+      {activeFilterLabels.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {activeFilterLabels.map((label) => (
+            <Badge
+              key={label}
+              className="normal-case tracking-normal"
+              variant="secondary"
+            >
+              {label}
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -283,12 +332,12 @@ export default async function CustomersPage({
     {
       id: "groups",
       header: dictionary.customers.groups,
-      cell: (item) => renderLookupNames(item.groups),
+      cell: (item) => renderLookupBadges(item.groups),
     },
     {
       id: "tags",
       header: dictionary.customers.tags,
-      cell: (item) => renderLookupNames(item.tags),
+      cell: (item) => renderLookupBadges(item.tags),
     },
     {
       id: "status",
