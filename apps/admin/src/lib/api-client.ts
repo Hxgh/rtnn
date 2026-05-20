@@ -31,6 +31,7 @@ import type {
   AdminUserDetail,
   AdminUserSummary,
   AuditLogItem,
+  ClientDownloadInfo,
   ClientPackageListItem,
   ClientReleaseDetail,
   ClientReleaseSummary,
@@ -62,6 +63,13 @@ export type ClientPackageRecord = ClientPackageListItem;
 export type ClientReleaseRecord = ClientReleaseSummary;
 export type ClientReleaseDetailRecord = ClientReleaseDetail;
 export type ClientUpdatePolicyRecord = ClientUpdatePolicySummary;
+export type RuntimeVersionInfo = {
+  environment: string;
+  version: string;
+  sourceSha: string;
+  backendImage: string;
+  timestamp: string;
+};
 export type CustomerRecord = CustomerSummary;
 export type CustomerDetailRecord = CustomerDetail;
 export type CustomerGroupRecord = CustomerGroupSummary;
@@ -142,6 +150,23 @@ export async function getDashboardStats(
 ): Promise<DashboardStats> {
   const client = createClient(accessToken);
   return client.dashboard.getStats() as Promise<DashboardStats>;
+}
+
+export async function getRuntimeVersion(): Promise<RuntimeVersionInfo> {
+  const baseUrl = getBaseUrl();
+  const locale = await resolveAdminRequestLocale();
+  const response = await fetch(`${baseUrl}/version`, {
+    headers: {
+      "accept-language": locale,
+    },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw Object.assign(new Error("Runtime version request failed"), {
+      status: response.status,
+    });
+  }
+  return response.json() as Promise<RuntimeVersionInfo>;
 }
 
 export async function listUsers(
@@ -236,6 +261,15 @@ export async function listClientPackages(
 ): Promise<PaginatedResult<ClientPackageRecord>> {
   const client = createClient(accessToken);
   return client.admin.clientReleases.listPackages(query) as Promise<PaginatedResult<ClientPackageRecord>>;
+}
+
+export async function listClientDownloads(query?: {
+  channel?: string;
+  client?: string;
+  target?: string;
+}): Promise<ClientDownloadInfo[]> {
+  const client = createClient();
+  return client.clientDownloads.list(query) as Promise<ClientDownloadInfo[]>;
 }
 
 export async function getClientReleaseById(

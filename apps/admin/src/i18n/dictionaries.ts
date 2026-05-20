@@ -160,8 +160,19 @@ type AuditDictionary = {
 
 type ClientReleasesDictionary = {
   title: string;
+  subtitle: string;
   detailTitle: string;
   packagesTitle: string;
+  runtimeTitle: string;
+  runtimeVersion: string;
+  runtimeEnvironment: string;
+  runtimeSource: string;
+  runtimeCheckedAt: string;
+  currentDownloads: string;
+  testingDownloads: string;
+  productionDownloads: string;
+  availableDownloads: string;
+  unavailableDownloads: string;
   releases: string;
   viewPackages: string;
   viewReleases: string;
@@ -426,8 +437,19 @@ const zhCN: AdminDictionary = {
   },
   clientReleases: {
     title: "发布中心",
+    subtitle: "查看当前运行版本、客户端包和发布记录。",
     detailTitle: "客户端壳版本",
     packagesTitle: "客户端包管理",
+    runtimeTitle: "当前运行状态",
+    runtimeVersion: "运行版本",
+    runtimeEnvironment: "运行环境",
+    runtimeSource: "源码版本",
+    runtimeCheckedAt: "检查时间",
+    currentDownloads: "客户端可下载状态",
+    testingDownloads: "Testing 下载",
+    productionDownloads: "Production 下载",
+    availableDownloads: "可下载",
+    unavailableDownloads: "暂无可下载包",
     releases: "发布记录",
     viewPackages: "查看平台包",
     viewReleases: "返回发布记录",
@@ -690,8 +712,19 @@ const enUS: AdminDictionary = {
   },
   clientReleases: {
     title: "Release Center",
+    subtitle: "View runtime version, client packages, and release history.",
     detailTitle: "Client shell release",
     packagesTitle: "Client Packages",
+    runtimeTitle: "Runtime Status",
+    runtimeVersion: "Runtime version",
+    runtimeEnvironment: "Runtime environment",
+    runtimeSource: "Source version",
+    runtimeCheckedAt: "Checked at",
+    currentDownloads: "Client download status",
+    testingDownloads: "Testing downloads",
+    productionDownloads: "Production downloads",
+    availableDownloads: "Available",
+    unavailableDownloads: "No downloadable packages",
     releases: "Releases",
     viewPackages: "View packages",
     viewReleases: "Back to releases",
