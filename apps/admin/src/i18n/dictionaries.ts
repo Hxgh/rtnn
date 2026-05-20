@@ -173,6 +173,17 @@ type ClientReleasesDictionary = {
   productionDownloads: string;
   availableDownloads: string;
   unavailableDownloads: string;
+  diagnosticsTitle: string;
+  diagnosticRuntime: string;
+  diagnosticSourceMatch: string;
+  diagnosticTestingDownloads: string;
+  diagnosticProductionDownloads: string;
+  diagnosticPassed: string;
+  diagnosticNeedsAttention: string;
+  diagnosticInformational: string;
+  diagnosticRuntimeUnavailable: string;
+  diagnosticSourceMismatch: string;
+  diagnosticNoReleaseRecords: string;
   releases: string;
   viewPackages: string;
   viewReleases: string;
@@ -450,6 +461,17 @@ const zhCN: AdminDictionary = {
     productionDownloads: "Production 下载",
     availableDownloads: "可下载",
     unavailableDownloads: "暂无可下载包",
+    diagnosticsTitle: "发布诊断",
+    diagnosticRuntime: "运行事实",
+    diagnosticSourceMatch: "源码一致性",
+    diagnosticTestingDownloads: "Testing 下载",
+    diagnosticProductionDownloads: "Production 下载",
+    diagnosticPassed: "正常",
+    diagnosticNeedsAttention: "需关注",
+    diagnosticInformational: "信息",
+    diagnosticRuntimeUnavailable: "当前后端未返回可用的运行版本。",
+    diagnosticSourceMismatch: "当前运行源码未出现在可见发布记录中。",
+    diagnosticNoReleaseRecords: "暂无发布记录可用于对比。",
     releases: "发布记录",
     viewPackages: "查看平台包",
     viewReleases: "返回发布记录",
@@ -725,6 +747,17 @@ const enUS: AdminDictionary = {
     productionDownloads: "Production downloads",
     availableDownloads: "Available",
     unavailableDownloads: "No downloadable packages",
+    diagnosticsTitle: "Release diagnostics",
+    diagnosticRuntime: "Runtime fact",
+    diagnosticSourceMatch: "Source consistency",
+    diagnosticTestingDownloads: "Testing download",
+    diagnosticProductionDownloads: "Production download",
+    diagnosticPassed: "Normal",
+    diagnosticNeedsAttention: "Needs attention",
+    diagnosticInformational: "Informational",
+    diagnosticRuntimeUnavailable: "Runtime version is unavailable from the current backend.",
+    diagnosticSourceMismatch: "The current runtime source was not found in the visible release records.",
+    diagnosticNoReleaseRecords: "No release records are available for comparison.",
     releases: "Releases",
     viewPackages: "View packages",
     viewReleases: "Back to releases",

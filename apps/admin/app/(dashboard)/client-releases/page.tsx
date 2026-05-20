@@ -50,6 +50,7 @@ const targets = ["android", "ios", "macos", "windows"] as const;
 
 type ClientReleaseRow = Awaited<ReturnType<typeof listClientReleases>>["data"][number];
 type ClientDownloadRow = Awaited<ReturnType<typeof listClientDownloads>>[number];
+type DiagnosticTone = "success" | "warning" | "danger" | "neutral";
 type PageSearchParams = Promise<{
   page?: string;
   pageSize?: string;
@@ -107,17 +108,26 @@ function ReleaseOverview({
   runtime,
   testingDownloads,
   productionDownloads,
+  releases,
 }: {
   locale: string;
   dictionary: Awaited<ReturnType<typeof getAdminI18n>>["dictionary"];
   runtime: RuntimeVersionInfo | null;
   testingDownloads: ClientDownloadRow[];
   productionDownloads: ClientDownloadRow[];
+  releases: ClientReleaseRow[];
 }) {
   const labels = dictionary.clientReleases;
+  const diagnostics = buildReleaseDiagnostics({
+    dictionary,
+    runtime,
+    testingDownloads,
+    productionDownloads,
+    releases,
+  });
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+    <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
       <section className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-foreground">{labels.runtimeTitle}</h2>
@@ -162,8 +172,111 @@ function ReleaseOverview({
           />
         </div>
       </section>
+
+      <section className="rounded-xl border border-border/70 bg-card p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold text-foreground">{labels.diagnosticsTitle}</h2>
+          <AdminStatusBadge tone={diagnostics.tone}>{diagnostics.status}</AdminStatusBadge>
+        </div>
+        <div className="mt-4 space-y-3">
+          {diagnostics.items.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-lg border border-border/60 bg-muted/10 px-3 py-2"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-foreground">{item.label}</div>
+                  <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {item.detail}
+                  </div>
+                </div>
+                <AdminStatusBadge tone={item.tone}>{item.status}</AdminStatusBadge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
+}
+
+function buildReleaseDiagnostics({
+  dictionary,
+  runtime,
+  testingDownloads,
+  productionDownloads,
+  releases,
+}: {
+  dictionary: Awaited<ReturnType<typeof getAdminI18n>>["dictionary"];
+  runtime: RuntimeVersionInfo | null;
+  testingDownloads: ClientDownloadRow[];
+  productionDownloads: ClientDownloadRow[];
+  releases: ClientReleaseRow[];
+}) {
+  const labels = dictionary.clientReleases;
+  const normalizedRuntimeSha = runtime?.sourceSha?.trim();
+  const matchedRelease = normalizedRuntimeSha
+    ? releases.find((item) => item.sourceSha === normalizedRuntimeSha)
+    : undefined;
+  const latestRelease = releases[0];
+  const runtimeKnown = Boolean(
+    runtime?.version && normalizedRuntimeSha && normalizedRuntimeSha !== "unknown",
+  );
+  const diagnostics: Array<{
+    label: string;
+    detail: string;
+    status: string;
+    tone: DiagnosticTone;
+  }> = [
+    {
+      label: labels.diagnosticRuntime,
+      detail: runtimeKnown
+        ? `${runtime?.version ?? "-"} · ${shortHash(normalizedRuntimeSha)}`
+        : labels.diagnosticRuntimeUnavailable,
+      status: runtimeKnown ? labels.diagnosticPassed : labels.diagnosticNeedsAttention,
+      tone: runtimeKnown ? "success" : "warning",
+    },
+    {
+      label: labels.diagnosticSourceMatch,
+      detail: matchedRelease
+        ? `${matchedRelease.releaseVersion} · ${matchedRelease.channel}`
+        : latestRelease
+          ? labels.diagnosticSourceMismatch
+          : labels.diagnosticNoReleaseRecords,
+      status: matchedRelease ? labels.diagnosticPassed : labels.diagnosticNeedsAttention,
+      tone: matchedRelease ? "success" : "warning",
+    },
+    {
+      label: labels.diagnosticTestingDownloads,
+      detail: testingDownloads.length > 0
+        ? `${testingDownloads.length} ${labels.availableDownloads}`
+        : labels.unavailableDownloads,
+      status: testingDownloads.length > 0
+        ? labels.diagnosticPassed
+        : labels.diagnosticNeedsAttention,
+      tone: testingDownloads.length > 0 ? "success" : "warning",
+    },
+    {
+      label: labels.diagnosticProductionDownloads,
+      detail: productionDownloads.length > 0
+        ? `${productionDownloads.length} ${labels.availableDownloads}`
+        : labels.unavailableDownloads,
+      status: productionDownloads.length > 0
+        ? labels.diagnosticPassed
+        : labels.diagnosticInformational,
+      tone: productionDownloads.length > 0 ? "success" : "neutral",
+    },
+  ];
+  const hasWarning = diagnostics.some(
+    (item) => item.tone === "warning" || item.tone === "danger",
+  );
+
+  return {
+    items: diagnostics,
+    status: hasWarning ? labels.diagnosticNeedsAttention : labels.diagnosticPassed,
+    tone: hasWarning ? "warning" as const : "success" as const,
+  };
 }
 
 function ReleaseOverviewItem({
@@ -374,6 +487,7 @@ export default async function ClientReleasesPage({
         runtime={overview.runtime}
         testingDownloads={overview.testingDownloads}
         productionDownloads={overview.productionDownloads}
+        releases={result.data}
       />
       <AdminTablePage
         title={dictionary.clientReleases.title}
