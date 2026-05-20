@@ -2,6 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { CreateUserDialog, EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
+import { AdminStatusBadge } from "@/src/components/admin/status-badge";
+import {
+  AdminBadgeList,
+  AdminEmptyValue,
+  AdminFilterSummary,
+} from "@/src/components/admin/table-display";
 import {
   AdminTableActionLink,
   AdminTablePagination,
@@ -109,18 +115,22 @@ export default async function UsersPage({
     {
       id: "roles",
       header: dictionary.users.roles,
-      cell: (item) => (item.roles.length > 0 ? item.roles.join(", ") : "-"),
+      cell: (item) => <AdminBadgeList values={item.roles} />,
     },
     {
       id: "status",
       header: dictionary.users.status,
-      cell: (item) => getUserStatusLabel(item.status, dictionary),
+      cell: (item) => (
+        <AdminStatusBadge tone={item.status === "active" ? "success" : "neutral"}>
+          {getUserStatusLabel(item.status, dictionary)}
+        </AdminStatusBadge>
+      ),
     },
     {
       id: "lastLoginAt",
       header: dictionary.users.lastLoginAt,
       cell: (item) => (
-        item.lastLoginAt ? formatAdminDateTime(locale, item.lastLoginAt) : "-"
+        item.lastLoginAt ? formatAdminDateTime(locale, item.lastLoginAt) : <AdminEmptyValue />
       ),
     },
     {
@@ -158,26 +168,31 @@ export default async function UsersPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <AdminFilterToolbar>
-          <input name="pageSize" type="hidden" value={pageSize} />
-          <Input
-            aria-label={dictionary.common.search}
-            className="w-full lg:max-w-xs"
-            defaultValue={search}
-            name="search"
-            placeholder={dictionary.common.search}
-          />
-          <AdminFilterActions>
-            <Button type="submit" variant="outline">
-              {dictionary.common.search}
-            </Button>
-            {search ? (
-              <Button asChild type="button" variant="ghost">
-                <Link href={buildUsersHref(1, "", pageSize)}>{dictionary.common.clearFilters}</Link>
+        <div className="grid gap-3">
+          <AdminFilterToolbar>
+            <input name="pageSize" type="hidden" value={pageSize} />
+            <Input
+              aria-label={dictionary.common.search}
+              className="w-full lg:max-w-xs"
+              defaultValue={search}
+              name="search"
+              placeholder={dictionary.common.search}
+            />
+            <AdminFilterActions>
+              <Button type="submit" variant="outline">
+                {dictionary.common.search}
               </Button>
-            ) : null}
-          </AdminFilterActions>
-        </AdminFilterToolbar>
+              {search ? (
+                <Button asChild type="button" variant="ghost">
+                  <Link href={buildUsersHref(1, "", pageSize)}>{dictionary.common.clearFilters}</Link>
+                </Button>
+              ) : null}
+            </AdminFilterActions>
+          </AdminFilterToolbar>
+          <AdminFilterSummary
+            items={[search ? `${dictionary.common.search}: ${search}` : undefined]}
+          />
+        </div>
       )}
       pagination={(
         <AdminTablePagination

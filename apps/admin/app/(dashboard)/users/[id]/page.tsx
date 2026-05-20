@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
-import { Badge } from "@/src/components/ui/badge";
+import { AdminBadgeList } from "@/src/components/admin/table-display";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { getAdminI18n } from "@/src/i18n/server";
@@ -77,28 +77,16 @@ export default async function UserDetailPage({
           <AdminDetailItem label={dictionary.users.email} value={user.email} />
           <AdminDetailItem
             label={dictionary.users.roles}
-            value={(
-              <div className="flex flex-wrap gap-2">
-                {user.roles.length > 0 ? (
-                  user.roles.map((role) => (
-                    <Badge key={role} variant="outline">
-                    {role}
-                  </Badge>
-                ))
-              ) : (
-                  "-"
-                )}
-              </div>
-            )}
+            value={<AdminBadgeList maxWidthClassName="max-w-none" values={user.roles} />}
           />
           <AdminDetailItem label={dictionary.users.status} value={getUserStatusLabel(user.status, dictionary)} />
           <AdminDetailItem
             label={dictionary.users.createdAt}
-            value={user.createdAt ? formatAdminDateTime(locale, user.createdAt) : "-"}
+            value={user.createdAt ? formatAdminDateTime(locale, user.createdAt) : null}
           />
           <AdminDetailItem
             label={dictionary.users.lastLoginAt}
-            value={user.lastLoginAt ? formatAdminDateTime(locale, user.lastLoginAt) : "-"}
+            value={user.lastLoginAt ? formatAdminDateTime(locale, user.lastLoginAt) : null}
           />
         </AdminDetailList>
       </DataPanel>

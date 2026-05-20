@@ -10,6 +10,12 @@ import { AdminFormField } from "@/src/components/admin/form-dialog";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
+import { AdminStatusBadge } from "@/src/components/admin/status-badge";
+import {
+  AdminBadgeList,
+  AdminEmptyValue,
+  AdminTextValue,
+} from "@/src/components/admin/table-display";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import { Card, CardContent } from "@/src/components/ui/card";
@@ -26,6 +32,10 @@ import { Textarea } from "@/src/components/ui/textarea";
 import { getAdminI18n } from "@/src/i18n/server";
 import { getClientReleaseById } from "@/src/lib/api-client";
 import { formatFileSize, shortHash } from "@/src/lib/admin-format";
+import {
+  getClientReleaseDistributionStatusLabel,
+  getClientReleaseDistributionStatusTone,
+} from "@/src/lib/client-release-display";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { hasPermission, assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
@@ -33,7 +43,7 @@ import { formatAdminDateTime } from "@/src/lib/utils";
 
 function LinkValue({ href }: { href?: string | null }) {
   if (!href) {
-    return <span>-</span>;
+    return <AdminEmptyValue />;
   }
   return (
     <Link className="break-all text-primary underline-offset-4 hover:underline" href={href}>
@@ -107,15 +117,15 @@ export default async function ClientReleaseDetailPage({
             <AdminDetailItem label={dictionary.clientReleases.channel} value={<Badge variant="outline">{release.channel}</Badge>} />
             <AdminDetailItem label={dictionary.common.status} value={release.status} />
             <AdminDetailItem label={dictionary.clientReleases.source} value={release.sourceRepository} />
-            <AdminDetailItem label={dictionary.clientReleases.sourceRun} value={release.sourceRunId || "-"} />
+            <AdminDetailItem label={dictionary.clientReleases.sourceRun} value={release.sourceRunId} />
             <AdminDetailItem label={dictionary.clientReleases.sourceSha} value={<span className="font-mono">{release.sourceSha}</span>} />
             <AdminDetailItem
               label={dictionary.clientReleases.generatedAt}
-              value={release.generatedAt ? formatAdminDateTime(locale, release.generatedAt) : "-"}
+              value={release.generatedAt ? formatAdminDateTime(locale, release.generatedAt) : null}
             />
             <AdminDetailItem
               label={dictionary.clientReleases.syncedAt}
-              value={release.syncedAt ? formatAdminDateTime(locale, release.syncedAt) : "-"}
+              value={release.syncedAt ? formatAdminDateTime(locale, release.syncedAt) : null}
             />
             <AdminDetailItem
               label={dictionary.clientReleases.dryRun}
@@ -150,25 +160,28 @@ export default async function ClientReleaseDetailPage({
                     <TableCell>{formatClientTarget(item.target)}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <div>{item.fileName || "-"}</div>
-                        <div className="text-xs text-muted-foreground">{item.artifactName}</div>
+                        <AdminTextValue maxWidthClassName="max-w-72">{item.fileName}</AdminTextValue>
+                        <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-72">
+                          {item.artifactName}
+                        </AdminTextValue>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{item.distributionStatus}</Badge>
+                      <AdminStatusBadge tone={getClientReleaseDistributionStatusTone(item.distributionStatus)}>
+                        {getClientReleaseDistributionStatusLabel(item.distributionStatus, locale)}
+                      </AdminStatusBadge>
                     </TableCell>
                     <TableCell>{formatFileSize(item.fileSize)}</TableCell>
                     <TableCell className="font-mono text-xs">{shortHash(item.sha256)}</TableCell>
                     <TableCell className="min-w-64 text-xs"><LinkValue href={item.sourceUrl} /></TableCell>
                     <TableCell className="min-w-64 text-xs"><LinkValue href={item.distributionUrl} /></TableCell>
                     <TableCell>
-                      {item.blockers.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {item.blockers.map((blocker) => (
-                            <Badge key={blocker} variant="outline">{blocker}</Badge>
-                          ))}
-                        </div>
-                      ) : dictionary.clientReleases.noBlockers}
+                      <AdminBadgeList
+                        emptyClassName="text-foreground"
+                        values={item.blockers.length > 0
+                          ? item.blockers
+                          : [dictionary.clientReleases.noBlockers]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

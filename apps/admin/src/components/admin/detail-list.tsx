@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AdminEmptyValue } from "@/src/components/admin/table-display";
 import { cn } from "@/src/lib/utils";
 
 export function AdminDetailList({
@@ -25,7 +26,7 @@ export function AdminDetailItem({
   return (
     <div>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words">{value || "-"}</dd>
+      <dd className="mt-1 break-words">{value || <AdminEmptyValue />}</dd>
     </div>
   );
 }

@@ -140,6 +140,13 @@ test("admin 管理页基础交互不会退化", async ({ page }) => {
   await expect(page.locator("tbody tr").first()).toBeVisible();
   await expect(page.getByRole("combobox", { name: "客户分组" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "客户标签" })).toBeVisible();
+  await page.getByRole("button", { name: "新建客户" }).click();
+  const createCustomerDialog = page.getByRole("dialog");
+  await expect(createCustomerDialog).toBeVisible();
+  await expect(createCustomerDialog.locator("#create-customer-name")).toBeVisible();
+  await expect(createCustomerDialog.locator("#create-customer-email")).toBeVisible();
+  await createCustomerDialog.getByRole("button", { name: "取消" }).click();
+  await expect(createCustomerDialog).toBeHidden();
   await page.locator("tbody tr").first().getByRole("button", { name: /^更新$/ }).click();
   const customerDialog = page.getByRole("dialog");
   await expect(customerDialog).toBeVisible();
@@ -149,6 +156,19 @@ test("admin 管理页基础交互不会退化", async ({ page }) => {
   ]);
   await customerDialog.getByRole("button", { name: "取消" }).click();
   await expect(customerDialog).toBeHidden();
+  await page.locator("tbody tr").first().getByRole("button", { name: "更新状态" }).click();
+  const customerStatusDialog = page.getByRole("dialog");
+  await expect(customerStatusDialog).toBeVisible();
+  await expect(customerStatusDialog.locator("#edit-customer-status")).toBeVisible();
+  await customerStatusDialog.getByRole("button", { name: "取消" }).click();
+  await expect(customerStatusDialog).toBeHidden();
+  await page.locator("tbody tr").first().getByRole("button", { name: "重置密码" }).click();
+  const resetPasswordDialog = page.getByRole("dialog");
+  await expect(resetPasswordDialog).toBeVisible();
+  await expect(resetPasswordDialog.locator("#customer-reset-password-next")).toBeVisible();
+  await expect(resetPasswordDialog.locator("#customer-reset-password-confirm")).toBeVisible();
+  await resetPasswordDialog.getByRole("button", { name: "取消" }).click();
+  await expect(resetPasswordDialog).toBeHidden();
 
   await page.getByRole("button", { name: "管理分组" }).click();
   const groupDialog = page.getByRole("dialog");
@@ -186,6 +206,10 @@ test("admin 管理页基础交互不会退化", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "环境" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "客户端" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "平台" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "分发状态" })).toBeVisible();
+  await page.getByRole("combobox", { name: "分发状态" }).click();
+  await expect(page.getByRole("option", { name: "已同步" })).toBeVisible();
+  await page.keyboard.press("Escape");
 
   expect(consoleErrors).toEqual([]);
 });

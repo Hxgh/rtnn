@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { CreateRoleDialog, EditRoleDialog } from "@/src/components/admin/roles/role-form-dialogs";
 import {
+  AdminEmptyValue,
+  AdminFilterSummary,
+  AdminTextValue,
+} from "@/src/components/admin/table-display";
+import {
   AdminTableActionLink,
   AdminTablePagination,
   AdminTablePage,
@@ -97,7 +102,7 @@ export default async function RolesPage({
     {
       id: "description",
       header: dictionary.roles.description,
-      cell: (item) => item.description || "-",
+      cell: (item) => <AdminTextValue>{item.description}</AdminTextValue>,
     },
     {
       id: "permissions",
@@ -107,7 +112,9 @@ export default async function RolesPage({
     {
       id: "updatedAt",
       header: dictionary.roles.updatedAt,
-      cell: (item) => (item.updatedAt ? formatAdminDateTime(locale, item.updatedAt) : "-"),
+      cell: (item) => (
+        item.updatedAt ? formatAdminDateTime(locale, item.updatedAt) : <AdminEmptyValue />
+      ),
     },
     {
       id: "actions",
@@ -144,26 +151,31 @@ export default async function RolesPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <AdminFilterToolbar>
-          <input name="pageSize" type="hidden" value={pageSize} />
-          <Input
-            aria-label={dictionary.common.search}
-            className="w-full lg:max-w-xs"
-            defaultValue={search}
-            name="search"
-            placeholder={dictionary.common.search}
-          />
-          <AdminFilterActions>
-            <Button type="submit" variant="outline">
-              {dictionary.common.search}
-            </Button>
-            {search ? (
-              <Button asChild type="button" variant="ghost">
-                <Link href={buildRolesHref(1, "", pageSize)}>{dictionary.common.clearFilters}</Link>
+        <div className="grid gap-3">
+          <AdminFilterToolbar>
+            <input name="pageSize" type="hidden" value={pageSize} />
+            <Input
+              aria-label={dictionary.common.search}
+              className="w-full lg:max-w-xs"
+              defaultValue={search}
+              name="search"
+              placeholder={dictionary.common.search}
+            />
+            <AdminFilterActions>
+              <Button type="submit" variant="outline">
+                {dictionary.common.search}
               </Button>
-            ) : null}
-          </AdminFilterActions>
-        </AdminFilterToolbar>
+              {search ? (
+                <Button asChild type="button" variant="ghost">
+                  <Link href={buildRolesHref(1, "", pageSize)}>{dictionary.common.clearFilters}</Link>
+                </Button>
+              ) : null}
+            </AdminFilterActions>
+          </AdminFilterToolbar>
+          <AdminFilterSummary
+            items={[search ? `${dictionary.common.search}: ${search}` : undefined]}
+          />
+        </div>
       )}
       pagination={(
         <AdminTablePagination

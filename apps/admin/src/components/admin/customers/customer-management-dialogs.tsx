@@ -15,6 +15,7 @@ import {
   resolveRequiredFieldMessage,
 } from "@/src/components/admin/form-dialog";
 import { EmptyBlock } from "@/src/components/admin/state-block";
+import { AdminTextValue } from "@/src/components/admin/table-display";
 export { CustomerStatusDialog } from "@/src/components/admin/customers/customer-status-dialog";
 export { ResetCustomerPasswordDialog } from "@/src/components/admin/customers/reset-customer-password-dialog";
 import { Button } from "@/src/components/ui/button";
@@ -133,9 +134,9 @@ export function ManageCustomerGroupsDialog({
                     <>
                       <div className="space-y-1">
                         <div className="font-medium text-foreground">{group.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {group.description || "-"}
-                        </div>
+                        <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-80">
+                          {group.description}
+                        </AdminTextValue>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {dictionary.customers.linkedCustomers}: {count}

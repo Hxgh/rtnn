@@ -2,6 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
+import { AdminStatusBadge } from "@/src/components/admin/status-badge";
+import {
+  AdminEmptyValue,
+  AdminFilterSummary,
+  AdminTextValue,
+} from "@/src/components/admin/table-display";
 import {
   AdminTablePagination,
   AdminTablePage,
@@ -83,9 +89,9 @@ function buildAuditLogsHref(
   return query ? `${adminRoutes.auditLogs}?${query}` : adminRoutes.auditLogs;
 }
 
-function formatAuditDetail(detail: AuditLogRow["detail"]) {
+function formatAuditDetail(detail: AuditLogRow["detail"]): string | null {
   if (!detail) {
-    return "-";
+    return null;
   }
   return JSON.stringify(detail);
 }
@@ -147,12 +153,16 @@ export default async function AuditLogsPage({
     {
       id: "actorName",
       header: dictionary.auditLogs.actor,
-      cell: (item) => item.actorName || "-",
+      cell: (item) => <AdminTextValue>{item.actorName}</AdminTextValue>,
     },
     {
       id: "actorType",
       header: dictionary.auditLogs.actorType,
-      cell: (item) => getActorTypeLabel(item.actorType, dictionary),
+      cell: (item) => (
+        <AdminStatusBadge tone={item.actorType === "system" ? "neutral" : "success"}>
+          {getActorTypeLabel(item.actorType, dictionary)}
+        </AdminStatusBadge>
+      ),
     },
     {
       id: "action",
@@ -163,13 +173,16 @@ export default async function AuditLogsPage({
     {
       id: "resourceType",
       header: dictionary.auditLogs.resourceType,
-      cell: (item) => item.resourceType,
+      cell: (item) => <AdminTextValue>{item.resourceType}</AdminTextValue>,
     },
     {
       id: "resourceId",
       header: dictionary.auditLogs.resourceId,
-      cell: (item) => item.resourceId || "-",
-      cellClassName: "font-mono text-xs",
+      cell: (item) => (
+        item.resourceId
+          ? <AdminTextValue mono maxWidthClassName="max-w-40">{item.resourceId}</AdminTextValue>
+          : <AdminEmptyValue />
+      ),
     },
     {
       id: "createdAt",
@@ -179,7 +192,11 @@ export default async function AuditLogsPage({
     {
       id: "detail",
       header: dictionary.auditLogs.detail,
-      cell: (item) => formatAuditDetail(item.detail),
+      cell: (item) => (
+        <AdminTextValue mono maxWidthClassName="max-w-96">
+          {formatAuditDetail(item.detail)}
+        </AdminTextValue>
+      ),
     },
   ];
 
@@ -191,44 +208,55 @@ export default async function AuditLogsPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <AdminFilterToolbar>
-          <input name="pageSize" type="hidden" value={pageSize} />
-          <Input
-            aria-label={dictionary.common.search}
-            className="w-full lg:max-w-xs"
-            defaultValue={filters.search ?? ""}
-            name="search"
-            placeholder={dictionary.common.search}
-          />
-          <Input
-            aria-label={dictionary.auditLogs.action}
-            className="w-full lg:max-w-xs"
-            defaultValue={filters.action ?? ""}
-            name="action"
-            placeholder={dictionary.auditLogs.action}
-          />
-          <FormSelect
-            ariaLabel={dictionary.auditLogs.actorType}
-            defaultValue={filters.actorType ?? ""}
-            emptyLabel={dictionary.auditLogs.allActorTypes}
-            name="actorType"
-            options={auditActorTypes.map((actorType) => ({
-              label: getActorTypeLabel(actorType, dictionary),
-              value: actorType,
-            }))}
-            triggerClassName="w-full lg:w-48"
-          />
-          <AdminFilterActions>
-            <Button type="submit" variant="outline">
-              {dictionary.common.search}
-            </Button>
-            {hasActiveFilters(filters) ? (
-              <Button asChild type="button" variant="ghost">
-                <Link href={buildAuditLogsHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
+        <div className="grid gap-3">
+          <AdminFilterToolbar>
+            <input name="pageSize" type="hidden" value={pageSize} />
+            <Input
+              aria-label={dictionary.common.search}
+              className="w-full lg:max-w-xs"
+              defaultValue={filters.search ?? ""}
+              name="search"
+              placeholder={dictionary.common.search}
+            />
+            <Input
+              aria-label={dictionary.auditLogs.action}
+              className="w-full lg:max-w-xs"
+              defaultValue={filters.action ?? ""}
+              name="action"
+              placeholder={dictionary.auditLogs.action}
+            />
+            <FormSelect
+              ariaLabel={dictionary.auditLogs.actorType}
+              defaultValue={filters.actorType ?? ""}
+              emptyLabel={dictionary.auditLogs.allActorTypes}
+              name="actorType"
+              options={auditActorTypes.map((actorType) => ({
+                label: getActorTypeLabel(actorType, dictionary),
+                value: actorType,
+              }))}
+              triggerClassName="w-full lg:w-48"
+            />
+            <AdminFilterActions>
+              <Button type="submit" variant="outline">
+                {dictionary.common.search}
               </Button>
-            ) : null}
-          </AdminFilterActions>
-        </AdminFilterToolbar>
+              {hasActiveFilters(filters) ? (
+                <Button asChild type="button" variant="ghost">
+                  <Link href={buildAuditLogsHref(1, {}, pageSize)}>{dictionary.common.clearFilters}</Link>
+                </Button>
+              ) : null}
+            </AdminFilterActions>
+          </AdminFilterToolbar>
+          <AdminFilterSummary
+            items={[
+              filters.search ? `${dictionary.common.search}: ${filters.search}` : undefined,
+              filters.action ? `${dictionary.auditLogs.action}: ${filters.action}` : undefined,
+              filters.actorType
+                ? `${dictionary.auditLogs.actorType}: ${getActorTypeLabel(filters.actorType, dictionary)}`
+                : undefined,
+            ]}
+          />
+        </div>
       )}
       pagination={(
         <AdminTablePagination

@@ -9,6 +9,11 @@ import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/f
 import { FormSelect } from "@/src/components/admin/form-select";
 import { AdminStatusBadge } from "@/src/components/admin/status-badge";
 import {
+  AdminEmptyValue,
+  AdminFilterSummary,
+  AdminTextValue,
+} from "@/src/components/admin/table-display";
+import {
   AdminTableActionLink,
   AdminTablePagination,
   AdminTablePage,
@@ -23,6 +28,11 @@ import { getAdminI18n } from "@/src/i18n/server";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { listClientPackages } from "@/src/lib/api-client";
 import { formatFileSize, shortHash } from "@/src/lib/admin-format";
+import {
+  clientReleaseDistributionStatuses,
+  getClientReleaseDistributionStatusLabel,
+  getClientReleaseDistributionStatusTone,
+} from "@/src/lib/client-release-display";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { parsePageSize } from "@/src/lib/pagination";
 import { assertPermission } from "@/src/lib/permissions";
@@ -32,7 +42,6 @@ import { formatAdminDateTime, parsePositiveInt } from "@/src/lib/utils";
 const defaultPageSize = 20;
 const clients = ["adminDesktop", "appMobile"] as const;
 const targets = ["android", "ios", "macos", "windows"] as const;
-const distributionStatuses = ["pending", "synced", "failed", "pruned", "disabled"] as const;
 
 type ClientPackageRow = Awaited<ReturnType<typeof listClientPackages>>["data"][number];
 type PageSearchParams = Promise<{
@@ -70,19 +79,6 @@ function buildHref(page: number, pageSize: number, filters: ReturnType<typeof no
   }
   const query = params.toString();
   return query ? `${adminRoutes.clientReleases.packages}?${query}` : adminRoutes.clientReleases.packages;
-}
-
-function distributionStatusTone(status: string) {
-  if (status === "synced") {
-    return "success";
-  }
-  if (status === "failed") {
-    return "danger";
-  }
-  if (status === "pruned" || status === "disabled") {
-    return "neutral";
-  }
-  return "warning";
 }
 
 export default async function ClientPackagesPage({
@@ -164,8 +160,10 @@ export default async function ClientPackagesPage({
       header: dictionary.clientReleases.artifact,
       cell: (item) => (
         <div className="max-w-72 space-y-1">
-          <div className="break-all">{item.fileName || item.artifactName}</div>
-          <div className="break-all text-xs text-muted-foreground">{item.artifactName}</div>
+          <AdminTextValue maxWidthClassName="max-w-72">{item.fileName || item.artifactName}</AdminTextValue>
+          <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-72">
+            {item.artifactName}
+          </AdminTextValue>
         </div>
       ),
     },
@@ -173,8 +171,8 @@ export default async function ClientPackagesPage({
       id: "distributionStatus",
       header: dictionary.clientReleases.distributionStatus,
       cell: (item) => (
-        <AdminStatusBadge tone={distributionStatusTone(item.distributionStatus)}>
-          {item.distributionStatus}
+        <AdminStatusBadge tone={getClientReleaseDistributionStatusTone(item.distributionStatus)}>
+          {getClientReleaseDistributionStatusLabel(item.distributionStatus, locale)}
         </AdminStatusBadge>
       ),
     },
@@ -199,14 +197,16 @@ export default async function ClientPackagesPage({
       cell: (item) => (
         <div className="space-y-1 text-xs">
           <div className="font-mono">{shortHash(item.releaseSourceSha)}</div>
-          <div className="text-muted-foreground">{item.releaseSourceRunId || "-"}</div>
+          <div className="text-muted-foreground">{item.releaseSourceRunId || <AdminEmptyValue />}</div>
         </div>
       ),
     },
     {
       id: "syncedAt",
       header: dictionary.clientReleases.syncedAt,
-      cell: (item) => item.syncedAt ? formatAdminDateTime(locale, item.syncedAt) : "-",
+      cell: (item) => (
+        item.syncedAt ? formatAdminDateTime(locale, item.syncedAt) : <AdminEmptyValue />
+      ),
     },
     {
       id: "actions",
@@ -248,58 +248,78 @@ export default async function ClientPackagesPage({
       columns={columns}
       getRowKey={(item) => item.id}
       toolbar={(
-        <AdminFilterToolbar>
-          <input name="pageSize" type="hidden" value={pageSize} />
-          <Input
-            aria-label={dictionary.common.search}
-            className="w-full lg:max-w-xs"
-            defaultValue={filters.search}
-            name="search"
-            placeholder={dictionary.common.search}
+        <div className="grid gap-3">
+          <AdminFilterToolbar>
+            <input name="pageSize" type="hidden" value={pageSize} />
+            <Input
+              aria-label={dictionary.common.search}
+              className="w-full lg:max-w-xs"
+              defaultValue={filters.search}
+              name="search"
+              placeholder={dictionary.common.search}
+            />
+            <FormSelect
+              ariaLabel={dictionary.clientReleases.channel}
+              defaultValue={filters.channel}
+              emptyLabel={dictionary.clientReleases.allChannels}
+              name="channel"
+              options={["testing", "production"].map((value) => ({ label: value, value }))}
+              triggerClassName="w-full lg:w-40"
+            />
+            <FormSelect
+              ariaLabel={dictionary.clientReleases.client}
+              defaultValue={filters.client}
+              emptyLabel={dictionary.clientReleases.allClients}
+              name="client"
+              options={clients.map((value) => ({ label: formatClientRole(value, locale), value }))}
+              triggerClassName="w-full lg:w-44"
+            />
+            <FormSelect
+              ariaLabel={dictionary.clientReleases.target}
+              defaultValue={filters.target}
+              emptyLabel={dictionary.clientReleases.allTargets}
+              name="target"
+              options={targets.map((value) => ({ label: formatClientTarget(value), value }))}
+              triggerClassName="w-full lg:w-36"
+            />
+            <FormSelect
+              ariaLabel={dictionary.clientReleases.distributionStatus}
+              defaultValue={filters.distributionStatus}
+              emptyLabel={dictionary.clientReleases.allStatuses}
+              name="distributionStatus"
+              options={clientReleaseDistributionStatuses.map((value) => ({
+                label: getClientReleaseDistributionStatusLabel(value, locale),
+                value,
+              }))}
+              triggerClassName="w-full lg:w-40"
+            />
+            <AdminFilterActions>
+              <Button type="submit" variant="outline">{dictionary.common.search}</Button>
+              {Object.values(filters).some(Boolean) ? (
+                <Button asChild type="button" variant="ghost">
+                  <Link href={buildHref(1, pageSize, normalizeFilters())}>
+                    {dictionary.common.clearFilters}
+                  </Link>
+                </Button>
+              ) : null}
+            </AdminFilterActions>
+          </AdminFilterToolbar>
+          <AdminFilterSummary
+            items={[
+              filters.search ? `${dictionary.common.search}: ${filters.search}` : undefined,
+              filters.channel ? `${dictionary.clientReleases.channel}: ${filters.channel}` : undefined,
+              filters.client
+                ? `${dictionary.clientReleases.client}: ${formatClientRole(filters.client, locale)}`
+                : undefined,
+              filters.target
+                ? `${dictionary.clientReleases.target}: ${formatClientTarget(filters.target)}`
+                : undefined,
+              filters.distributionStatus
+                ? `${dictionary.clientReleases.distributionStatus}: ${getClientReleaseDistributionStatusLabel(filters.distributionStatus, locale)}`
+                : undefined,
+            ]}
           />
-          <FormSelect
-            ariaLabel={dictionary.clientReleases.channel}
-            defaultValue={filters.channel}
-            emptyLabel={dictionary.clientReleases.allChannels}
-            name="channel"
-            options={["testing", "production"].map((value) => ({ label: value, value }))}
-            triggerClassName="w-full lg:w-40"
-          />
-          <FormSelect
-            ariaLabel={dictionary.clientReleases.client}
-            defaultValue={filters.client}
-            emptyLabel={dictionary.clientReleases.allClients}
-            name="client"
-            options={clients.map((value) => ({ label: formatClientRole(value, locale), value }))}
-            triggerClassName="w-full lg:w-44"
-          />
-          <FormSelect
-            ariaLabel={dictionary.clientReleases.target}
-            defaultValue={filters.target}
-            emptyLabel={dictionary.clientReleases.allTargets}
-            name="target"
-            options={targets.map((value) => ({ label: formatClientTarget(value), value }))}
-            triggerClassName="w-full lg:w-36"
-          />
-          <FormSelect
-            ariaLabel={dictionary.clientReleases.distributionStatus}
-            defaultValue={filters.distributionStatus}
-            emptyLabel={dictionary.clientReleases.allStatuses}
-            name="distributionStatus"
-            options={distributionStatuses.map((value) => ({ label: value, value }))}
-            triggerClassName="w-full lg:w-40"
-          />
-          <AdminFilterActions>
-            <Button type="submit" variant="outline">{dictionary.common.search}</Button>
-            {Object.values(filters).some(Boolean) ? (
-              <Button asChild type="button" variant="ghost">
-                <Link href={buildHref(1, pageSize, normalizeFilters())}>
-                  {dictionary.common.clearFilters}
-                </Link>
-              </Button>
-            ) : null}
-          </AdminFilterActions>
-        </AdminFilterToolbar>
+        </div>
       )}
       pagination={(
         <AdminTablePagination

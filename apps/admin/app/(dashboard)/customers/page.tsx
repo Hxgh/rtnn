@@ -2,6 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
+import {
+  AdminFilterSummary,
+  AdminTextValue,
+  AdminEmptyValue,
+  AdminReferenceBadgeList,
+} from "@/src/components/admin/table-display";
 import { CreateCustomerDialog, EditCustomerDialog } from "@/src/components/admin/customers/customer-form-dialogs";
 import {
   CustomerStatusDialog,
@@ -16,7 +22,6 @@ import {
   type AdminTableColumn,
 } from "@/src/components/admin/table-page";
 import { ErrorBlock } from "@/src/components/admin/state-block";
-import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { getAdminI18n } from "@/src/i18n/server";
@@ -119,26 +124,6 @@ function getCustomerStatusLabel(
   }
 }
 
-function renderLookupBadges(values?: Array<{ id?: string; name: string }>) {
-  if (!values || values.length === 0) {
-    return <span className="text-muted-foreground">-</span>;
-  }
-
-  return (
-    <div className="flex max-w-64 flex-wrap gap-1.5">
-      {values.map((item) => (
-        <Badge
-          key={item.id ?? item.name}
-          className="max-w-full truncate normal-case tracking-normal"
-          variant="outline"
-        >
-          {item.name}
-        </Badge>
-      ))}
-    </div>
-  );
-}
-
 function findOptionName(
   id: string | undefined,
   options: Array<{ id: string; name: string }>,
@@ -239,19 +224,7 @@ function CustomersToolbar({
           ) : null}
         </AdminFilterActions>
       </AdminFilterToolbar>
-      {activeFilterLabels.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {activeFilterLabels.map((label) => (
-            <Badge
-              key={label}
-              className="normal-case tracking-normal"
-              variant="secondary"
-            >
-              {label}
-            </Badge>
-          ))}
-        </div>
-      ) : null}
+      <AdminFilterSummary items={activeFilterLabels} />
     </div>
   );
 }
@@ -327,17 +300,17 @@ export default async function CustomersPage({
     {
       id: "phone",
       header: dictionary.customers.phone,
-      cell: (item) => item.phone || "-",
+      cell: (item) => <AdminTextValue>{item.phone}</AdminTextValue>,
     },
     {
       id: "groups",
       header: dictionary.customers.groups,
-      cell: (item) => renderLookupBadges(item.groups),
+      cell: (item) => <AdminReferenceBadgeList values={item.groups} />,
     },
     {
       id: "tags",
       header: dictionary.customers.tags,
-      cell: (item) => renderLookupBadges(item.tags),
+      cell: (item) => <AdminReferenceBadgeList values={item.tags} />,
     },
     {
       id: "status",
@@ -352,7 +325,7 @@ export default async function CustomersPage({
       id: "lastLoginAt",
       header: dictionary.customers.lastLoginAt,
       cell: (item) => (
-        item.lastLoginAt ? formatAdminDateTime(locale, item.lastLoginAt) : "-"
+        item.lastLoginAt ? formatAdminDateTime(locale, item.lastLoginAt) : <AdminEmptyValue />
       ),
     },
   ];
