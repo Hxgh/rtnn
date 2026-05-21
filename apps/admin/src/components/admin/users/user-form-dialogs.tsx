@@ -204,7 +204,6 @@ function UserDialogForm({
                 defaultValue={user?.name ?? ""}
                 id={variant === "create" ? "create-user-name" : "edit-user-name"}
                 name="name"
-                required
               />
             </AdminFormField>
 
@@ -226,7 +225,6 @@ function UserDialogForm({
                     id="create-user-email"
                     name="email"
                     type="email"
-                    required
                   />
                 </AdminFormField>
                 <AdminFormField
@@ -244,7 +242,6 @@ function UserDialogForm({
                     id="create-user-password"
                     name="password"
                     type="password"
-                    required
                   />
                 </AdminFormField>
               </>

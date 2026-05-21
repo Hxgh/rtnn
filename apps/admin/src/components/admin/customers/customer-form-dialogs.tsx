@@ -215,7 +215,6 @@ function CustomerDialogForm({
                 defaultValue={customer?.name ?? ""}
                 id={variant === "create" ? "create-customer-name" : "edit-customer-name"}
                 name="name"
-                required
               />
             </AdminFormField>
 
@@ -247,7 +246,6 @@ function CustomerDialogForm({
                     id="create-customer-email"
                     name="email"
                     type="email"
-                    required
                   />
                 </AdminFormField>
                 <AdminFormField
@@ -265,7 +263,6 @@ function CustomerDialogForm({
                     id="create-customer-password"
                     name="password"
                     type="password"
-                    required
                   />
                 </AdminFormField>
               </>

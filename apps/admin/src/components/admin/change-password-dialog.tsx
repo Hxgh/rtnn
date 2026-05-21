@@ -234,7 +234,6 @@ function PasswordField({
           minLength={minLength}
           name={id}
           type={visible ? "text" : "password"}
-          required
         />
         <Button
           aria-label={visible ? dictionary.account.hidePassword : dictionary.account.showPassword}

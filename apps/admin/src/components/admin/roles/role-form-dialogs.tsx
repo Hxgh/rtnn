@@ -199,7 +199,6 @@ function RoleDialogForm({
                 defaultValue={role?.name ?? ""}
                 id={variant === "create" ? "create-role-name" : "edit-role-name"}
                 name="name"
-                required
               />
             </AdminFormField>
             <AdminFormField
