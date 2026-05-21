@@ -12,9 +12,9 @@ import { SurfaceCard } from "@/components/ui/card";
 type Messages = AppMessages["nativeCapabilities"];
 
 const mapTarget = {
-  lat: 30.2741,
-  lng: 120.1551,
-  name: "杭州西湖",
+  lat: 31.2304,
+  lng: 121.4737,
+  name: "RTNN",
 };
 
 function getMapMessage(reason: string | null, messages: Messages) {

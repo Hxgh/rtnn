@@ -14,7 +14,7 @@ const startupPermissionMode = normalizeStartupPermissionMode(
 function normalizeStartupPermissionMode(
   value?: string,
 ): NativePermissionStartupMode {
-  if (value === "request" || value === "disabled") {
+  if (value === "disabled") {
     return value;
   }
 

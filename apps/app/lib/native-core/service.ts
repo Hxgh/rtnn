@@ -73,8 +73,8 @@ export function createAppNativeCore(
       return scanBarcode(nativeBridge, options);
     },
 
-    showNotification() {
-      return showNotification(nativeBridge);
+    showNotification(input) {
+      return showNotification(nativeBridge, input);
     },
 
     buildUpdateCheckQuery() {

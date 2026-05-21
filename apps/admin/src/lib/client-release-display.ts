@@ -1,4 +1,5 @@
 import type { AdminStatusTone } from "@/src/components/admin/table-display";
+import { formatClientReleaseChannel } from "@/src/lib/admin-display";
 
 export const clientReleaseDistributionStatuses = [
   "pending",
@@ -47,3 +48,5 @@ export function getClientReleaseDistributionStatusTone(
       return "warning";
   }
 }
+
+export { formatClientReleaseChannel };

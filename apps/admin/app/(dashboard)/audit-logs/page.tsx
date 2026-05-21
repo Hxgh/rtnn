@@ -19,6 +19,10 @@ import { Input } from "@/src/components/ui/input";
 import { getAdminI18n } from "@/src/i18n/server";
 import { parsePageSize } from "@/src/lib/pagination";
 import { listAuditLogs } from "@/src/lib/api-client";
+import {
+  formatAuditActionLabel,
+  formatAuditResourceLabel,
+} from "@/src/lib/admin-display";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission } from "@/src/lib/permissions";
@@ -114,21 +118,6 @@ function formatAuditDetail(detail: AuditLogRow["detail"]): string | null {
   return String(detail);
 }
 
-function formatAuditAction(action: string) {
-  const parts = action.split(".").filter(Boolean);
-  if (parts.length <= 1) {
-    return {
-      primary: action,
-      secondary: null,
-    };
-  }
-
-  return {
-    primary: parts.at(-1) ?? action,
-    secondary: parts.slice(0, -1).join(" / "),
-  };
-}
-
 function getActorTypeLabel(
   actorType: AuditLogRow["actorType"],
   dictionary: Awaited<ReturnType<typeof getAdminI18n>>["dictionary"],
@@ -198,26 +187,22 @@ export default async function AuditLogsPage({
     {
       id: "action",
       header: dictionary.auditLogs.action,
-      cell: (item) => {
-        const action = formatAuditAction(item.action);
-        return (
-          <div className="space-y-1">
-            <AdminTextValue maxWidthClassName="max-w-40">{action.primary}</AdminTextValue>
-            {action.secondary ? (
-              <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-48">
-                {action.secondary}
-              </AdminTextValue>
-            ) : null}
-          </div>
-        );
-      },
+      cell: (item) => (
+        <span title={item.action}>
+          <AdminTextValue maxWidthClassName="max-w-48">
+            {formatAuditActionLabel(item.action, locale)}
+          </AdminTextValue>
+        </span>
+      ),
     },
     {
       id: "resourceType",
       header: dictionary.auditLogs.resourceType,
       cell: (item) => (
         <span title={item.resourceId ?? undefined}>
-          <AdminTextValue>{item.resourceType}</AdminTextValue>
+          <AdminTextValue>
+            {formatAuditResourceLabel(item.resourceType, locale)}
+          </AdminTextValue>
         </span>
       ),
     },

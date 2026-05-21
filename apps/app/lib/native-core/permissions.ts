@@ -12,7 +12,7 @@ import type {
   NativePermissionSnapshot,
 } from "./types";
 
-export type NativePermissionStartupMode = "disabled" | "check-only" | "request";
+export type NativePermissionStartupMode = "disabled" | "check-only";
 
 const startupPermissionKinds: NativePermissionKind[] = [
   "camera",
@@ -221,18 +221,11 @@ export async function prepareStartupPermissions(
 
   const pairs = await Promise.all(
     startupPermissionKinds.map(async (kind) => {
-      const result =
-        mode === "request"
-          ? await nativeBridge.ensurePermission({
-              kind,
-              trigger: "startup",
-              purpose: "app-startup",
-            })
-          : await nativeBridge.checkPermission({
-              kind,
-              trigger: "startup",
-              purpose: "app-startup-check",
-            });
+      const result = await nativeBridge.checkPermission({
+        kind,
+        trigger: "startup",
+        purpose: "app-startup-check",
+      });
 
       return [kind, result] as const;
     }),

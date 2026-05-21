@@ -131,7 +131,7 @@ export type NativeCoreService = {
     action: NativePermissionAction,
   ): Promise<NativeActionPermissionResult>;
   prepareStartupPermissions(
-    mode?: "disabled" | "check-only" | "request",
+    mode?: "disabled" | "check-only",
   ): Promise<NativePermissionSnapshot>;
   pickMedia(
     source: NativeMediaSource,
@@ -140,7 +140,11 @@ export type NativeCoreService = {
   scanBarcode(
     options?: NativeBarcodeScanOptions,
   ): Promise<NativeBarcodeScanActionResult>;
-  showNotification(): Promise<NativeBridgeActionResult>;
+  showNotification(input: {
+    title: string;
+    body?: string;
+    tag?: string;
+  }): Promise<NativeBridgeActionResult>;
   buildUpdateCheckQuery(): Promise<NativeClientUpdateQuery | null>;
   checkAppUpdate(options?: {
     currentVersion?: string;

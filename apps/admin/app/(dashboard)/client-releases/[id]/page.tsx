@@ -33,6 +33,7 @@ import { getAdminI18n } from "@/src/i18n/server";
 import { getClientReleaseById } from "@/src/lib/api-client";
 import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import {
+  formatClientReleaseChannel,
   getClientReleaseDistributionStatusLabel,
   getClientReleaseDistributionStatusTone,
 } from "@/src/lib/client-release-display";
@@ -119,7 +120,10 @@ export default async function ClientReleaseDetailPage({
         <DataPanel className="p-6">
           <AdminDetailList className="md:grid-cols-3">
             <AdminDetailItem label={dictionary.clientReleases.releaseVersion} value={release.releaseVersion} />
-            <AdminDetailItem label={dictionary.clientReleases.channel} value={<Badge variant="outline">{release.channel}</Badge>} />
+            <AdminDetailItem
+              label={dictionary.clientReleases.channel}
+              value={<Badge variant="outline">{formatClientReleaseChannel(release.channel, locale)}</Badge>}
+            />
             <AdminDetailItem label={dictionary.common.status} value={release.status} />
             <AdminDetailItem label={dictionary.clientReleases.source} value={release.sourceRepository} />
             <AdminDetailItem label={dictionary.clientReleases.sourceRun} value={release.sourceRunId} />
@@ -236,7 +240,9 @@ export default async function ClientReleaseDetailPage({
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{formatClientRole(policy.client, locale)}</Badge>
                         <Badge variant="outline">{formatClientTarget(policy.target)}</Badge>
-                        <Badge variant="outline">{policy.channel}</Badge>
+                        <Badge variant="outline">
+                          {formatClientReleaseChannel(policy.channel, locale)}
+                        </Badge>
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">
                         <AdminFormField

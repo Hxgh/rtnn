@@ -32,7 +32,13 @@ function getNotificationMessage(reason: string | null, messages: Messages) {
 }
 
 export function NotificationPanel({ messages }: { messages: Messages }) {
-  const notification = useNotificationAction();
+  const notification = useNotificationAction({
+    payload: {
+      title: messages.notificationTitle,
+      body: messages.notificationBody,
+      tag: messages.notificationTag,
+    },
+  });
   const displayMessage = getNotificationMessage(notification.reason, messages);
 
   return (

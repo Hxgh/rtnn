@@ -74,25 +74,13 @@ function normalizeIconText(value) {
   return (normalized || "RTNN").slice(0, 6);
 }
 
-function buildBrandMarkSvg() {
-  return [
-    '<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">',
-    '  <circle cx="32" cy="32" r="28" fill="black"/>',
-    '  <path d="M23 18H35.5C42.404 18 47 22.104 47 28.2C47 32.945 43.966 36.149 39.2 37.33L47.5 46" stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>',
-    '  <path d="M23 18V46" stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>',
-    '  <path d="M23 33.25H35" stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>',
-    "</svg>",
-    "",
-  ].join("\n");
-}
-
 function resolveBrandMarkAsset() {
-  const appBrandMark = path.join(ROOT_DIR, "apps", "app", "public", "brand", "brand-mark.svg");
-  if (existsSync(appBrandMark)) {
-    return readFileSync(appBrandMark, "utf8");
+  const brandMark = path.join(ROOT_DIR, "packages", "config", "assets", "brand-mark.svg");
+  if (!existsSync(brandMark)) {
+    throw new Error(`缺少品牌图标源: ${brandMark}`);
   }
 
-  return buildBrandMarkSvg();
+  return readFileSync(brandMark, "utf8");
 }
 
 function buildShellIconSvg(brandMarkSvg) {
@@ -103,7 +91,9 @@ function buildShellIconSvg(brandMarkSvg) {
     .replaceAll('width="64"', "")
     .replaceAll('height="64"', "")
     .trim();
-  const sanitizedMark = mark.includes("<svg") ? mark : buildBrandMarkSvg();
+  if (!mark.includes("<svg")) {
+    throw new Error("品牌图标源必须是 SVG");
+  }
 
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${ICON_BASE_SIZE}" height="${ICON_BASE_SIZE}" viewBox="0 0 ${ICON_BASE_SIZE} ${ICON_BASE_SIZE}">`,
@@ -114,7 +104,7 @@ function buildShellIconSvg(brandMarkSvg) {
     "    </linearGradient>",
     "  </defs>",
     '  <rect x="32" y="32" width="960" height="960" rx="218" fill="url(#rtnnIconBackground)"/>',
-    sanitizedMark,
+    mark,
     "</svg>",
     "",
   ].join("\n");

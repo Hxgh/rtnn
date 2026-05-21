@@ -401,6 +401,9 @@ function assertSharedWebFavicons(rootDir) {
 }
 
 function assertSharedWebBrandMarks(rootDir) {
+  const brandSource = readFileSync(
+    path.join(rootDir, "packages", "config", "assets", "brand-mark.svg"),
+  );
   const appBrandMark = readFileSync(
     path.join(rootDir, "apps", "app", "public", "brand", "brand-mark.svg"),
   );
@@ -416,6 +419,10 @@ function assertSharedWebBrandMarks(rootDir) {
   assert(
     appBrandMark.equals(adminBrandMark),
     "app 与 admin 应使用同一套 RTNN brand-mark.svg",
+  );
+  assert(
+    appBrandMark.equals(brandSource) && adminBrandMark.equals(brandSource),
+    "web brand-mark.svg 必须由 packages/config/assets/brand-mark.svg 同步生成",
   );
   assert(
     appLayout.includes('/brand/brand-mark.svg'),
@@ -441,6 +448,9 @@ function assertNoUserFacingLegacyBranding(rootDir) {
     path.normalize("scripts/client/check-tauri-clients.mjs"),
     path.normalize("apps/backend/openapi.json"),
     path.normalize("packages/api-sdk/src/generated/openapi.ts"),
+    path.normalize("packages/config/src/index.ts"),
+    path.normalize("scripts/lib/template-env.mjs"),
+    path.normalize("scripts/client/sync-client-branding.mjs"),
   ]);
   const targetDirs = ["apps", "clients", "packages", "scripts"].map((item) =>
     path.join(rootDir, item),
@@ -453,6 +463,22 @@ function assertNoUserFacingLegacyBranding(rootDir) {
     {
       pattern: new RegExp(`application-label:'${["RTNN", "App"].join(" ")}'`),
       label: `APK ${["RTNN", "App"].join(" ")} label`,
+    },
+    {
+      pattern: /<title>RTNN<\/title>/,
+      label: "HTML title RTNN",
+    },
+    {
+      pattern: /title:\s*["']RTNN["']/,
+      label: "metadata title RTNN",
+    },
+    {
+      pattern: /title:\s*["']RTNN Admin["']/,
+      label: "metadata title RTNN Admin",
+    },
+    {
+      pattern: /title:\s*["']RTNN App["']/,
+      label: "metadata title RTNN App",
     },
   ];
 

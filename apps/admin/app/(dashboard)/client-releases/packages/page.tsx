@@ -30,6 +30,7 @@ import { listClientPackages } from "@/src/lib/api-client";
 import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import {
   clientReleaseDistributionStatuses,
+  formatClientReleaseChannel,
   getClientReleaseDistributionStatusLabel,
   getClientReleaseDistributionStatusTone,
 } from "@/src/lib/client-release-display";
@@ -149,7 +150,9 @@ export default async function ClientPackagesPage({
             {item.releaseVersion}
           </Link>
           <div className="flex flex-wrap gap-1">
-            <Badge variant="outline">{item.channel}</Badge>
+            <Badge variant="outline">
+              {formatClientReleaseChannel(item.channel, locale)}
+            </Badge>
             <Badge variant="outline">{item.releaseStatus}</Badge>
           </div>
         </div>
@@ -259,7 +262,10 @@ export default async function ClientPackagesPage({
               defaultValue={filters.channel}
               emptyLabel={dictionary.clientReleases.allChannels}
               name="channel"
-              options={["testing", "production"].map((value) => ({ label: value, value }))}
+              options={["testing", "production"].map((value) => ({
+                label: formatClientReleaseChannel(value, locale),
+                value,
+              }))}
               triggerClassName="w-full lg:w-40"
             />
             <FormSelect
@@ -303,7 +309,9 @@ export default async function ClientPackagesPage({
           <AdminFilterSummary
             items={[
               filters.search ? `${dictionary.common.search}: ${filters.search}` : undefined,
-              filters.channel ? `${dictionary.clientReleases.channel}: ${filters.channel}` : undefined,
+              filters.channel
+                ? `${dictionary.clientReleases.channel}: ${formatClientReleaseChannel(filters.channel, locale)}`
+                : undefined,
               filters.client
                 ? `${dictionary.clientReleases.client}: ${formatClientRole(filters.client, locale)}`
                 : undefined,

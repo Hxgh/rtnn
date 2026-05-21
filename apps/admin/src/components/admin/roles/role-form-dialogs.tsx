@@ -223,7 +223,7 @@ function RoleDialogForm({
                     compact
                     key={permission.id}
                     defaultChecked={Boolean(role?.permissions?.includes(permission.key))}
-                    description={permission.key}
+                    description={permission.description}
                     label={permission.name}
                     name="permissionKeys"
                     value={permission.key}

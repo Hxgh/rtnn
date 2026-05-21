@@ -5,6 +5,11 @@ import { ensureActionPermissions } from "./permissions";
 
 export async function showNotification(
   nativeBridge: NativeBridge,
+  payload: {
+    title: string;
+    body?: string;
+    tag?: string;
+  },
 ): Promise<NativeBridgeActionResult> {
   const permissionResult = await ensureActionPermissions(
     nativeBridge,
@@ -18,9 +23,5 @@ export async function showNotification(
     };
   }
 
-  return nativeBridge.showNotification({
-    title: "RTNN",
-    body: "你已开启客户端通知。",
-    tag: "rtnn-device-service",
-  });
+  return nativeBridge.showNotification(payload);
 }

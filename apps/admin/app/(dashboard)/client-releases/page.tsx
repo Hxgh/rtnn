@@ -29,6 +29,7 @@ import { adminRoutes } from "@/src/lib/admin-routes";
 import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import {
   clientReleaseDistributionStatuses,
+  formatClientReleaseChannel,
   getClientReleaseDistributionStatusLabel,
   getClientReleaseDistributionStatusTone,
 } from "@/src/lib/client-release-display";
@@ -103,15 +104,15 @@ async function resolveReleaseOverview() {
 }
 
 function ReleaseOverview({
-  locale,
   dictionary,
+  locale,
   runtime,
   testingDownloads,
   productionDownloads,
   releases,
 }: {
-  locale: string;
   dictionary: Awaited<ReturnType<typeof getAdminI18n>>["dictionary"];
+  locale: string;
   runtime: RuntimeVersionInfo | null;
   testingDownloads: ClientDownloadRow[];
   productionDownloads: ClientDownloadRow[];
@@ -120,6 +121,7 @@ function ReleaseOverview({
   const labels = dictionary.clientReleases;
   const diagnostics = buildReleaseDiagnostics({
     dictionary,
+    locale,
     runtime,
     testingDownloads,
     productionDownloads,
@@ -203,12 +205,14 @@ function ReleaseOverview({
 
 function buildReleaseDiagnostics({
   dictionary,
+  locale,
   runtime,
   testingDownloads,
   productionDownloads,
   releases,
 }: {
   dictionary: Awaited<ReturnType<typeof getAdminI18n>>["dictionary"];
+  locale: string;
   runtime: RuntimeVersionInfo | null;
   testingDownloads: ClientDownloadRow[];
   productionDownloads: ClientDownloadRow[];
@@ -240,7 +244,7 @@ function buildReleaseDiagnostics({
     {
       label: labels.diagnosticSourceMatch,
       detail: matchedRelease
-        ? `${matchedRelease.releaseVersion} · ${matchedRelease.channel}`
+        ? `${matchedRelease.releaseVersion} · ${formatClientReleaseChannel(matchedRelease.channel, locale)}`
         : latestRelease
           ? labels.diagnosticSourceMismatch
           : labels.diagnosticNoReleaseRecords,
@@ -404,7 +408,11 @@ export default async function ClientReleasesPage({
     {
       id: "channel",
       header: dictionary.clientReleases.channel,
-      cell: (item) => <Badge variant="outline">{item.channel}</Badge>,
+      cell: (item) => (
+        <Badge variant="outline">
+          {formatClientReleaseChannel(item.channel, locale)}
+        </Badge>
+      ),
     },
     {
       id: "clients",
@@ -482,8 +490,8 @@ export default async function ClientReleasesPage({
   return (
     <div className="space-y-3">
       <ReleaseOverview
-        locale={locale}
         dictionary={dictionary}
+        locale={locale}
         runtime={overview.runtime}
         testingDownloads={overview.testingDownloads}
         productionDownloads={overview.productionDownloads}
@@ -519,7 +527,10 @@ export default async function ClientReleasesPage({
               defaultValue={filters.channel}
               emptyLabel={dictionary.clientReleases.allChannels}
               name="channel"
-              options={["testing", "production"].map((value) => ({ label: value, value }))}
+              options={["testing", "production"].map((value) => ({
+                label: formatClientReleaseChannel(value, locale),
+                value,
+              }))}
               triggerClassName="w-full lg:w-40"
             />
             <FormSelect
@@ -563,7 +574,9 @@ export default async function ClientReleasesPage({
           <AdminFilterSummary
             items={[
               filters.search ? `${dictionary.common.search}: ${filters.search}` : undefined,
-              filters.channel ? `${dictionary.clientReleases.channel}: ${filters.channel}` : undefined,
+              filters.channel
+                ? `${dictionary.clientReleases.channel}: ${formatClientReleaseChannel(filters.channel, locale)}`
+                : undefined,
               filters.client
                 ? `${dictionary.clientReleases.client}: ${formatClientRole(filters.client, locale)}`
                 : undefined,

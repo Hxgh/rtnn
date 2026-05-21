@@ -573,14 +573,18 @@ test("app native core keeps barcode and notification behind core service actions
       },
     ],
   });
-  assert.deepEqual(await core.showNotification(), {
+  assert.deepEqual(await core.showNotification({
+    title: "通知",
+    body: "通知功能已开启。",
+    tag: "rtnn-notification",
+  }), {
     ok: true,
     message: "notification-dispatched",
   });
   assert.deepEqual(calls, [
     ["scanBarcode", 1234, "camera", null, null],
     ["ensurePermission", "notification", "on-demand", "enable-notification"],
-    ["showNotification", "RTNN"],
+    ["showNotification", "通知"],
   ]);
 });
 

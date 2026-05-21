@@ -129,6 +129,8 @@ export type AppMessages = {
     barcodeContentTypeLabels: Record<"url" | "email" | "phone" | "sms" | "wifi" | "geo" | "product" | "text", string>;
     notificationTitle: string;
     notificationDescription: string;
+    notificationBody: string;
+    notificationTag: string;
     notificationSend: string;
     notificationSent: string;
     diagnosticsTitle: string;
@@ -356,6 +358,8 @@ const zhCN: AppMessages = {
     },
     notificationTitle: "通知",
     notificationDescription: "发送本地通知，并按系统策略申请通知权限。",
+    notificationBody: "通知功能已开启。",
+    notificationTag: "rtnn-notification",
     notificationSend: "发送通知",
     notificationSent: "通知已发送。",
     diagnosticsTitle: "设备状态",
@@ -583,6 +587,8 @@ const enUS: AppMessages = {
     },
     notificationTitle: "Notifications",
     notificationDescription: "Send a local notification and request permission when required.",
+    notificationBody: "Notifications are enabled.",
+    notificationTag: "rtnn-notification",
     notificationSend: "Send notification",
     notificationSent: "Notification sent.",
     diagnosticsTitle: "Device Diagnostics",

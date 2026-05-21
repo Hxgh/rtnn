@@ -6,6 +6,7 @@ import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { getAdminI18n } from "@/src/i18n/server";
 import { getRoleById, listPermissions } from "@/src/lib/api-client";
+import { formatAdminPermissionLabel } from "@/src/lib/admin-display";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
@@ -50,7 +51,7 @@ export default async function RoleDetailPage({
     );
   }
 
-  const permissionKeys = role.permissions ?? [];
+  const permissionLabels = (role.permissions ?? []).map(formatAdminPermissionLabel);
 
   return (
     <PageFrame
@@ -81,7 +82,7 @@ export default async function RoleDetailPage({
         </AdminDetailList>
         <div>
           <p className="mb-2 text-sm text-muted-foreground">{dictionary.roles.permissions}</p>
-          <AdminBadgeList maxWidthClassName="max-w-none" values={permissionKeys} />
+          <AdminBadgeList maxWidthClassName="max-w-none" values={permissionLabels} />
         </div>
       </DataPanel>
     </PageFrame>

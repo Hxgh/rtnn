@@ -12,6 +12,11 @@ export type NotificationActionState = "idle" | "opening";
 
 export type UseNotificationActionOptions = {
   nativeCore?: NativeCoreService;
+  payload: {
+    title: string;
+    body?: string;
+    tag?: string;
+  };
 };
 
 export type UseNotificationActionReturn = {
@@ -22,7 +27,7 @@ export type UseNotificationActionReturn = {
 };
 
 export function useNotificationAction(
-  options: UseNotificationActionOptions = {},
+  options: UseNotificationActionOptions,
 ): UseNotificationActionReturn {
   const fallbackNativeCore = useMemo<NativeCoreService>(() => createAppNativeCore(), []);
   const nativeCore = options.nativeCore ?? fallbackNativeCore;
@@ -39,7 +44,7 @@ export function useNotificationAction(
 
     try {
       const result = await runNativeActionWithWatchdog(() =>
-        nativeCore.showNotification(),
+        nativeCore.showNotification(options.payload),
       );
 
       window.setTimeout(() => {

@@ -16,30 +16,35 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
               description={messages.barcodeDescription}
               href="/device-services/scan"
               icon={<DeviceFeatureIcon kind="scan" label={messages.barcodeTitle} />}
+              prefetch={false}
               title={messages.barcodeTitle}
             />
             <ActionRowLink
               description={messages.mapDescription}
               href="/device-services/map"
               icon={<DeviceFeatureIcon kind="map" label={messages.mapTitle} />}
+              prefetch={false}
               title={messages.mapTitle}
             />
             <ActionRowLink
               description={messages.mediaDescription}
               href="/device-services/media"
               icon={<DeviceFeatureIcon kind="media" label={messages.mediaTitle} />}
+              prefetch={false}
               title={messages.mediaTitle}
             />
             <ActionRowLink
               description={messages.notificationDescription}
               href="/device-services/notification"
               icon={<DeviceFeatureIcon kind="notification" label={messages.notificationTitle} />}
+              prefetch={false}
               title={messages.notificationTitle}
             />
             <ActionRowLink
               description={messages.safeAreaDescription}
               href="/device-services/safe-area"
               icon={<DeviceFeatureIcon kind="safeArea" label={messages.safeAreaTitle} />}
+              prefetch={false}
               title={messages.safeAreaTitle}
             />
           </div>
@@ -53,6 +58,7 @@ export function DeviceServicesPanel({ messages }: { messages: Messages }) {
               description={messages.downloadEntryDescription}
               href="/download"
               icon={<DeviceFeatureIcon kind="download" label={messages.openDownloads} />}
+              prefetch={false}
               title={messages.openDownloads}
             />
           </div>

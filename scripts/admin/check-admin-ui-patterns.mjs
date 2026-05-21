@@ -62,6 +62,40 @@ function checkForbiddenContent(findings, filePath, content) {
   }
 }
 
+function checkAdminInformationHierarchy(findings, filePath, content) {
+  if (!filePath.startsWith("apps/admin/")) {
+    return;
+  }
+
+  if (
+    filePath.endsWith("roles/role-form-dialogs.tsx") &&
+    /description=\{permission\.key\}/.test(content)
+  ) {
+    addFinding(findings, filePath, "角色权限选择不应把 permission.key 作为用户可见描述");
+  }
+
+  if (
+    filePath.endsWith("roles/[id]/page.tsx") &&
+    /values=\{(?:permissionKeys|role\.permissions)/.test(content)
+  ) {
+    addFinding(findings, filePath, "角色详情不应直接展示权限 key 列表");
+  }
+
+  if (
+    filePath.endsWith("audit-logs/page.tsx") &&
+    /formatAuditAction\(|secondary:\s*parts\.slice|item\.resourceType\}</.test(content)
+  ) {
+    addFinding(findings, filePath, "审计日志动作和资源类型应使用正式展示 formatter");
+  }
+
+  if (
+    filePath.includes("client-releases") &&
+    /label:\s*value,\s*value|>\{(?:item|policy|release)\.channel\}<|\$\{filters\.channel\}/.test(content)
+  ) {
+    addFinding(findings, filePath, "发布环境应使用 formatClientReleaseChannel 展示");
+  }
+}
+
 function checkAdminComponents(findings, filePath, content) {
   if (!filePath.startsWith("apps/admin/src/components/admin/")) {
     return;
@@ -233,6 +267,7 @@ function main() {
   for (const filePath of listTrackedAdminFiles()) {
     const content = readFile(filePath);
     checkForbiddenContent(findings, filePath, content);
+    checkAdminInformationHierarchy(findings, filePath, content);
     checkAdminComponents(findings, filePath, content);
     checkRouteErrorBoundaries(findings, filePath, content);
     checkHydrationSafeFormatting(findings, filePath, content);

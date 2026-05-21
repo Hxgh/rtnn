@@ -7,13 +7,14 @@ export function ActionRowLink(props: {
   description?: string;
   icon?: React.ReactNode;
   trailing?: React.ReactNode;
+  prefetch?: boolean;
   className?: string;
   dataTestId?: string;
 }) {
   return (
     <Link
       href={props.href}
-      prefetch
+      prefetch={props.prefetch}
       className={cn(
         "flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-secondary/55",
         props.className,
