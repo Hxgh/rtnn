@@ -41,13 +41,18 @@ import { hasPermission, assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
 import { formatAdminDateTime } from "@/src/lib/utils";
 
-function LinkValue({ href }: { href?: string | null }) {
+function LinkValue({ href, label }: { href?: string | null; label: string }) {
   if (!href) {
     return <AdminEmptyValue />;
   }
   return (
-    <Link className="break-all text-primary underline-offset-4 hover:underline" href={href}>
-      {href}
+    <Link
+      className="text-primary underline-offset-4 hover:underline"
+      href={href}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {label}
     </Link>
   );
 }
@@ -143,11 +148,9 @@ export default async function ClientReleaseDetailPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>{dictionary.clientReleases.client}</TableHead>
-                  <TableHead>{dictionary.clientReleases.target}</TableHead>
                   <TableHead>{dictionary.clientReleases.fileName}</TableHead>
                   <TableHead>{dictionary.clientReleases.distributionStatus}</TableHead>
                   <TableHead>{dictionary.clientReleases.fileSize}</TableHead>
-                  <TableHead>{dictionary.clientReleases.sha256}</TableHead>
                   <TableHead>{dictionary.clientReleases.sourceUrl}</TableHead>
                   <TableHead>{dictionary.clientReleases.distributionUrl}</TableHead>
                   <TableHead>{dictionary.clientReleases.blockers}</TableHead>
@@ -156,14 +159,19 @@ export default async function ClientReleaseDetailPage({
               <TableBody>
                 {release.packages.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{formatClientPackageName(item.client, item.target, locale)}</TableCell>
-                    <TableCell>{formatClientTarget(item.target)}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div>{formatClientPackageName(item.client, item.target, locale)}</div>
+                        <div className="text-xs text-muted-foreground">{formatClientTarget(item.target)}</div>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <AdminTextValue maxWidthClassName="max-w-72">{item.fileName}</AdminTextValue>
                         <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-72">
                           {item.artifactName}
                         </AdminTextValue>
+                        <div className="font-mono text-xs text-muted-foreground">{shortHash(item.sha256)}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -172,9 +180,12 @@ export default async function ClientReleaseDetailPage({
                       </AdminStatusBadge>
                     </TableCell>
                     <TableCell>{formatFileSize(item.fileSize)}</TableCell>
-                    <TableCell className="font-mono text-xs">{shortHash(item.sha256)}</TableCell>
-                    <TableCell className="min-w-64 text-xs"><LinkValue href={item.sourceUrl} /></TableCell>
-                    <TableCell className="min-w-64 text-xs"><LinkValue href={item.distributionUrl} /></TableCell>
+                    <TableCell className="text-xs">
+                      <LinkValue href={item.sourceUrl} label={dictionary.clientReleases.openSource} />
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <LinkValue href={item.distributionUrl} label={dictionary.clientReleases.openDownload} />
+                    </TableCell>
                     <TableCell>
                       <AdminBadgeList
                         emptyClassName="text-foreground"

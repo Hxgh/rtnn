@@ -34,7 +34,7 @@ function formatSegment(
     return segmentLabels[part];
   }
 
-  if (/^[a-f0-9-]{8,}$/i.test(part) || /^\d+$/.test(part)) {
+  if (/^[a-f0-9-]{8,}$/i.test(part) || /^c[a-z0-9]{12,}$/i.test(part) || /^\d+$/.test(part)) {
     return dictionary.common.detail;
   }
 
