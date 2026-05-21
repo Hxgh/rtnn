@@ -93,7 +93,40 @@ function formatAuditDetail(detail: AuditLogRow["detail"]): string | null {
   if (!detail) {
     return null;
   }
-  return JSON.stringify(detail);
+  if (typeof detail === "object" && !Array.isArray(detail)) {
+    const entries = Object.entries(detail).filter(([, value]) => value !== undefined && value !== null);
+    if (entries.length === 0) {
+      return null;
+    }
+    return entries
+      .slice(0, 3)
+      .map(([key, value]) => {
+        if (Array.isArray(value)) {
+          return `${key}: ${value.join(", ")}`;
+        }
+        if (typeof value === "object") {
+          return `${key}: ${JSON.stringify(value)}`;
+        }
+        return `${key}: ${String(value)}`;
+      })
+      .join(" · ");
+  }
+  return String(detail);
+}
+
+function formatAuditAction(action: string) {
+  const parts = action.split(".").filter(Boolean);
+  if (parts.length <= 1) {
+    return {
+      primary: action,
+      secondary: null,
+    };
+  }
+
+  return {
+    primary: parts.at(-1) ?? action,
+    secondary: parts.slice(0, -1).join(" / "),
+  };
 }
 
 function getActorTypeLabel(
@@ -165,23 +198,27 @@ export default async function AuditLogsPage({
     {
       id: "action",
       header: dictionary.auditLogs.action,
-      cell: (item) => item.action,
-      cellClassName: "font-mono text-xs",
+      cell: (item) => {
+        const action = formatAuditAction(item.action);
+        return (
+          <div className="space-y-1">
+            <AdminTextValue maxWidthClassName="max-w-40">{action.primary}</AdminTextValue>
+            {action.secondary ? (
+              <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-48">
+                {action.secondary}
+              </AdminTextValue>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       id: "resourceType",
       header: dictionary.auditLogs.resourceType,
       cell: (item) => (
-        <div className="space-y-1">
+        <span title={item.resourceId ?? undefined}>
           <AdminTextValue>{item.resourceType}</AdminTextValue>
-          {item.resourceId ? (
-            <AdminTextValue mono className="text-muted-foreground" maxWidthClassName="max-w-40">
-              {item.resourceId}
-            </AdminTextValue>
-          ) : (
-            <AdminEmptyValue />
-          )}
-        </div>
+        </span>
       ),
     },
     {
@@ -193,7 +230,7 @@ export default async function AuditLogsPage({
       id: "detail",
       header: dictionary.auditLogs.detail,
       cell: (item) => (
-        <AdminTextValue mono maxWidthClassName="max-w-72">
+        <AdminTextValue maxWidthClassName="max-w-80">
           {formatAuditDetail(item.detail)}
         </AdminTextValue>
       ),
