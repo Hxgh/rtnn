@@ -153,15 +153,13 @@ export default async function AuditLogsPage({
     {
       id: "actorName",
       header: dictionary.auditLogs.actor,
-      cell: (item) => <AdminTextValue>{item.actorName}</AdminTextValue>,
-    },
-    {
-      id: "actorType",
-      header: dictionary.auditLogs.actorType,
       cell: (item) => (
-        <AdminStatusBadge tone={item.actorType === "system" ? "neutral" : "success"}>
-          {getActorTypeLabel(item.actorType, dictionary)}
-        </AdminStatusBadge>
+        <div className="space-y-1">
+          <AdminTextValue>{item.actorName}</AdminTextValue>
+          <AdminStatusBadge tone={item.actorType === "system" ? "neutral" : "success"}>
+            {getActorTypeLabel(item.actorType, dictionary)}
+          </AdminStatusBadge>
+        </div>
       ),
     },
     {
@@ -173,15 +171,17 @@ export default async function AuditLogsPage({
     {
       id: "resourceType",
       header: dictionary.auditLogs.resourceType,
-      cell: (item) => <AdminTextValue>{item.resourceType}</AdminTextValue>,
-    },
-    {
-      id: "resourceId",
-      header: dictionary.auditLogs.resourceId,
       cell: (item) => (
-        item.resourceId
-          ? <AdminTextValue mono maxWidthClassName="max-w-40">{item.resourceId}</AdminTextValue>
-          : <AdminEmptyValue />
+        <div className="space-y-1">
+          <AdminTextValue>{item.resourceType}</AdminTextValue>
+          {item.resourceId ? (
+            <AdminTextValue mono className="text-muted-foreground" maxWidthClassName="max-w-40">
+              {item.resourceId}
+            </AdminTextValue>
+          ) : (
+            <AdminEmptyValue />
+          )}
+        </div>
       ),
     },
     {
@@ -193,7 +193,7 @@ export default async function AuditLogsPage({
       id: "detail",
       header: dictionary.auditLogs.detail,
       cell: (item) => (
-        <AdminTextValue mono maxWidthClassName="max-w-96">
+        <AdminTextValue mono maxWidthClassName="max-w-72">
           {formatAuditDetail(item.detail)}
         </AdminTextValue>
       ),

@@ -171,15 +171,15 @@ export default async function ClientPackagesPage({
       id: "distributionStatus",
       header: dictionary.clientReleases.distributionStatus,
       cell: (item) => (
-        <AdminStatusBadge tone={getClientReleaseDistributionStatusTone(item.distributionStatus)}>
-          {getClientReleaseDistributionStatusLabel(item.distributionStatus, locale)}
-        </AdminStatusBadge>
+        <div className="space-y-1">
+          <AdminStatusBadge tone={getClientReleaseDistributionStatusTone(item.distributionStatus)}>
+            {getClientReleaseDistributionStatusLabel(item.distributionStatus, locale)}
+          </AdminStatusBadge>
+          <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-28">
+            {item.distributionProvider}
+          </AdminTextValue>
+        </div>
       ),
-    },
-    {
-      id: "provider",
-      header: dictionary.clientReleases.provider,
-      cell: (item) => item.distributionProvider,
     },
     {
       id: "file",
@@ -198,14 +198,10 @@ export default async function ClientPackagesPage({
         <div className="space-y-1 text-xs">
           <div className="font-mono">{shortHash(item.releaseSourceSha)}</div>
           <div className="text-muted-foreground">{item.releaseSourceRunId || <AdminEmptyValue />}</div>
+          <div className="text-muted-foreground">
+            {item.syncedAt ? formatAdminDateTime(locale, item.syncedAt) : <AdminEmptyValue />}
+          </div>
         </div>
-      ),
-    },
-    {
-      id: "syncedAt",
-      header: dictionary.clientReleases.syncedAt,
-      cell: (item) => (
-        item.syncedAt ? formatAdminDateTime(locale, item.syncedAt) : <AdminEmptyValue />
       ),
     },
     {
