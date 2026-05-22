@@ -656,13 +656,13 @@ export class IamService {
   }
 
   private toAccountStatus(status?: string): AccountStatus {
-    if (status === 'active') {
-      return AccountStatus.active;
-    }
     if (status === 'locked') {
       return AccountStatus.locked;
     }
-    return AccountStatus.disabled;
+    if (status === 'disabled') {
+      return AccountStatus.disabled;
+    }
+    return AccountStatus.active;
   }
 
   private fromAccountStatus(status: AccountStatus) {
