@@ -21,6 +21,7 @@ import { parsePageSize } from "@/src/lib/pagination";
 import { listAuditLogs } from "@/src/lib/api-client";
 import {
   formatAuditActionLabel,
+  formatAuditDetailSummary,
   formatAuditResourceLabel,
 } from "@/src/lib/admin-display";
 import { adminRoutes } from "@/src/lib/admin-routes";
@@ -91,31 +92,6 @@ function buildAuditLogsHref(
   }
   const query = params.toString();
   return query ? `${adminRoutes.auditLogs}?${query}` : adminRoutes.auditLogs;
-}
-
-function formatAuditDetail(detail: AuditLogRow["detail"]): string | null {
-  if (!detail) {
-    return null;
-  }
-  if (typeof detail === "object" && !Array.isArray(detail)) {
-    const entries = Object.entries(detail).filter(([, value]) => value !== undefined && value !== null);
-    if (entries.length === 0) {
-      return null;
-    }
-    return entries
-      .slice(0, 3)
-      .map(([key, value]) => {
-        if (Array.isArray(value)) {
-          return `${key}: ${value.join(", ")}`;
-        }
-        if (typeof value === "object") {
-          return `${key}: ${JSON.stringify(value)}`;
-        }
-        return `${key}: ${String(value)}`;
-      })
-      .join(" · ");
-  }
-  return String(detail);
 }
 
 function getActorTypeLabel(
@@ -216,7 +192,7 @@ export default async function AuditLogsPage({
       header: dictionary.auditLogs.detail,
       cell: (item) => (
         <AdminTextValue maxWidthClassName="max-w-80">
-          {formatAuditDetail(item.detail)}
+          {formatAuditDetailSummary(item.detail, locale)}
         </AdminTextValue>
       ),
     },

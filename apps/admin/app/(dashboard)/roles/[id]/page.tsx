@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditRoleDialog } from "@/src/components/admin/roles/role-form-dialogs";
 import { AdminBadgeList } from "@/src/components/admin/table-display";
-import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { AdminInfoPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { getAdminI18n } from "@/src/i18n/server";
 import { getRoleById, listPermissions } from "@/src/lib/api-client";
@@ -67,7 +67,7 @@ export default async function RoleDetailPage({
         ) : null
       }
     >
-      <DataPanel className="space-y-4 p-6">
+      <AdminInfoPanel className="space-y-4">
         <AdminDetailList>
           <AdminDetailItem label={dictionary.roles.roleName} value={role.name} />
           <AdminDetailItem label={dictionary.roles.description} value={role.description} />
@@ -84,7 +84,7 @@ export default async function RoleDetailPage({
           <p className="mb-2 text-sm text-muted-foreground">{dictionary.roles.permissions}</p>
           <AdminBadgeList maxWidthClassName="max-w-none" values={permissionLabels} />
         </div>
-      </DataPanel>
+      </AdminInfoPanel>
     </PageFrame>
   );
 }

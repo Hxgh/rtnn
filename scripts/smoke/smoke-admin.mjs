@@ -239,28 +239,28 @@ async function main() {
       location: "/dashboard",
     },
     {
-      label: "admin 用户新建路由重定向",
+      label: "admin 用户旧新建路由 404",
       path: "/users/new",
       headers: createHeaders({ cookie }),
-      location: "/users",
+      status: 404,
     },
     {
-      label: "admin 角色新建路由重定向",
+      label: "admin 角色旧新建路由 404",
       path: "/roles/new",
       headers: createHeaders({ cookie }),
-      location: "/roles",
+      status: 404,
     },
     {
-      label: "admin 用户编辑路由重定向",
+      label: "admin 用户旧编辑路由 404",
       path: `/users/${adminUser.id}/edit`,
       headers: createHeaders({ cookie }),
-      location: `/users/${adminUser.id}`,
+      status: 404,
     },
     {
-      label: "admin 角色编辑路由重定向",
+      label: "admin 角色旧编辑路由 404",
       path: `/roles/${superAdminRole.id}/edit`,
       headers: createHeaders({ cookie }),
-      location: `/roles/${superAdminRole.id}`,
+      status: 404,
     },
   ];
 
@@ -269,7 +269,14 @@ async function main() {
       headers: redirectCase.headers,
       redirect: "manual",
     });
-    await expectNextRedirect(response, redirectCase.label, redirectCase.location);
+    if (redirectCase.location) {
+      await expectNextRedirect(response, redirectCase.label, redirectCase.location);
+    } else {
+      assert(
+        response.status === redirectCase.status,
+        `${redirectCase.label} 状态不正确，预期 ${redirectCase.status}，实际 ${response.status}`,
+      );
+    }
     console.log(`[smoke] ${redirectCase.label} 通过`);
   }
 

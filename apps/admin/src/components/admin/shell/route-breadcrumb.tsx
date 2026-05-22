@@ -72,25 +72,28 @@ export function RouteBreadcrumb({
 
   return (
     <>
-      <div className="truncate text-sm font-medium text-foreground md:hidden">
+      <div className="min-w-0 truncate text-sm font-medium text-foreground md:hidden">
         {currentLabel}
       </div>
-      <Breadcrumb ariaLabel={dictionary.common.breadcrumb} className="hidden md:block">
-        <BreadcrumbList>
+      <Breadcrumb
+        ariaLabel={dictionary.common.breadcrumb}
+        className="hidden min-w-0 overflow-hidden md:block"
+      >
+        <BreadcrumbList className="min-w-0 flex-nowrap overflow-hidden">
           {breadcrumbs.map((crumb, index) => {
             const isLast = index === breadcrumbs.length - 1;
 
             return (
               <Fragment key={`${crumb.href ?? crumb.label}-${index}`}>
-                <BreadcrumbItem>
+                <BreadcrumbItem className="min-w-0">
                   {isLast ? (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    <BreadcrumbPage className="truncate">{crumb.label}</BreadcrumbPage>
                   ) : crumb.href ? (
                     <BreadcrumbLink asChild>
-                      <Link href={crumb.href}>{crumb.label}</Link>
+                      <Link className="truncate" href={crumb.href}>{crumb.label}</Link>
                     </BreadcrumbLink>
                   ) : (
-                    <span className={cn("text-muted-foreground")}>{crumb.label}</span>
+                    <span className={cn("truncate text-muted-foreground")}>{crumb.label}</span>
                   )}
                 </BreadcrumbItem>
                 {isLast ? null : <BreadcrumbSeparator />}

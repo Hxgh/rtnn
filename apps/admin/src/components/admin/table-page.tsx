@@ -41,7 +41,7 @@ export function AdminTablePage<T>({
     <PageFrame title={title} subtitle={subtitle} actions={actions}>
       <DataPanel>
         {toolbar ? (
-          <div className="border-b border-border/70 px-4 py-3">{toolbar}</div>
+          <div className="min-w-0 border-b border-border/70 px-4 py-3">{toolbar}</div>
         ) : null}
 
         {data.length === 0 ? (
@@ -52,8 +52,8 @@ export function AdminTablePage<T>({
             <p className="text-sm font-medium text-muted-foreground">{emptyText}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="overflow-x-auto" data-admin-table-scroll="">
+            <Table className="min-w-max">
               <TableHeader>
                 <TableRow>
                   {columns.map((column) => (
@@ -95,7 +95,7 @@ export function AdminTablePage<T>({
 
 export function AdminTableRowActions({ children }: { children: ReactNode }) {
   return (
-    <div className="inline-flex max-w-80 flex-wrap items-center justify-end gap-1">
+    <div className="inline-flex min-w-max max-w-80 flex-wrap items-center justify-end gap-1">
       {children}
     </div>
   );
@@ -174,8 +174,8 @@ export function AdminTablePagination({
   }));
 
   return (
-    <div className="flex justify-start md:justify-end">
-      <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-3 md:w-auto md:justify-end">
+    <div className="flex min-w-0 justify-start md:justify-end">
+      <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/15 px-3 py-3 md:w-auto md:justify-end">
         <div className="flex items-center gap-1.5 whitespace-nowrap text-sm">
           <span className="text-muted-foreground">{totalItemsLabel}</span>
           <span className="font-medium text-foreground">{total}</span>
@@ -191,7 +191,7 @@ export function AdminTablePagination({
           />
         </div>
         <div className="hidden h-4 w-px bg-border/70 md:block" />
-        <div className="flex w-full items-center justify-between gap-3 whitespace-nowrap sm:w-auto sm:justify-end">
+        <div className="flex w-full min-w-0 items-center justify-between gap-3 whitespace-nowrap sm:w-auto sm:justify-end">
           <span className="min-w-[52px] text-sm text-muted-foreground">
             {currentPage} / {totalPages}
           </span>

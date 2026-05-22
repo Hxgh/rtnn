@@ -31,6 +31,7 @@ import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import {
   clientReleaseDistributionStatuses,
   formatClientReleaseChannel,
+  getClientReleaseStatusLabel,
   getClientReleaseDistributionStatusLabel,
   getClientReleaseDistributionStatusTone,
 } from "@/src/lib/client-release-display";
@@ -153,7 +154,9 @@ export default async function ClientPackagesPage({
             <Badge variant="outline">
               {formatClientReleaseChannel(item.channel, locale)}
             </Badge>
-            <Badge variant="outline">{item.releaseStatus}</Badge>
+            <Badge variant="outline">
+              {getClientReleaseStatusLabel(item.releaseStatus, locale)}
+            </Badge>
           </div>
         </div>
       ),

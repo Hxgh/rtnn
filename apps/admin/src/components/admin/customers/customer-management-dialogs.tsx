@@ -159,7 +159,7 @@ export function ManageCustomerGroupsDialog({
                     <button
                       key={group.id}
                       className={cn(
-                        "flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-accent/20",
+                        "flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-accent/20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
                         selectedGroup?.id === group.id && "border-primary bg-primary/[0.06]",
                       )}
                       type="button"
@@ -344,7 +344,7 @@ export function ManageCustomerTagsDialog({
                     <button
                       key={tag.id}
                       className={cn(
-                        "flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-accent/20",
+                        "flex items-start justify-between gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-accent/20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
                         selectedTag?.id === tag.id && "border-primary bg-primary/[0.06]",
                       )}
                       type="button"

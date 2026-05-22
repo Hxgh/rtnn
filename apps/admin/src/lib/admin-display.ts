@@ -72,3 +72,41 @@ export function formatAuditResourceLabel(resourceType: string, locale?: string) 
   }
 }
 
+export function formatAuditDetailSummary(
+  detail: unknown,
+  locale?: string,
+): string | null {
+  if (!detail) {
+    return null;
+  }
+
+  const isEnglish = locale?.startsWith("en");
+  const emptyText = isEnglish ? "No detail" : "无详情";
+
+  if (typeof detail !== "object" || Array.isArray(detail)) {
+    const text = String(detail).trim();
+    return text || null;
+  }
+
+  const entries = Object.entries(detail as Record<string, unknown>).filter(
+    ([, value]) => value !== undefined && value !== null && value !== "",
+  );
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const summary = entries
+    .slice(0, 3)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `${key}: ${value.join(", ") || emptyText}`;
+      }
+      if (typeof value === "object" && value !== null) {
+        return `${key}: ${JSON.stringify(value)}`;
+      }
+      return `${key}: ${String(value)}`;
+    })
+    .join(" · ");
+
+  return summary || null;
+}

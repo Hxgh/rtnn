@@ -1,7 +1,7 @@
 import { Button } from "@/src/components/ui/button";
 import { ChangePasswordDialog } from "@/src/components/admin/change-password-dialog";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
-import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { AdminInfoPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { NativeUpdatePanel } from "@/src/components/admin/native-update-panel";
 import { Badge } from "@/src/components/ui/badge";
 import { getAdminI18n } from "@/src/i18n/server";
@@ -13,7 +13,7 @@ export default async function AccountPage() {
 
   return (
     <PageFrame title={dictionary.account.title}>
-      <DataPanel className="space-y-6 p-6">
+      <AdminInfoPanel>
         <AdminDetailList className="md:grid-cols-3">
           <AdminDetailItem label={dictionary.account.email} value={me.email} />
           <AdminDetailItem label={dictionary.account.name} value={me.name} />
@@ -49,7 +49,7 @@ export default async function AccountPage() {
         </section>
 
         <NativeUpdatePanel dictionary={dictionary.account} />
-      </DataPanel>
+      </AdminInfoPanel>
     </PageFrame>
   );
 }

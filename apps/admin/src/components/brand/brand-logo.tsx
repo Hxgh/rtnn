@@ -9,7 +9,9 @@ export function BrandLogoMark({ className, ...props }: BrandLogoMarkProps) {
     <img
       alt=""
       className={cn("size-8 shrink-0", className)}
+      height={32}
       src="/brand/brand-mark.svg"
+      width={32}
       {...props}
     />
   );

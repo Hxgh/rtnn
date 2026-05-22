@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
 import { AdminBadgeList } from "@/src/components/admin/table-display";
-import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { AdminInfoPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { getAdminI18n } from "@/src/i18n/server";
 import { getUserById, listRoles } from "@/src/lib/api-client";
@@ -71,7 +71,7 @@ export default async function UserDetailPage({
         ) : null
       }
     >
-      <DataPanel className="p-6">
+      <AdminInfoPanel>
         <AdminDetailList>
           <AdminDetailItem label={dictionary.users.name} value={user.name} />
           <AdminDetailItem label={dictionary.users.email} value={user.email} />
@@ -89,7 +89,7 @@ export default async function UserDetailPage({
             value={user.lastLoginAt ? formatAdminDateTime(locale, user.lastLoginAt) : null}
           />
         </AdminDetailList>
-      </DataPanel>
+      </AdminInfoPanel>
     </PageFrame>
   );
 }

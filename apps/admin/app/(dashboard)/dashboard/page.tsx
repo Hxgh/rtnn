@@ -4,6 +4,12 @@ import { getDashboardStats, listAuditLogs } from "@/src/lib/api-client";
 import { assertPermission, hasPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
 import { ErrorBlock } from "@/src/components/admin/state-block";
+import { AdminTextValue } from "@/src/components/admin/table-display";
+import {
+  formatAuditActionLabel,
+  formatAuditDetailSummary,
+  formatAuditResourceLabel,
+} from "@/src/lib/admin-display";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { formatAdminDateTime } from "@/src/lib/utils";
 
@@ -97,13 +103,24 @@ export default async function DashboardPage() {
                   className="flex items-start justify-between gap-4 rounded-xl border border-border/70 bg-muted/35 p-4 text-sm"
                 >
                   <div className="min-w-0 space-y-1">
-                    <div className="truncate font-medium text-foreground">{item.action}</div>
-                    <div className="truncate text-muted-foreground">
-                      {item.actorName} · {item.resourceType}
+                    <div className="font-medium text-foreground">
+                      <AdminTextValue maxWidthClassName="max-w-96">
+                        {formatAuditActionLabel(item.action, locale)}
+                      </AdminTextValue>
+                    </div>
+                    <div className="text-muted-foreground">
+                      <AdminTextValue maxWidthClassName="max-w-96">
+                        {`${item.actorName} · ${formatAuditResourceLabel(item.resourceType, locale)}`}
+                      </AdminTextValue>
                     </div>
                     {item.detail ? (
-                      <div className="truncate text-xs text-muted-foreground">
-                        {JSON.stringify(item.detail)}
+                      <div className="text-xs text-muted-foreground">
+                        <AdminTextValue
+                          className="text-muted-foreground"
+                          maxWidthClassName="max-w-96"
+                        >
+                          {formatAuditDetailSummary(item.detail, locale)}
+                        </AdminTextValue>
                       </div>
                     ) : null}
                   </div>

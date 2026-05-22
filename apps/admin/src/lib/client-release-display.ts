@@ -12,6 +12,39 @@ export const clientReleaseDistributionStatuses = [
 export type ClientReleaseDistributionStatus =
   (typeof clientReleaseDistributionStatuses)[number];
 
+export function getClientReleaseStatusLabel(status: string, locale?: string) {
+  const isEnglish = locale?.startsWith("en");
+  switch (status) {
+    case "dry-run":
+      return isEnglish ? "Dry run" : "试运行";
+    case "synced":
+      return isEnglish ? "Synced" : "已同步";
+    case "partial":
+      return isEnglish ? "Partial" : "部分可用";
+    case "pending":
+      return isEnglish ? "Pending" : "待同步";
+    case "failed":
+      return isEnglish ? "Failed" : "同步失败";
+    default:
+      return status;
+  }
+}
+
+export function getClientReleaseStatusTone(status: string): AdminStatusTone {
+  switch (status) {
+    case "synced":
+      return "success";
+    case "partial":
+    case "pending":
+    case "dry-run":
+      return "warning";
+    case "failed":
+      return "danger";
+    default:
+      return "neutral";
+  }
+}
+
 export function getClientReleaseDistributionStatusLabel(
   status: string,
   locale?: string,

@@ -8,7 +8,7 @@ import {
 import { updateClientReleasePolicyAction } from "@/app/(dashboard)/client-releases/actions";
 import { AdminFormField } from "@/src/components/admin/form-dialog";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
-import { DataPanel, PageFrame } from "@/src/components/admin/page-frame";
+import { AdminInfoPanel, DataPanel, PageFrame } from "@/src/components/admin/page-frame";
 import { ErrorBlock } from "@/src/components/admin/state-block";
 import { AdminStatusBadge } from "@/src/components/admin/status-badge";
 import {
@@ -34,6 +34,8 @@ import { getClientReleaseById } from "@/src/lib/api-client";
 import { formatFileSize, shortHash } from "@/src/lib/admin-format";
 import {
   formatClientReleaseChannel,
+  getClientReleaseStatusLabel,
+  getClientReleaseStatusTone,
   getClientReleaseDistributionStatusLabel,
   getClientReleaseDistributionStatusTone,
 } from "@/src/lib/client-release-display";
@@ -117,14 +119,21 @@ export default async function ClientReleaseDetailPage({
         </Card>
       ) : null}
 
-        <DataPanel className="p-6">
+        <AdminInfoPanel>
           <AdminDetailList className="md:grid-cols-3">
             <AdminDetailItem label={dictionary.clientReleases.releaseVersion} value={release.releaseVersion} />
             <AdminDetailItem
               label={dictionary.clientReleases.channel}
               value={<Badge variant="outline">{formatClientReleaseChannel(release.channel, locale)}</Badge>}
             />
-            <AdminDetailItem label={dictionary.common.status} value={release.status} />
+            <AdminDetailItem
+              label={dictionary.common.status}
+              value={(
+                <AdminStatusBadge tone={getClientReleaseStatusTone(release.status)}>
+                  {getClientReleaseStatusLabel(release.status, locale)}
+                </AdminStatusBadge>
+              )}
+            />
             <AdminDetailItem label={dictionary.clientReleases.source} value={release.sourceRepository} />
             <AdminDetailItem label={dictionary.clientReleases.sourceRun} value={release.sourceRunId} />
             <AdminDetailItem label={dictionary.clientReleases.sourceSha} value={<span className="font-mono">{release.sourceSha}</span>} />
@@ -141,7 +150,7 @@ export default async function ClientReleaseDetailPage({
               value={release.dryRun ? dictionary.common.active : dictionary.common.inactive}
             />
           </AdminDetailList>
-        </DataPanel>
+        </AdminInfoPanel>
 
         <DataPanel>
           <div className="border-b border-border/70 px-4 py-3">

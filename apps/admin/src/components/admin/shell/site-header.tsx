@@ -13,7 +13,7 @@ export function SiteHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 transition-[width,height] ease-linear backdrop-blur supports-[backdrop-filter]:bg-background/80 group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-      <div className="flex min-w-0 items-center gap-2 px-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden px-4">
         <SidebarTrigger className="-ml-1" srLabel={dictionary.common.toggleSidebar} />
         <Separator
           orientation="vertical"
@@ -21,7 +21,7 @@ export function SiteHeader({
         />
         <RouteBreadcrumb dictionary={dictionary} />
       </div>
-      <div className="ml-auto flex items-center px-4 lg:px-6">
+      <div className="flex shrink-0 items-center px-4 lg:px-6">
         <HeaderTools dictionary={{ common: dictionary.common }} />
       </div>
     </header>

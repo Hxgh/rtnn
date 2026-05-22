@@ -10,15 +10,11 @@ export const adminRoutes = {
   account: "/account",
   users: {
     list: "/users",
-    create: "/users/new",
     detail: (id: string) => `/users/${id}`,
-    edit: (id: string) => `/users/${id}/edit`,
   },
   roles: {
     list: "/roles",
-    create: "/roles/new",
     detail: (id: string) => `/roles/${id}`,
-    edit: (id: string) => `/roles/${id}/edit`,
   },
   clientReleases: {
     list: "/client-releases",
@@ -103,24 +99,31 @@ const adminStaticRouteSet = new Set<string>([
   adminRoutes.customers,
   adminRoutes.account,
   adminRoutes.users.list,
-  adminRoutes.users.create,
   adminRoutes.roles.list,
-  adminRoutes.roles.create,
   adminRoutes.clientReleases.list,
   adminRoutes.clientReleases.packages,
   adminRoutes.auditLogs,
 ]);
 
 export function isAdminRoutablePath(pathname: string) {
+  if (
+    pathname === "/users/new" ||
+    pathname === "/roles/new" ||
+    /^\/users\/[^/]+\/edit$/.test(pathname) ||
+    /^\/roles\/[^/]+\/edit$/.test(pathname)
+  ) {
+    return false;
+  }
+
   if (adminStaticRouteSet.has(pathname)) {
     return true;
   }
 
-  if (/^\/users\/[^/]+(?:\/edit)?$/.test(pathname)) {
+  if (/^\/users\/[^/]+$/.test(pathname)) {
     return true;
   }
 
-  if (/^\/roles\/[^/]+(?:\/edit)?$/.test(pathname)) {
+  if (/^\/roles\/[^/]+$/.test(pathname)) {
     return true;
   }
 
@@ -143,7 +146,5 @@ export function getAdminSegmentLabelMap(
     packages: dictionary.clientReleases.packagesTitle,
     "audit-logs": dictionary.nav.auditLogs,
     account: dictionary.nav.account,
-    new: dictionary.common.create,
-    edit: dictionary.common.update,
   } satisfies Record<string, string>;
 }

@@ -161,6 +161,89 @@ function checkHydrationSafeFormatting(findings, filePath, content) {
   }
 }
 
+function checkDashboardAuditFormatting(findings, filePath, content) {
+  if (!filePath.endsWith("apps/admin/app/(dashboard)/dashboard/page.tsx")) {
+    return;
+  }
+
+  if (!content.includes("formatAuditActionLabel(") || !content.includes("formatAuditResourceLabel(")) {
+    addFinding(
+      findings,
+      filePath,
+      "看板近期审计必须使用正式 formatter，不应直接展示 action/resource 原始值",
+    );
+  }
+
+  if (/JSON\.stringify\(item\.detail\)/.test(content)) {
+    addFinding(
+      findings,
+      filePath,
+      "看板近期审计详情必须使用正式摘要 formatter，不应直接 JSON.stringify(detail)",
+    );
+  }
+}
+
+function checkInfoPanelUsage(findings, filePath, content) {
+  if (!filePath.startsWith("apps/admin/app/(dashboard)/")) {
+    return;
+  }
+
+  if (/DataPanel\s+className=(?:"[^"]*\bp-6\b[^"]*"|'[^']*\bp-6\b[^']*')/.test(content)) {
+    addFinding(
+      findings,
+      filePath,
+      "后台详情/信息面板应复用 AdminInfoPanel，避免页面内散落 p-6 容器",
+    );
+  }
+}
+
+function checkTableResponsiveness(findings) {
+  const filePath = "apps/admin/src/components/admin/table-page.tsx";
+  if (!existsSync(path.join(ROOT_DIR, filePath))) {
+    return;
+  }
+
+  const content = readFile(filePath);
+  if (!content.includes('data-admin-table-scroll=""') || !/Table className="min-w-max"/.test(content)) {
+    addFinding(
+      findings,
+      filePath,
+      "后台表格必须保留横向滚动容器和 min-w-max 表格宽度，避免列内容在窄宽度下互相遮挡",
+    );
+  }
+
+  if (!/AdminTableRowActions[\s\S]*?inline-flex min-w-max/.test(content)) {
+    addFinding(
+      findings,
+      filePath,
+      "后台表格行操作必须保留 min-w-max，避免操作按钮在窄列中挤压失效",
+    );
+  }
+}
+
+function checkLegacyMutationRoutes(findings) {
+  const legacyRoutes = [
+    "apps/admin/app/(dashboard)/users/new/page.tsx",
+    "apps/admin/app/(dashboard)/users/new/actions.ts",
+    "apps/admin/app/(dashboard)/users/[id]/edit/page.tsx",
+    "apps/admin/app/(dashboard)/users/[id]/edit/actions.ts",
+    "apps/admin/app/(dashboard)/roles/new/page.tsx",
+    "apps/admin/app/(dashboard)/roles/new/actions.ts",
+    "apps/admin/app/(dashboard)/roles/[id]/edit/page.tsx",
+    "apps/admin/app/(dashboard)/roles/[id]/edit/actions.ts",
+  ];
+
+  for (const filePath of legacyRoutes) {
+    if (existsSync(path.join(ROOT_DIR, filePath))) {
+      addFinding(
+        findings,
+        filePath,
+        "用户/角色新增编辑应收敛在列表弹窗内，不应保留独立新增/编辑页面或旧 server action",
+      );
+    }
+  }
+}
+
 function checkDialogA11y(findings, filePath, content) {
   if (!filePath.startsWith("apps/admin/")) {
     return;
@@ -265,12 +348,17 @@ function main() {
   const findings = [];
 
   for (const filePath of listTrackedAdminFiles()) {
+    if (!existsSync(path.join(ROOT_DIR, filePath))) {
+      continue;
+    }
     const content = readFile(filePath);
     checkForbiddenContent(findings, filePath, content);
     checkAdminInformationHierarchy(findings, filePath, content);
     checkAdminComponents(findings, filePath, content);
     checkRouteErrorBoundaries(findings, filePath, content);
     checkHydrationSafeFormatting(findings, filePath, content);
+    checkDashboardAuditFormatting(findings, filePath, content);
+    checkInfoPanelUsage(findings, filePath, content);
     checkDialogA11y(findings, filePath, content);
     checkDialogFormFields(findings, filePath, content);
     checkExternalStoreHydration(findings, filePath, content);
@@ -278,6 +366,8 @@ function main() {
 
   checkRouteStatePages(findings);
   checkTableActionTrigger(findings);
+  checkTableResponsiveness(findings);
+  checkLegacyMutationRoutes(findings);
 
   if (findings.length > 0) {
     for (const finding of findings) {

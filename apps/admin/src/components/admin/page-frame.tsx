@@ -41,3 +41,17 @@ export function DataPanel({
     </Card>
   );
 }
+
+export function AdminInfoPanel({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <DataPanel className={cn("space-y-6 p-4 sm:p-5 lg:p-6", className)}>
+      {children}
+    </DataPanel>
+  );
+}
