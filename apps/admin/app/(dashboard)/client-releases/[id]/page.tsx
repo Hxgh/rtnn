@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import {
   formatClientPackageName,
   formatClientRole,
@@ -69,8 +70,8 @@ export default async function ClientReleaseDetailPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:client-releases:view");
-  const canManagePolicy = hasPermission(me, "admin:client-releases:manage-policy");
+  assertPermission(me, API_PERMISSIONS.adminClientReleasesView);
+  const canManagePolicy = hasPermission(me, API_PERMISSIONS.adminClientReleasesManagePolicy);
   const { id } = await params;
   const policyStatus = (await searchParams)?.policyStatus;
 

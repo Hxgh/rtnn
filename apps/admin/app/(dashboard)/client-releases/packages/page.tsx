@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import {
   formatClientPackageName,
   formatClientRole,
@@ -90,7 +91,7 @@ export default async function ClientPackagesPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:client-releases:view");
+  assertPermission(me, API_PERMISSIONS.adminClientReleasesView);
 
   const params = searchParams ? await searchParams : undefined;
   const filters = normalizeFilters(params);

@@ -10,6 +10,8 @@ import type {
   AdminRefreshBody,
   AdminRefreshResult,
   AdminUserPathParams,
+  AdminUsersBindRolesBody,
+  AdminUsersBindRolesResult,
   AdminUsersCreateBody,
   AdminUsersCreateResult,
   AdminUsersGetResult,
@@ -72,6 +74,8 @@ import type {
   DashboardStatsResult,
   PermissionsListResult,
   RolePathParams,
+  RolesAssignPermissionsBody,
+  RolesAssignPermissionsResult,
   RolesCreateBody,
   RolesCreateResult,
   RolesGetResult,
@@ -122,12 +126,20 @@ export interface ApiClient {
         id: AdminUserPathParams["id"],
         body: AdminUsersUpdateBody,
       ): Promise<AdminUsersUpdateResult>;
+      bindRoles(
+        id: AdminUserPathParams["id"],
+        body: AdminUsersBindRolesBody,
+      ): Promise<AdminUsersBindRolesResult>;
     };
     roles: {
       list(query?: RolesListQuery): Promise<RolesListResult>;
       get(id: RolePathParams["id"]): Promise<RolesGetResult>;
       create(body: RolesCreateBody): Promise<RolesCreateResult>;
       update(id: RolePathParams["id"], body: RolesUpdateBody): Promise<RolesUpdateResult>;
+      assignPermissions(
+        id: RolePathParams["id"],
+        body: RolesAssignPermissionsBody,
+      ): Promise<RolesAssignPermissionsResult>;
     };
     permissions: {
       list(): Promise<PermissionsListResult>;
@@ -288,6 +300,12 @@ export const createApiClient = (transport: ApiTransport): ApiClient => ({
           path: byIdPath("/api/v1/admin/users/{id}", id),
           body,
         }),
+      bindRoles: (id, body) =>
+        transport.request<AdminUsersBindRolesResult, AdminUsersBindRolesBody>({
+          method: "POST",
+          path: byIdPath("/api/v1/admin/users/{id}/roles", id),
+          body,
+        }),
     },
     roles: {
       list: (query) =>
@@ -311,6 +329,15 @@ export const createApiClient = (transport: ApiTransport): ApiClient => ({
         transport.request<RolesUpdateResult, RolesUpdateBody>({
           method: "PATCH",
           path: byIdPath("/api/v1/admin/roles/{id}", id),
+          body,
+        }),
+      assignPermissions: (id, body) =>
+        transport.request<
+          RolesAssignPermissionsResult,
+          RolesAssignPermissionsBody
+        >({
+          method: "PATCH",
+          path: byIdPath("/api/v1/admin/roles/{id}/permissions", id),
           body,
         }),
     },

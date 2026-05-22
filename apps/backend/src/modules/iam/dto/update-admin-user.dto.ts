@@ -29,6 +29,7 @@ export class UpdateAdminUserDto {
   @ApiPropertyOptional({ type: [String], example: ['role_01'] })
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
   roleIds?: string[];
 
   @ApiPropertyOptional({ enum: adminUserStatuses, example: 'active' })

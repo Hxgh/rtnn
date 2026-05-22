@@ -7,6 +7,7 @@ const zhCNMessages: Record<string, string> = {
   'Missing session user': '缺少会话用户信息',
   'Admin user not found': '管理员用户不存在',
   'Role not found': '角色不存在',
+  'Permission not found': '权限不存在',
   'Invalid access token type': '访问令牌类型无效',
   'Invalid or expired access token': '访问令牌无效或已过期',
   'Invalid refresh token type': '刷新令牌类型无效',

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { createUser, updateUser } from "@/src/lib/api-client";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
@@ -22,7 +23,7 @@ export async function createUserDialogAction(
   formData: FormData,
 ): Promise<UserDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:users:create");
+  assertPermission(me, API_PERMISSIONS.adminUsersCreate);
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -79,7 +80,7 @@ export async function updateUserDialogAction(
   formData: FormData,
 ): Promise<UserDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:users:update");
+  assertPermission(me, API_PERMISSIONS.adminUsersUpdate);
 
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();

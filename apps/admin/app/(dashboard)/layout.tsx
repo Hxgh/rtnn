@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminShell } from "@/src/components/admin/shell";
 import { getAdminI18n } from "@/src/i18n/server";
 import { assertPermission } from "@/src/lib/permissions";
@@ -12,7 +13,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { me } = await requireUserSession();
-  assertPermission(me, "admin:access");
+  assertPermission(me, API_PERMISSIONS.adminAccess);
   const { dictionary } = await getAdminI18n();
   const cookieStore = await cookies();
   const defaultSidebarOpen =

@@ -4,6 +4,7 @@ import type { CustomerMeResponse } from "@rtnn/shared-types";
 import { mapMeResponseToSession, type AppSession } from "@/lib/contracts";
 import { createServerApiClient } from "@/lib/server/api-client";
 import { REFRESH_TOKEN_COOKIE } from "@/lib/server/auth-cookies";
+import { normalizeSafeRedirectPath } from "@/lib/server/redirects";
 
 type ApiError = Error & {
   status?: number;
@@ -23,7 +24,9 @@ async function hasRefreshToken() {
 }
 
 function buildRefreshHref(redirectTo: string) {
-  return `/api/session/refresh?redirectTo=${encodeURIComponent(redirectTo)}`;
+  return `/api/session/refresh?redirectTo=${encodeURIComponent(
+    normalizeSafeRedirectPath(redirectTo),
+  )}`;
 }
 
 export async function readSession(options?: {
@@ -41,6 +44,7 @@ export async function readSession(options?: {
 }
 
 export async function requireSession(redirectTo = "/me"): Promise<AppSession> {
+  const safeRedirectTo = normalizeSafeRedirectPath(redirectTo, "/me");
   try {
     return await getMeSession();
   } catch (error) {
@@ -49,9 +53,9 @@ export async function requireSession(redirectTo = "/me"): Promise<AppSession> {
       redirect("/403");
     }
     if (status === 401 && (await hasRefreshToken())) {
-      redirect(buildRefreshHref(redirectTo));
+      redirect(buildRefreshHref(safeRedirectTo));
     }
   }
 
-  redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+  redirect(`/login?redirectTo=${encodeURIComponent(safeRedirectTo)}`);
 }

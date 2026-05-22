@@ -137,6 +137,129 @@ describe('Backend integration', () => {
       .expect(403);
   });
 
+  it('rejects invalid IAM permission and role bindings without partial writes', async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+
+    const roleResponse = await harness.http
+      .post('/api/v1/admin/roles')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        name: 'Strict IAM Role',
+        slug: 'strict-iam-role',
+        permissionKeys: ['admin:users:view'],
+      })
+      .expect(201);
+
+    await harness.http
+      .patch(`/api/v1/admin/roles/${roleResponse.body.id}/permissions`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        permissionKeys: ['admin:users:create', 'admin:missing:permission'],
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(JSON.stringify(body.error)).toContain('PERMISSION_NOT_FOUND');
+      });
+
+    await harness.http
+      .get(`/api/v1/admin/roles/${roleResponse.body.id}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.permissionKeys).toEqual(['admin:users:view']);
+      });
+
+    const userResponse = await harness.http
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        email: 'strict-iam-user@rtnn.local',
+        password: 'Admin123!@#',
+        name: 'Strict IAM User',
+      })
+      .expect(201);
+
+    await harness.http
+      .post(`/api/v1/admin/users/${userResponse.body.id}/roles`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        roleIds: [roleResponse.body.id, 'missing-role-id'],
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(JSON.stringify(body.error)).toContain('ROLE_NOT_FOUND');
+      });
+
+    await harness.http
+      .get(`/api/v1/admin/users/${userResponse.body.id}`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.roleIds).toEqual([]);
+      });
+  });
+
+  it('expires existing admin access tokens after role permissions change', async () => {
+    const adminLogin = await harness.loginAdmin().expect(200);
+    const adminAccessToken = adminLogin.body.tokens.accessToken as string;
+
+    const roleResponse = await harness.http
+      .post('/api/v1/admin/roles')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        name: 'Revocable Viewer',
+        slug: 'revocable-viewer',
+        permissionKeys: ['admin:users:view'],
+      })
+      .expect(201);
+
+    const userResponse = await harness.http
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        email: 'revocable-viewer@rtnn.local',
+        password: 'Admin123!@#',
+        name: 'Revocable Viewer',
+        roleIds: [roleResponse.body.id],
+      })
+      .expect(201);
+
+    const viewerLogin = await harness
+      .loginAdmin('revocable-viewer@rtnn.local', 'Admin123!@#')
+      .expect(200);
+    const oldViewerAccessToken = viewerLogin.body.tokens.accessToken as string;
+
+    await harness.http
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${oldViewerAccessToken}`)
+      .expect(200);
+
+    await harness.http
+      .patch(`/api/v1/admin/roles/${roleResponse.body.id}/permissions`)
+      .set('Authorization', `Bearer ${adminAccessToken}`)
+      .send({
+        permissionKeys: [],
+      })
+      .expect(200);
+
+    await harness.http
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${oldViewerAccessToken}`)
+      .expect(401);
+
+    const nextViewerLogin = await harness
+      .loginAdmin('revocable-viewer@rtnn.local', 'Admin123!@#')
+      .expect(200);
+
+    await harness.http
+      .get('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${nextViewerLogin.body.tokens.accessToken}`)
+      .expect(403);
+
+    expect(userResponse.body.roleIds).toEqual([roleResponse.body.id]);
+  });
+
   it('tracks customer and reference-data writes in audit logs', async () => {
     const adminLogin = await harness.loginAdmin().expect(200);
     const adminAccessToken = adminLogin.body.tokens.accessToken as string;

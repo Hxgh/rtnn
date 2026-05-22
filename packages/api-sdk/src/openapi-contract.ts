@@ -131,11 +131,19 @@ type AdminUsersListOperation = Operation<"/api/v1/admin/users", "get">;
 type AdminUsersCreateOperation = Operation<"/api/v1/admin/users", "post">;
 type AdminUsersGetOperation = Operation<"/api/v1/admin/users/{id}", "get">;
 type AdminUsersUpdateOperation = Operation<"/api/v1/admin/users/{id}", "patch">;
+type AdminUsersBindRolesOperation = Operation<
+  "/api/v1/admin/users/{id}/roles",
+  "post"
+>;
 
 type RolesListOperation = Operation<"/api/v1/admin/roles", "get">;
 type RolesCreateOperation = Operation<"/api/v1/admin/roles", "post">;
 type RolesGetOperation = Operation<"/api/v1/admin/roles/{id}", "get">;
 type RolesUpdateOperation = Operation<"/api/v1/admin/roles/{id}", "patch">;
+type RolesAssignPermissionsOperation = Operation<
+  "/api/v1/admin/roles/{id}/permissions",
+  "patch"
+>;
 
 type PermissionsListOperation = Operation<"/api/v1/admin/permissions", "get">;
 
@@ -307,6 +315,14 @@ export type AdminUsersUpdateResult = PreferOpenApi<
   ResponseBodyOf<AdminUsersUpdateOperation>,
   AdminUserDetail
 >;
+export type AdminUsersBindRolesBody = PreferOpenApi<
+  RequestBodyOf<AdminUsersBindRolesOperation>,
+  { roleIds?: string[]; roleSlugs?: string[] }
+>;
+export type AdminUsersBindRolesResult = PreferOpenApi<
+  ResponseBodyOf<AdminUsersBindRolesOperation>,
+  AdminUserDetail
+>;
 
 export type RolesListQuery = PreferOpenApi<
   QueryOf<RolesListOperation>,
@@ -338,6 +354,14 @@ export type RolesUpdateBody = PreferOpenApi<
 >;
 export type RolesUpdateResult = PreferOpenApi<
   ResponseBodyOf<RolesUpdateOperation>,
+  RoleSummary
+>;
+export type RolesAssignPermissionsBody = PreferOpenApi<
+  RequestBodyOf<RolesAssignPermissionsOperation>,
+  Pick<UpdateRoleInput, "permissionKeys">
+>;
+export type RolesAssignPermissionsResult = PreferOpenApi<
+  ResponseBodyOf<RolesAssignPermissionsOperation>,
   RoleSummary
 >;
 

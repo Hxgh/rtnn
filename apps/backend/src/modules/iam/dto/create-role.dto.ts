@@ -21,5 +21,6 @@ export class CreateRoleDto {
   @ApiPropertyOptional({ type: [String], example: ['admin:dashboard:view'] })
   @IsOptional()
   @IsArray()
+  @IsString({ each: true })
   permissionKeys?: string[];
 }

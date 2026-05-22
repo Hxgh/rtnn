@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { createRole, updateRole } from "@/src/lib/api-client";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { resolveErrorMessage } from "@/src/lib/errors";
@@ -20,7 +21,7 @@ export async function createRoleDialogAction(
   formData: FormData,
 ): Promise<RoleDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:roles:create");
+  assertPermission(me, API_PERMISSIONS.adminRolesCreate);
 
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -66,7 +67,7 @@ export async function updateRoleDialogAction(
   formData: FormData,
 ): Promise<RoleDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:roles:update");
+  assertPermission(me, API_PERMISSIONS.adminRolesUpdate);
 
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();

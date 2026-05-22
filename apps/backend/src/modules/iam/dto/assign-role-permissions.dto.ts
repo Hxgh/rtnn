@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray } from 'class-validator';
+import { IsArray, IsString } from 'class-validator';
 
 export class AssignRolePermissionsDto {
   @ApiProperty({
@@ -7,5 +7,6 @@ export class AssignRolePermissionsDto {
     example: ['admin:dashboard:view', 'admin:users:view'],
   })
   @IsArray()
+  @IsString({ each: true })
   permissionKeys: string[];
 }

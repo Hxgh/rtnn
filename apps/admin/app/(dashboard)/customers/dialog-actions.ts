@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import {
   createCustomer,
   createCustomerGroup,
@@ -87,7 +88,7 @@ export async function createCustomerDialogAction(
   formData: FormData,
 ): Promise<CustomerDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customers:create");
+  assertPermission(me, API_PERMISSIONS.adminCustomersCreate);
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -145,7 +146,7 @@ export async function updateCustomerDialogAction(
   formData: FormData,
 ): Promise<CustomerDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customers:update");
+  assertPermission(me, API_PERMISSIONS.adminCustomersUpdate);
 
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -191,7 +192,7 @@ export async function updateCustomerStatusDialogAction(
   formData: FormData,
 ): Promise<CustomerStatusDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customers:update");
+  assertPermission(me, API_PERMISSIONS.adminCustomersUpdate);
 
   const id = String(formData.get("id") ?? "").trim();
   const status = String(formData.get("status") ?? "").trim();
@@ -231,7 +232,7 @@ export async function resetCustomerPasswordDialogAction(
   formData: FormData,
 ): Promise<CustomerPasswordResetFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customers:update");
+  assertPermission(me, API_PERMISSIONS.adminCustomersUpdate);
 
   const id = String(formData.get("id") ?? "").trim();
   const nextPassword = String(formData.get("nextPassword") ?? "").trim();
@@ -303,7 +304,7 @@ export async function createCustomerGroupDialogAction(
   formData: FormData,
 ): Promise<CustomerLookupDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customer-groups:manage");
+  assertPermission(me, API_PERMISSIONS.adminCustomerGroupsManage);
 
   const name = String(formData.get("name") ?? "").trim();
   const slug = normalizeOptionalString(formData.get("slug"));
@@ -346,7 +347,7 @@ export async function updateCustomerGroupDialogAction(
   formData: FormData,
 ): Promise<CustomerLookupDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customer-groups:manage");
+  assertPermission(me, API_PERMISSIONS.adminCustomerGroupsManage);
 
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
@@ -390,7 +391,7 @@ export async function createCustomerTagDialogAction(
   formData: FormData,
 ): Promise<CustomerLookupDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customer-tags:manage");
+  assertPermission(me, API_PERMISSIONS.adminCustomerTagsManage);
 
   const name = String(formData.get("name") ?? "").trim();
   const slug = normalizeOptionalString(formData.get("slug"));
@@ -435,7 +436,7 @@ export async function updateCustomerTagDialogAction(
   formData: FormData,
 ): Promise<CustomerLookupDialogFormState> {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:customer-tags:manage");
+  assertPermission(me, API_PERMISSIONS.adminCustomerTagsManage);
 
   const id = String(formData.get("id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();

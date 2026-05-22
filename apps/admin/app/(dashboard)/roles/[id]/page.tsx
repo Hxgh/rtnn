@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditRoleDialog } from "@/src/components/admin/roles/role-form-dialogs";
 import { AdminBadgeList } from "@/src/components/admin/table-display";
@@ -19,8 +20,8 @@ export default async function RoleDetailPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:roles:view");
-  const canUpdateRole = hasPermission(me, "admin:roles:update");
+  assertPermission(me, API_PERMISSIONS.adminRolesView);
+  const canUpdateRole = hasPermission(me, API_PERMISSIONS.adminRolesUpdate);
 
   const { id } = await params;
   let role: Awaited<ReturnType<typeof getRoleById>> | null = null;

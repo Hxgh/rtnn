@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 
 const registryFile = 'apps/backend/src/common/constants/permissions.const.ts'
 const generatedFile = 'packages/shared-types/src/permissions.generated.ts'
-const scanRoots = ['apps/backend/src', 'apps/admin/src']
+const scanRoots = ['apps/backend/src', 'apps/admin/app', 'apps/admin/src']
 const ignoredFiles = new Set([
   registryFile,
   'apps/backend/src/scripts/generate-permissions.ts',

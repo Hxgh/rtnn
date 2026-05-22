@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
 import {
@@ -236,14 +237,14 @@ export default async function CustomersPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:customers:view");
+  assertPermission(me, API_PERMISSIONS.adminCustomersView);
 
-  const canCreateCustomer = hasPermission(me, "admin:customers:create");
-  const canUpdateCustomer = hasPermission(me, "admin:customers:update");
-  const canViewGroupOptions = hasPermission(me, "admin:customer-groups:view");
-  const canManageGroups = hasPermission(me, "admin:customer-groups:manage");
-  const canViewTagOptions = hasPermission(me, "admin:customer-tags:view");
-  const canManageTags = hasPermission(me, "admin:customer-tags:manage");
+  const canCreateCustomer = hasPermission(me, API_PERMISSIONS.adminCustomersCreate);
+  const canUpdateCustomer = hasPermission(me, API_PERMISSIONS.adminCustomersUpdate);
+  const canViewGroupOptions = hasPermission(me, API_PERMISSIONS.adminCustomerGroupsView);
+  const canManageGroups = hasPermission(me, API_PERMISSIONS.adminCustomerGroupsManage);
+  const canViewTagOptions = hasPermission(me, API_PERMISSIONS.adminCustomerTagsView);
+  const canManageTags = hasPermission(me, API_PERMISSIONS.adminCustomerTagsManage);
   const params = searchParams ? await searchParams : undefined;
   const filters = normalizeFilters(params);
   const page = parsePositiveInt(params?.page, 1);

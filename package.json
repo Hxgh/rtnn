@@ -38,7 +38,7 @@
     "build": "node scripts/runtime/run-profiled-task.mjs build",
     "check:lint": "pnpm run lint",
     "check:typecheck": "pnpm run typecheck",
-    "check:contracts": "node scripts/contracts/check-permission-contract.mjs && node scripts/contracts/check-contract-drift.mjs",
+    "check:contracts": "node scripts/contracts/check-permission-contract.mjs && node scripts/contracts/check-auth-access-boundary.mjs && node --test tests/app-safe-redirect.test.mjs && node scripts/contracts/check-contract-drift.mjs",
     "check:backend-release": "pnpm run setup:env && pnpm run postgres:up && pnpm run prepare:backend && pnpm --filter backend check:release",
     "check:template-bootstrap": "node scripts/bootstrap/check-template-bootstrap.mjs",
     "check:clients": "node scripts/client/check-tauri-clients.mjs && node scripts/client/check-app-mobile-boundary.mjs",

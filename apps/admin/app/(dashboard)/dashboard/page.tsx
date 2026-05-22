@@ -1,3 +1,4 @@
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { getAdminI18n } from "@/src/i18n/server";
 import { getDashboardStats, listAuditLogs } from "@/src/lib/api-client";
@@ -16,8 +17,8 @@ import { formatAdminDateTime } from "@/src/lib/utils";
 export default async function DashboardPage() {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:dashboard:view");
-  const canViewAuditLogs = hasPermission(me, "admin:audit-logs:view");
+  assertPermission(me, API_PERMISSIONS.adminDashboardView);
+  const canViewAuditLogs = hasPermission(me, API_PERMISSIONS.adminAuditLogsView);
 
   let stats: Awaited<ReturnType<typeof getDashboardStats>> | null = null;
   let auditLogs: Awaited<ReturnType<typeof listAuditLogs>> | null = null;

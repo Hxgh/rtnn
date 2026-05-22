@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { CreateUserDialog, EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
 import { AdminStatusBadge } from "@/src/components/admin/status-badge";
@@ -61,9 +62,9 @@ export default async function UsersPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:users:view");
-  const canCreateUser = hasPermission(me, "admin:users:create");
-  const canUpdateUser = hasPermission(me, "admin:users:update");
+  assertPermission(me, API_PERMISSIONS.adminUsersView);
+  const canCreateUser = hasPermission(me, API_PERMISSIONS.adminUsersCreate);
+  const canUpdateUser = hasPermission(me, API_PERMISSIONS.adminUsersUpdate);
   const needsRoleOptions = canCreateUser || canUpdateUser;
   const params = searchParams ? await searchParams : undefined;
   const search = String(params?.search ?? "").trim();

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { CreateRoleDialog, EditRoleDialog } from "@/src/components/admin/roles/role-form-dialogs";
 import {
@@ -53,9 +54,9 @@ export default async function RolesPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:roles:view");
-  const canCreateRole = hasPermission(me, "admin:roles:create");
-  const canUpdateRole = hasPermission(me, "admin:roles:update");
+  assertPermission(me, API_PERMISSIONS.adminRolesView);
+  const canCreateRole = hasPermission(me, API_PERMISSIONS.adminRolesCreate);
+  const canUpdateRole = hasPermission(me, API_PERMISSIONS.adminRolesUpdate);
   const needsPermissionOptions = canCreateRole || canUpdateRole;
   const params = searchParams ? await searchParams : undefined;
   const search = String(params?.search ?? "").trim();

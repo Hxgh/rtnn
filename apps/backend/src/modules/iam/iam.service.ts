@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AccountStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
@@ -108,39 +112,55 @@ export class IamService {
 
   async createUser(actor: AuditActor, dto: CreateAdminUserDto) {
     const passwordHash = await this.passwordService.hash(dto.password);
-    const created = await this.prisma.account.create({
-      data: {
-        email: dto.email.toLowerCase(),
-        passwordHash,
-        status: this.toAccountStatus(dto.status),
-        tenantId: dto.tenantId,
-        adminProfile: {
-          create: {
-            name: dto.displayName ?? dto.name ?? dto.email.toLowerCase(),
-            tenantId: dto.tenantId,
+    const roleIds = this.unique(dto.roleIds ?? []);
+    await this.assertRolesExist(roleIds);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const account = await tx.account.create({
+        data: {
+          email: dto.email.toLowerCase(),
+          passwordHash,
+          status: this.toAccountStatus(dto.status),
+          tenantId: dto.tenantId,
+          adminProfile: {
+            create: {
+              name: dto.displayName ?? dto.name ?? dto.email.toLowerCase(),
+              tenantId: dto.tenantId,
+            },
           },
         },
-      },
-      include: {
-        adminProfile: true,
-      },
-    });
+        include: {
+          adminProfile: true,
+        },
+      });
 
-    if (dto.roleIds?.length) {
-      await this.replaceAccountRoles(created.id, dto.roleIds, created.tenantId);
-    }
+      await this.replaceAccountRoles(
+        account.id,
+        roleIds,
+        account.tenantId,
+        tx,
+        {
+          rolesVerified: true,
+        },
+      );
 
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.user.create',
-      resource: {
-        type: 'admin-user',
-        id: created.id,
-      },
-      detail: {
-        email: created.email,
-        roleIds: dto.roleIds ?? [],
-      },
+      await this.auditWriter.write(
+        {
+          actor,
+          action: 'admin.user.create',
+          resource: {
+            type: 'admin-user',
+            id: account.id,
+          },
+          detail: {
+            email: account.email,
+            roleIds,
+          },
+        },
+        tx,
+      );
+
+      return account;
     });
 
     return this.getUser(created.id);
@@ -156,7 +176,6 @@ export class IamService {
     }
 
     const displayName = dto.displayName ?? dto.name;
-    const now = new Date();
     const changedFields = [
       ...(displayName ? ['displayName'] : []),
       ...(dto.password ? ['password'] : []),
@@ -175,27 +194,11 @@ export class IamService {
           ...(passwordHash
             ? {
                 passwordHash,
-                credentialsVersion: {
-                  increment: 1,
-                },
               }
             : {}),
           ...(dto.status ? { status: this.toAccountStatus(dto.status) } : {}),
         },
       });
-
-      if (passwordHash) {
-        await tx.refreshSession.updateMany({
-          where: {
-            accountId: id,
-            audience: 'admin',
-            revokedAt: null,
-          },
-          data: {
-            revokedAt: now,
-          },
-        });
-      }
 
       if (displayName) {
         await tx.adminProfile.update({
@@ -206,6 +209,10 @@ export class IamService {
 
       if (dto.roleIds) {
         await this.replaceAccountRoles(id, dto.roleIds, existing.tenantId, tx);
+      }
+
+      if (passwordHash || dto.status || dto.roleIds) {
+        await this.invalidateAdminSessions(id, tx);
       }
 
       await this.auditWriter.write(
@@ -285,30 +292,39 @@ export class IamService {
   }
 
   async createRole(actor: AuditActor, dto: CreateRoleDto) {
-    const role = await this.prisma.role.create({
-      data: {
-        slug: dto.slug ?? slugify(dto.name),
-        name: dto.name,
-        description: dto.description,
-      },
-    });
-    if (dto.permissionKeys && dto.permissionKeys.length > 0) {
-      await this.assignRolePermissions(actor, role.id, {
-        permissionKeys: dto.permissionKeys,
+    const permissionKeys = this.unique(dto.permissionKeys ?? []);
+    const permissions = await this.findPermissionsByKeysOrThrow(permissionKeys);
+
+    const role = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.role.create({
+        data: {
+          slug: dto.slug ?? slugify(dto.name),
+          name: dto.name,
+          description: dto.description,
+        },
       });
-    }
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.role.create',
-      resource: {
-        type: 'role',
-        id: role.id,
-      },
-      detail: {
-        slug: role.slug,
-        permissionKeys: dto.permissionKeys ?? [],
-      },
+
+      await this.replaceRolePermissions(created.id, permissions, tx);
+
+      await this.auditWriter.write(
+        {
+          actor,
+          action: 'admin.role.create',
+          resource: {
+            type: 'role',
+            id: created.id,
+          },
+          detail: {
+            slug: created.slug,
+            permissionKeys,
+          },
+        },
+        tx,
+      );
+
+      return created;
     });
+
     return this.getRole(role.id);
   }
 
@@ -318,38 +334,49 @@ export class IamService {
       throw new NotFoundException('Role not found');
     }
 
-    await this.prisma.role.update({
-      where: { id },
-      data: {
-        ...(dto.name ? { name: dto.name } : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description }
-          : {}),
-        ...(dto.slug ? { slug: dto.slug } : {}),
-      },
-    });
+    const permissionKeys = dto.permissionKeys
+      ? this.unique(dto.permissionKeys)
+      : undefined;
+    const permissions = permissionKeys
+      ? await this.findPermissionsByKeysOrThrow(permissionKeys)
+      : undefined;
 
-    if (dto.permissionKeys) {
-      await this.assignRolePermissions(actor, id, {
-        permissionKeys: dto.permissionKeys,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.role.update({
+        where: { id },
+        data: {
+          ...(dto.name ? { name: dto.name } : {}),
+          ...(dto.description !== undefined
+            ? { description: dto.description }
+            : {}),
+          ...(dto.slug ? { slug: dto.slug } : {}),
+        },
       });
-    }
 
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.role.update',
-      resource: {
-        type: 'role',
-        id,
-      },
-      detail: {
-        changedFields: [
-          ...(dto.name ? ['name'] : []),
-          ...(dto.description !== undefined ? ['description'] : []),
-          ...(dto.slug ? ['slug'] : []),
-          ...(dto.permissionKeys ? ['permissionKeys'] : []),
-        ],
-      },
+      if (permissions) {
+        await this.replaceRolePermissions(id, permissions, tx);
+        await this.invalidateAdminSessionsForRole(id, tx);
+      }
+
+      await this.auditWriter.write(
+        {
+          actor,
+          action: 'admin.role.update',
+          resource: {
+            type: 'role',
+            id,
+          },
+          detail: {
+            changedFields: [
+              ...(dto.name ? ['name'] : []),
+              ...(dto.description !== undefined ? ['description'] : []),
+              ...(dto.slug ? ['slug'] : []),
+              ...(dto.permissionKeys ? ['permissionKeys'] : []),
+            ],
+          },
+        },
+        tx,
+      );
     });
 
     return this.getRole(id);
@@ -364,32 +391,25 @@ export class IamService {
     if (!role) {
       throw new NotFoundException('Role not found');
     }
-    const permissions = await this.prisma.permission.findMany({
-      where: {
-        key: { in: dto.permissionKeys },
-      },
-    });
-    await this.prisma.rolePermission.deleteMany({
-      where: { roleId },
-    });
-    if (permissions.length > 0) {
-      await this.prisma.rolePermission.createMany({
-        data: permissions.map((permission) => ({
-          roleId,
-          permissionId: permission.id,
-        })),
-      });
-    }
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.role.permissions.update',
-      resource: {
-        type: 'role',
-        id: roleId,
-      },
-      detail: {
-        permissionKeys: dto.permissionKeys,
-      },
+    const permissionKeys = this.unique(dto.permissionKeys);
+    const permissions = await this.findPermissionsByKeysOrThrow(permissionKeys);
+    await this.prisma.$transaction(async (tx) => {
+      await this.replaceRolePermissions(roleId, permissions, tx);
+      await this.invalidateAdminSessionsForRole(roleId, tx);
+      await this.auditWriter.write(
+        {
+          actor,
+          action: 'admin.role.permissions.update',
+          resource: {
+            type: 'role',
+            id: roleId,
+          },
+          detail: {
+            permissionKeys,
+          },
+        },
+        tx,
+      );
     });
     return this.getRole(roleId);
   }
@@ -406,27 +426,24 @@ export class IamService {
     if (!account || !account.adminProfile) {
       throw new NotFoundException('Admin user not found');
     }
-    const roleIds =
-      dto.roleIds ??
-      (dto.roleSlugs?.length
-        ? (
-            await this.prisma.role.findMany({
-              where: { slug: { in: dto.roleSlugs } },
-              select: { id: true },
-            })
-          ).map((role) => role.id)
-        : []);
-    await this.replaceAccountRoles(userId, roleIds, account.tenantId);
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.user.roles.update',
-      resource: {
-        type: 'admin-user',
-        id: userId,
-      },
-      detail: {
-        roleIds,
-      },
+    const roleIds = await this.resolveRoleIdsOrThrow(dto);
+    await this.prisma.$transaction(async (tx) => {
+      await this.replaceAccountRoles(userId, roleIds, account.tenantId, tx);
+      await this.invalidateAdminSessions(userId, tx);
+      await this.auditWriter.write(
+        {
+          actor,
+          action: 'admin.user.roles.update',
+          resource: {
+            type: 'admin-user',
+            id: userId,
+          },
+          detail: {
+            roleIds,
+          },
+        },
+        tx,
+      );
     });
     return this.getUser(userId);
   }
@@ -442,24 +459,199 @@ export class IamService {
     roleIds: string[],
     tenantId: string | null,
     executor: PrismaService | Prisma.TransactionClient = this.prisma,
+    options: { rolesVerified?: boolean } = {},
   ) {
+    const uniqueRoleIds = this.unique(roleIds);
+    if (!options.rolesVerified) {
+      await this.assertRolesExist(uniqueRoleIds, executor);
+    }
+
     await executor.accountRole.deleteMany({
       where: {
         accountId,
         audience: 'admin',
       },
     });
-    if (roleIds.length === 0) {
+    if (uniqueRoleIds.length === 0) {
       return;
     }
 
     await executor.accountRole.createMany({
-      data: roleIds.map((roleId) => ({
+      data: uniqueRoleIds.map((roleId) => ({
         accountId,
         roleId,
         audience: 'admin',
         tenantId: tenantId ?? undefined,
       })),
+    });
+  }
+
+  private unique(values: string[]): string[] {
+    return Array.from(
+      new Set(values.map((value) => value.trim()).filter(Boolean)),
+    );
+  }
+
+  private async replaceRolePermissions(
+    roleId: string,
+    permissions: Array<{ id: string; key: string }>,
+    executor: PrismaService | Prisma.TransactionClient,
+  ) {
+    await executor.rolePermission.deleteMany({
+      where: { roleId },
+    });
+    if (permissions.length === 0) {
+      return;
+    }
+    await executor.rolePermission.createMany({
+      data: permissions.map((permission) => ({
+        roleId,
+        permissionId: permission.id,
+      })),
+    });
+  }
+
+  private async assertRolesExist(
+    roleIds: string[],
+    executor: PrismaService | Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    if (roleIds.length === 0) {
+      return;
+    }
+
+    const roles = await executor.role.findMany({
+      where: {
+        id: { in: roleIds },
+      },
+      select: { id: true },
+    });
+    const foundRoleIds = new Set(roles.map((role) => role.id));
+    const missingRoleIds = roleIds.filter(
+      (roleId) => !foundRoleIds.has(roleId),
+    );
+    if (missingRoleIds.length > 0) {
+      throw new BadRequestException({
+        code: 'ROLE_NOT_FOUND',
+        message: 'Role not found',
+        roleIds: missingRoleIds,
+      });
+    }
+  }
+
+  private async resolveRoleIdsOrThrow(
+    dto: BindUserRolesDto,
+  ): Promise<string[]> {
+    if (dto.roleIds) {
+      return this.unique(dto.roleIds);
+    }
+
+    const roleSlugs = this.unique(dto.roleSlugs ?? []);
+    if (roleSlugs.length === 0) {
+      return [];
+    }
+
+    const roles = await this.prisma.role.findMany({
+      where: { slug: { in: roleSlugs } },
+      select: { id: true, slug: true },
+    });
+    const foundSlugs = new Set(roles.map((role) => role.slug));
+    const missingSlugs = roleSlugs.filter((slug) => !foundSlugs.has(slug));
+    if (missingSlugs.length > 0) {
+      throw new BadRequestException({
+        code: 'ROLE_NOT_FOUND',
+        message: 'Role not found',
+        roleSlugs: missingSlugs,
+      });
+    }
+    return roles.map((role) => role.id);
+  }
+
+  private async findPermissionsByKeysOrThrow(permissionKeys: string[]) {
+    if (permissionKeys.length === 0) {
+      return [];
+    }
+
+    const permissions = await this.prisma.permission.findMany({
+      where: {
+        key: { in: permissionKeys },
+      },
+      select: { id: true, key: true },
+    });
+    const foundKeys = new Set(permissions.map((permission) => permission.key));
+    const missingPermissionKeys = permissionKeys.filter(
+      (permissionKey) => !foundKeys.has(permissionKey),
+    );
+    if (missingPermissionKeys.length > 0) {
+      throw new BadRequestException({
+        code: 'PERMISSION_NOT_FOUND',
+        message: 'Permission not found',
+        permissionKeys: missingPermissionKeys,
+      });
+    }
+    return permissions;
+  }
+
+  private async invalidateAdminSessions(
+    accountId: string,
+    executor: PrismaService | Prisma.TransactionClient,
+  ) {
+    await executor.account.update({
+      where: { id: accountId },
+      data: {
+        credentialsVersion: {
+          increment: 1,
+        },
+      },
+    });
+    await executor.refreshSession.updateMany({
+      where: {
+        accountId,
+        audience: 'admin',
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+  }
+
+  private async invalidateAdminSessionsForRole(
+    roleId: string,
+    executor: PrismaService | Prisma.TransactionClient,
+  ) {
+    const accountRoles = await executor.accountRole.findMany({
+      where: {
+        roleId,
+        audience: 'admin',
+      },
+      select: {
+        accountId: true,
+      },
+    });
+    const accountIds = this.unique(accountRoles.map((item) => item.accountId));
+    if (accountIds.length === 0) {
+      return;
+    }
+
+    await executor.account.updateMany({
+      where: {
+        id: { in: accountIds },
+      },
+      data: {
+        credentialsVersion: {
+          increment: 1,
+        },
+      },
+    });
+    await executor.refreshSession.updateMany({
+      where: {
+        accountId: { in: accountIds },
+        audience: 'admin',
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
     });
   }
 

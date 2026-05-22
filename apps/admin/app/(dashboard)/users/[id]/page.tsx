@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminDetailItem, AdminDetailList } from "@/src/components/admin/detail-list";
 import { EditUserDialog } from "@/src/components/admin/users/user-form-dialogs";
 import { AdminBadgeList } from "@/src/components/admin/table-display";
@@ -25,8 +26,8 @@ export default async function UserDetailPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:users:view");
-  const canUpdateUser = hasPermission(me, "admin:users:update");
+  assertPermission(me, API_PERMISSIONS.adminUsersView);
+  const canUpdateUser = hasPermission(me, API_PERMISSIONS.adminUsersUpdate);
 
   const { id } = await params;
   let user: Awaited<ReturnType<typeof getUserById>> | null = null;

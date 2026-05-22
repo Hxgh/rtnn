@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { updateClientReleasePolicy } from "@/src/lib/api-client";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { getFormCheckbox, getOptionalFormString } from "@/src/lib/form-data";
@@ -10,7 +11,7 @@ import { requireUserSession } from "@/src/lib/session";
 
 export async function updateClientReleasePolicyAction(formData: FormData) {
   const { me, accessToken } = await requireUserSession();
-  assertPermission(me, "admin:client-releases:manage-policy");
+  assertPermission(me, API_PERMISSIONS.adminClientReleasesManagePolicy);
 
   const releaseId = String(formData.get("releaseId") ?? "").trim();
   const policyId = String(formData.get("policyId") ?? "").trim();

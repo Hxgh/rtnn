@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { API_PERMISSIONS } from "@rtnn/shared-types";
 import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
 import { FormSelect } from "@/src/components/admin/form-select";
 import { AdminStatusBadge } from "@/src/components/admin/status-badge";
 import {
-  AdminEmptyValue,
   AdminFilterSummary,
   AdminTextValue,
 } from "@/src/components/admin/table-display";
@@ -115,7 +115,7 @@ export default async function AuditLogsPage({
 }) {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, "admin:audit-logs:view");
+  assertPermission(me, API_PERMISSIONS.adminAuditLogsView);
   const params = searchParams ? await searchParams : undefined;
   const filters = normalizeFilters(params);
   const page = parsePositiveInt(params?.page, 1);

@@ -7,14 +7,8 @@ import {
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/server/auth-cookies";
 import { resolveBaseUrl } from "@/lib/server/api-client";
+import { normalizeSafeRedirectPath } from "@/lib/server/redirects";
 import { cookies } from "next/headers";
-
-function normalizeRedirectTo(value: string | null) {
-  if (!value || !value.startsWith("/")) {
-    return "/home";
-  }
-  return value;
-}
 
 async function refreshSessionTokens() {
   const cookieStore = await cookies();
@@ -44,7 +38,7 @@ async function refreshSessionTokens() {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const redirectTo = normalizeRedirectTo(url.searchParams.get("redirectTo"));
+  const redirectTo = normalizeSafeRedirectPath(url.searchParams.get("redirectTo"));
   const ok = await refreshSessionTokens();
   if (!ok) {
     return NextResponse.redirect(

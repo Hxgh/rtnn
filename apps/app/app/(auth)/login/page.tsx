@@ -1,6 +1,7 @@
 import { loginAction } from "./actions";
 import { MobileLoginForm } from "@/components/auth/mobile-login-form";
 import { getServerI18n } from "@/lib/i18n/server";
+import { normalizeSafeRedirectPath } from "@/lib/server/redirects";
 import { readSession } from "@/lib/server/session";
 import { redirect } from "next/navigation";
 
@@ -16,7 +17,7 @@ export default async function LoginPage({
 
   const { messages } = await getServerI18n();
   const params = searchParams ? await searchParams : undefined;
-  const redirectTo = params?.redirectTo?.startsWith("/") ? params.redirectTo : "/home";
+  const redirectTo = normalizeSafeRedirectPath(params?.redirectTo);
   const errorMessage =
     params?.error === "invalid"
       ? messages.login.invalid

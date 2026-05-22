@@ -1,4 +1,4 @@
-import type { PermissionKey } from "@rtnn/shared-types";
+import { API_PERMISSIONS, type PermissionKey } from "@rtnn/shared-types";
 import type { AdminDictionary } from "@/src/i18n/dictionaries";
 
 export const adminRoutes = {
@@ -51,42 +51,42 @@ export function buildAdminNavItems(
       label: dictionary.nav.overview,
       icon: "dashboard",
       group: "workspace",
-      permission: "admin:dashboard:view",
+      permission: API_PERMISSIONS.adminDashboardView,
     },
     {
       href: adminRoutes.customers,
       label: dictionary.nav.customers,
       icon: "customers",
       group: "business",
-      permission: "admin:customers:view",
+      permission: API_PERMISSIONS.adminCustomersView,
     },
     {
       href: adminRoutes.users.list,
       label: dictionary.nav.users,
       icon: "users",
       group: "access",
-      permission: "admin:users:view",
+      permission: API_PERMISSIONS.adminUsersView,
     },
     {
       href: adminRoutes.roles.list,
       label: dictionary.nav.roles,
       icon: "roles",
       group: "access",
-      permission: "admin:roles:view",
+      permission: API_PERMISSIONS.adminRolesView,
     },
     {
       href: adminRoutes.clientReleases.list,
       label: dictionary.nav.clientReleases,
       icon: "client-releases",
       group: "system",
-      permission: "admin:client-releases:view",
+      permission: API_PERMISSIONS.adminClientReleasesView,
     },
     {
       href: adminRoutes.auditLogs,
       label: dictionary.nav.auditLogs,
       icon: "audit-logs",
       group: "system",
-      permission: "admin:audit-logs:view",
+      permission: API_PERMISSIONS.adminAuditLogsView,
     },
   ];
 }
