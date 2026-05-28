@@ -82,6 +82,8 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 开始继续开发前，至少跑一次：
 
 ```bash
+pnpm run check:quick
+pnpm run check:backend-release
 pnpm run check:template-bootstrap
 pnpm run check:template-derivation
 pnpm run check:release-candidate
@@ -89,6 +91,8 @@ pnpm run check:release-candidate
 
 这三条命令会分别验证：
 
+- 快速静态门禁、契约漂移与后台规则
+- 后端正式发布门禁与测试数据库隔离
 - 模板初始化链路
 - 业务源码仓派生入口
 - backend 发布基线与多端交付链路

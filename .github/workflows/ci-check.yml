@@ -15,6 +15,7 @@ env:
   TEMPLATE_DATABASE_NAME: rtnn
   TEMPLATE_DATABASE_USER: postgres
   TEMPLATE_DATABASE_PASSWORD: postgres
+  RTNN_RUN_UI_SMOKE: ${{ github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted' }}
 
 concurrency:
   group: ci-check-${{ github.event.pull_request.number || github.ref }}
@@ -73,7 +74,7 @@ jobs:
     needs: detect-live-state-only
     if: ${{ needs.detect-live-state-only.outputs.live_state_only != 'true' }}
     runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -112,11 +113,12 @@ jobs:
       - name: Template bootstrap gate
         run: pnpm run check:template-bootstrap
 
-      - name: Lint
-        run: pnpm run lint
+      - name: Quick gate
+        run: pnpm run check:quick
 
-      - name: Typecheck
-        run: pnpm run typecheck
+      - name: Install Playwright Chromium
+        if: ${{ env.RTNN_RUN_UI_SMOKE == 'true' }}
+        run: pnpm exec playwright install chromium --with-deps
 
       - name: Release candidate gate
         run: pnpm run check:release-candidate

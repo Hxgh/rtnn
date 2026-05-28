@@ -59,8 +59,10 @@
 PR workflow 需要补齐：
 
 - 环境文件初始化
+- `check:quick` 快速门禁
 - Playwright 浏览器依赖安装
 - 模板发布候选 gate
+- 最终构建验证
 
 这样 PR 阶段才能真正验证：
 
@@ -76,6 +78,22 @@ PR workflow 需要补齐：
 
 - 不允许绕过 gate 直接推送 `backend / admin / app / weapp(H5)` 镜像。
 - 发布 workflow 与 PR workflow 使用同一套正式校验入口，避免语义漂移。
+
+### 四、当前落地
+
+当前 workflow 已按以下顺序接入：
+
+- `ci-check.yml`
+  - `check:template-bootstrap`
+  - `check:quick`
+  - Playwright Chromium 依赖安装
+  - `check:release-candidate`
+  - `build`
+- `release-images.yml`
+  - `check:template-bootstrap`
+  - Playwright Chromium 依赖安装
+  - `check:release-candidate`
+  - 之后才允许镜像发布前流程继续
 
 ## 第一优先级任务
 
