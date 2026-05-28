@@ -82,6 +82,11 @@ pnpm -C apps/backend start:dev
 - `TEST_DATABASE_SCHEMA_PREFIX`：自动派生 schema 的前缀，默认 `backend_template_test`
 - `TEST_KEEP_DATABASE_SCHEMA=1`：调试时保留本次测试 schema，默认测试结束后删除
 
+测试 schema 残留审计：
+
+- `pnpm run check:backend-test-schemas`：检查默认或当前环境指定前缀下是否存在测试 schema 残留
+- `pnpm run check:backend-test-schemas -- --prune`：确认残留均可删除后执行清理
+
 ## 常用脚本
 
 - `pnpm -C apps/backend start:dev`
@@ -99,3 +104,4 @@ pnpm -C apps/backend start:dev
 根目录提供并行稳定性检查：
 
 - `pnpm run check:backend-tests-parallel`
+- `pnpm run check:backend-release` 会串联后端发布基线、并行稳定性检查与测试 schema 残留审计

@@ -108,12 +108,19 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 ## 验收入口
 
 ```bash
+pnpm run check:quick
+pnpm run check:backend-release
 pnpm run check:template-bootstrap
 pnpm run check:template-derivation
 pnpm run check:release-candidate
 pnpm run smoke:admin
 pnpm run check
 ```
+
+- `check:quick`：不主动启动 PostgreSQL，覆盖 lint、typecheck、admin UI 规则、模板中立性与契约漂移。
+- `check:backend-release`：会在本地数据库配置下启动 PostgreSQL，执行测试 schema 残留预检、backend 发布基线、integration/e2e 并行隔离检查与测试后残留审计。
+- `check:release-candidate`：发布候选入口，覆盖模板派生、契约、backend 发布门禁；设置 `RTNN_RUN_UI_SMOKE=true` 后追加多端 UI smoke。
+- `check`：本地完整质量门禁，覆盖静态检查、模板派生、契约、backend 发布门禁与多端构建。
 
 ## AI 协作入口
 

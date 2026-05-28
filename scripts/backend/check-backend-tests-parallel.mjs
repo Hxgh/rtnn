@@ -1,19 +1,64 @@
 import { spawn } from "node:child_process";
 
+const MAX_POSTGRES_IDENTIFIER_LENGTH = 63;
+const PARALLEL_SCHEMA_PREFIX_MAX_LENGTH = 30;
+
 const commands = [
   {
     label: "backend:test:integration",
+    suite: "integration",
     args: ["--filter", "backend", "test:integration"],
   },
   {
     label: "backend:test:e2e",
+    suite: "e2e",
     args: ["--filter", "backend", "test:e2e"],
   },
 ];
 
-const children = commands.map(({ label, args }) => {
+function normalizeIdentifierSegment(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+
+  if (!normalized) {
+    return "test";
+  }
+  return /^[a-z_]/.test(normalized) ? normalized : `test_${normalized}`;
+}
+
+function buildChildSchema(suite) {
+  const prefix = normalizeIdentifierSegment(
+    process.env.TEST_DATABASE_SCHEMA_PREFIX ??
+      process.env.TEST_DATABASE_SCHEMA ??
+      "backend_template_test",
+  );
+  const safePrefix = prefix
+    .slice(0, PARALLEL_SCHEMA_PREFIX_MAX_LENGTH)
+    .replace(/_+$/g, "");
+  const suffix = `parallel_${normalizeIdentifierSegment(suite)}_p${process.pid}`;
+
+  const schema = `${safePrefix || "test"}_${suffix}`;
+  if (schema.length > MAX_POSTGRES_IDENTIFIER_LENGTH) {
+    throw new Error(
+      `Generated TEST_DATABASE_SCHEMA is too long: ${schema.length}/${MAX_POSTGRES_IDENTIFIER_LENGTH}`,
+    );
+  }
+  return schema;
+}
+
+const children = commands.map(({ label, suite, args }) => {
+  const testSchema = buildChildSchema(suite);
+  console.log(`[backend-tests-parallel] ${label} schema=${testSchema}`);
+
   const child = spawn("pnpm", args, {
-    env: process.env,
+    env: {
+      ...process.env,
+      TEST_DATABASE_SCHEMA: testSchema,
+    },
     shell: false,
     stdio: ["ignore", "pipe", "pipe"],
   });
