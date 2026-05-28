@@ -1,3 +1,4 @@
+import { API_PERMISSIONS, PERMISSION_DEFINITIONS } from "@rtnn/shared-types";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import {
   getTemplateDisplayNames,
@@ -12,6 +13,13 @@ const adminPassword =
 const adminDisplayName = templateEnv.TEMPLATE_ADMIN_DISPLAY_NAME;
 const customerPassword = templateEnv.TEMPLATE_CUSTOMER_PASSWORD;
 const testEmailDomain = `${templateEnv.TEMPLATE_PROJECT_ID}.local`;
+const permissionNameByKey = new Map(
+  PERMISSION_DEFINITIONS.map((permission) => [permission.key, permission.name]),
+);
+
+function formatPermissionLabel(permissionKey: string) {
+  return permissionNameByKey.get(permissionKey) ?? permissionKey;
+}
 
 test.describe.configure({ mode: "serial" });
 
@@ -107,8 +115,12 @@ test("admin 首发边界界面验收", async ({ page }, testInfo) => {
   await expect(page.getByRole("heading", { name: "角色详情" })).toBeVisible();
   await expect(page.getByText(roleName, { exact: true }).first()).toBeVisible();
   await expect(page.getByText(updatedRoleDescription)).toBeVisible();
-  await expect(page.getByText("admin:users:view")).toBeVisible();
-  await expect(page.getByText("admin:customers:view")).toBeVisible();
+  await expect(
+    page.getByText(formatPermissionLabel(API_PERMISSIONS.adminUsersView)),
+  ).toBeVisible();
+  await expect(
+    page.getByText(formatPermissionLabel(API_PERMISSIONS.adminCustomersView)),
+  ).toBeVisible();
 
   await page.getByRole("link", { name: "用户管理" }).click();
   await page.waitForURL("**/users");
