@@ -73,12 +73,14 @@ pnpm -C apps/backend start:dev
 - `pnpm -C apps/backend typecheck`
 - `pnpm -C apps/backend check:release`
 
-`integration/e2e` 测试基于独立 PostgreSQL schema 运行。测试 harness 会在启动时重建测试 schema，并通过 `prisma db push` 同步当前 schema。
+`integration/e2e` 测试基于独立 PostgreSQL schema 运行。测试 harness 会在启动时重建测试 schema，通过 `prisma db push` 同步当前 schema，并在结束时删除本次测试 schema。
 
 可选测试环境变量：
 
 - `TEST_BASE_DATABASE_URL`：用于连接 PostgreSQL `public` schema 执行测试 schema 的创建/删除
-- `TEST_DATABASE_SCHEMA`：测试 schema 名称，默认 `backend_template_test`
+- `TEST_DATABASE_SCHEMA`：显式测试 schema 名称；默认按测试类型与进程号自动派生，避免 `integration/e2e` 并行时互相删除 schema
+- `TEST_DATABASE_SCHEMA_PREFIX`：自动派生 schema 的前缀，默认 `backend_template_test`
+- `TEST_KEEP_DATABASE_SCHEMA=1`：调试时保留本次测试 schema，默认测试结束后删除
 
 ## 常用脚本
 
@@ -93,3 +95,7 @@ pnpm -C apps/backend start:dev
 - `pnpm -C apps/backend generate:permissions`
 - `pnpm -C apps/backend check:release`
 - `pnpm -C apps/backend prisma:migrate:dev`
+
+根目录提供并行稳定性检查：
+
+- `pnpm run check:backend-tests-parallel`

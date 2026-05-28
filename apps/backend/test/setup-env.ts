@@ -1,5 +1,9 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
+import {
+  buildDatabaseUrlWithSchema,
+  resolveTestDatabaseSchema,
+} from './support/test-database';
 
 const ROOT_ENV_PATHS = [
   resolve(__dirname, '../../../.env'),
@@ -66,13 +70,10 @@ const baseDatabaseUrl =
   process.env.TEST_BASE_DATABASE_URL ??
   process.env.DATABASE_URL ??
   buildDefaultDatabaseUrl();
-const schema = process.env.TEST_DATABASE_SCHEMA ?? 'backend_template_test';
-const testDatabaseUrl = new URL(baseDatabaseUrl);
+const schema = resolveTestDatabaseSchema();
 
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0';
 process.env.TEST_BASE_DATABASE_URL = baseDatabaseUrl;
 process.env.TEST_DATABASE_SCHEMA = schema;
-
-testDatabaseUrl.searchParams.set('schema', schema);
-process.env.DATABASE_URL = testDatabaseUrl.toString();
+process.env.DATABASE_URL = buildDatabaseUrlWithSchema(baseDatabaseUrl, schema);

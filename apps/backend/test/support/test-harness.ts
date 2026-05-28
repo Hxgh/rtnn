@@ -14,6 +14,12 @@ import {
 } from '../../src/core/bootstrap/configure-http-application';
 import { PasswordService } from '../../src/modules/auth/password.service';
 import { bootstrapTemplateAccess } from '../../src/support/bootstrap-template-access';
+import {
+  buildDatabaseUrlWithSchema,
+  quotePostgresIdentifier,
+  resolveTestDatabaseSchema,
+  shouldKeepTestDatabaseSchema,
+} from './test-database';
 
 const BACKEND_ROOT = resolve(__dirname, '../..');
 
@@ -35,12 +41,6 @@ export const TEST_FIXTURES = {
   },
 } as const;
 
-function withSchema(databaseUrl: string, schema: string) {
-  const nextUrl = new URL(databaseUrl);
-  nextUrl.searchParams.set('schema', schema);
-  return nextUrl.toString();
-}
-
 function getBaseDatabaseUrl() {
   return process.env.TEST_BASE_DATABASE_URL ?? process.env.DATABASE_URL ?? '';
 }
@@ -50,24 +50,25 @@ function getTestDatabaseUrl() {
 }
 
 function getTestSchema() {
-  return process.env.TEST_DATABASE_SCHEMA ?? 'backend_template_test';
+  return resolveTestDatabaseSchema();
 }
 
 async function recreateTestSchema() {
   const adminPrisma = new PrismaClient({
     datasources: {
       db: {
-        url: withSchema(getBaseDatabaseUrl(), 'public'),
+        url: buildDatabaseUrlWithSchema(getBaseDatabaseUrl(), 'public'),
       },
     },
   });
   const schema = getTestSchema();
+  const quotedSchema = quotePostgresIdentifier(schema);
 
   try {
     await adminPrisma.$executeRawUnsafe(
-      `DROP SCHEMA IF EXISTS "${schema}" CASCADE`,
+      `DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`,
     );
-    await adminPrisma.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
+    await adminPrisma.$executeRawUnsafe(`CREATE SCHEMA ${quotedSchema}`);
   } finally {
     await adminPrisma.$disconnect();
   }
@@ -103,8 +104,12 @@ async function truncateAllTables(prisma: PrismaClient) {
     return;
   }
 
+  const quotedSchema = quotePostgresIdentifier(schema);
   const quotedTables = tables
-    .map(({ tablename }) => `"${schema}"."${tablename}"`)
+    .map(
+      ({ tablename }) =>
+        `${quotedSchema}.${quotePostgresIdentifier(tablename)}`,
+    )
     .join(', ');
 
   await prisma.$executeRawUnsafe(
@@ -186,6 +191,10 @@ export class BackendTestHarness {
     await seedBaseData(this.prisma);
   }
 
+  async truncate() {
+    await truncateAllTables(this.prisma);
+  }
+
   get prismaClient() {
     return this.prisma;
   }
@@ -200,6 +209,9 @@ export class BackendTestHarness {
     }
     if (this.prisma) {
       await this.prisma.$disconnect();
+    }
+    if (!shouldKeepTestDatabaseSchema()) {
+      await dropTestSchema();
     }
   }
 
@@ -221,5 +233,24 @@ export class BackendTestHarness {
       email,
       password,
     });
+  }
+}
+
+async function dropTestSchema() {
+  const adminPrisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: buildDatabaseUrlWithSchema(getBaseDatabaseUrl(), 'public'),
+      },
+    },
+  });
+  const quotedSchema = quotePostgresIdentifier(getTestSchema());
+
+  try {
+    await adminPrisma.$executeRawUnsafe(
+      `DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`,
+    );
+  } finally {
+    await adminPrisma.$disconnect();
   }
 }
