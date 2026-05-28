@@ -103,3 +103,8 @@ export {
   type TaroTransportOptions,
 } from "./transport";
 export type { paths as OpenApiPaths } from "./generated/openapi";
+export {
+  API_SDK_ENDPOINT_SURFACE,
+  INTENTIONALLY_UNWRAPPED_OPENAPI_ENDPOINTS,
+} from "./endpoints";
+export type { ApiEndpointSurfaceEntry } from "./endpoints";

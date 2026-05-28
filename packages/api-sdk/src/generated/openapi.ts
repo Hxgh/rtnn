@@ -700,6 +700,18 @@ export interface components {
             /** @example 2026-04-27T00:00:00.000Z */
             timestamp: string;
         };
+        DashboardStatsDto: {
+            /** @example 3 */
+            totalAdminUsers: number;
+            /** @example 24 */
+            totalCustomers: number;
+            /** @example 5 */
+            totalRoles: number;
+            /** @example 1 */
+            suspendedCustomers: number;
+            /** @example 42 */
+            recentAuditCount: number;
+        };
         LoginDto: {
             /**
              * @description Login email
@@ -834,6 +846,147 @@ export interface components {
         CustomerMeResponseDto: {
             user: components["schemas"]["CustomerSessionUserDto"];
         };
+        AuditLogItemDto: {
+            /** @example aud_01JABCD123 */
+            id: string;
+            /** @example admin.user.update */
+            action: string;
+            /**
+             * @example admin
+             * @enum {string}
+             */
+            actorType: "admin" | "customer" | "system";
+            /** @example acc_01JABCD123 */
+            actorId?: Record<string, never> | null;
+            /** @example Operations Admin */
+            actorName: string;
+            /** @example admin-user */
+            resourceType: string;
+            /** @example acc_01JABCD123 */
+            resourceId?: Record<string, never> | null;
+            detail?: {
+                [key: string]: unknown;
+            } | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+        };
+        PaginationMetaDto: {
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            pageSize: number;
+            /** @example 57 */
+            total: number;
+            /** @example 3 */
+            totalPages: number;
+        };
+        AuditLogListResponseDto: {
+            data: components["schemas"]["AuditLogItemDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        AdminUserSummaryDto: {
+            /** @example acc_01JABCD123 */
+            id: string;
+            /** @example admin@example.com */
+            email: string;
+            /** @example Operations Admin */
+            name: string;
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "active" | "disabled" | "locked";
+            /**
+             * @example [
+             *       "Operations Admin"
+             *     ]
+             */
+            roles: string[];
+            /**
+             * @example [
+             *       "role_01JABCD123"
+             *     ]
+             */
+            roleIds?: string[];
+            /** @example null */
+            lastLoginAt: Record<string, never> | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        AdminUserListResponseDto: {
+            data: components["schemas"]["AdminUserSummaryDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        RoleSummaryDto: {
+            /** @example role_01JABCD123 */
+            id: string;
+            /** @example ops-admin */
+            slug?: string;
+            /** @example OPS_ADMIN */
+            code?: string;
+            /** @example Operations Admin */
+            name: string;
+            /** @example Can operate day-to-day admin workflows */
+            description?: Record<string, never>;
+            /** @example null */
+            tenantId?: Record<string, never>;
+            /**
+             * @example [
+             *       "admin:users:view"
+             *     ]
+             */
+            permissionKeys?: string[];
+            /**
+             * @example [
+             *       "admin:users:view"
+             *     ]
+             */
+            permissions?: string[];
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        AdminUserDetailDto: {
+            /** @example acc_01JABCD123 */
+            id: string;
+            /** @example admin@example.com */
+            email: string;
+            /** @example Operations Admin */
+            name: string;
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "active" | "disabled" | "locked";
+            /**
+             * @example [
+             *       "Operations Admin"
+             *     ]
+             */
+            roles: string[];
+            /**
+             * @example [
+             *       "role_01JABCD123"
+             *     ]
+             */
+            roleIds?: string[];
+            /** @example null */
+            lastLoginAt: Record<string, never> | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+            /**
+             * @example [
+             *       "admin:users:view"
+             *     ]
+             */
+            permissions: string[];
+            rolesDetailed: components["schemas"]["RoleSummaryDto"][];
+        };
         CreateAdminUserDto: {
             /** @example ops-admin@example.com */
             email: string;
@@ -890,6 +1043,10 @@ export interface components {
              */
             roleIds?: string[];
         };
+        RoleListResponseDto: {
+            data: components["schemas"]["RoleSummaryDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
         CreateRoleDto: {
             /** @example ops-manager */
             slug?: string;
@@ -926,6 +1083,106 @@ export interface components {
              *     ]
              */
             permissionKeys: string[];
+        };
+        PermissionSummaryDto: {
+            /** @example perm_01JABCD123 */
+            id: string;
+            /** @example admin:users:view */
+            key: string;
+            /** @example View admin users */
+            name: string;
+            /** @example Allows reading admin user profiles */
+            description?: Record<string, never>;
+        };
+        LabeledReferenceDto: {
+            /** @example grp_01JABCD123 */
+            id: string;
+            /** @example VIP Customers */
+            name: string;
+        };
+        CustomerSummaryDto: {
+            /** @example cus_01JABCD123 */
+            id: string;
+            /** @example acc_01JABCD123 */
+            accountId: string;
+            /** @example customer@example.com */
+            email: string;
+            /** @example Customer Name */
+            name: string;
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "active" | "inactive" | "blocked";
+            /** @example null */
+            tenantId: Record<string, never> | null;
+            /** @example +1-555-0100 */
+            phone?: Record<string, never> | null;
+            groups: components["schemas"]["LabeledReferenceDto"][];
+            tags: components["schemas"]["LabeledReferenceDto"][];
+            /**
+             * @example [
+             *       "VIP Customers"
+             *     ]
+             */
+            groupNames?: string[];
+            /**
+             * @example [
+             *       "High value"
+             *     ]
+             */
+            tagNames?: string[];
+            /** @example null */
+            lastLoginAt: Record<string, never> | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        CustomerListResponseDto: {
+            data: components["schemas"]["CustomerSummaryDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        CustomerDetailDto: {
+            /** @example cus_01JABCD123 */
+            id: string;
+            /** @example acc_01JABCD123 */
+            accountId: string;
+            /** @example customer@example.com */
+            email: string;
+            /** @example Customer Name */
+            name: string;
+            /**
+             * @example active
+             * @enum {string}
+             */
+            status: "active" | "inactive" | "blocked";
+            /** @example null */
+            tenantId: Record<string, never> | null;
+            /** @example +1-555-0100 */
+            phone?: Record<string, never> | null;
+            groups: components["schemas"]["LabeledReferenceDto"][];
+            tags: components["schemas"]["LabeledReferenceDto"][];
+            /**
+             * @example [
+             *       "VIP Customers"
+             *     ]
+             */
+            groupNames?: string[];
+            /**
+             * @example [
+             *       "High value"
+             *     ]
+             */
+            tagNames?: string[];
+            /** @example null */
+            lastLoginAt: Record<string, never> | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+            /** @example null */
+            notes?: Record<string, never> | null;
         };
         CreateCustomerDto: {
             /** @example customer@example.com */
@@ -986,6 +1243,30 @@ export interface components {
             /** @example StrongPass123! */
             nextPassword: string;
         };
+        SuccessResponseDto: {
+            /** @example true */
+            success: boolean;
+        };
+        CustomerGroupSummaryDto: {
+            /** @example grp_01JABCD123 */
+            id: string;
+            /** @example VIP Customers */
+            name: string;
+            /** @example Customers with higher support priority */
+            description?: string;
+            /** @example 3 */
+            memberCount?: number;
+            /** @example 3 */
+            customerCount?: number;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        CustomerGroupListResponseDto: {
+            data: components["schemas"]["CustomerGroupSummaryDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
         CreateCustomerGroupDto: {
             /** @example VIP Customers */
             name: string;
@@ -1001,6 +1282,26 @@ export interface components {
             slug?: string;
             /** @example High value customers */
             description?: string;
+        };
+        CustomerTagSummaryDto: {
+            /** @example tag_01JABCD123 */
+            id: string;
+            /** @example High value */
+            name: string;
+            /** @example #0ea5e9 */
+            color?: Record<string, never> | null;
+            /** @example 5 */
+            usageCount?: number;
+            /** @example 5 */
+            customerCount?: number;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        CustomerTagListResponseDto: {
+            data: components["schemas"]["CustomerTagSummaryDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
         };
         CreateCustomerTagDto: {
             /** @example Potential */
@@ -1038,6 +1339,293 @@ export interface components {
             artifacts?: Record<string, never>;
             clients: Record<string, never>;
         };
+        ClientPackageSummaryDto: {
+            /** @example pkg_01JABCD123 */
+            id: string;
+            /** @example appMobile */
+            client: string;
+            /** @example android */
+            target: string;
+            /** @example mobile */
+            shell: string;
+            /** @example com.example.app */
+            packageName?: string | null;
+            /** @example app-release.apk */
+            artifactName: string;
+            /** @example 1.2.3 */
+            shellVersion: string;
+            /** @example release */
+            releaseKind: string;
+            /** @example https://app.example.com */
+            webUrl?: string | null;
+            /** @example https://github.com/org/repo */
+            sourceUrl?: string | null;
+            /**
+             * @example github-release
+             * @enum {string}
+             */
+            distributionProvider: "github-release" | "self-hosted-static" | "external-url" | "object-storage";
+            /** @example https://download.example.com/app.apk */
+            distributionUrl?: string | null;
+            /**
+             * @example synced
+             * @enum {string}
+             */
+            distributionStatus: "pending" | "synced" | "failed" | "pruned" | "disabled";
+            /** @example app.apk */
+            fileName?: string | null;
+            /** @example 12345678 */
+            fileSize?: number | null;
+            /** @example abc123 */
+            sha256?: string | null;
+            /** @example signed */
+            signingStatus?: string | null;
+            /** @example success */
+            buildStatus?: string | null;
+            /** @example available */
+            updaterStatus?: string | null;
+            /** @example https://updates.example.com/latest.json */
+            updaterUrl?: string | null;
+            /** @example google-play */
+            storeProvider?: string | null;
+            /** @example submitted */
+            storeStatus?: string | null;
+            /** @example [] */
+            blockers: string[];
+            /** @example 2026-01-01T00:00:00.000Z */
+            syncedAt?: string | null;
+            /** @example null */
+            prunedAt?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        ClientUpdatePolicyReleaseOptionDto: {
+            /** @example rel_01JABCD123 */
+            id: string;
+            /** @example 1.2.3 */
+            releaseVersion: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            generatedAt?: string | null;
+        };
+        ClientUpdatePolicySummaryDto: {
+            /** @example pol_01JABCD123 */
+            id: string;
+            /** @example appMobile */
+            client: string;
+            /** @example android */
+            target: string;
+            /** @example production */
+            channel: string;
+            /** @example true */
+            enabled: boolean;
+            /** @example rel_01JABCD123 */
+            recommendedReleaseId?: string | null;
+            /** @example 1.2.3 */
+            recommendedVersion?: string | null;
+            releaseOptions: components["schemas"]["ClientUpdatePolicyReleaseOptionDto"][];
+            /** @example 1.0.0 */
+            minimumSupportedVersion?: string | null;
+            /** @example false */
+            forceUpdate: boolean;
+            /** @example true */
+            allowGithubFallback: boolean;
+            /** @example Roll out after store approval */
+            notes?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        ClientReleaseDetailDto: {
+            /** @example rel_01JABCD123 */
+            id: string;
+            /** @example 1.2.3 */
+            releaseVersion: string;
+            /** @example production */
+            channel: string;
+            /** @example example/rtnn */
+            sourceRepository: string;
+            /** @example 123456789 */
+            sourceRunId?: string | null;
+            /** @example bce88fb0a427 */
+            sourceSha: string;
+            /** @example refs/heads/main */
+            sourceRef?: string | null;
+            /** @example false */
+            dryRun: boolean;
+            /** @example completed */
+            status: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            generatedAt?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            syncedAt?: string | null;
+            /** @example 2 */
+            packageCount: number;
+            /** @example 2 */
+            downloadablePackageCount: number;
+            /**
+             * @example [
+             *       "appMobile"
+             *     ]
+             */
+            clients: string[];
+            /**
+             * @example [
+             *       "android"
+             *     ]
+             */
+            targets: string[];
+            /**
+             * @example [
+             *       "synced"
+             *     ]
+             */
+            distributionStatuses: string[];
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+            packages: components["schemas"]["ClientPackageSummaryDto"][];
+            policies: components["schemas"]["ClientUpdatePolicySummaryDto"][];
+        };
+        ClientReleaseSummaryDto: {
+            /** @example rel_01JABCD123 */
+            id: string;
+            /** @example 1.2.3 */
+            releaseVersion: string;
+            /** @example production */
+            channel: string;
+            /** @example example/rtnn */
+            sourceRepository: string;
+            /** @example 123456789 */
+            sourceRunId?: string | null;
+            /** @example bce88fb0a427 */
+            sourceSha: string;
+            /** @example refs/heads/main */
+            sourceRef?: string | null;
+            /** @example false */
+            dryRun: boolean;
+            /** @example completed */
+            status: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            generatedAt?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            syncedAt?: string | null;
+            /** @example 2 */
+            packageCount: number;
+            /** @example 2 */
+            downloadablePackageCount: number;
+            /**
+             * @example [
+             *       "appMobile"
+             *     ]
+             */
+            clients: string[];
+            /**
+             * @example [
+             *       "android"
+             *     ]
+             */
+            targets: string[];
+            /**
+             * @example [
+             *       "synced"
+             *     ]
+             */
+            distributionStatuses: string[];
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+        };
+        ClientReleaseListResponseDto: {
+            data: components["schemas"]["ClientReleaseSummaryDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
+        ClientPackageListItemDto: {
+            /** @example pkg_01JABCD123 */
+            id: string;
+            /** @example appMobile */
+            client: string;
+            /** @example android */
+            target: string;
+            /** @example mobile */
+            shell: string;
+            /** @example com.example.app */
+            packageName?: string | null;
+            /** @example app-release.apk */
+            artifactName: string;
+            /** @example 1.2.3 */
+            shellVersion: string;
+            /** @example release */
+            releaseKind: string;
+            /** @example https://app.example.com */
+            webUrl?: string | null;
+            /** @example https://github.com/org/repo */
+            sourceUrl?: string | null;
+            /**
+             * @example github-release
+             * @enum {string}
+             */
+            distributionProvider: "github-release" | "self-hosted-static" | "external-url" | "object-storage";
+            /** @example https://download.example.com/app.apk */
+            distributionUrl?: string | null;
+            /**
+             * @example synced
+             * @enum {string}
+             */
+            distributionStatus: "pending" | "synced" | "failed" | "pruned" | "disabled";
+            /** @example app.apk */
+            fileName?: string | null;
+            /** @example 12345678 */
+            fileSize?: number | null;
+            /** @example abc123 */
+            sha256?: string | null;
+            /** @example signed */
+            signingStatus?: string | null;
+            /** @example success */
+            buildStatus?: string | null;
+            /** @example available */
+            updaterStatus?: string | null;
+            /** @example https://updates.example.com/latest.json */
+            updaterUrl?: string | null;
+            /** @example google-play */
+            storeProvider?: string | null;
+            /** @example submitted */
+            storeStatus?: string | null;
+            /** @example [] */
+            blockers: string[];
+            /** @example 2026-01-01T00:00:00.000Z */
+            syncedAt?: string | null;
+            /** @example null */
+            prunedAt?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            createdAt: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            updatedAt: string;
+            /** @example rel_01JABCD123 */
+            releaseId: string;
+            /** @example 1.2.3 */
+            releaseVersion: string;
+            /** @example production */
+            channel: string;
+            /** @example completed */
+            releaseStatus: string;
+            /** @example 2026-01-01T00:00:00.000Z */
+            releaseGeneratedAt?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            releaseSyncedAt?: string | null;
+            /** @example bce88fb0a427 */
+            releaseSourceSha: string;
+            /** @example 123456789 */
+            releaseSourceRunId?: string | null;
+        };
+        ClientPackageListResponseDto: {
+            data: components["schemas"]["ClientPackageListItemDto"][];
+            meta: components["schemas"]["PaginationMetaDto"];
+        };
         UpdateClientReleasePolicyDto: {
             enabled?: boolean;
             recommendedReleaseId?: string | null;
@@ -1046,6 +1634,49 @@ export interface components {
             forceUpdate?: boolean;
             allowGithubFallback?: boolean;
             notes?: string | null;
+        };
+        ClientDownloadInfoDto: {
+            /** @example appMobile */
+            client: string;
+            /** @example android */
+            target: string;
+            /** @example production */
+            channel: string;
+            /** @example 1.2.3 */
+            version?: string | null;
+            /** @example 1.2.3 */
+            shellVersion?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            generatedAt?: string | null;
+            /** @example 2026-01-01T00:00:00.000Z */
+            syncedAt?: string | null;
+            /**
+             * @example direct
+             * @enum {string}
+             */
+            downloadType: "direct" | "store" | "unavailable";
+            /** @example github-release */
+            provider?: string | null;
+            /** @example https://download.example.com/app.apk */
+            downloadUrl?: string | null;
+            /** @example https://github.com/org/repo */
+            sourceUrl?: string | null;
+            /** @example app.apk */
+            fileName?: string | null;
+            /** @example 12345678 */
+            fileSize?: number | null;
+            /** @example abc123 */
+            sha256?: string | null;
+            /** @example true */
+            updateAvailable: boolean;
+            /** @example false */
+            forceUpdate: boolean;
+            /** @example 1.0.0 */
+            minimumSupportedVersion?: string | null;
+            /** @example Roll out after store approval */
+            notes?: string | null;
+            /** @example null */
+            reason?: string | null;
         };
     };
     responses: never;
@@ -1126,7 +1757,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DashboardStatsDto"];
+                };
             };
         };
     };
@@ -1395,7 +2028,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AuditLogListResponseDto"];
+                };
             };
         };
     };
@@ -1419,7 +2054,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AdminUserListResponseDto"];
+                };
             };
         };
     };
@@ -1440,7 +2077,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetailDto"];
+                };
             };
         };
     };
@@ -1459,7 +2098,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetailDto"];
+                };
             };
         };
     };
@@ -1482,7 +2123,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetailDto"];
+                };
             };
         };
     };
@@ -1501,11 +2144,13 @@ export interface operations {
             };
         };
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetailDto"];
+                };
             };
         };
     };
@@ -1529,7 +2174,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RoleListResponseDto"];
+                };
             };
         };
     };
@@ -1550,7 +2197,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RoleSummaryDto"];
+                };
             };
         };
     };
@@ -1569,7 +2218,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RoleSummaryDto"];
+                };
             };
         };
     };
@@ -1592,7 +2243,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RoleSummaryDto"];
+                };
             };
         };
     };
@@ -1615,7 +2268,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RoleSummaryDto"];
+                };
             };
         };
     };
@@ -1632,7 +2287,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PermissionSummaryDto"][];
+                };
             };
         };
     };
@@ -1659,7 +2316,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerListResponseDto"];
+                };
             };
         };
     };
@@ -1680,7 +2339,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetailDto"];
+                };
             };
         };
     };
@@ -1699,7 +2360,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetailDto"];
+                };
             };
         };
     };
@@ -1722,7 +2385,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetailDto"];
+                };
             };
         };
     };
@@ -1745,7 +2410,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerDetailDto"];
+                };
             };
         };
     };
@@ -1764,11 +2431,13 @@ export interface operations {
             };
         };
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SuccessResponseDto"];
+                };
             };
         };
     };
@@ -1792,7 +2461,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerGroupListResponseDto"];
+                };
             };
         };
     };
@@ -1813,7 +2484,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerGroupSummaryDto"];
+                };
             };
         };
     };
@@ -1836,7 +2509,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerGroupSummaryDto"];
+                };
             };
         };
     };
@@ -1860,7 +2535,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerTagListResponseDto"];
+                };
             };
         };
     };
@@ -1881,7 +2558,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerTagSummaryDto"];
+                };
             };
         };
     };
@@ -1904,7 +2583,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CustomerTagSummaryDto"];
+                };
             };
         };
     };
@@ -1925,7 +2606,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientReleaseDetailDto"];
+                };
             };
         };
     };
@@ -1953,7 +2636,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientReleaseListResponseDto"];
+                };
             };
         };
     };
@@ -1981,7 +2666,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientPackageListResponseDto"];
+                };
             };
         };
     };
@@ -2000,7 +2687,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientReleaseDetailDto"];
+                };
             };
         };
     };
@@ -2024,7 +2713,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientUpdatePolicySummaryDto"];
+                };
             };
         };
     };
@@ -2045,7 +2736,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientDownloadInfoDto"][];
+                };
             };
         };
     };
@@ -2067,7 +2760,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientDownloadInfoDto"];
+                };
             };
         };
     };
@@ -2089,7 +2784,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ClientDownloadInfoDto"];
+                };
             };
         };
     };

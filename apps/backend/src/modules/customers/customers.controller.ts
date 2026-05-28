@@ -8,7 +8,13 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { PERMISSIONS } from '../../common/constants/permissions.const';
 import { CurrentUser } from '../../common/guards/current-user.decorator';
@@ -25,6 +31,15 @@ import { UpdateCustomerGroupDto } from './dto/update-customer-group.dto';
 import { UpdateCustomerStatusDto } from './dto/update-customer-status.dto';
 import { UpdateCustomerTagDto } from './dto/update-customer-tag.dto';
 import { CustomersService } from './customers.service';
+import {
+  CustomerDetailDto,
+  CustomerGroupListResponseDto,
+  CustomerGroupSummaryDto,
+  CustomerListResponseDto,
+  CustomerTagListResponseDto,
+  CustomerTagSummaryDto,
+} from './dto/customer-response.dto';
+import { SuccessResponseDto } from '../../common/dto/success-response.dto';
 
 @ApiTags('admin-customers')
 @ApiBearerAuth()
@@ -34,6 +49,7 @@ export class CustomersController {
 
   @Get('customers')
   @ApiOperation({ summary: 'List customers' })
+  @ApiOkResponse({ type: CustomerListResponseDto })
   @RequirePermission(PERMISSIONS.adminCustomersView)
   listCustomers(@Query() query: ListCustomersQueryDto) {
     return this.customersService.list(query);
@@ -41,6 +57,7 @@ export class CustomersController {
 
   @Get('customers/:id')
   @ApiOperation({ summary: 'Get customer detail' })
+  @ApiOkResponse({ type: CustomerDetailDto })
   @RequirePermission(PERMISSIONS.adminCustomersView)
   getCustomer(@Param('id') id: string) {
     return this.customersService.getById(id);
@@ -48,6 +65,7 @@ export class CustomersController {
 
   @Post('customers')
   @ApiOperation({ summary: 'Create customer' })
+  @ApiCreatedResponse({ type: CustomerDetailDto })
   @RequirePermission(PERMISSIONS.adminCustomersCreate)
   createCustomer(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -58,6 +76,7 @@ export class CustomersController {
 
   @Patch('customers/:id')
   @ApiOperation({ summary: 'Update customer profile' })
+  @ApiOkResponse({ type: CustomerDetailDto })
   @RequirePermission(PERMISSIONS.adminCustomersUpdate)
   updateCustomer(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -69,6 +88,7 @@ export class CustomersController {
 
   @Patch('customers/:id/status')
   @ApiOperation({ summary: 'Update customer status' })
+  @ApiOkResponse({ type: CustomerDetailDto })
   @RequirePermission(PERMISSIONS.adminCustomersUpdate)
   updateCustomerStatus(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -80,6 +100,7 @@ export class CustomersController {
 
   @Post('customers/:id/reset-password')
   @ApiOperation({ summary: 'Reset customer password' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   @RequirePermission(PERMISSIONS.adminCustomersUpdate)
   resetCustomerPassword(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -95,6 +116,7 @@ export class CustomersController {
 
   @Get('customer-groups')
   @ApiOperation({ summary: 'List customer groups' })
+  @ApiOkResponse({ type: CustomerGroupListResponseDto })
   @RequirePermission(PERMISSIONS.adminCustomerGroupsView)
   listGroups(@Query() query: PaginationQueryDto) {
     return this.customersService.listGroups(query);
@@ -102,6 +124,7 @@ export class CustomersController {
 
   @Post('customer-groups')
   @ApiOperation({ summary: 'Create customer group' })
+  @ApiCreatedResponse({ type: CustomerGroupSummaryDto })
   @RequirePermission(PERMISSIONS.adminCustomerGroupsManage)
   createGroup(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -112,6 +135,7 @@ export class CustomersController {
 
   @Patch('customer-groups/:id')
   @ApiOperation({ summary: 'Update customer group' })
+  @ApiOkResponse({ type: CustomerGroupSummaryDto })
   @RequirePermission(PERMISSIONS.adminCustomerGroupsManage)
   updateGroup(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -123,6 +147,7 @@ export class CustomersController {
 
   @Get('customer-tags')
   @ApiOperation({ summary: 'List customer tags' })
+  @ApiOkResponse({ type: CustomerTagListResponseDto })
   @RequirePermission(PERMISSIONS.adminCustomerTagsView)
   listTags(@Query() query: PaginationQueryDto) {
     return this.customersService.listTags(query);
@@ -130,6 +155,7 @@ export class CustomersController {
 
   @Post('customer-tags')
   @ApiOperation({ summary: 'Create customer tag' })
+  @ApiCreatedResponse({ type: CustomerTagSummaryDto })
   @RequirePermission(PERMISSIONS.adminCustomerTagsManage)
   createTag(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -140,6 +166,7 @@ export class CustomersController {
 
   @Patch('customer-tags/:id')
   @ApiOperation({ summary: 'Update customer tag' })
+  @ApiOkResponse({ type: CustomerTagSummaryDto })
   @RequirePermission(PERMISSIONS.adminCustomerTagsManage)
   updateTag(
     @CurrentUser() user: AuthSessionUser | undefined,

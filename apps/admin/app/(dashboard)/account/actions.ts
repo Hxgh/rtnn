@@ -1,7 +1,7 @@
 "use server";
 
 import { changeAdminPassword } from "@/src/lib/api-client";
-import { resolveErrorMessage, resolveErrorStatus } from "@/src/lib/errors";
+import { resolveErrorCode, resolveErrorStatus } from "@/src/lib/errors";
 import { persistSessionTokens, requireUserSession } from "@/src/lib/session";
 
 export type ChangePasswordFormState = {
@@ -91,20 +91,22 @@ export async function changePasswordAction(
     await persistSessionTokens(session.tokens);
   } catch (error) {
     const status = resolveErrorStatus(error);
-    const message = resolveErrorMessage(error);
+    const code = resolveErrorCode(error);
+    const isCurrentInvalid = code === "OLD_PASSWORD_INVALID" || status === 401;
+    const isSameAsCurrent = code === "NEW_PASSWORD_MUST_DIFFER";
     return {
       ok: false,
       error:
-        status === 401
+        isCurrentInvalid
           ? "current-invalid"
-          : message.includes("differ")
+          : isSameAsCurrent
             ? "same-as-current"
             : "save-failed",
-      fieldErrors: status === 401
+      fieldErrors: isCurrentInvalid
         ? {
             currentPassword: true,
           }
-        : message.includes("differ")
+        : isSameAsCurrent
           ? {
               currentPassword: true,
               nextPassword: true,

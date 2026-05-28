@@ -92,3 +92,15 @@ pnpm run check:release-candidate
 - 模板初始化链路
 - 业务源码仓派生入口
 - backend 发布基线与多端交付链路
+
+涉及 backend 契约、权限、SDK、客户端发布事实或 Release Center 时，再补充：
+
+```bash
+pnpm run contracts:permissions
+pnpm run contracts:sync
+pnpm run check:contracts
+pnpm --filter @rtnn/api-sdk build
+```
+
+正式部署前必须替换 JWT access/refresh secret，并配置
+`CLIENT_RELEASE_FACTS_TOKEN`。本地 development/test 仍可使用模板默认值。

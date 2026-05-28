@@ -82,6 +82,11 @@ describe('AllExceptionsFilter', () => {
           message: '权限不足',
           requiredPermissions: ['admin:users:view'],
         },
+        code: 'PERMISSION_DENIED',
+        message: '权限不足',
+        details: {
+          requiredPermissions: ['admin:users:view'],
+        },
       }),
     );
   });
@@ -103,6 +108,8 @@ describe('AllExceptionsFilter', () => {
         statusCode: 500,
         locale: 'zh-CN',
         error: '服务器内部错误',
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '服务器内部错误',
       }),
     );
   });
@@ -127,6 +134,45 @@ describe('AllExceptionsFilter', () => {
         error: expect.objectContaining({
           message: 'Internal server error',
         }),
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Internal server error',
+      }),
+    );
+  });
+
+  it('removes sensitive fields from error details', () => {
+    const { host, response } = createHost({
+      locale: 'en-US',
+    });
+
+    filter.catch(
+      new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Invalid payload',
+        token: 'raw-token',
+        nested: {
+          refreshSecret: 'raw-secret',
+          retryAfterSeconds: 30,
+        },
+      }),
+      host,
+    );
+
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'VALIDATION_FAILED',
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: 'Invalid payload',
+          nested: {
+            retryAfterSeconds: 30,
+          },
+        },
+        details: {
+          nested: {
+            retryAfterSeconds: 30,
+          },
+        },
       }),
     );
   });

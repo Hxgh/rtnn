@@ -1,12 +1,34 @@
+import { BadRequestException } from '@nestjs/common';
+import { ClientReleaseDownloadResolver } from './client-release-download-resolver.service';
+import { ClientReleaseFactsParser } from './client-release-facts-parser.service';
+import { ClientReleaseMapper } from './client-release-mapper.service';
+import { ClientReleasePolicyService } from './client-release-policy.service';
+import { ClientReleaseQueryService } from './client-release-query.service';
+import { ClientReleaseSyncService } from './client-release-sync.service';
 import { ClientReleasesService } from './client-releases.service';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
 
 const now = new Date('2026-04-30T00:00:00.000Z');
 
 function createService(prisma: unknown) {
+  const mapper = new ClientReleaseMapper();
+  const queryService = new ClientReleaseQueryService(prisma as never, mapper);
+  const downloads = new ClientReleaseDownloadResolver(prisma as never);
+  const auditWriter = { write: jest.fn() };
   return new ClientReleasesService(
-    prisma as never,
-    { write: jest.fn() } as never,
+    new ClientReleaseSyncService(
+      prisma as never,
+      new ClientReleaseFactsParser(),
+    ),
+    queryService,
+    new ClientReleasePolicyService(
+      prisma as never,
+      auditWriter as never,
+      downloads,
+      queryService,
+      mapper,
+    ),
+    downloads,
   );
 }
 
@@ -956,9 +978,7 @@ describe('ClientReleasesService', () => {
           recommendedReleaseId: 'rel_prod',
         },
       ),
-    ).rejects.toThrow(
-      'Recommended release is not available for this client target channel',
-    );
+    ).rejects.toThrow(BadRequestException);
     expect(prisma.clientPackage.findFirst).toHaveBeenCalledWith({
       where: {
         releaseId: 'rel_prod',
@@ -1019,8 +1039,6 @@ describe('ClientReleasesService', () => {
           allowGithubFallback: false,
         },
       ),
-    ).rejects.toThrow(
-      'Recommended release does not have a downloadable package for this policy',
-    );
+    ).rejects.toThrow(BadRequestException);
   });
 });

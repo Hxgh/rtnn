@@ -20,6 +20,7 @@ describe('validateEnv', () => {
       DEPLOY_VERSION: 'main-bce88fb0a427',
       DEPLOY_SOURCE_SHA: 'bce88fb0a4271ad8180059ab8fc23c0135c8d632',
       BACKEND_IMAGE: 'ghcr.io/example/rtnn-backend:main-bce88fb0a427',
+      CLIENT_RELEASE_FACTS_TOKEN: 'release-facts-token',
     });
     expect(parsed.PORT).toBe(5100);
     expect(parsed.LOGIN_RATE_LIMIT_WINDOW_SEC).toBe(300);
@@ -52,6 +53,48 @@ describe('validateEnv', () => {
     expect(parsed.DEPLOY_VERSION).toBe('local');
     expect(parsed.DEPLOY_SOURCE_SHA).toBe('unknown');
     expect(parsed.BACKEND_IMAGE).toBe('local');
+  });
+
+  it('should allow template defaults in development', () => {
+    const parsed = validateEnv({
+      NODE_ENV: 'development',
+      DATABASE_URL:
+        'postgresql://postgres:postgres@localhost:55432/rtnn?schema=public',
+    });
+
+    expect(parsed.JWT_ACCESS_SECRET).toBe(
+      'replace-this-with-a-long-random-string-access',
+    );
+    expect(parsed.JWT_REFRESH_SECRET).toBe(
+      'replace-this-with-a-long-random-string-refresh',
+    );
+    expect(parsed.CLIENT_RELEASE_FACTS_TOKEN).toBe('');
+  });
+
+  it('should reject default jwt secrets in production', () => {
+    expect(() =>
+      validateEnv({
+        NODE_ENV: 'production',
+        DATABASE_URL:
+          'postgresql://postgres:postgres@localhost:55432/rtnn?schema=public',
+        JWT_ACCESS_SECRET: 'replace-this-with-a-long-random-string-access',
+        JWT_REFRESH_SECRET: 'replace-this-with-a-long-random-string-refresh',
+        CLIENT_RELEASE_FACTS_TOKEN: 'release-facts-token',
+      }),
+    ).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it('should require client release facts token for release-like environments', () => {
+    expect(() =>
+      validateEnv({
+        NODE_ENV: 'development',
+        DEPLOY_ENVIRONMENT: 'production',
+        DATABASE_URL:
+          'postgresql://postgres:postgres@localhost:55432/rtnn?schema=public',
+        JWT_ACCESS_SECRET: 'abcdefghijklmnopqrstuvwxyz',
+        JWT_REFRESH_SECRET: 'abcdefghijklmnopqrstuvwxyz012345',
+      }),
+    ).toThrow(/CLIENT_RELEASE_FACTS_TOKEN/);
   });
 
   it('should throw on invalid env config', () => {

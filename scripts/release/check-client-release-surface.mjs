@@ -19,6 +19,18 @@ function assertIncludes(findings, filePath, content, values, message) {
   }
 }
 
+function assertIncludesInAny(findings, filePaths, values, message) {
+  const contents = filePaths.map((filePath) => ({
+    filePath,
+    content: read(filePath),
+  }));
+  for (const value of values) {
+    if (!contents.some((entry) => entry.content.includes(value))) {
+      addFinding(findings, filePaths.join(", "), `${message}: ${value}`);
+    }
+  }
+}
+
 function assertMatches(findings, filePath, content, checks) {
   for (const { pattern, message } of checks) {
     if (!pattern.test(content)) {
@@ -95,13 +107,16 @@ function checkBackendContract(findings) {
     "客户端发布公开/后台接口契约不应缺失",
   );
 
-  const servicePath =
-    "apps/backend/src/modules/client-releases/client-releases.service.ts";
-  const serviceContent = read(servicePath);
-  assertIncludes(
+  const servicePaths = [
+    "apps/backend/src/modules/client-releases/client-releases.service.ts",
+    "apps/backend/src/modules/client-releases/client-release-download-resolver.service.ts",
+    "apps/backend/src/modules/client-releases/client-release-mapper.service.ts",
+    "apps/backend/src/modules/client-releases/client-release-policy.service.ts",
+    "apps/backend/src/modules/client-releases/client-release-query.service.ts",
+  ];
+  assertIncludesInAny(
     findings,
-    servicePath,
-    serviceContent,
+    servicePaths,
     [
       "reason: 'disabled'",
       "reason: 'missing-package'",
@@ -122,8 +137,7 @@ function checkAdminSurface(findings) {
   const listPath = "apps/admin/app/(dashboard)/client-releases/page.tsx";
   const packagePath =
     "apps/admin/app/(dashboard)/client-releases/packages/page.tsx";
-  const detailPath =
-    "apps/admin/app/(dashboard)/client-releases/[id]/page.tsx";
+  const detailPath = "apps/admin/app/(dashboard)/client-releases/[id]/page.tsx";
   const actionPath = "apps/admin/app/(dashboard)/client-releases/actions.ts";
 
   for (const filePath of [listPath, packagePath, detailPath, actionPath]) {
@@ -133,10 +147,13 @@ function checkAdminSurface(findings) {
   }
 
   const listContent = read(listPath);
-  assertIncludes(
-    findings,
+  const listSupportPaths = [
     listPath,
-    listContent,
+    "apps/admin/app/(dashboard)/client-releases/table.tsx",
+  ];
+  assertIncludesInAny(
+    findings,
+    listSupportPaths,
     [
       "dictionary.clientReleases.releaseVersion",
       "dictionary.clientReleases.channel",
@@ -188,7 +205,7 @@ function checkAdminSurface(findings) {
       "dictionary.clientReleases.allowGithubFallback",
       "dictionary.clientReleases.policySaved",
       "dictionary.clientReleases.policySaveFailed",
-      "defaultValue={policy.recommendedReleaseId ?? \"\"}",
+      'defaultValue={policy.recommendedReleaseId ?? ""}',
     ],
     "详情页必须保留包详情、错误原因、策略保存和推荐版本能力",
   );
@@ -203,7 +220,7 @@ function checkAppDownloadSurface(findings) {
     filePath,
     content,
     [
-      "export const dynamic = \"force-dynamic\"",
+      'export const dynamic = "force-dynamic"',
       "resolveDefaultChannel",
       "listClientDownloads({ channel })",
       "messages.download.unavailable",
@@ -243,7 +260,8 @@ function checkAppDownloadSurface(findings) {
 function checkScriptWiring(findings) {
   const packageJsonPath = "package.json";
   const packageJson = JSON.parse(read(packageJsonPath));
-  const checkClientRelease = packageJson.scripts?.["check:client-release"] ?? "";
+  const checkClientRelease =
+    packageJson.scripts?.["check:client-release"] ?? "";
 
   if (!checkClientRelease.includes("check-client-release-surface.mjs")) {
     addFinding(

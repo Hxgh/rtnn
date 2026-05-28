@@ -9,6 +9,10 @@ import { AuthAdminController, AuthCustomerController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthTokenService } from './auth-token.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import {
+  InMemoryLoginRateLimitStore,
+  LOGIN_RATE_LIMIT_STORE,
+} from './login-rate-limit.store';
 import { PasswordService } from './password.service';
 
 @Module({
@@ -26,6 +30,11 @@ import { PasswordService } from './password.service';
     AuthService,
     AuthTokenService,
     PasswordService,
+    InMemoryLoginRateLimitStore,
+    {
+      provide: LOGIN_RATE_LIMIT_STORE,
+      useExisting: InMemoryLoginRateLimitStore,
+    },
     LoginRateLimitService,
     {
       provide: APP_GUARD,

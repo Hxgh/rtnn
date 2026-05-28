@@ -20,6 +20,17 @@ export function resolveErrorMessage(error: unknown): string {
   return "";
 }
 
+export function resolveErrorCode(error: unknown): string | null {
+  if (typeof error === "object" && error && "payload" in error) {
+    const payload = (error as { payload?: unknown }).payload;
+    if (payload && typeof payload === "object" && "code" in payload) {
+      const code = (payload as { code?: unknown }).code;
+      return typeof code === "string" ? code : null;
+    }
+  }
+  return null;
+}
+
 export function resolveErrorStatus(error: unknown): number | null {
   if (typeof error === "object" && error && "status" in error) {
     const status = Number((error as { status?: unknown }).status);

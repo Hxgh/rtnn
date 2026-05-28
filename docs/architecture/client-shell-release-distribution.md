@@ -3,16 +3,46 @@
 RTNN treats client packages as low-frequency shell releases, not as part of
 every business deployment.
 
+## Current Runtime Status
+
+This document is now a runtime model, not only a future plan.
+
+Implemented in the template:
+
+- backend stores client release facts, package metadata, distribution status,
+  download policy, and update policy;
+- admin Release Center reads real backend facts and exposes release/package
+  lists plus policy updates;
+- public download and update-check APIs resolve the latest downloadable package
+  from policy, channel, target, distribution URL, and GitHub fallback rules;
+- contract generation exports these APIs through OpenAPI and `@rtnn/api-sdk`;
+- release scripts validate client release surface, GitHub prerequisites,
+  build locks, artifact URLs, and live-state sync helpers.
+
+Still project-specific:
+
+- real static/object-storage roots;
+- signing credentials and store credentials;
+- whether a business repository enables each client/target;
+- any build trigger UI. The template keeps build execution outside admin unless
+  a real business requirement adds it.
+
+Deprecated or intentionally absent:
+
+- no fake release records or placeholder admin actions;
+- no backend proxying of large installers;
+- no ordinary backend/admin/app deploy that implicitly compiles client shells.
+
 ## Core Decisions
 
 - Normal backend/admin/app/weapp deployments do not build client packages.
 - Client packages are built only when the shell changes: Tauri config, native
-bridge capability, platform permission, signing, updater, bundle id, icon, or
-installer configuration.
+  bridge capability, platform permission, signing, updater, bundle id, icon, or
+  installer configuration.
 - GitHub Release can be used as the source asset repository.
 - User downloads must resolve through a distribution asset URL.
 - Backend stores metadata, URLs, policies, and status only. It must not stream
-large installer files.
+  large installer files.
 - The app `/download` page is the user-facing download entry.
 - Admin "Release Center" shows real release facts, package distribution status,
   blockers, and update policy.
@@ -146,3 +176,21 @@ Self-hosted distribution files are pruned per `client + target + channel`.
 - A deploy repository executes synchronization and retention.
 - Private server paths, real domains, and runtime secrets belong to the
   business/deploy configuration, not the open-source template.
+
+## Validation Commands
+
+Use these commands when changing release facts, backend contracts, SDK coverage,
+or admin Release Center behavior:
+
+```bash
+pnpm run contracts:permissions
+pnpm run contracts:sync
+pnpm run check:contracts
+pnpm --filter @rtnn/api-sdk build
+pnpm --filter backend test --runInBand
+pnpm run check:admin-ui
+pnpm run typecheck
+```
+
+`check:contracts` also checks that every OpenAPI endpoint is either represented
+in the SDK surface manifest or explicitly marked as intentionally unwrapped.

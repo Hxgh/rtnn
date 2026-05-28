@@ -29,6 +29,11 @@ export interface AppEnv {
   CLIENT_RELEASE_FACTS_TOKEN: string;
 }
 
+export const DEFAULT_JWT_ACCESS_SECRET =
+  'replace-this-with-a-long-random-string-access';
+export const DEFAULT_JWT_REFRESH_SECRET =
+  'replace-this-with-a-long-random-string-refresh';
+
 export function normalizeCorsOrigins(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.map((origin) => String(origin).trim()).filter(Boolean);
@@ -66,12 +71,8 @@ const envSchema = Joi.object<AppEnv>({
   LOGIN_RATE_LIMIT_MAX_ATTEMPTS: Joi.number().integer().min(3).default(10),
   JWT_ISSUER: Joi.string().min(3).default(JWT_DEFAULTS.issuer),
   JWT_AUDIENCE: Joi.string().min(3).default(JWT_DEFAULTS.audience),
-  JWT_ACCESS_SECRET: Joi.string()
-    .min(16)
-    .default('replace-this-with-a-long-random-string-access'),
-  JWT_REFRESH_SECRET: Joi.string()
-    .min(16)
-    .default('replace-this-with-a-long-random-string-refresh'),
+  JWT_ACCESS_SECRET: Joi.string().min(16).default(DEFAULT_JWT_ACCESS_SECRET),
+  JWT_REFRESH_SECRET: Joi.string().min(16).default(DEFAULT_JWT_REFRESH_SECRET),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
   DEPLOY_ENVIRONMENT: Joi.string().allow('').default('local'),
@@ -99,5 +100,34 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   if (error) {
     throw new Error(`Environment validation failed: ${error.message}`);
   }
+  assertProductionSafeEnv(value);
   return value;
+}
+
+function isReleaseLikeEnv(value: AppEnv) {
+  return (
+    value.NODE_ENV === 'production' ||
+    !['', 'local', 'test', 'development'].includes(value.DEPLOY_ENVIRONMENT)
+  );
+}
+
+function assertProductionSafeEnv(value: AppEnv) {
+  if (!isReleaseLikeEnv(value)) {
+    return;
+  }
+
+  const failures: string[] = [];
+  if (value.JWT_ACCESS_SECRET === DEFAULT_JWT_ACCESS_SECRET) {
+    failures.push('JWT_ACCESS_SECRET must be replaced for production');
+  }
+  if (value.JWT_REFRESH_SECRET === DEFAULT_JWT_REFRESH_SECRET) {
+    failures.push('JWT_REFRESH_SECRET must be replaced for production');
+  }
+  if (!value.CLIENT_RELEASE_FACTS_TOKEN.trim()) {
+    failures.push('CLIENT_RELEASE_FACTS_TOKEN is required for production');
+  }
+
+  if (failures.length > 0) {
+    throw new Error(`Environment validation failed: ${failures.join('; ')}`);
+  }
 }

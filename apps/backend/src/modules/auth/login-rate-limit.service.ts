@@ -1,25 +1,24 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { AppConfigService } from '../../core/config/app-config.service';
-
-interface AttemptState {
-  count: number;
-  resetAt: number;
-}
+import { LOGIN_RATE_LIMIT_STORE } from './login-rate-limit.store';
+import * as loginRateLimitStore from './login-rate-limit.store';
 
 @Injectable()
 export class LoginRateLimitService {
-  private readonly attempts = new Map<string, AttemptState>();
-
-  constructor(private readonly configService: AppConfigService) {}
+  constructor(
+    private readonly configService: AppConfigService,
+    @Inject(LOGIN_RATE_LIMIT_STORE)
+    private readonly store: loginRateLimitStore.LoginRateLimitStore,
+  ) {}
 
   assertAllowed(key: string): void {
     const now = Date.now();
-    const state = this.attempts.get(key);
+    const state = this.store.get(key);
     if (!state) {
       return;
     }
     if (state.resetAt <= now) {
-      this.attempts.delete(key);
+      this.store.delete(key);
       return;
     }
     if (state.count >= this.configService.loginRateLimitMaxAttempts) {
@@ -36,15 +35,15 @@ export class LoginRateLimitService {
   onFailure(key: string): void {
     const now = Date.now();
     const windowMs = this.configService.loginRateLimitWindowSec * 1000;
-    const existing = this.attempts.get(key);
+    const existing = this.store.get(key);
     if (!existing || existing.resetAt <= now) {
-      this.attempts.set(key, { count: 1, resetAt: now + windowMs });
+      this.store.set(key, { count: 1, resetAt: now + windowMs });
       return;
     }
-    this.attempts.set(key, { ...existing, count: existing.count + 1 });
+    this.store.set(key, { ...existing, count: existing.count + 1 });
   }
 
   onSuccess(key: string): void {
-    this.attempts.delete(key);
+    this.store.delete(key);
   }
 }

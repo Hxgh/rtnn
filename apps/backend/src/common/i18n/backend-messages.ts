@@ -32,6 +32,59 @@ const zhCNMessages: Record<string, string> = {
   'Missing customer session user': '缺少客户会话用户信息',
   'Customer not found': '客户不存在',
   'Customer profile was not created': '客户资料尚未创建',
+  'Invalid client release facts token': '客户端发布事实令牌无效',
+  'Unsupported client release facts schema': '客户端发布事实格式不受支持',
+  'Client release facts do not contain packages': '客户端发布事实不包含安装包',
+  'Client release not found': '客户端发布版本不存在',
+  'Client update policy not found': '客户端更新策略不存在',
+  'Recommended release is not available for this client target channel':
+    '推荐版本不属于当前客户端、目标平台或环境',
+  'Recommended release does not have a downloadable package for this policy':
+    '推荐版本在当前策略下没有可下载安装包',
+};
+
+const messageCodes: Record<string, string> = {
+  'Internal server error': 'INTERNAL_SERVER_ERROR',
+  'Missing bearer token': 'MISSING_BEARER_TOKEN',
+  'Permission denied': 'PERMISSION_DENIED',
+  'Missing session user': 'MISSING_SESSION_USER',
+  'Admin user not found': 'ADMIN_USER_NOT_FOUND',
+  'Role not found': 'ROLE_NOT_FOUND',
+  'Permission not found': 'PERMISSION_NOT_FOUND',
+  'Invalid access token type': 'INVALID_ACCESS_TOKEN_TYPE',
+  'Invalid or expired access token': 'INVALID_OR_EXPIRED_ACCESS_TOKEN',
+  'Invalid refresh token type': 'INVALID_REFRESH_TOKEN_TYPE',
+  'Invalid or expired refresh token': 'INVALID_OR_EXPIRED_REFRESH_TOKEN',
+  'Invalid audience': 'INVALID_AUDIENCE',
+  'Too many login attempts. Please retry later.': 'LOGIN_RATE_LIMITED',
+  'Invalid credentials': 'INVALID_CREDENTIALS',
+  'Account is not active': 'ACCOUNT_NOT_ACTIVE',
+  'Refresh token audience mismatch': 'REFRESH_TOKEN_AUDIENCE_MISMATCH',
+  'Refresh token is invalid or revoked': 'REFRESH_TOKEN_INVALID_OR_REVOKED',
+  'Refresh token is expired': 'REFRESH_TOKEN_EXPIRED',
+  'Refresh token payload mismatch': 'REFRESH_TOKEN_PAYLOAD_MISMATCH',
+  'Account not found': 'ACCOUNT_NOT_FOUND',
+  'Session is expired': 'SESSION_EXPIRED',
+  'Old password is invalid': 'OLD_PASSWORD_INVALID',
+  'New password must differ from current password': 'NEW_PASSWORD_MUST_DIFFER',
+  'Admin profile not found': 'ADMIN_PROFILE_NOT_FOUND',
+  'Customer profile not found': 'CUSTOMER_PROFILE_NOT_FOUND',
+  'Customer is blocked': 'CUSTOMER_BLOCKED',
+  'Missing admin session user': 'MISSING_ADMIN_SESSION_USER',
+  'Missing customer session user': 'MISSING_CUSTOMER_SESSION_USER',
+  'Customer not found': 'CUSTOMER_NOT_FOUND',
+  'Customer profile was not created': 'CUSTOMER_PROFILE_NOT_CREATED',
+  'Invalid client release facts token': 'CLIENT_RELEASE_FACTS_INVALID_TOKEN',
+  'Unsupported client release facts schema':
+    'CLIENT_RELEASE_FACTS_UNSUPPORTED_SCHEMA',
+  'Client release facts do not contain packages':
+    'CLIENT_RELEASE_FACTS_EMPTY_PACKAGES',
+  'Client release not found': 'CLIENT_RELEASE_NOT_FOUND',
+  'Client update policy not found': 'CLIENT_RELEASE_POLICY_NOT_FOUND',
+  'Recommended release is not available for this client target channel':
+    'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
+  'Recommended release does not have a downloadable package for this policy':
+    'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
 };
 
 const catalogs: Record<SupportedLocale, Record<string, string>> = {
@@ -41,6 +94,10 @@ const catalogs: Record<SupportedLocale, Record<string, string>> = {
 
 function translateMessage(message: string, locale: SupportedLocale) {
   return catalogs[locale][message] ?? message;
+}
+
+export function getBackendMessageCode(message: string): string | undefined {
+  return messageCodes[message];
 }
 
 export function localizeBackendPayload(

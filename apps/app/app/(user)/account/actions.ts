@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import type { ApiErrorCode } from "@rtnn/shared-types";
 import { createServerApiClient } from "@/lib/server/api-client";
 import {
   ACCESS_TOKEN_COOKIE,
@@ -10,7 +11,7 @@ import {
 
 type ApiError = Error & {
   status?: number;
-  payload?: { message?: string | string[] };
+  payload?: { code?: ApiErrorCode };
 };
 
 export type ChangePasswordState = {
@@ -30,16 +31,6 @@ export const initialChangePasswordState: ChangePasswordState = {
   ok: false,
   error: null,
 };
-
-function resolveMessage(payload?: { message?: string | string[] }) {
-  if (!payload?.message) {
-    return "";
-  }
-  if (Array.isArray(payload.message)) {
-    return payload.message.join(" ");
-  }
-  return payload.message;
-}
 
 async function canAttemptRefresh() {
   const cookieStore = await cookies();
@@ -86,18 +77,18 @@ export async function changePasswordAction(
     return { ok: true, error: null };
   } catch (error) {
     const apiError = error as ApiError;
-    const message = resolveMessage(apiError.payload).toLowerCase();
+    const code = apiError.payload?.code;
     const hasRefreshToken = await canAttemptRefresh();
-    if (apiError.status === 401 && hasRefreshToken) {
+    if (
+      code === "SESSION_EXPIRED" ||
+      (apiError.status === 401 && hasRefreshToken)
+    ) {
       return { ok: false, error: "session-expired" };
     }
-    if (apiError.status === 401) {
+    if (code === "OLD_PASSWORD_INVALID" || apiError.status === 401) {
       return { ok: false, error: "invalid-current" };
     }
-    if (message.includes("current")) {
-      return { ok: false, error: "invalid-current" };
-    }
-    if (message.includes("differ") || message.includes("same")) {
+    if (code === "NEW_PASSWORD_MUST_DIFFER") {
       return { ok: false, error: "same-as-current" };
     }
     return { ok: false, error: "failed" };

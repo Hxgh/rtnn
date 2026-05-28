@@ -73,7 +73,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardStatsDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -481,7 +488,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditLogListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -537,7 +551,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -565,7 +586,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -594,7 +622,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -631,7 +666,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -669,8 +711,15 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -726,7 +775,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -754,7 +810,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -783,7 +846,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -820,7 +890,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -859,7 +936,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -879,7 +963,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PermissionSummaryDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -967,7 +1061,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -995,7 +1096,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1024,7 +1132,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1061,7 +1176,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1100,7 +1222,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1138,8 +1267,15 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1195,7 +1331,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGroupListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1223,7 +1366,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGroupSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1262,7 +1412,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerGroupSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1318,7 +1475,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTagListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1346,7 +1510,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTagSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1385,7 +1556,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerTagSummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1415,7 +1593,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientReleaseDetailDto"
+                }
+              }
+            }
           }
         },
         "summary": "Sync client release facts from deploy executor",
@@ -1502,7 +1687,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientReleaseListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1594,7 +1786,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientPackageListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1623,7 +1822,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientReleaseDetailDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1670,7 +1876,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientUpdatePolicySummaryDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1718,7 +1931,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientDownloadInfoDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "List latest available client downloads",
@@ -1770,7 +1993,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDownloadInfoDto"
+                }
+              }
+            }
           }
         },
         "summary": "Resolve latest client download URL",
@@ -1822,7 +2052,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDownloadInfoDto"
+                }
+              }
+            }
           }
         },
         "summary": "Check client shell update availability",
@@ -1953,6 +2190,38 @@
           "sourceSha",
           "backendImage",
           "timestamp"
+        ]
+      },
+      "DashboardStatsDto": {
+        "type": "object",
+        "properties": {
+          "totalAdminUsers": {
+            "type": "number",
+            "example": 3
+          },
+          "totalCustomers": {
+            "type": "number",
+            "example": 24
+          },
+          "totalRoles": {
+            "type": "number",
+            "example": 5
+          },
+          "suspendedCustomers": {
+            "type": "number",
+            "example": 1
+          },
+          "recentAuditCount": {
+            "type": "number",
+            "example": 42
+          }
+        },
+        "required": [
+          "totalAdminUsers",
+          "totalCustomers",
+          "totalRoles",
+          "suspendedCustomers",
+          "recentAuditCount"
         ]
       },
       "LoginDto": {
@@ -2233,6 +2502,338 @@
           "user"
         ]
       },
+      "AuditLogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "aud_01JABCD123"
+          },
+          "action": {
+            "type": "string",
+            "example": "admin.user.update"
+          },
+          "actorType": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "customer",
+              "system"
+            ],
+            "example": "admin"
+          },
+          "actorId": {
+            "type": "object",
+            "example": "acc_01JABCD123",
+            "nullable": true
+          },
+          "actorName": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "resourceType": {
+            "type": "string",
+            "example": "admin-user"
+          },
+          "resourceId": {
+            "type": "object",
+            "example": "acc_01JABCD123",
+            "nullable": true
+          },
+          "detail": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "actorType",
+          "actorName",
+          "resourceType",
+          "createdAt"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "number",
+            "example": 20
+          },
+          "total": {
+            "type": "number",
+            "example": 57
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 3
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "AuditLogListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLogItemDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "AdminUserSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "acc_01JABCD123"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled",
+              "locked"
+            ],
+            "example": "active"
+          },
+          "roles": {
+            "example": [
+              "Operations Admin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roleIds": {
+            "example": [
+              "role_01JABCD123"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastLoginAt": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "status",
+          "roles",
+          "lastLoginAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AdminUserListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminUserSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "RoleSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "role_01JABCD123"
+          },
+          "slug": {
+            "type": "string",
+            "example": "ops-admin"
+          },
+          "code": {
+            "type": "string",
+            "example": "OPS_ADMIN"
+          },
+          "name": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "description": {
+            "type": "object",
+            "example": "Can operate day-to-day admin workflows"
+          },
+          "tenantId": {
+            "type": "object",
+            "example": null
+          },
+          "permissionKeys": {
+            "example": [
+              "admin:users:view"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "permissions": {
+            "example": [
+              "admin:users:view"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AdminUserDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "acc_01JABCD123"
+          },
+          "email": {
+            "type": "string",
+            "example": "admin@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "Operations Admin"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled",
+              "locked"
+            ],
+            "example": "active"
+          },
+          "roles": {
+            "example": [
+              "Operations Admin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roleIds": {
+            "example": [
+              "role_01JABCD123"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastLoginAt": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "permissions": {
+            "example": [
+              "admin:users:view"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rolesDetailed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "status",
+          "roles",
+          "lastLoginAt",
+          "createdAt",
+          "updatedAt",
+          "permissions",
+          "rolesDetailed"
+        ]
+      },
       "CreateAdminUserDto": {
         "type": "object",
         "properties": {
@@ -2340,6 +2941,24 @@
           }
         }
       },
+      "RoleListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
       "CreateRoleDto": {
         "type": "object",
         "properties": {
@@ -2411,6 +3030,264 @@
         },
         "required": [
           "permissionKeys"
+        ]
+      },
+      "PermissionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "perm_01JABCD123"
+          },
+          "key": {
+            "type": "string",
+            "example": "admin:users:view"
+          },
+          "name": {
+            "type": "string",
+            "example": "View admin users"
+          },
+          "description": {
+            "type": "object",
+            "example": "Allows reading admin user profiles"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name"
+        ]
+      },
+      "LabeledReferenceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "grp_01JABCD123"
+          },
+          "name": {
+            "type": "string",
+            "example": "VIP Customers"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "CustomerSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cus_01JABCD123"
+          },
+          "accountId": {
+            "type": "string",
+            "example": "acc_01JABCD123"
+          },
+          "email": {
+            "type": "string",
+            "example": "customer@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "Customer Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "blocked"
+            ],
+            "example": "active"
+          },
+          "tenantId": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+1-555-0100",
+            "nullable": true
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabeledReferenceDto"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabeledReferenceDto"
+            }
+          },
+          "groupNames": {
+            "example": [
+              "VIP Customers"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagNames": {
+            "example": [
+              "High value"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastLoginAt": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "email",
+          "name",
+          "status",
+          "tenantId",
+          "groups",
+          "tags",
+          "lastLoginAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CustomerListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "CustomerDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cus_01JABCD123"
+          },
+          "accountId": {
+            "type": "string",
+            "example": "acc_01JABCD123"
+          },
+          "email": {
+            "type": "string",
+            "example": "customer@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "Customer Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "blocked"
+            ],
+            "example": "active"
+          },
+          "tenantId": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+1-555-0100",
+            "nullable": true
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabeledReferenceDto"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabeledReferenceDto"
+            }
+          },
+          "groupNames": {
+            "example": [
+              "VIP Customers"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagNames": {
+            "example": [
+              "High value"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lastLoginAt": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "notes": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "email",
+          "name",
+          "status",
+          "tenantId",
+          "groups",
+          "tags",
+          "lastLoginAt",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "CreateCustomerDto": {
@@ -2536,6 +3413,75 @@
           "nextPassword"
         ]
       },
+      "SuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "CustomerGroupSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "grp_01JABCD123"
+          },
+          "name": {
+            "type": "string",
+            "example": "VIP Customers"
+          },
+          "description": {
+            "type": "string",
+            "example": "Customers with higher support priority"
+          },
+          "memberCount": {
+            "type": "number",
+            "example": 3
+          },
+          "customerCount": {
+            "type": "number",
+            "example": 3
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CustomerGroupListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerGroupSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
       "CreateCustomerGroupDto": {
         "type": "object",
         "properties": {
@@ -2572,6 +3518,64 @@
             "example": "High value customers"
           }
         }
+      },
+      "CustomerTagSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "tag_01JABCD123"
+          },
+          "name": {
+            "type": "string",
+            "example": "High value"
+          },
+          "color": {
+            "type": "object",
+            "example": "#0ea5e9",
+            "nullable": true
+          },
+          "usageCount": {
+            "type": "number",
+            "example": 5
+          },
+          "customerCount": {
+            "type": "number",
+            "example": 5
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CustomerTagListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerTagSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
       },
       "CreateCustomerTagDto": {
         "type": "object",
@@ -2662,6 +3666,737 @@
           "clients"
         ]
       },
+      "ClientPackageSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "pkg_01JABCD123"
+          },
+          "client": {
+            "type": "string",
+            "example": "appMobile"
+          },
+          "target": {
+            "type": "string",
+            "example": "android"
+          },
+          "shell": {
+            "type": "string",
+            "example": "mobile"
+          },
+          "packageName": {
+            "type": "string",
+            "example": "com.example.app",
+            "nullable": true
+          },
+          "artifactName": {
+            "type": "string",
+            "example": "app-release.apk"
+          },
+          "shellVersion": {
+            "type": "string",
+            "example": "1.2.3"
+          },
+          "releaseKind": {
+            "type": "string",
+            "example": "release"
+          },
+          "webUrl": {
+            "type": "string",
+            "example": "https://app.example.com",
+            "nullable": true
+          },
+          "sourceUrl": {
+            "type": "string",
+            "example": "https://github.com/org/repo",
+            "nullable": true
+          },
+          "distributionProvider": {
+            "type": "string",
+            "enum": [
+              "github-release",
+              "self-hosted-static",
+              "external-url",
+              "object-storage"
+            ],
+            "example": "github-release"
+          },
+          "distributionUrl": {
+            "type": "string",
+            "example": "https://download.example.com/app.apk",
+            "nullable": true
+          },
+          "distributionStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synced",
+              "failed",
+              "pruned",
+              "disabled"
+            ],
+            "example": "synced"
+          },
+          "fileName": {
+            "type": "string",
+            "example": "app.apk",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "number",
+            "example": 12345678,
+            "nullable": true
+          },
+          "sha256": {
+            "type": "string",
+            "example": "abc123",
+            "nullable": true
+          },
+          "signingStatus": {
+            "type": "string",
+            "example": "signed",
+            "nullable": true
+          },
+          "buildStatus": {
+            "type": "string",
+            "example": "success",
+            "nullable": true
+          },
+          "updaterStatus": {
+            "type": "string",
+            "example": "available",
+            "nullable": true
+          },
+          "updaterUrl": {
+            "type": "string",
+            "example": "https://updates.example.com/latest.json",
+            "nullable": true
+          },
+          "storeProvider": {
+            "type": "string",
+            "example": "google-play",
+            "nullable": true
+          },
+          "storeStatus": {
+            "type": "string",
+            "example": "submitted",
+            "nullable": true
+          },
+          "blockers": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "syncedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "prunedAt": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "client",
+          "target",
+          "shell",
+          "artifactName",
+          "shellVersion",
+          "releaseKind",
+          "distributionProvider",
+          "distributionStatus",
+          "blockers",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ClientUpdatePolicyReleaseOptionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "rel_01JABCD123"
+          },
+          "releaseVersion": {
+            "type": "string",
+            "example": "1.2.3"
+          },
+          "generatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "releaseVersion"
+        ]
+      },
+      "ClientUpdatePolicySummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "pol_01JABCD123"
+          },
+          "client": {
+            "type": "string",
+            "example": "appMobile"
+          },
+          "target": {
+            "type": "string",
+            "example": "android"
+          },
+          "channel": {
+            "type": "string",
+            "example": "production"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "recommendedReleaseId": {
+            "type": "string",
+            "example": "rel_01JABCD123",
+            "nullable": true
+          },
+          "recommendedVersion": {
+            "type": "string",
+            "example": "1.2.3",
+            "nullable": true
+          },
+          "releaseOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientUpdatePolicyReleaseOptionDto"
+            }
+          },
+          "minimumSupportedVersion": {
+            "type": "string",
+            "example": "1.0.0",
+            "nullable": true
+          },
+          "forceUpdate": {
+            "type": "boolean",
+            "example": false
+          },
+          "allowGithubFallback": {
+            "type": "boolean",
+            "example": true
+          },
+          "notes": {
+            "type": "string",
+            "example": "Roll out after store approval",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "client",
+          "target",
+          "channel",
+          "enabled",
+          "releaseOptions",
+          "forceUpdate",
+          "allowGithubFallback",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ClientReleaseDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "rel_01JABCD123"
+          },
+          "releaseVersion": {
+            "type": "string",
+            "example": "1.2.3"
+          },
+          "channel": {
+            "type": "string",
+            "example": "production"
+          },
+          "sourceRepository": {
+            "type": "string",
+            "example": "example/rtnn"
+          },
+          "sourceRunId": {
+            "type": "string",
+            "example": "123456789",
+            "nullable": true
+          },
+          "sourceSha": {
+            "type": "string",
+            "example": "bce88fb0a427"
+          },
+          "sourceRef": {
+            "type": "string",
+            "example": "refs/heads/main",
+            "nullable": true
+          },
+          "dryRun": {
+            "type": "boolean",
+            "example": false
+          },
+          "status": {
+            "type": "string",
+            "example": "completed"
+          },
+          "generatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "syncedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "packageCount": {
+            "type": "number",
+            "example": 2
+          },
+          "downloadablePackageCount": {
+            "type": "number",
+            "example": 2
+          },
+          "clients": {
+            "example": [
+              "appMobile"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targets": {
+            "example": [
+              "android"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "distributionStatuses": {
+            "example": [
+              "synced"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientPackageSummaryDto"
+            }
+          },
+          "policies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientUpdatePolicySummaryDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "releaseVersion",
+          "channel",
+          "sourceRepository",
+          "sourceSha",
+          "dryRun",
+          "status",
+          "packageCount",
+          "downloadablePackageCount",
+          "clients",
+          "targets",
+          "distributionStatuses",
+          "createdAt",
+          "updatedAt",
+          "packages",
+          "policies"
+        ]
+      },
+      "ClientReleaseSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "rel_01JABCD123"
+          },
+          "releaseVersion": {
+            "type": "string",
+            "example": "1.2.3"
+          },
+          "channel": {
+            "type": "string",
+            "example": "production"
+          },
+          "sourceRepository": {
+            "type": "string",
+            "example": "example/rtnn"
+          },
+          "sourceRunId": {
+            "type": "string",
+            "example": "123456789",
+            "nullable": true
+          },
+          "sourceSha": {
+            "type": "string",
+            "example": "bce88fb0a427"
+          },
+          "sourceRef": {
+            "type": "string",
+            "example": "refs/heads/main",
+            "nullable": true
+          },
+          "dryRun": {
+            "type": "boolean",
+            "example": false
+          },
+          "status": {
+            "type": "string",
+            "example": "completed"
+          },
+          "generatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "syncedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "packageCount": {
+            "type": "number",
+            "example": 2
+          },
+          "downloadablePackageCount": {
+            "type": "number",
+            "example": 2
+          },
+          "clients": {
+            "example": [
+              "appMobile"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "targets": {
+            "example": [
+              "android"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "distributionStatuses": {
+            "example": [
+              "synced"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "releaseVersion",
+          "channel",
+          "sourceRepository",
+          "sourceSha",
+          "dryRun",
+          "status",
+          "packageCount",
+          "downloadablePackageCount",
+          "clients",
+          "targets",
+          "distributionStatuses",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ClientReleaseListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientReleaseSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "ClientPackageListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "pkg_01JABCD123"
+          },
+          "client": {
+            "type": "string",
+            "example": "appMobile"
+          },
+          "target": {
+            "type": "string",
+            "example": "android"
+          },
+          "shell": {
+            "type": "string",
+            "example": "mobile"
+          },
+          "packageName": {
+            "type": "string",
+            "example": "com.example.app",
+            "nullable": true
+          },
+          "artifactName": {
+            "type": "string",
+            "example": "app-release.apk"
+          },
+          "shellVersion": {
+            "type": "string",
+            "example": "1.2.3"
+          },
+          "releaseKind": {
+            "type": "string",
+            "example": "release"
+          },
+          "webUrl": {
+            "type": "string",
+            "example": "https://app.example.com",
+            "nullable": true
+          },
+          "sourceUrl": {
+            "type": "string",
+            "example": "https://github.com/org/repo",
+            "nullable": true
+          },
+          "distributionProvider": {
+            "type": "string",
+            "enum": [
+              "github-release",
+              "self-hosted-static",
+              "external-url",
+              "object-storage"
+            ],
+            "example": "github-release"
+          },
+          "distributionUrl": {
+            "type": "string",
+            "example": "https://download.example.com/app.apk",
+            "nullable": true
+          },
+          "distributionStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synced",
+              "failed",
+              "pruned",
+              "disabled"
+            ],
+            "example": "synced"
+          },
+          "fileName": {
+            "type": "string",
+            "example": "app.apk",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "number",
+            "example": 12345678,
+            "nullable": true
+          },
+          "sha256": {
+            "type": "string",
+            "example": "abc123",
+            "nullable": true
+          },
+          "signingStatus": {
+            "type": "string",
+            "example": "signed",
+            "nullable": true
+          },
+          "buildStatus": {
+            "type": "string",
+            "example": "success",
+            "nullable": true
+          },
+          "updaterStatus": {
+            "type": "string",
+            "example": "available",
+            "nullable": true
+          },
+          "updaterUrl": {
+            "type": "string",
+            "example": "https://updates.example.com/latest.json",
+            "nullable": true
+          },
+          "storeProvider": {
+            "type": "string",
+            "example": "google-play",
+            "nullable": true
+          },
+          "storeStatus": {
+            "type": "string",
+            "example": "submitted",
+            "nullable": true
+          },
+          "blockers": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "syncedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "prunedAt": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "releaseId": {
+            "type": "string",
+            "example": "rel_01JABCD123"
+          },
+          "releaseVersion": {
+            "type": "string",
+            "example": "1.2.3"
+          },
+          "channel": {
+            "type": "string",
+            "example": "production"
+          },
+          "releaseStatus": {
+            "type": "string",
+            "example": "completed"
+          },
+          "releaseGeneratedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "releaseSyncedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "releaseSourceSha": {
+            "type": "string",
+            "example": "bce88fb0a427"
+          },
+          "releaseSourceRunId": {
+            "type": "string",
+            "example": "123456789",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "client",
+          "target",
+          "shell",
+          "artifactName",
+          "shellVersion",
+          "releaseKind",
+          "distributionProvider",
+          "distributionStatus",
+          "blockers",
+          "createdAt",
+          "updatedAt",
+          "releaseId",
+          "releaseVersion",
+          "channel",
+          "releaseStatus",
+          "releaseSourceSha"
+        ]
+      },
+      "ClientPackageListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientPackageListItemDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
       "UpdateClientReleasePolicyDto": {
         "type": "object",
         "properties": {
@@ -2688,6 +4423,113 @@
             "nullable": true
           }
         }
+      },
+      "ClientDownloadInfoDto": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "type": "string",
+            "example": "appMobile"
+          },
+          "target": {
+            "type": "string",
+            "example": "android"
+          },
+          "channel": {
+            "type": "string",
+            "example": "production"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.2.3",
+            "nullable": true
+          },
+          "shellVersion": {
+            "type": "string",
+            "example": "1.2.3",
+            "nullable": true
+          },
+          "generatedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "syncedAt": {
+            "type": "string",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "downloadType": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "store",
+              "unavailable"
+            ],
+            "example": "direct"
+          },
+          "provider": {
+            "type": "string",
+            "example": "github-release",
+            "nullable": true
+          },
+          "downloadUrl": {
+            "type": "string",
+            "example": "https://download.example.com/app.apk",
+            "nullable": true
+          },
+          "sourceUrl": {
+            "type": "string",
+            "example": "https://github.com/org/repo",
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "example": "app.apk",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "number",
+            "example": 12345678,
+            "nullable": true
+          },
+          "sha256": {
+            "type": "string",
+            "example": "abc123",
+            "nullable": true
+          },
+          "updateAvailable": {
+            "type": "boolean",
+            "example": true
+          },
+          "forceUpdate": {
+            "type": "boolean",
+            "example": false
+          },
+          "minimumSupportedVersion": {
+            "type": "string",
+            "example": "1.0.0",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "example": "Roll out after store approval",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          }
+        },
+        "required": [
+          "client",
+          "target",
+          "channel",
+          "downloadType",
+          "updateAvailable",
+          "forceUpdate"
+        ]
       }
     }
   }

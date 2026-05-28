@@ -1,8 +1,14 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PERMISSIONS } from '../../common/constants/permissions.const';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
+import { AuditLogListResponseDto } from './dto/audit-response.dto';
 import { AuditService } from './audit.service';
 
 @ApiTags('admin-audit')
@@ -13,6 +19,7 @@ export class AuditController {
 
   @Get()
   @ApiOperation({ summary: 'List audit logs' })
+  @ApiOkResponse({ type: AuditLogListResponseDto })
   @RequirePermission(PERMISSIONS.adminAuditLogsView)
   list(@Query() query: AuditLogQueryDto) {
     return this.auditService.list(query);

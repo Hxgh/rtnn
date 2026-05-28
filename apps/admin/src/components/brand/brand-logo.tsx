@@ -1,16 +1,21 @@
 import type * as React from "react";
+import Image, { type ImageProps } from "next/image";
 import { TEMPLATE_DISPLAY } from "@rtnn/config";
 import { cn } from "@/src/lib/utils";
 
-type BrandLogoMarkProps = Omit<React.ImgHTMLAttributes<HTMLImageElement>, "alt" | "src">;
+type BrandLogoMarkProps = Omit<
+  ImageProps,
+  "alt" | "src" | "width" | "height" | "unoptimized"
+>;
 
 export function BrandLogoMark({ className, ...props }: BrandLogoMarkProps) {
   return (
-    <img
+    <Image
       alt=""
       className={cn("size-8 shrink-0", className)}
       height={32}
       src="/brand/brand-mark.svg"
+      unoptimized
       width={32}
       {...props}
     />

@@ -9,7 +9,13 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PERMISSIONS } from '../../common/constants/permissions.const';
 import { CurrentUser } from '../../common/guards/current-user.decorator';
 import { AuthSessionUser } from '../../common/guards/auth-session-user';
@@ -23,6 +29,13 @@ import { ClientPackageListQueryDto } from './dto/client-package-list-query.dto';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
 import { ClientReleaseListQueryDto } from './dto/client-release-list-query.dto';
 import { UpdateClientReleasePolicyDto } from './dto/update-client-release-policy.dto';
+import {
+  ClientDownloadInfoDto,
+  ClientPackageListResponseDto,
+  ClientReleaseDetailDto,
+  ClientReleaseListResponseDto,
+  ClientUpdatePolicySummaryDto,
+} from './dto/client-release-response.dto';
 import { ClientReleasesService } from './client-releases.service';
 
 @ApiTags('internal-client-releases')
@@ -36,6 +49,7 @@ export class ClientReleaseFactsController {
   @Post()
   @Public()
   @ApiOperation({ summary: 'Sync client release facts from deploy executor' })
+  @ApiCreatedResponse({ type: ClientReleaseDetailDto })
   syncFacts(
     @Headers('x-rtnn-client-release-token') token: string | undefined,
     @Body() dto: ClientReleaseFactsDto,
@@ -60,6 +74,7 @@ export class ClientReleasesAdminController {
 
   @Get()
   @ApiOperation({ summary: 'List client shell releases' })
+  @ApiOkResponse({ type: ClientReleaseListResponseDto })
   @RequirePermission(PERMISSIONS.adminClientReleasesView)
   list(@Query() query: ClientReleaseListQueryDto) {
     return this.clientReleasesService.list(query);
@@ -67,6 +82,7 @@ export class ClientReleasesAdminController {
 
   @Get('packages')
   @ApiOperation({ summary: 'List client release packages' })
+  @ApiOkResponse({ type: ClientPackageListResponseDto })
   @RequirePermission(PERMISSIONS.adminClientReleasesView)
   listPackages(@Query() query: ClientPackageListQueryDto) {
     return this.clientReleasesService.listPackages(query);
@@ -74,6 +90,7 @@ export class ClientReleasesAdminController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get client shell release detail' })
+  @ApiOkResponse({ type: ClientReleaseDetailDto })
   @RequirePermission(PERMISSIONS.adminClientReleasesView)
   detail(@Param('id') id: string) {
     return this.clientReleasesService.detail(id);
@@ -81,6 +98,7 @@ export class ClientReleasesAdminController {
 
   @Patch(':releaseId/policies/:policyId')
   @ApiOperation({ summary: 'Update client shell update policy' })
+  @ApiOkResponse({ type: ClientUpdatePolicySummaryDto })
   @RequirePermission(PERMISSIONS.adminClientReleasesManagePolicy)
   updatePolicy(
     @CurrentUser() user: AuthSessionUser | undefined,
@@ -105,6 +123,7 @@ export class ClientDownloadsController {
   @Get()
   @Public()
   @ApiOperation({ summary: 'List latest available client downloads' })
+  @ApiOkResponse({ type: [ClientDownloadInfoDto] })
   list(@Query() query: ClientDownloadListQueryDto) {
     return this.clientReleasesService.listDownloads(query);
   }
@@ -112,6 +131,7 @@ export class ClientDownloadsController {
   @Get('latest')
   @Public()
   @ApiOperation({ summary: 'Resolve latest client download URL' })
+  @ApiOkResponse({ type: ClientDownloadInfoDto })
   latest(@Query() query: ClientDownloadQueryDto) {
     return this.clientReleasesService.resolveDownload(query);
   }
@@ -125,6 +145,7 @@ export class ClientUpdatesController {
   @Get('check')
   @Public()
   @ApiOperation({ summary: 'Check client shell update availability' })
+  @ApiOkResponse({ type: ClientDownloadInfoDto })
   check(@Query() query: ClientDownloadQueryDto) {
     return this.clientReleasesService.checkUpdate(query);
   }

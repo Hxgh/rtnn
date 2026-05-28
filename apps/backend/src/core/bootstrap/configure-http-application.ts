@@ -65,6 +65,16 @@ export function configureHttpApplication(
     app.enableShutdownHooks();
   }
 
+  const server = app.getHttpAdapter().getInstance() as Express;
+  server.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    next();
+  });
+
   app.enableCors({
     origin(
       origin: string | undefined,
@@ -106,7 +116,6 @@ export function configureHttpApplication(
     app.useGlobalInterceptors(new HttpLoggingInterceptor(logger));
   }
 
-  const server = app.getHttpAdapter().getInstance() as Express;
   server.use((req: Request, res: Response, next: NextFunction) => {
     const locale = attachRequestLocale(req as LocaleRequest);
     res.setHeader('Content-Language', locale);
