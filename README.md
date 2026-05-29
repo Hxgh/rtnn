@@ -113,6 +113,7 @@ pnpm run check:backend-release
 pnpm run check:template-bootstrap
 pnpm run check:template-derivation
 pnpm run check:release-candidate
+pnpm run release:check-runtime-freshness -- --facts-file /tmp/rtnn-runtime-facts.json
 pnpm run smoke:admin
 pnpm run check
 ```
@@ -120,6 +121,8 @@ pnpm run check
 - `check:quick`：不主动启动 PostgreSQL，覆盖 lint、typecheck、admin UI 规则、模板中立性与契约漂移。
 - `check:backend-release`：会在本地数据库配置下启动 PostgreSQL，执行测试 schema 残留预检、backend 发布基线、integration/e2e 并行隔离检查与测试后残留审计。
 - `check:release-candidate`：发布候选入口，覆盖模板派生、契约、backend 发布门禁；设置 `RTNN_RUN_UI_SMOKE=true` 后追加多端 UI smoke。
+- `release:check-runtime-freshness`：读取部署仓 runtime facts，判断 `.rtnn/project.json liveState` 是否代表线上实际版本；只读不写，写回仍使用 `release:sync-live-state`。
+- `smoke:*:ui`：CI 中使用 Playwright Chromium；Codex App 普通本地页面核验优先使用内置 Browser，不为普通本地验收安装 Chromium；显式设置 `RTNN_RUN_UI_SMOKE=true` 时缺浏览器会失败。
 - `check`：本地完整质量门禁，覆盖静态检查、模板派生、契约、backend 发布门禁与多端构建。
 
 ## AI 协作入口

@@ -73,7 +73,9 @@ function main() {
   run("node", ["--check", "scripts/release/check-client-release-github-prereqs.mjs"], "校验 client release GitHub 前置条件脚本语法");
   run("node", ["--check", "scripts/release/run-client-release-github-dry-run.mjs"], "校验 client release GitHub dry-run 触发脚本语法");
   run("node", ["--check", "scripts/release/sync-live-state.mjs"], "校验 liveState 同步脚本语法");
+  run("node", ["--check", "scripts/release/check-runtime-freshness.mjs"], "校验运行事实 freshness 脚本语法");
   run("node", ["--check", "scripts/release/detect-live-state-only-change.mjs"], "校验 liveState-only 变更检测脚本语法");
+  run("node", ["--check", "scripts/runtime/run-playwright-ui-smoke.mjs"], "校验 Playwright UI smoke 包装脚本语法");
   run("node", ["--test", "tests/project-profile.test.mjs"], "运行 project profile 测试");
   run("pnpm", ["run", "check:native-bridge"], "运行 native bridge 测试");
   run("node", ["--test", "tests/client-build-lock.test.mjs"], "运行 client build 资源锁测试");
@@ -81,6 +83,8 @@ function main() {
   run("node", ["--test", "tests/client-release-state.test.mjs"], "运行 client release state 测试");
   run("node", ["--test", "tests/client-release-github-prereqs.test.mjs"], "运行 client release GitHub 前置条件测试");
   run("node", ["--test", "tests/live-state-only-change.test.mjs"], "运行 liveState-only 变更检测测试");
+  run("node", ["--test", "tests/runtime-freshness.test.mjs"], "运行 runtime freshness 测试");
+  run("node", ["--test", "tests/playwright-ui-smoke-wrapper.test.mjs"], "运行 Playwright UI smoke 包装脚本测试");
   run("node", ["scripts/client/check-tauri-clients.mjs"], "验证 Tauri client 壳骨架");
   run(
     "node",

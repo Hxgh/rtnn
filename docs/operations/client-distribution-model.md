@@ -47,6 +47,13 @@ Recommended admin flow:
 - manage update/download policy;
 - avoid triggering builds from the release center unless a project explicitly adds that capability.
 
+The release center should reflect runtime facts rather than invent a parallel
+release truth. When a deploy executor syncs client release facts, the backend
+stores accepted package metadata and the business repository can mirror
+non-sensitive client state into `.rtnn/project.json liveState.<env>.clients`.
+Use `release:sync-client-live-state` for the write-back/check flow and
+`release:check-runtime-freshness` for environment freshness.
+
 ## Build Operations
 
 Client package builds should not share the default runtime server unless the
