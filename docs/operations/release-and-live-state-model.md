@@ -62,6 +62,9 @@ Local and CI verification are intentionally separated:
 - backend release gates require PostgreSQL and test schemas;
 - Playwright UI smoke is a CI/browser-binary gate;
 - Codex App local page verification should use the built-in Browser plugin.
+- `profile:doctor` is the business-repository entry point for checking which
+  services, client targets, and release modes are actually enabled before any
+  deploy or smoke work starts.
 
 The local Playwright wrapper fails in CI or when `RTNN_RUN_UI_SMOKE=true` and
 Chromium is missing. Ordinary local smoke commands skip early with a message that

@@ -1,12 +1,9 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { ClientUpdatePolicySummary } from '@rtnn/shared-types';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
+import { apiBadRequest, apiNotFound } from '../../common/errors/api-error';
 import { UpdateClientReleasePolicyDto } from './dto/update-client-release-policy.dto';
 import { ClientReleaseDownloadResolver } from './client-release-download-resolver.service';
 import { ClientReleaseMapper } from './client-release-mapper.service';
@@ -46,7 +43,10 @@ export class ClientReleasePolicyService {
       }),
     ]);
     if (!existing || !release) {
-      throw new NotFoundException('Client update policy not found');
+      throw apiNotFound(
+        'CLIENT_RELEASE_POLICY_NOT_FOUND',
+        'Client update policy not found',
+      );
     }
     const belongsToRelease =
       existing.channel === release.channel &&
@@ -55,7 +55,10 @@ export class ClientReleasePolicyService {
           item.client === existing.client && item.target === existing.target,
       );
     if (!belongsToRelease) {
-      throw new NotFoundException('Client update policy not found');
+      throw apiNotFound(
+        'CLIENT_RELEASE_POLICY_NOT_FOUND',
+        'Client update policy not found',
+      );
     }
 
     const recommendedReleaseId = normalizeNullableString(
@@ -70,11 +73,10 @@ export class ClientReleasePolicyService {
         existing.target,
       );
       if (!candidate || candidate.release.channel !== existing.channel) {
-        throw new BadRequestException({
-          code: 'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
-          message:
-            'Recommended release is not available for this client target channel',
-        });
+        throw apiBadRequest(
+          'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
+          'Recommended release is not available for this client target channel',
+        );
       }
       if (
         !this.downloads.resolvePackageDownloadUrl(
@@ -82,11 +84,10 @@ export class ClientReleasePolicyService {
           nextAllowGithubFallback,
         )
       ) {
-        throw new BadRequestException({
-          code: 'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
-          message:
-            'Recommended release does not have a downloadable package for this policy',
-        });
+        throw apiBadRequest(
+          'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
+          'Recommended release does not have a downloadable package for this policy',
+        );
       }
     }
 

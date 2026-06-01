@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type {
   ClientPackageListItem,
@@ -13,6 +13,7 @@ import { ClientPackageListQueryDto } from './dto/client-package-list-query.dto';
 import { ClientReleaseListQueryDto } from './dto/client-release-list-query.dto';
 import { ClientReleaseMapper } from './client-release-mapper.service';
 import { policyKey, unique } from './client-releases.utils';
+import { apiNotFound } from '../../common/errors/api-error';
 
 @Injectable()
 export class ClientReleaseQueryService {
@@ -128,7 +129,7 @@ export class ClientReleaseQueryService {
       },
     });
     if (!release) {
-      throw new NotFoundException('Client release not found');
+      throw apiNotFound('CLIENT_RELEASE_NOT_FOUND', 'Client release not found');
     }
 
     const policies = await this.prisma.clientUpdatePolicy.findMany({

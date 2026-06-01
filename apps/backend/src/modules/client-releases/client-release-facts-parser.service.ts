@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ClientReleaseFactsDto } from './dto/client-release-facts.dto';
 import type {
@@ -12,24 +12,27 @@ import {
   stringArray,
   stringValue,
 } from './client-releases.utils';
+import { apiBadRequest } from '../../common/errors/api-error';
 
 @Injectable()
 export class ClientReleaseFactsParser {
   parse(dto: ClientReleaseFactsDto): ParsedClientReleaseFacts {
     if (dto.schemaVersion !== 'rtnn.deploy.client-release-facts.v1') {
-      throw new BadRequestException({
-        code: 'CLIENT_RELEASE_FACTS_UNSUPPORTED_SCHEMA',
-        message: 'Unsupported client release facts schema',
-        schemaVersion: dto.schemaVersion,
-      });
+      throw apiBadRequest(
+        'CLIENT_RELEASE_FACTS_UNSUPPORTED_SCHEMA',
+        'Unsupported client release facts schema',
+        {
+          schemaVersion: dto.schemaVersion,
+        },
+      );
     }
 
     const packages = this.readFactPackages(dto);
     if (packages.length === 0) {
-      throw new BadRequestException({
-        code: 'CLIENT_RELEASE_FACTS_EMPTY_PACKAGES',
-        message: 'Client release facts do not contain packages',
-      });
+      throw apiBadRequest(
+        'CLIENT_RELEASE_FACTS_EMPTY_PACKAGES',
+        'Client release facts do not contain packages',
+      );
     }
 
     const source = asRecord(dto.source);

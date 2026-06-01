@@ -16,6 +16,22 @@ export interface ApiTransport {
   ): Promise<TResponse>;
 }
 
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly payload: unknown;
+  readonly code: string | null;
+  readonly details: unknown;
+
+  constructor(status: number, payload: unknown) {
+    super(resolvePayloadMessage(payload) ?? "API request failed");
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.payload = payload;
+    this.code = resolvePayloadCode(payload);
+    this.details = resolvePayloadDetails(payload);
+  }
+}
+
 export interface FetchTransportOptions {
   baseUrl: string;
   getHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
@@ -54,6 +70,38 @@ const buildQueryString = (
   return queryString ? `?${queryString}` : "";
 };
 
+function resolvePayloadCode(payload: unknown): string | null {
+  if (payload && typeof payload === "object" && "code" in payload) {
+    const code = (payload as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
+  }
+  return null;
+}
+
+function resolvePayloadMessage(payload: unknown): string | null {
+  if (typeof payload === "string") {
+    return payload;
+  }
+  if (!payload || typeof payload !== "object" || !("message" in payload)) {
+    return null;
+  }
+  const message = (payload as { message?: unknown }).message;
+  if (typeof message === "string") {
+    return message;
+  }
+  if (Array.isArray(message)) {
+    return message.map((item) => String(item)).join(", ");
+  }
+  return null;
+}
+
+function resolvePayloadDetails(payload: unknown): unknown {
+  if (payload && typeof payload === "object" && "details" in payload) {
+    return (payload as { details?: unknown }).details;
+  }
+  return undefined;
+}
+
 export const createFetchTransport = ({
   baseUrl,
   getHeaders,
@@ -74,22 +122,22 @@ export const createFetchTransport = ({
       ...headers,
     };
 
-    const response = await fetcher(`${baseUrl}${path}${buildQueryString(query)}`, {
-      method,
-      headers: finalHeaders,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      credentials,
-      signal,
-    });
+    const response = await fetcher(
+      `${baseUrl}${path}${buildQueryString(query)}`,
+      {
+        method,
+        headers: finalHeaders,
+        body: body === undefined ? undefined : JSON.stringify(body),
+        credentials,
+        signal,
+      },
+    );
 
     if (!response.ok) {
       const payload = await response
         .json()
         .catch(() => ({ message: response.statusText }));
-      throw Object.assign(new Error("API request failed"), {
-        status: response.status,
-        payload,
-      });
+      throw new ApiRequestError(response.status, payload);
     }
 
     if (response.status === 204) {
@@ -102,14 +150,7 @@ export const createFetchTransport = ({
 
 export interface TaroRequestLikeOptions<TData = unknown> {
   url: string;
-  method:
-    | "GET"
-    | "POST"
-    | "PUT"
-    | "DELETE"
-    | "PATCH"
-    | "OPTIONS"
-    | "HEAD";
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
   data?: TData;
   header?: Record<string, string>;
 }
@@ -153,10 +194,7 @@ export const createTaroTransport = ({
     });
 
     if (response.statusCode >= 400) {
-      throw Object.assign(new Error("API request failed"), {
-        status: response.statusCode,
-        payload: response.data,
-      });
+      throw new ApiRequestError(response.statusCode, response.data);
     }
 
     return response.data;

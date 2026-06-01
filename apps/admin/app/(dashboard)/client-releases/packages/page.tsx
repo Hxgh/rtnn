@@ -2,338 +2,103 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { API_PERMISSIONS } from "@rtnn/shared-types";
 import {
-  formatClientPackageName,
-  formatClientRole,
-  formatClientTarget,
-} from "@rtnn/config";
-import { AdminFilterActions, AdminFilterToolbar } from "@/src/components/admin/filter-toolbar";
-import { FormSelect } from "@/src/components/admin/form-select";
-import { AdminStatusBadge } from "@/src/components/admin/status-badge";
-import {
-  AdminEmptyValue,
-  AdminFilterSummary,
-  AdminTextValue,
-} from "@/src/components/admin/table-display";
-import {
-  AdminTableActionLink,
-  AdminTablePagination,
   AdminTablePage,
-  AdminTableRowActions,
-  type AdminTableColumn,
+  AdminTablePagination,
 } from "@/src/components/admin/table-page";
 import { ErrorBlock } from "@/src/components/admin/state-block";
-import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
-import { Input } from "@/src/components/ui/input";
 import { getAdminI18n } from "@/src/i18n/server";
 import { adminRoutes } from "@/src/lib/admin-routes";
 import { listClientPackages } from "@/src/lib/api-client";
-import { formatFileSize, shortHash } from "@/src/lib/admin-format";
-import {
-  clientReleaseDistributionStatuses,
-  formatClientReleaseChannel,
-  getClientReleaseStatusLabel,
-  getClientReleaseDistributionStatusLabel,
-  getClientReleaseDistributionStatusTone,
-} from "@/src/lib/client-release-display";
 import { resolveErrorMessage } from "@/src/lib/errors";
 import { parsePageSize } from "@/src/lib/pagination";
 import { assertPermission } from "@/src/lib/permissions";
 import { requireUserSession } from "@/src/lib/session";
-import { formatAdminDateTime, parsePositiveInt } from "@/src/lib/utils";
-
-const defaultPageSize = 20;
-const clients = ["adminDesktop", "appMobile"] as const;
-const targets = ["android", "ios", "macos", "windows"] as const;
-
-type ClientPackageRow = Awaited<ReturnType<typeof listClientPackages>>["data"][number];
-type PageSearchParams = Promise<{
-  page?: string;
-  pageSize?: string;
-  search?: string;
-  channel?: string;
-  client?: string;
-  target?: string;
-  distributionStatus?: string;
-}>;
-
-function normalizeFilters(params?: Awaited<PageSearchParams>) {
-  return {
-    search: String(params?.search ?? "").trim(),
-    channel: String(params?.channel ?? "").trim(),
-    client: String(params?.client ?? "").trim(),
-    target: String(params?.target ?? "").trim(),
-    distributionStatus: String(params?.distributionStatus ?? "").trim(),
-  };
-}
-
-function buildHref(page: number, pageSize: number, filters: ReturnType<typeof normalizeFilters>) {
-  const params = new URLSearchParams();
-  if (page > 1) {
-    params.set("page", String(page));
-  }
-  if (pageSize !== defaultPageSize) {
-    params.set("pageSize", String(pageSize));
-  }
-  for (const [key, value] of Object.entries(filters)) {
-    if (value) {
-      params.set(key, value);
-    }
-  }
-  const query = params.toString();
-  return query ? `${adminRoutes.clientReleases.packages}?${query}` : adminRoutes.clientReleases.packages;
-}
+import { parsePositiveInt } from "@/src/lib/utils";
+import {
+  buildPackagesHref,
+  defaultPageSize,
+  normalizeFilters,
+} from "../filters";
+import {
+  buildClientPackageColumns,
+  ClientPackageToolbar,
+} from "../package-table";
+import type { PageSearchParams } from "../types";
 
 export default async function ClientPackagesPage({
   searchParams,
 }: {
   searchParams?: PageSearchParams;
 }) {
-  const { me, accessToken } = await requireUserSession();
-  const { dictionary, locale } = await getAdminI18n();
-  assertPermission(me, API_PERMISSIONS.adminClientReleasesView);
-
+  const sessionPromise = requireUserSession();
+  const i18nPromise = getAdminI18n();
   const params = searchParams ? await searchParams : undefined;
   const filters = normalizeFilters(params);
   const page = parsePositiveInt(params?.page, 1);
   const pageSize = parsePageSize(params?.pageSize, defaultPageSize);
-  let result: Awaited<ReturnType<typeof listClientPackages>> | null = null;
-  let pageError: unknown = null;
 
-  try {
-    result = await listClientPackages(accessToken, {
-      page,
-      pageSize,
-      search: filters.search || undefined,
-      channel: filters.channel || undefined,
-      client: filters.client || undefined,
-      target: filters.target || undefined,
-      distributionStatus: filters.distributionStatus || undefined,
-    });
-  } catch (error) {
-    pageError = error;
-  }
+  const { me, accessToken } = await sessionPromise;
+  assertPermission(me, API_PERMISSIONS.adminClientReleasesView);
+  const resultState = await listClientPackages(accessToken, {
+    page,
+    pageSize,
+    search: filters.search || undefined,
+    channel: filters.channel || undefined,
+    client: filters.client || undefined,
+    target: filters.target || undefined,
+    distributionStatus: filters.distributionStatus || undefined,
+  })
+    .then((data) => ({ data, error: null }))
+    .catch((error: unknown) => ({ data: null, error }));
+  const { dictionary, locale } = await i18nPromise;
 
-  if (pageError || !result) {
+  if (resultState.error || !resultState.data) {
     return (
       <ErrorBlock
         text={dictionary.states.apiUnavailable}
-        detail={resolveErrorMessage(pageError)}
+        detail={resolveErrorMessage(resultState.error)}
       />
     );
   }
 
-  if (page > result.meta.totalPages) {
-    redirect(buildHref(result.meta.totalPages, pageSize, filters));
-  }
+  const result = resultState.data;
 
-  const columns: AdminTableColumn<ClientPackageRow>[] = [
-    {
-      id: "client",
-      header: dictionary.clientReleases.client,
-      cell: (item) => (
-        <div className="space-y-1">
-          <div>{formatClientPackageName(item.client, item.target, locale)}</div>
-          <div className="text-xs text-muted-foreground">
-            {formatClientRole(item.client, locale)} / {formatClientTarget(item.target)}
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "release",
-      header: dictionary.clientReleases.release,
-      cell: (item) => (
-        <div className="space-y-1">
-          <Link
-            className="font-medium underline-offset-4 hover:underline"
-            href={adminRoutes.clientReleases.detail(item.releaseId)}
-          >
-            {item.releaseVersion}
-          </Link>
-          <div className="flex flex-wrap gap-1">
-            <Badge variant="outline">
-              {formatClientReleaseChannel(item.channel, locale)}
-            </Badge>
-            <Badge variant="outline">
-              {getClientReleaseStatusLabel(item.releaseStatus, locale)}
-            </Badge>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "artifact",
-      header: dictionary.clientReleases.artifact,
-      cell: (item) => (
-        <div className="max-w-72 space-y-1">
-          <AdminTextValue maxWidthClassName="max-w-72">{item.fileName || item.artifactName}</AdminTextValue>
-          <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-72">
-            {item.artifactName}
-          </AdminTextValue>
-        </div>
-      ),
-    },
-    {
-      id: "distributionStatus",
-      header: dictionary.clientReleases.distributionStatus,
-      cell: (item) => (
-        <div className="space-y-1">
-          <AdminStatusBadge tone={getClientReleaseDistributionStatusTone(item.distributionStatus)}>
-            {getClientReleaseDistributionStatusLabel(item.distributionStatus, locale)}
-          </AdminStatusBadge>
-          <AdminTextValue className="text-muted-foreground" maxWidthClassName="max-w-28">
-            {item.distributionProvider}
-          </AdminTextValue>
-        </div>
-      ),
-    },
-    {
-      id: "file",
-      header: dictionary.clientReleases.fileSize,
-      cell: (item) => (
-        <div className="space-y-1 text-xs">
-          <div>{formatFileSize(item.fileSize)}</div>
-          <div className="font-mono text-muted-foreground">{shortHash(item.sha256)}</div>
-        </div>
-      ),
-    },
-    {
-      id: "source",
-      header: dictionary.clientReleases.releaseSource,
-      cell: (item) => (
-        <div className="space-y-1 text-xs">
-          <div className="font-mono">{shortHash(item.releaseSourceSha)}</div>
-          <div className="text-muted-foreground">{item.releaseSourceRunId || <AdminEmptyValue />}</div>
-          <div className="text-muted-foreground">
-            {item.syncedAt ? formatAdminDateTime(locale, item.syncedAt) : <AdminEmptyValue />}
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "actions",
-      header: dictionary.common.actions,
-      headerClassName: "text-right",
-      cellClassName: "text-right",
-      cell: (item) => (
-        <AdminTableRowActions>
-          <AdminTableActionLink href={adminRoutes.clientReleases.detail(item.releaseId)}>
-            {dictionary.common.detail}
-          </AdminTableActionLink>
-          {item.distributionUrl ? (
-            <AdminTableActionLink external href={item.distributionUrl}>
-              {dictionary.clientReleases.openDownload}
-            </AdminTableActionLink>
-          ) : null}
-          {item.sourceUrl && item.sourceUrl !== item.distributionUrl ? (
-            <AdminTableActionLink external href={item.sourceUrl}>
-              {dictionary.clientReleases.openSource}
-            </AdminTableActionLink>
-          ) : null}
-        </AdminTableRowActions>
-      ),
-    },
-  ];
+  if (page > result.meta.totalPages) {
+    redirect(buildPackagesHref(result.meta.totalPages, pageSize, filters));
+  }
 
   return (
     <AdminTablePage
       title={dictionary.clientReleases.packagesTitle}
-      actions={(
+      actions={
         <Button asChild size="sm" variant="outline">
           <Link href={adminRoutes.clientReleases.list}>
             {dictionary.clientReleases.viewReleases}
           </Link>
         </Button>
-      )}
+      }
       emptyText={dictionary.clientReleases.empty}
       data={result.data}
-      columns={columns}
+      columns={buildClientPackageColumns({ dictionary, locale })}
       getRowKey={(item) => item.id}
-      toolbar={(
-        <div className="grid gap-3">
-          <AdminFilterToolbar>
-            <input name="pageSize" type="hidden" value={pageSize} />
-            <Input
-              aria-label={dictionary.common.search}
-              className="w-full lg:max-w-xs"
-              defaultValue={filters.search}
-              name="search"
-              placeholder={dictionary.common.search}
-            />
-            <FormSelect
-              ariaLabel={dictionary.clientReleases.channel}
-              defaultValue={filters.channel}
-              emptyLabel={dictionary.clientReleases.allChannels}
-              name="channel"
-              options={["testing", "production"].map((value) => ({
-                label: formatClientReleaseChannel(value, locale),
-                value,
-              }))}
-              triggerClassName="w-full lg:w-40"
-            />
-            <FormSelect
-              ariaLabel={dictionary.clientReleases.client}
-              defaultValue={filters.client}
-              emptyLabel={dictionary.clientReleases.allClients}
-              name="client"
-              options={clients.map((value) => ({ label: formatClientRole(value, locale), value }))}
-              triggerClassName="w-full lg:w-44"
-            />
-            <FormSelect
-              ariaLabel={dictionary.clientReleases.target}
-              defaultValue={filters.target}
-              emptyLabel={dictionary.clientReleases.allTargets}
-              name="target"
-              options={targets.map((value) => ({ label: formatClientTarget(value), value }))}
-              triggerClassName="w-full lg:w-36"
-            />
-            <FormSelect
-              ariaLabel={dictionary.clientReleases.distributionStatus}
-              defaultValue={filters.distributionStatus}
-              emptyLabel={dictionary.clientReleases.allStatuses}
-              name="distributionStatus"
-              options={clientReleaseDistributionStatuses.map((value) => ({
-                label: getClientReleaseDistributionStatusLabel(value, locale),
-                value,
-              }))}
-              triggerClassName="w-full lg:w-40"
-            />
-            <AdminFilterActions>
-              <Button type="submit" variant="outline">{dictionary.common.search}</Button>
-              {Object.values(filters).some(Boolean) ? (
-                <Button asChild type="button" variant="ghost">
-                  <Link href={buildHref(1, pageSize, normalizeFilters())}>
-                    {dictionary.common.clearFilters}
-                  </Link>
-                </Button>
-              ) : null}
-            </AdminFilterActions>
-          </AdminFilterToolbar>
-          <AdminFilterSummary
-            items={[
-              filters.search ? `${dictionary.common.search}: ${filters.search}` : undefined,
-              filters.channel
-                ? `${dictionary.clientReleases.channel}: ${formatClientReleaseChannel(filters.channel, locale)}`
-                : undefined,
-              filters.client
-                ? `${dictionary.clientReleases.client}: ${formatClientRole(filters.client, locale)}`
-                : undefined,
-              filters.target
-                ? `${dictionary.clientReleases.target}: ${formatClientTarget(filters.target)}`
-                : undefined,
-              filters.distributionStatus
-                ? `${dictionary.clientReleases.distributionStatus}: ${getClientReleaseDistributionStatusLabel(filters.distributionStatus, locale)}`
-                : undefined,
-            ]}
-          />
-        </div>
-      )}
-      pagination={(
+      toolbar={
+        <ClientPackageToolbar
+          dictionary={dictionary}
+          filters={filters}
+          locale={locale}
+          pageSize={pageSize}
+        />
+      }
+      pagination={
         <AdminTablePagination
           currentPage={result.meta.page}
-          getPageHref={(nextPage) => buildHref(nextPage, pageSize, filters)}
-          getPageSizeHref={(nextPageSize) => buildHref(1, nextPageSize, filters)}
+          getPageHref={(nextPage) =>
+            buildPackagesHref(nextPage, pageSize, filters)
+          }
+          getPageSizeHref={(nextPageSize) =>
+            buildPackagesHref(1, nextPageSize, filters)
+          }
           itemsPerPageLabel={dictionary.common.itemsPerPage}
           nextLabel={dictionary.common.nextPage}
           pageSize={pageSize}
@@ -342,7 +107,7 @@ export default async function ClientPackagesPage({
           totalItemsLabel={dictionary.common.totalItems}
           totalPages={result.meta.totalPages}
         />
-      )}
+      }
     />
   );
 }

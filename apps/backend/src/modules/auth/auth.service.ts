@@ -1,15 +1,15 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AccountStatus, AuthAudience, Prisma } from '@prisma/client';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
+import {
+  apiBadRequest,
+  apiForbidden,
+  apiNotFound,
+  apiUnauthorized,
+} from '../../common/errors/api-error';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokenService } from './auth-token.service';
 import { AuthTokens } from './auth.types';
@@ -133,7 +133,7 @@ export class AuthService {
         context,
         'NOT_FOUND',
       );
-      throw new UnauthorizedException('Invalid credentials');
+      throw apiUnauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
     }
     if (account.status !== AccountStatus.active) {
       this.loginRateLimitService.onFailure(key);
@@ -144,7 +144,7 @@ export class AuthService {
         context,
         'ACCOUNT_DISABLED',
       );
-      throw new ForbiddenException('Account is not active');
+      throw apiForbidden('ACCOUNT_NOT_ACTIVE', 'Account is not active');
     }
     this.assertProfileForAudience(account, audience);
 
@@ -161,7 +161,7 @@ export class AuthService {
         context,
         'INVALID_PASSWORD',
       );
-      throw new UnauthorizedException('Invalid credentials');
+      throw apiUnauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
     }
 
     this.loginRateLimitService.onSuccess(key);
@@ -203,7 +203,10 @@ export class AuthService {
   ): Promise<SessionResponse> {
     const payload = this.authTokenService.verifyRefreshToken(refreshToken);
     if (payload.audience !== audience) {
-      throw new UnauthorizedException('Refresh token audience mismatch');
+      throw apiUnauthorized(
+        'REFRESH_TOKEN_AUDIENCE_MISMATCH',
+        'Refresh token audience mismatch',
+      );
     }
     const tokenHash = this.authTokenService.hashToken(refreshToken);
     const now = new Date();
@@ -217,20 +220,29 @@ export class AuthService {
     });
 
     if (!storedToken || storedToken.revokedAt || storedToken.expiresAt <= now) {
-      throw new UnauthorizedException('Refresh token is invalid or revoked');
+      throw apiUnauthorized(
+        'REFRESH_TOKEN_INVALID_OR_REVOKED',
+        'Refresh token is invalid or revoked',
+      );
     }
     if (
       storedToken.accountId !== payload.sub ||
       payload.sid !== storedToken.id ||
       storedToken.audience !== audience
     ) {
-      throw new UnauthorizedException('Refresh token payload mismatch');
+      throw apiUnauthorized(
+        'REFRESH_TOKEN_PAYLOAD_MISMATCH',
+        'Refresh token payload mismatch',
+      );
     }
     if (payload.ver !== storedToken.account.credentialsVersion) {
-      throw new UnauthorizedException('Refresh token is expired');
+      throw apiUnauthorized(
+        'REFRESH_TOKEN_EXPIRED',
+        'Refresh token is expired',
+      );
     }
     if (storedToken.account.status !== AccountStatus.active) {
-      throw new ForbiddenException('Account is not active');
+      throw apiForbidden('ACCOUNT_NOT_ACTIVE', 'Account is not active');
     }
     this.assertProfileForAudience(storedToken.account, audience);
     const sessionUser = this.toSessionUser(storedToken.account, audience);
@@ -292,7 +304,7 @@ export class AuthService {
       include: this.getSessionInclude(audience),
     });
     if (!account) {
-      throw new NotFoundException('Account not found');
+      throw apiNotFound('ACCOUNT_NOT_FOUND', 'Account not found');
     }
     this.assertProfileForAudience(account, audience);
     return this.toSessionUser(account, audience);
@@ -351,7 +363,7 @@ export class AuthService {
       include: this.getSessionInclude(audience),
     });
     if (!account) {
-      throw new NotFoundException('Account not found');
+      throw apiNotFound('ACCOUNT_NOT_FOUND', 'Account not found');
     }
     this.assertProfileForAudience(account, audience);
 
@@ -360,10 +372,11 @@ export class AuthService {
       account.passwordHash,
     );
     if (!validOldPassword) {
-      throw new UnauthorizedException('Old password is invalid');
+      throw apiUnauthorized('OLD_PASSWORD_INVALID', 'Old password is invalid');
     }
     if (oldPassword === newPassword) {
-      throw new BadRequestException(
+      throw apiBadRequest(
+        'NEW_PASSWORD_MUST_DIFFER',
         'New password must differ from current password',
       );
     }
@@ -563,14 +576,17 @@ export class AuthService {
     audience: AuthAudience,
   ): void {
     if (audience === 'admin' && !account.adminProfile) {
-      throw new ForbiddenException('Admin profile not found');
+      throw apiForbidden('ADMIN_PROFILE_NOT_FOUND', 'Admin profile not found');
     }
     if (audience === 'customer') {
       if (!account.customerProfile) {
-        throw new ForbiddenException('Customer profile not found');
+        throw apiForbidden(
+          'CUSTOMER_PROFILE_NOT_FOUND',
+          'Customer profile not found',
+        );
       }
       if (account.customerProfile.status === 'blocked') {
-        throw new ForbiddenException('Customer is blocked');
+        throw apiForbidden('CUSTOMER_BLOCKED', 'Customer is blocked');
       }
     }
   }

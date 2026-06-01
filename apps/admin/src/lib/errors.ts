@@ -1,32 +1,45 @@
+function resolveErrorPayload(error: unknown): unknown {
+  if (typeof error === "object" && error && "payload" in error) {
+    return (error as { payload?: unknown }).payload;
+  }
+  return null;
+}
+
 export function resolveErrorMessage(error: unknown): string {
+  const payload = resolveErrorPayload(error);
+  if (typeof payload === "string") {
+    return payload;
+  }
+  if (payload && typeof payload === "object" && "message" in payload) {
+    const message = (payload as { message?: unknown }).message;
+    if (typeof message === "string") {
+      return message;
+    }
+    if (Array.isArray(message)) {
+      return message.join(", ");
+    }
+  }
+  if (payload && typeof payload === "object" && "code" in payload) {
+    const code = (payload as { code?: unknown }).code;
+    if (typeof code === "string") {
+      return code;
+    }
+  }
   if (error instanceof Error) {
     return error.message;
-  }
-  if (typeof error === "object" && error && "payload" in error) {
-    const payload = (error as { payload?: unknown }).payload;
-    if (typeof payload === "string") {
-      return payload;
-    }
-    if (payload && typeof payload === "object" && "message" in payload) {
-      const message = (payload as { message?: unknown }).message;
-      if (typeof message === "string") {
-        return message;
-      }
-      if (Array.isArray(message)) {
-        return message.join(", ");
-      }
-    }
   }
   return "";
 }
 
 export function resolveErrorCode(error: unknown): string | null {
-  if (typeof error === "object" && error && "payload" in error) {
-    const payload = (error as { payload?: unknown }).payload;
-    if (payload && typeof payload === "object" && "code" in payload) {
-      const code = (payload as { code?: unknown }).code;
-      return typeof code === "string" ? code : null;
-    }
+  const payload = resolveErrorPayload(error);
+  if (payload && typeof payload === "object" && "code" in payload) {
+    const code = (payload as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
+  }
+  if (typeof error === "object" && error && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    return typeof code === "string" ? code : null;
   }
   return null;
 }

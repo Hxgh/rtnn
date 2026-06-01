@@ -163,7 +163,7 @@ describe('AllExceptionsFilter', () => {
         code: 'VALIDATION_FAILED',
         error: {
           code: 'VALIDATION_FAILED',
-          message: 'Invalid payload',
+          message: 'Validation failed',
           nested: {
             retryAfterSeconds: 30,
           },

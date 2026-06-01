@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@rtnn/config';
+import type { ApiErrorCode } from '@rtnn/shared-types';
 
 const zhCNMessages: Record<string, string> = {
   'Internal server error': '服务器内部错误',
@@ -87,6 +88,104 @@ const messageCodes: Record<string, string> = {
     'CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION',
 };
 
+const codeMessages: Record<
+  SupportedLocale,
+  Partial<Record<ApiErrorCode, string>>
+> = {
+  'zh-CN': {
+    INTERNAL_SERVER_ERROR: '服务器内部错误',
+    VALIDATION_FAILED: '请求参数校验失败',
+    MISSING_BEARER_TOKEN: '缺少 Bearer 令牌',
+    PERMISSION_DENIED: '权限不足',
+    NOT_FOUND: '资源不存在',
+    MISSING_SESSION_USER: '缺少会话用户信息',
+    INVALID_ACCESS_TOKEN_TYPE: '访问令牌类型无效',
+    INVALID_OR_EXPIRED_ACCESS_TOKEN: '访问令牌无效或已过期',
+    INVALID_REFRESH_TOKEN_TYPE: '刷新令牌类型无效',
+    INVALID_OR_EXPIRED_REFRESH_TOKEN: '刷新令牌无效或已过期',
+    INVALID_AUDIENCE: '身份范围无效',
+    LOGIN_RATE_LIMITED: '登录尝试次数过多，请稍后再试。',
+    INVALID_CREDENTIALS: '账号或密码错误',
+    ACCOUNT_NOT_ACTIVE: '账号未激活',
+    REFRESH_TOKEN_AUDIENCE_MISMATCH: '刷新令牌身份范围不匹配',
+    REFRESH_TOKEN_INVALID_OR_REVOKED: '刷新令牌无效或已被撤销',
+    REFRESH_TOKEN_EXPIRED: '刷新令牌已过期',
+    REFRESH_TOKEN_PAYLOAD_MISMATCH: '刷新令牌载荷不匹配',
+    ACCOUNT_NOT_FOUND: '账号不存在',
+    SESSION_EXPIRED: '会话已过期',
+    OLD_PASSWORD_INVALID: '原密码错误',
+    NEW_PASSWORD_MUST_DIFFER: '新密码不能与当前密码相同',
+    ADMIN_PROFILE_NOT_FOUND: '管理员资料不存在',
+    CUSTOMER_PROFILE_NOT_FOUND: '客户资料不存在',
+    CUSTOMER_BLOCKED: '客户已被封禁',
+    MISSING_ADMIN_SESSION_USER: '缺少管理员会话用户信息',
+    MISSING_CUSTOMER_SESSION_USER: '缺少客户会话用户信息',
+    ADMIN_USER_NOT_FOUND: '管理员用户不存在',
+    ROLE_NOT_FOUND: '角色不存在',
+    PERMISSION_NOT_FOUND: '权限不存在',
+    CUSTOMER_NOT_FOUND: '客户不存在',
+    CUSTOMER_PROFILE_NOT_CREATED: '客户资料尚未创建',
+    CUSTOMER_GROUP_NOT_FOUND: '客户分组不存在',
+    CUSTOMER_TAG_NOT_FOUND: '客户标签不存在',
+    CLIENT_RELEASE_FACTS_INVALID_TOKEN: '客户端发布事实令牌无效',
+    CLIENT_RELEASE_FACTS_UNSUPPORTED_SCHEMA: '客户端发布事实格式不受支持',
+    CLIENT_RELEASE_FACTS_EMPTY_PACKAGES: '客户端发布事实不包含安装包',
+    CLIENT_RELEASE_NOT_FOUND: '客户端发布版本不存在',
+    CLIENT_RELEASE_PACKAGE_NOT_FOUND: '客户端发布包不存在',
+    CLIENT_RELEASE_POLICY_NOT_FOUND: '客户端更新策略不存在',
+    CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION:
+      '推荐版本在当前策略下没有可下载安装包',
+    CLIENT_DOWNLOAD_UNAVAILABLE: '客户端下载不可用',
+  },
+  'en-US': {
+    INTERNAL_SERVER_ERROR: 'Internal server error',
+    VALIDATION_FAILED: 'Validation failed',
+    MISSING_BEARER_TOKEN: 'Missing bearer token',
+    PERMISSION_DENIED: 'Permission denied',
+    NOT_FOUND: 'Not found',
+    MISSING_SESSION_USER: 'Missing session user',
+    INVALID_ACCESS_TOKEN_TYPE: 'Invalid access token type',
+    INVALID_OR_EXPIRED_ACCESS_TOKEN: 'Invalid or expired access token',
+    INVALID_REFRESH_TOKEN_TYPE: 'Invalid refresh token type',
+    INVALID_OR_EXPIRED_REFRESH_TOKEN: 'Invalid or expired refresh token',
+    INVALID_AUDIENCE: 'Invalid audience',
+    LOGIN_RATE_LIMITED: 'Too many login attempts. Please retry later.',
+    INVALID_CREDENTIALS: 'Invalid credentials',
+    ACCOUNT_NOT_ACTIVE: 'Account is not active',
+    REFRESH_TOKEN_AUDIENCE_MISMATCH: 'Refresh token audience mismatch',
+    REFRESH_TOKEN_INVALID_OR_REVOKED: 'Refresh token is invalid or revoked',
+    REFRESH_TOKEN_EXPIRED: 'Refresh token is expired',
+    REFRESH_TOKEN_PAYLOAD_MISMATCH: 'Refresh token payload mismatch',
+    ACCOUNT_NOT_FOUND: 'Account not found',
+    SESSION_EXPIRED: 'Session is expired',
+    OLD_PASSWORD_INVALID: 'Old password is invalid',
+    NEW_PASSWORD_MUST_DIFFER: 'New password must differ from current password',
+    ADMIN_PROFILE_NOT_FOUND: 'Admin profile not found',
+    CUSTOMER_PROFILE_NOT_FOUND: 'Customer profile not found',
+    CUSTOMER_BLOCKED: 'Customer is blocked',
+    MISSING_ADMIN_SESSION_USER: 'Missing admin session user',
+    MISSING_CUSTOMER_SESSION_USER: 'Missing customer session user',
+    ADMIN_USER_NOT_FOUND: 'Admin user not found',
+    ROLE_NOT_FOUND: 'Role not found',
+    PERMISSION_NOT_FOUND: 'Permission not found',
+    CUSTOMER_NOT_FOUND: 'Customer not found',
+    CUSTOMER_PROFILE_NOT_CREATED: 'Customer profile was not created',
+    CUSTOMER_GROUP_NOT_FOUND: 'Customer group not found',
+    CUSTOMER_TAG_NOT_FOUND: 'Customer tag not found',
+    CLIENT_RELEASE_FACTS_INVALID_TOKEN: 'Invalid client release facts token',
+    CLIENT_RELEASE_FACTS_UNSUPPORTED_SCHEMA:
+      'Unsupported client release facts schema',
+    CLIENT_RELEASE_FACTS_EMPTY_PACKAGES:
+      'Client release facts do not contain packages',
+    CLIENT_RELEASE_NOT_FOUND: 'Client release not found',
+    CLIENT_RELEASE_PACKAGE_NOT_FOUND: 'Client release package not found',
+    CLIENT_RELEASE_POLICY_NOT_FOUND: 'Client update policy not found',
+    CLIENT_RELEASE_POLICY_INVALID_RECOMMENDATION:
+      'Recommended release is not available for this client target channel',
+    CLIENT_DOWNLOAD_UNAVAILABLE: 'Client download unavailable',
+  },
+};
+
 const catalogs: Record<SupportedLocale, Record<string, string>> = {
   'zh-CN': zhCNMessages,
   'en-US': {},
@@ -94,6 +193,13 @@ const catalogs: Record<SupportedLocale, Record<string, string>> = {
 
 function translateMessage(message: string, locale: SupportedLocale) {
   return catalogs[locale][message] ?? message;
+}
+
+export function getBackendMessageFromCode(
+  code: string,
+  locale: SupportedLocale,
+): string | undefined {
+  return codeMessages[locale][code as ApiErrorCode];
 }
 
 export function getBackendMessageCode(message: string): string | undefined {
@@ -119,6 +225,19 @@ export function localizeBackendPayload(
   }
 
   const nextPayload = { ...(payload as Record<string, unknown>) };
+
+  if (typeof nextPayload.code === 'string') {
+    const localizedCodeMessage = getBackendMessageFromCode(
+      nextPayload.code,
+      locale,
+    );
+    if (localizedCodeMessage) {
+      nextPayload.message = localizedCodeMessage;
+      if (typeof nextPayload.error === 'string') {
+        nextPayload.error = localizedCodeMessage;
+      }
+    }
+  }
 
   if (typeof nextPayload.message === 'string') {
     nextPayload.message = translateMessage(nextPayload.message, locale);

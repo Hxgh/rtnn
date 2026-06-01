@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -20,6 +12,7 @@ import type { Request } from 'express';
 import { CurrentUser } from '../../common/guards/current-user.decorator';
 import { Public } from '../../common/guards/public.decorator';
 import { AuthSessionUser } from '../../common/guards/auth-session-user';
+import { apiUnauthorized } from '../../common/errors/api-error';
 import { toAuditActor } from '../audit/audit.types';
 import {
   AdminMeResponse,
@@ -89,7 +82,10 @@ export class AuthAdminController {
     @CurrentUser() user: AuthSessionUser | undefined,
   ): Promise<AdminMeResponse> {
     if (!user?.sub || user.audience !== 'admin') {
-      throw new UnauthorizedException('Missing admin session user');
+      throw apiUnauthorized(
+        'MISSING_ADMIN_SESSION_USER',
+        'Missing admin session user',
+      );
     }
     return this.authService.getMeResponse(user.sub, 'admin');
   }
@@ -104,7 +100,10 @@ export class AuthAdminController {
     @Body() dto: ChangePasswordDto,
   ): Promise<AdminSessionResponse> {
     if (!user?.sub || user.audience !== 'admin') {
-      throw new UnauthorizedException('Missing admin session user');
+      throw apiUnauthorized(
+        'MISSING_ADMIN_SESSION_USER',
+        'Missing admin session user',
+      );
     }
     return this.authService.changePassword(
       toAuditActor(user),
@@ -166,7 +165,10 @@ export class AuthCustomerController {
     @CurrentUser() user: AuthSessionUser | undefined,
   ): Promise<CustomerMeResponse> {
     if (!user?.sub || user.audience !== 'customer') {
-      throw new UnauthorizedException('Missing customer session user');
+      throw apiUnauthorized(
+        'MISSING_CUSTOMER_SESSION_USER',
+        'Missing customer session user',
+      );
     }
     return this.authService.getMeResponse(user.sub, 'customer');
   }
@@ -181,7 +183,10 @@ export class AuthCustomerController {
     @Body() dto: ChangePasswordDto,
   ): Promise<CustomerSessionResponse> {
     if (!user?.sub || user.audience !== 'customer') {
-      throw new UnauthorizedException('Missing customer session user');
+      throw apiUnauthorized(
+        'MISSING_CUSTOMER_SESSION_USER',
+        'Missing customer session user',
+      );
     }
     return this.authService.changePassword(
       toAuditActor(user),

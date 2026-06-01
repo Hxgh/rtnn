@@ -6,7 +6,6 @@ import {
   Patch,
   Post,
   Query,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,6 +19,7 @@ import { PERMISSIONS } from '../../common/constants/permissions.const';
 import { CurrentUser } from '../../common/guards/current-user.decorator';
 import { AuthSessionUser } from '../../common/guards/auth-session-user';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
+import { apiUnauthorized } from '../../common/errors/api-error';
 import { AuditActor, toAuditActor } from '../audit/audit.types';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CreateCustomerGroupDto } from './dto/create-customer-group.dto';
@@ -179,7 +179,10 @@ export class CustomersController {
 
 function requireAdminActor(user: AuthSessionUser | undefined): AuditActor {
   if (!user?.sub || user.audience !== 'admin') {
-    throw new UnauthorizedException('Missing admin session user');
+    throw apiUnauthorized(
+      'MISSING_ADMIN_SESSION_USER',
+      'Missing admin session user',
+    );
   }
   return toAuditActor(user);
 }

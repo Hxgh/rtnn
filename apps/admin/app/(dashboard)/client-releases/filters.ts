@@ -22,6 +22,33 @@ export function buildHref(
   pageSize: number,
   filters: ClientReleaseFilters,
 ) {
+  return buildClientReleaseHref(
+    adminRoutes.clientReleases.list,
+    page,
+    pageSize,
+    filters,
+  );
+}
+
+export function buildPackagesHref(
+  page: number,
+  pageSize: number,
+  filters: ClientReleaseFilters,
+) {
+  return buildClientReleaseHref(
+    adminRoutes.clientReleases.packages,
+    page,
+    pageSize,
+    filters,
+  );
+}
+
+function buildClientReleaseHref(
+  pathname: string,
+  page: number,
+  pageSize: number,
+  filters: ClientReleaseFilters,
+) {
   const params = new URLSearchParams();
   if (page > 1) {
     params.set("page", String(page));
@@ -35,7 +62,5 @@ export function buildHref(
     }
   }
   const query = params.toString();
-  return query
-    ? `${adminRoutes.clientReleases.list}?${query}`
-    : adminRoutes.clientReleases.list;
+  return query ? `${pathname}?${query}` : pathname;
 }

@@ -1,11 +1,8 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AccountStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { apiBadRequest, apiNotFound } from '../../common/errors/api-error';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
 import { PasswordService } from '../auth/password.service';
@@ -105,7 +102,7 @@ export class IamService {
       },
     });
     if (!account) {
-      throw new NotFoundException('Admin user not found');
+      throw apiNotFound('ADMIN_USER_NOT_FOUND', 'Admin user not found');
     }
     return this.toAdminUserDetail(account);
   }
@@ -172,7 +169,7 @@ export class IamService {
       include: { adminProfile: true },
     });
     if (!existing || !existing.adminProfile) {
-      throw new NotFoundException('Admin user not found');
+      throw apiNotFound('ADMIN_USER_NOT_FOUND', 'Admin user not found');
     }
 
     const displayName = dto.displayName ?? dto.name;
@@ -286,7 +283,7 @@ export class IamService {
       },
     });
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw apiNotFound('ROLE_NOT_FOUND', 'Role not found');
     }
     return this.toRoleRecord(role);
   }
@@ -331,7 +328,7 @@ export class IamService {
   async updateRole(actor: AuditActor, id: string, dto: UpdateRoleDto) {
     const existing = await this.prisma.role.findUnique({ where: { id } });
     if (!existing) {
-      throw new NotFoundException('Role not found');
+      throw apiNotFound('ROLE_NOT_FOUND', 'Role not found');
     }
 
     const permissionKeys = dto.permissionKeys
@@ -389,7 +386,7 @@ export class IamService {
   ) {
     const role = await this.prisma.role.findUnique({ where: { id: roleId } });
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw apiNotFound('ROLE_NOT_FOUND', 'Role not found');
     }
     const permissionKeys = this.unique(dto.permissionKeys);
     const permissions = await this.findPermissionsByKeysOrThrow(permissionKeys);
@@ -424,7 +421,7 @@ export class IamService {
       include: { adminProfile: true },
     });
     if (!account || !account.adminProfile) {
-      throw new NotFoundException('Admin user not found');
+      throw apiNotFound('ADMIN_USER_NOT_FOUND', 'Admin user not found');
     }
     const roleIds = await this.resolveRoleIdsOrThrow(dto);
     await this.prisma.$transaction(async (tx) => {
@@ -530,9 +527,7 @@ export class IamService {
       (roleId) => !foundRoleIds.has(roleId),
     );
     if (missingRoleIds.length > 0) {
-      throw new BadRequestException({
-        code: 'ROLE_NOT_FOUND',
-        message: 'Role not found',
+      throw apiBadRequest('ROLE_NOT_FOUND', 'Role not found', {
         roleIds: missingRoleIds,
       });
     }
@@ -557,9 +552,7 @@ export class IamService {
     const foundSlugs = new Set(roles.map((role) => role.slug));
     const missingSlugs = roleSlugs.filter((slug) => !foundSlugs.has(slug));
     if (missingSlugs.length > 0) {
-      throw new BadRequestException({
-        code: 'ROLE_NOT_FOUND',
-        message: 'Role not found',
+      throw apiBadRequest('ROLE_NOT_FOUND', 'Role not found', {
         roleSlugs: missingSlugs,
       });
     }
@@ -582,9 +575,7 @@ export class IamService {
       (permissionKey) => !foundKeys.has(permissionKey),
     );
     if (missingPermissionKeys.length > 0) {
-      throw new BadRequestException({
-        code: 'PERMISSION_NOT_FOUND',
-        message: 'Permission not found',
+      throw apiBadRequest('PERMISSION_NOT_FOUND', 'Permission not found', {
         permissionKeys: missingPermissionKeys,
       });
     }

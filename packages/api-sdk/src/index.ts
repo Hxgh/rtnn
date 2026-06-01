@@ -92,6 +92,7 @@ export type {
   RolesUpdateResult,
 } from "./openapi-contract";
 export {
+  ApiRequestError,
   createFetchTransport,
   createTaroTransport,
   type ApiRequestOptions,

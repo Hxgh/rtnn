@@ -1,10 +1,7 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { apiBadRequest, apiNotFound } from '../../common/errors/api-error';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
@@ -93,7 +90,7 @@ export class CustomersService {
       },
     });
     if (!found) {
-      throw new NotFoundException('Customer not found');
+      throw apiNotFound('CUSTOMER_NOT_FOUND', 'Customer not found');
     }
     return this.toCustomerDetail(found);
   }
@@ -126,7 +123,10 @@ export class CustomersService {
       });
       const customerProfile = created.customerProfile;
       if (!customerProfile) {
-        throw new NotFoundException('Customer profile was not created');
+        throw apiNotFound(
+          'CUSTOMER_PROFILE_NOT_CREATED',
+          'Customer profile was not created',
+        );
       }
 
       await this.replaceCustomerGroups(tx, customerProfile.id, dto.groupIds);
@@ -159,7 +159,10 @@ export class CustomersService {
         },
       });
       if (!detail) {
-        throw new NotFoundException('Customer profile not found');
+        throw apiNotFound(
+          'CUSTOMER_PROFILE_NOT_FOUND',
+          'Customer profile not found',
+        );
       }
       return detail;
     });
@@ -172,7 +175,7 @@ export class CustomersService {
       include: { account: true },
     });
     if (!existing) {
-      throw new NotFoundException('Customer not found');
+      throw apiNotFound('CUSTOMER_NOT_FOUND', 'Customer not found');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -226,7 +229,7 @@ export class CustomersService {
       include: { account: true },
     });
     if (!existing) {
-      throw new NotFoundException('Customer not found');
+      throw apiNotFound('CUSTOMER_NOT_FOUND', 'Customer not found');
     }
     const profileStatus = this.normalizeCustomerStatus(dto.status);
     await this.prisma.$transaction(async (tx) => {
@@ -272,7 +275,7 @@ export class CustomersService {
       where: { id },
     });
     if (!existing) {
-      throw new NotFoundException('Customer not found');
+      throw apiNotFound('CUSTOMER_NOT_FOUND', 'Customer not found');
     }
     await this.prisma.$transaction(async (tx) => {
       await this.updateCustomerPassword(
@@ -689,7 +692,13 @@ export class CustomersService {
       where: { id: { in: groupIds } },
     });
     if (count !== groupIds.length) {
-      throw new BadRequestException('Customer group not found');
+      throw apiBadRequest(
+        'CUSTOMER_GROUP_NOT_FOUND',
+        'Customer group not found',
+        {
+          customerGroupIds: groupIds,
+        },
+      );
     }
   }
 
@@ -701,7 +710,9 @@ export class CustomersService {
       where: { id: { in: tagIds } },
     });
     if (count !== tagIds.length) {
-      throw new BadRequestException('Customer tag not found');
+      throw apiBadRequest('CUSTOMER_TAG_NOT_FOUND', 'Customer tag not found', {
+        customerTagIds: tagIds,
+      });
     }
   }
 }

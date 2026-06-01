@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,6 +21,7 @@ import { AuthSessionUser } from '../../common/guards/auth-session-user';
 import { Public } from '../../common/guards/public.decorator';
 import { RequirePermission } from '../../common/guards/require-permission.decorator';
 import { AppConfigService } from '../../core/config/app-config.service';
+import { apiUnauthorized } from '../../common/errors/api-error';
 import { AuditActor, toAuditActor } from '../audit/audit.types';
 import { ClientDownloadListQueryDto } from './dto/client-download-list-query.dto';
 import { ClientDownloadQueryDto } from './dto/client-download-query.dto';
@@ -61,7 +61,10 @@ export class ClientReleaseFactsController {
   private assertFactsToken(token: string | undefined) {
     const expected = this.appConfig.clientReleaseFactsToken;
     if (!expected || token !== expected) {
-      throw new UnauthorizedException('Invalid client release facts token');
+      throw apiUnauthorized(
+        'CLIENT_RELEASE_FACTS_INVALID_TOKEN',
+        'Invalid client release facts token',
+      );
     }
   }
 }
@@ -153,7 +156,10 @@ export class ClientUpdatesController {
 
 function requireAdminActor(user: AuthSessionUser | undefined): AuditActor {
   if (!user?.sub || user.audience !== 'admin') {
-    throw new UnauthorizedException('Missing admin session user');
+    throw apiUnauthorized(
+      'MISSING_ADMIN_SESSION_USER',
+      'Missing admin session user',
+    );
   }
   return toAuditActor(user);
 }

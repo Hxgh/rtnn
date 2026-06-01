@@ -1,7 +1,8 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { LOGIN_RATE_LIMIT_STORE } from './login-rate-limit.store';
 import * as loginRateLimitStore from './login-rate-limit.store';
+import { apiTooManyRequests } from '../../common/errors/api-error';
 
 @Injectable()
 export class LoginRateLimitService {
@@ -22,12 +23,9 @@ export class LoginRateLimitService {
       return;
     }
     if (state.count >= this.configService.loginRateLimitMaxAttempts) {
-      throw new HttpException(
-        {
-          code: 'LOGIN_RATE_LIMITED',
-          message: 'Too many login attempts. Please retry later.',
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
+      throw apiTooManyRequests(
+        'LOGIN_RATE_LIMITED',
+        'Too many login attempts. Please retry later.',
       );
     }
   }

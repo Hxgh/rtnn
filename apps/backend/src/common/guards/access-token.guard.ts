@@ -1,16 +1,11 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthTokenService } from '../../modules/auth/auth-token.service';
 import { AuthSessionUser } from './auth-session-user';
 import { IS_PUBLIC_KEY } from './public.decorator';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { apiForbidden, apiUnauthorized } from '../errors/api-error';
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthSessionUser;
@@ -36,7 +31,7 @@ export class AccessTokenGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const authorization = request.header('authorization');
     if (!authorization?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing bearer token');
+      throw apiUnauthorized('MISSING_BEARER_TOKEN', 'Missing bearer token');
     }
 
     const token = authorization.slice(7).trim();
@@ -59,23 +54,26 @@ export class AccessTokenGuard implements CanActivate {
       },
     });
     if (!account) {
-      throw new UnauthorizedException('Account not found');
+      throw apiUnauthorized('ACCOUNT_NOT_FOUND', 'Account not found');
     }
     if (account.status !== 'active') {
-      throw new ForbiddenException('Account is not active');
+      throw apiForbidden('ACCOUNT_NOT_ACTIVE', 'Account is not active');
     }
     if (payload.ver !== account.credentialsVersion) {
-      throw new UnauthorizedException('Session is expired');
+      throw apiUnauthorized('SESSION_EXPIRED', 'Session is expired');
     }
     if (payload.audience === 'admin' && !account.adminProfile) {
-      throw new ForbiddenException('Admin profile not found');
+      throw apiForbidden('ADMIN_PROFILE_NOT_FOUND', 'Admin profile not found');
     }
     if (payload.audience === 'customer') {
       if (!account.customerProfile) {
-        throw new ForbiddenException('Customer profile not found');
+        throw apiForbidden(
+          'CUSTOMER_PROFILE_NOT_FOUND',
+          'Customer profile not found',
+        );
       }
       if (account.customerProfile.status === 'blocked') {
-        throw new ForbiddenException('Customer is blocked');
+        throw apiForbidden('CUSTOMER_BLOCKED', 'Customer is blocked');
       }
     }
     request.user = {

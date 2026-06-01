@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthAudience } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomUUID } from 'crypto';
 import { AppConfigService } from '../../core/config/app-config.service';
+import { apiUnauthorized } from '../../common/errors/api-error';
 import { AccessTokenPayload, RefreshTokenPayload } from './auth.types';
 
 @Injectable()
@@ -53,11 +54,17 @@ export class AuthTokenService {
         audience: this.appConfigService.jwtAudience,
       });
       if (payload.type !== 'access') {
-        throw new UnauthorizedException('Invalid access token type');
+        throw apiUnauthorized(
+          'INVALID_ACCESS_TOKEN_TYPE',
+          'Invalid access token type',
+        );
       }
       return payload;
     } catch {
-      throw new UnauthorizedException('Invalid or expired access token');
+      throw apiUnauthorized(
+        'INVALID_OR_EXPIRED_ACCESS_TOKEN',
+        'Invalid or expired access token',
+      );
     }
   }
 
@@ -69,11 +76,17 @@ export class AuthTokenService {
         audience: this.appConfigService.jwtAudience,
       });
       if (payload.type !== 'refresh') {
-        throw new UnauthorizedException('Invalid refresh token type');
+        throw apiUnauthorized(
+          'INVALID_REFRESH_TOKEN_TYPE',
+          'Invalid refresh token type',
+        );
       }
       return payload;
     } catch {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw apiUnauthorized(
+        'INVALID_OR_EXPIRED_REFRESH_TOKEN',
+        'Invalid or expired refresh token',
+      );
     }
   }
 
@@ -85,7 +98,7 @@ export class AuthTokenService {
     if (raw === 'admin' || raw === 'customer') {
       return raw;
     }
-    throw new UnauthorizedException('Invalid audience');
+    throw apiUnauthorized('INVALID_AUDIENCE', 'Invalid audience');
   }
 
   private resolveDurationToSeconds(raw: string): number {

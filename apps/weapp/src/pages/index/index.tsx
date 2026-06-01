@@ -1,74 +1,83 @@
-import { Navigator, Text, View } from "@tarojs/components"
-import { useDidShow } from "@tarojs/taro"
-import type { CustomerMeResult } from "@rtnn/api-sdk"
-import { TEMPLATE_DISPLAY } from "@rtnn/config"
-import { useState } from "react"
-import { authSession } from "../../lib/session/auth"
-import "./index.css"
+import { Navigator, Text, View } from "@tarojs/components";
+import { useDidShow } from "@tarojs/taro";
+import type { CustomerMeResult } from "@rtnn/api-sdk";
+import { TEMPLATE_DISPLAY } from "@rtnn/config";
+import { useState } from "react";
+import { getWeappMessages } from "../../lib/i18n";
+import { resolveWeappErrorMessage } from "../../lib/errors";
+import { authSession } from "../../lib/session/auth";
+import "./index.css";
 
 type HomeState =
   | {
-      status: "loading"
+      status: "loading";
     }
   | {
-      status: "guest"
+      status: "guest";
     }
   | {
-      status: "error"
-      message: string
+      status: "error";
+      message: string;
     }
   | {
-      status: "authenticated"
-      profile: CustomerMeResult["user"]
-    }
+      status: "authenticated";
+      profile: CustomerMeResult["user"];
+    };
 
 export default function IndexPage() {
   const [state, setState] = useState<HomeState>({
-    status: "loading"
-  })
+    status: "loading",
+  });
+  const messages = getWeappMessages();
 
   useDidShow(() => {
-    setState({ status: "loading" })
+    setState({ status: "loading" });
 
     authSession
       .restoreSession()
       .then((session) => {
         if (!session) {
-          setState({ status: "guest" })
-          return
+          setState({ status: "guest" });
+          return;
         }
 
         setState({
           status: "authenticated",
-          profile: session.user
-        })
+          profile: session.user,
+        });
       })
-      .catch(() => {
+      .catch((error) => {
         setState({
           status: "error",
-          message: "当前会话状态暂时不可用，请稍后重试。"
-        })
-      })
-  })
+          message:
+            resolveWeappErrorMessage(error) ??
+            messages.errors.sessionUnavailable,
+        });
+      });
+  });
 
   return (
     <View className="safe-page safe-page--tabbed page-stack">
       <View className="page-header">
         <Text className="page-brand">{TEMPLATE_DISPLAY.brand}</Text>
-        <Text className="page-title">首页</Text>
-        <Text className="page-desc">查看当前账户状态，并进入我的页管理会话。</Text>
+        <Text className="page-title">{messages.home.title}</Text>
+        <Text className="page-desc">{messages.home.description}</Text>
       </View>
 
       {state.status === "loading" ? (
         <View className="card hero-card">
           <View className="hero-card__header">
             <View className="hero-card__copy">
-              <Text className="hero-card__title">正在同步当前会话</Text>
+              <Text className="hero-card__title">
+                {messages.home.loadingTitle}
+              </Text>
               <Text className="hero-card__desc">
-                正在检查本地凭据与当前账户状态。
+                {messages.home.loadingDescription}
               </Text>
             </View>
-            <Text className="inline-status">同步中</Text>
+            <Text className="inline-status">
+              {messages.common.status.loading}
+            </Text>
           </View>
         </View>
       ) : null}
@@ -77,12 +86,16 @@ export default function IndexPage() {
         <View className="card hero-card">
           <View className="hero-card__header">
             <View className="hero-card__copy">
-              <Text className="hero-card__title">当前未登录</Text>
+              <Text className="hero-card__title">
+                {messages.home.guestTitle}
+              </Text>
               <Text className="hero-card__desc">
-                登录后即可访问首页和我的页，并同步当前设备会话。
+                {messages.home.guestDescription}
               </Text>
             </View>
-            <Text className="inline-status">未登录</Text>
+            <Text className="inline-status">
+              {messages.common.status.signedOut}
+            </Text>
           </View>
           <View className="weapp-action-group">
             <Navigator
@@ -90,7 +103,7 @@ export default function IndexPage() {
               className="weapp-button weapp-button--primary"
               data-testid="home-login-action"
             >
-              去登录
+              {messages.home.guestAction}
             </Navigator>
           </View>
         </View>
@@ -106,37 +119,52 @@ export default function IndexPage() {
             <View className="hero-card__header">
               <View className="hero-card__copy">
                 <Text className="hero-card__title">{state.profile.name}</Text>
-                <Text className="hero-card__desc" data-testid="home-email-value">
+                <Text
+                  className="hero-card__desc"
+                  data-testid="home-email-value"
+                >
                   {state.profile.email}
                 </Text>
               </View>
-              <Text className="inline-status inline-status--success">已登录</Text>
+              <Text className="inline-status inline-status--success">
+                {messages.common.status.signedIn}
+              </Text>
             </View>
             <View className="hero-card__meta">
               <View className="hero-meta">
-                <Text className="hero-meta__label">当前角色</Text>
+                <Text className="hero-meta__label">
+                  {messages.home.rolesLabel}
+                </Text>
                 <Text className="hero-meta__value">
                   {state.profile.roles.join(", ") || "-"}
                 </Text>
               </View>
               <View className="hero-meta">
-                <Text className="hero-meta__label">会话状态</Text>
-                <Text className="hero-meta__value">当前设备已同步</Text>
+                <Text className="hero-meta__label">
+                  {messages.home.sessionLabel}
+                </Text>
+                <Text className="hero-meta__value">
+                  {messages.common.status.signedIn}
+                </Text>
               </View>
             </View>
           </View>
 
           <View className="section-stack">
-            <Text className="section-title">账户概览</Text>
+            <Text className="section-title">{messages.home.accountTitle}</Text>
             <View className="card card-section">
               <View className="list list--tight">
                 <View className="list-row">
-                  <Text className="list-label">邮箱</Text>
+                  <Text className="list-label">{messages.home.emailLabel}</Text>
                   <Text className="list-value">{state.profile.email}</Text>
                 </View>
                 <View className="list-row">
-                  <Text className="list-label">用户 ID</Text>
-                  <Text className="list-value list-value--mono">{state.profile.id}</Text>
+                  <Text className="list-label">
+                    {messages.home.userIdLabel}
+                  </Text>
+                  <Text className="list-value list-value--mono">
+                    {state.profile.id}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -145,7 +173,7 @@ export default function IndexPage() {
       ) : null}
 
       <View className="section-stack">
-        <Text className="section-title">常用入口</Text>
+        <Text className="section-title">{messages.home.quickAccessTitle}</Text>
         <View className="card card-section">
           <Navigator
             className="row-link"
@@ -154,9 +182,9 @@ export default function IndexPage() {
             data-testid="home-me-link"
           >
             <View className="row-link__copy">
-              <Text className="row-link__title">我的</Text>
+              <Text className="row-link__title">{messages.home.meTitle}</Text>
               <Text className="row-link__desc">
-                查看账户信息，并管理当前设备会话。
+                {messages.home.meDescription}
               </Text>
             </View>
             <Text className="row-link__chevron">›</Text>
@@ -164,5 +192,5 @@ export default function IndexPage() {
         </View>
       </View>
     </View>
-  )
+  );
 }

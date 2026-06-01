@@ -33,6 +33,7 @@
     "release:sync-live-state": "node scripts/release/sync-live-state.mjs",
     "release:check-runtime-freshness": "node scripts/release/check-runtime-freshness.mjs",
     "release:sync-client-live-state": "node scripts/release/sync-client-release-state.mjs",
+    "profile:doctor": "node scripts/template/profile-doctor.mjs",
     "lint": "node scripts/runtime/run-profiled-task.mjs lint",
     "typecheck": "node scripts/runtime/run-profiled-task.mjs typecheck",
     "test": "pnpm --filter backend test --runInBand",
