@@ -421,7 +421,10 @@ test("release workflows keep server-local outside GHCR image build path", () => 
     releaseImages,
     /release_execution_mode == 'github-hosted'[\s\S]*Build And Push/,
   );
-  assert.match(releaseImages, /Notify Deploy Repository For Server Local/);
+  assert.match(
+    releaseImages,
+    /notify-server-local-deploy:[\s\S]*Notify Deploy Repository For Server Local[\s\S]*runs-on: ubuntu-latest/,
+  );
   assert.match(releaseImages, /release_execution_mode: "server-local"/);
   assert.match(promoteProduction, /RELEASE_EXECUTION_MODE/);
   assert.match(promoteProduction, /images_json="\{\}"/);
