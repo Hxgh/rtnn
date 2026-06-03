@@ -70,7 +70,7 @@ jobs:
   sync-live-state:
     name: Sync Live State
     if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' }}
-    runs-on: ${{ vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted' && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:

@@ -39,6 +39,10 @@ test("sync-live-state workflow wires runtime facts status and liveState PR", () 
     assert.match(content, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
 
+  assert.match(
+    content,
+    /sync-live-state:[\s\S]*?name: Sync Live State[\s\S]*?runs-on: ubuntu-latest/,
+  );
   assert.doesNotMatch(content, /pnpm run release:sync-live-state -- --write/);
 });
 
