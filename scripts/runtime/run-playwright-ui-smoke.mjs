@@ -36,12 +36,24 @@ async function hasBundledChromium() {
     return true;
   }
 
-  try {
-    const { chromium } = await import("playwright");
-    return existsSync(chromium.executablePath());
-  } catch {
+  const result = spawnSync(
+    "pnpm",
+    ["exec", "playwright", "install", "--dry-run", "chromium"],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+
+  if (result.status !== 0) {
     return false;
   }
+
+  return result.stdout
+    .split(/\r?\n/)
+    .filter((line) => line.includes("Install location:"))
+    .map((line) => line.replace(/^.*Install location:\s*/, "").trim())
+    .some((installPath) => installPath.length > 0 && existsSync(installPath));
 }
 
 function printMissingBrowserMessage() {
