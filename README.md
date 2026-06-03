@@ -103,7 +103,7 @@ pnpm run template:init -- --project-id=acme --brand-name=ACME --rewrite-source -
 - 业务仓手动执行 `promote-production` 发起正式发布
 - 上游模板仓 `rtnn` 默认不直接拥有任何业务环境发布权
 - `rtnn` 保留 `release-images / promote-production` 作为模板源码的一部分，但只有 `project.role=business-source` 的业务仓会真正执行它们
-- deploy 仓生成运行事实报告，业务仓用 `pnpm run release:sync-live-state` 校验或写回 `.rtnn/project.json liveState`
+- deploy 仓生成运行事实报告，业务仓用 `pnpm run release:status` 只读校验线上状态，并用显式 sync/PR 准备命令写回 `.rtnn/project.json liveState`
 
 ## 验收入口
 
@@ -112,8 +112,13 @@ pnpm run check:quick
 pnpm run check:backend-release
 pnpm run check:template-bootstrap
 pnpm run check:template-derivation
+pnpm run check:client-release
 pnpm run profile:doctor
 pnpm run check:release-candidate
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md --output /tmp/rtnn-release-status.json
+pnpm run release:status:ci -- --facts-file /tmp/rtnn-runtime-facts.json --output-dir /tmp/rtnn-release-status
+pnpm run release:prepare-live-state-pr:ci -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --no-push
 pnpm run release:check-runtime-freshness -- --facts-file /tmp/rtnn-runtime-facts.json
 pnpm run smoke:admin
 pnpm run check
@@ -122,8 +127,14 @@ pnpm run check
 - `check:quick`：不主动启动 PostgreSQL，覆盖 lint、typecheck、admin UI 规则、模板中立性与契约漂移。
 - `check:backend-release`：会在本地数据库配置下启动 PostgreSQL，执行测试 schema 残留预检、backend 发布基线、integration/e2e 并行隔离检查与测试后残留审计。
 - `check:release-candidate`：发布候选入口，覆盖模板派生、契约、backend 发布门禁；设置 `RTNN_RUN_UI_SMOKE=true` 后追加多端 UI smoke。
+- `check:client-release`：客户端发布链路统一检查入口，覆盖 release facts 解析、client liveState、release status、liveState PR 准备、surface gate 与相关脚本测试。
 - `profile:doctor`：读取 `.rtnn/project.json` 和 project profile，输出启用服务、客户端构建目标、警告与接入风险，适合业务仓初次接入或配置回归检查。
-- `release:check-runtime-freshness`：读取部署仓 runtime facts，判断 `.rtnn/project.json liveState` 是否代表线上实际版本；只读不写，写回仍使用 `release:sync-live-state`。
+- `release:status`：回答“线上是否最新”的只读统一入口，输出稳定 `status/code/findings`，支持 `--summary-md` 和 `--output` 供 CI/PR comment 消费；不写回 `.rtnn/project.json`。
+- `release:check-runtime-freshness`：底层 runtime freshness gate，读取部署仓 runtime facts，判断 `.rtnn/project.json liveState` 是否代表线上实际版本；只读不写，写回仍使用 `release:sync-live-state`。
+- `release:prepare-live-state-pr`：CI 用 liveState-only PR 准备入口，只允许改写 `.rtnn/project.json liveState`，不提交、不推送、不创建 PR。
+- `release:status:ci`：GitHub Actions / deploy 回调入口，运行 `release:status` 并写出 JSON、Markdown、GitHub outputs 和 step summary。
+- `release:prepare-live-state-pr:ci`：liveState-only PR 编排入口，负责 branch/commit/push/可选 PR；写回逻辑仍由 `release:prepare-live-state-pr` 控制。
+- `.github/workflows/sync-live-state.yml`：从 deploy 仓 workflow artifact 下载 runtime facts，并选择只读检查或准备 liveState-only PR；状态判断必须使用机器字段 `status/code`，code 语义见 `docs/operations/release-status-codes.md`。
 - `smoke:*:ui`：CI 中使用 Playwright Chromium；Codex App 普通本地页面核验优先使用内置 Browser，不为普通本地验收安装 Chromium；显式设置 `RTNN_RUN_UI_SMOKE=true` 时缺浏览器会失败。
 - `check`：本地完整质量门禁，覆盖静态检查、模板派生、契约、backend 发布门禁与多端构建。
 

@@ -100,8 +100,37 @@ backend 必须公开以下无鉴权探活/版本端点：
 业务源码仓负责执行：
 
 ```bash
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md --output /tmp/rtnn-release-status.json
 pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --check
 pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --write
+pnpm run release:prepare-live-state-pr -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md /tmp/live-state-pr.md --json
+pnpm run release:status:ci -- --facts-file /tmp/rtnn-runtime-facts.json --output-dir /tmp/rtnn-release-status
+pnpm run release:prepare-live-state-pr:ci -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --no-push
 ```
 
 `liveState` 是业务仓的非敏感事实，不是 deploy 仓的发布决策来源。
+`release:status` 是只读入口，用来回答线上 runtime facts 是否与业务仓
+`liveState` 一致；写回必须显式使用 sync 命令，或由 CI 使用
+`release:prepare-live-state-pr` 准备 liveState-only PR。
+
+业务源码仓还提供 `.github/workflows/sync-live-state.yml`。部署仓可在完成
+deploy/smoke 后上传 `rtnn-runtime-facts` artifact，并以
+`repository_dispatch` 的 `sync-rtnn-live-state` 事件触发业务仓：
+
+```json
+{
+  "event_type": "sync-rtnn-live-state",
+  "client_payload": {
+    "source_repository": "owner/rtnn-deploy",
+    "source_run_id": "1234567890",
+    "runtime_facts_artifact": "rtnn-runtime-facts",
+    "runtime_facts_file": "runtime-facts.json",
+    "environment": "testing",
+    "mode": "prepare-pr"
+  }
+}
+```
+
+`mode=status` 只产出 release status artifact；`mode=prepare-pr` 会在业务仓
+准备 liveState-only PR。CI 判断必须读取 `status/code`，不要解析人类文案。

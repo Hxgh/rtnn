@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
+import {
+  assertRuntimeBindingMatches,
+  assertRuntimeFactsSafe,
+  compareRuntimeLiveState,
+  readRuntimeFacts,
+} from "../lib/release-facts.mjs";
 import {
   PROJECT_METADATA_FILE,
   readProjectMetadata,
   validateBusinessProjectMetadata,
 } from "../lib/project-metadata.mjs";
-
-const RUNTIME_FACTS_SCHEMA_VERSION = "rtnn.deploy.runtime-facts.v1";
-const SENSITIVE_KEY_PATTERN =
-  /token|secret|password|authorization|cookie|database_?url|connection_?string|ssh/i;
 
 function usage() {
   return `用法:
@@ -73,182 +75,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function readJson(filePath) {
-  return JSON.parse(readFileSync(filePath, "utf8"));
-}
-
-function readRuntimeFacts(factsFile) {
-  const report = readJson(factsFile);
-
-  if (report.schemaVersion !== RUNTIME_FACTS_SCHEMA_VERSION) {
-    throw new Error("runtime facts schemaVersion 不匹配");
-  }
-
-  if (!Array.isArray(report.environments)) {
-    throw new Error("runtime facts 缺少 environments 数组");
-  }
-
-  return report;
-}
-
-function isPlainObject(value) {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function collectSensitiveKeyPaths(value, prefix = "") {
-  if (Array.isArray(value)) {
-    return value.flatMap((item, index) =>
-      collectSensitiveKeyPaths(item, `${prefix}[${index}]`),
-    );
-  }
-
-  if (!isPlainObject(value)) {
-    return [];
-  }
-
-  const paths = [];
-  for (const [key, child] of Object.entries(value)) {
-    const nextPath = prefix ? `${prefix}.${key}` : key;
-    if (SENSITIVE_KEY_PATTERN.test(key)) {
-      paths.push(nextPath);
-      continue;
-    }
-    paths.push(...collectSensitiveKeyPaths(child, nextPath));
-  }
-  return paths;
-}
-
-function assertRuntimeFactsSafe(report) {
-  const sensitivePaths = collectSensitiveKeyPaths(report);
-  if (sensitivePaths.length > 0) {
-    throw new Error(
-      `runtime facts 包含疑似敏感字段: ${sensitivePaths.join(", ")}`,
-    );
-  }
-}
-
-function assertBindingMatches(metadata, report) {
-  const errors = [];
-  const binding = isPlainObject(report.binding) ? report.binding : {};
-
-  const expected = {
-    sourceRepository: metadata.project.repo,
-    application: metadata.deployment.application,
-    imageNamePrefix: metadata.deployment.imageNamePrefix,
-    dispatchEventType: metadata.deployment.dispatchEventType,
-  };
-
-  for (const [key, value] of Object.entries(expected)) {
-    if (binding[key] !== value) {
-      errors.push(`${key}: ${value} != ${binding[key] ?? "(missing)"}`);
-    }
-  }
-
-  if (errors.length > 0) {
-    throw new Error(`runtime facts 绑定关系不匹配: ${errors.join("；")}`);
-  }
-}
-
-function selectEnvironmentFacts(report, requestedEnvironments) {
-  const factsByEnvironment = new Map(
-    report.environments.map((environmentFact) => [
-      environmentFact.environment,
-      environmentFact,
-    ]),
-  );
-  const environments =
-    requestedEnvironments.length > 0
-      ? requestedEnvironments
-      : report.environments.map((environmentFact) => environmentFact.environment);
-
-  return environments.map((environment) => {
-    const environmentFact = factsByEnvironment.get(environment);
-    if (!environmentFact) {
-      throw new Error(`runtime facts 缺少环境: ${environment}`);
-    }
-    return environmentFact;
-  });
-}
-
-function readObservedVersion(environmentFact) {
-  const versionResult = environmentFact.health?.results?.version;
-  const body = versionResult?.body;
-
-  if (!versionResult?.ok || !isPlainObject(body)) {
-    return {
-      deployVersion: "",
-      sourceSha: "",
-    };
-  }
-
-  return {
-    deployVersion: String(body.version ?? "").trim(),
-    sourceSha: String(body.sourceSha ?? "").trim(),
-  };
-}
-
-function buildObservedState(environmentFact) {
-  const release = isPlainObject(environmentFact.release)
-    ? environmentFact.release
-    : {};
-  const observedVersion = readObservedVersion(environmentFact);
-  const activeRelease =
-    observedVersion.deployVersion || String(release.deployVersion ?? "").trim();
-  const sourceSha =
-    observedVersion.sourceSha || String(release.sourceSha ?? "").trim();
-
-  return {
-    activeRelease,
-    sourceSha,
-    health: {
-      version: Boolean(environmentFact.health?.results?.version?.ok),
-      readyz: Boolean(environmentFact.health?.results?.readyz?.ok),
-      healthz: Boolean(environmentFact.health?.results?.healthz?.ok),
-    },
-  };
-}
-
-function compareEnvironment(metadata, environmentFact) {
-  const environment = environmentFact.environment;
-  const current = metadata.liveState?.[environment] ?? {};
-  const observed = buildObservedState(environmentFact);
-  const mismatches = [];
-
-  if (!observed.activeRelease) {
-    mismatches.push({
-      field: "activeRelease",
-      expected: current.activeRelease ?? "",
-      actual: "",
-      reason: "runtime facts 缺少可识别 DEPLOY_VERSION 或 /version.version",
-    });
-  } else if (current.activeRelease !== observed.activeRelease) {
-    mismatches.push({
-      field: "activeRelease",
-      expected: current.activeRelease ?? "",
-      actual: observed.activeRelease,
-    });
-  }
-
-  if (observed.sourceSha && current.sourceSha !== observed.sourceSha) {
-    mismatches.push({
-      field: "sourceSha",
-      expected: current.sourceSha ?? "",
-      actual: observed.sourceSha,
-    });
-  }
-
-  return {
-    environment,
-    fresh: mismatches.length === 0,
-    current: {
-      activeRelease: current.activeRelease ?? "",
-      sourceSha: current.sourceSha ?? "",
-    },
-    observed,
-    mismatches,
-  };
-}
-
 function printHumanResult(result) {
   console.log(`[runtime-freshness] project=${result.project.repo}`);
 
@@ -286,12 +112,9 @@ function main() {
   const report = readRuntimeFacts(path.resolve(rootDir, args.factsFile));
 
   assertRuntimeFactsSafe(report);
-  assertBindingMatches(metadata, report);
+  assertRuntimeBindingMatches(metadata, report);
 
-  const environments = selectEnvironmentFacts(
-    report,
-    args.environments,
-  ).map((environmentFact) => compareEnvironment(metadata, environmentFact));
+  const environments = compareRuntimeLiveState(metadata, report, args.environments);
   const result = {
     ok: environments.every((environment) => environment.fresh),
     project: {

@@ -80,6 +80,25 @@ function checkWorkflow(findings) {
       message: "release-clients 不应由 v* 业务发布 tag 触发",
     },
   ]);
+
+  const liveStateWorkflowPath = ".github/workflows/sync-live-state.yml";
+  const liveStateWorkflow = read(liveStateWorkflowPath);
+  assertIncludes(
+    findings,
+    liveStateWorkflowPath,
+    liveStateWorkflow,
+    [
+      "repository_dispatch:",
+      "sync-rtnn-live-state",
+      "actions/download-artifact@v4",
+      "scripts/release/run-release-status-ci.mjs",
+      "scripts/release/run-live-state-pr-ci.mjs",
+      "actions/upload-artifact@v4",
+      "contents: write",
+      "pull-requests: write",
+    ],
+    "liveState 同步 workflow 必须保留 runtime facts 下载、状态检查、PR 准备和产物上传",
+  );
 }
 
 function checkBackendContract(findings) {
@@ -137,10 +156,21 @@ function checkAdminSurface(findings) {
   const listPath = "apps/admin/app/(dashboard)/client-releases/page.tsx";
   const packagePath =
     "apps/admin/app/(dashboard)/client-releases/packages/page.tsx";
+  const packageTablePath =
+    "apps/admin/app/(dashboard)/client-releases/package-table.tsx";
   const detailPath = "apps/admin/app/(dashboard)/client-releases/[id]/page.tsx";
+  const detailComponentsPath =
+    "apps/admin/app/(dashboard)/client-releases/detail-components.tsx";
   const actionPath = "apps/admin/app/(dashboard)/client-releases/actions.ts";
 
-  for (const filePath of [listPath, packagePath, detailPath, actionPath]) {
+  for (const filePath of [
+    listPath,
+    packagePath,
+    packageTablePath,
+    detailPath,
+    detailComponentsPath,
+    actionPath,
+  ]) {
     if (!existsSync(path.join(ROOT_DIR, filePath))) {
       addFinding(findings, filePath, "客户端发布后台页面/动作文件缺失");
     }
@@ -168,11 +198,9 @@ function checkAdminSurface(findings) {
     "发布中心必须保留版本、渠道、客户端、平台、状态、可下载数和同步时间",
   );
 
-  const packageContent = read(packagePath);
-  assertIncludes(
+  assertIncludesInAny(
     findings,
-    packagePath,
-    packageContent,
+    [packagePath, packageTablePath],
     [
       "formatClientPackageName(item.client, item.target, locale)",
       "dictionary.clientReleases.artifact",
@@ -188,11 +216,9 @@ function checkAdminSurface(findings) {
     "包列表必须保留文件、大小、SHA256、自托管地址、GitHub 来源、状态和同步时间",
   );
 
-  const detailContent = read(detailPath);
-  assertIncludes(
+  assertIncludesInAny(
     findings,
-    detailPath,
-    detailContent,
+    [detailPath, detailComponentsPath],
     [
       "dictionary.clientReleases.generatedAt",
       "dictionary.clientReleases.syncedAt",
@@ -263,13 +289,32 @@ function checkScriptWiring(findings) {
   const checkClientRelease =
     packageJson.scripts?.["check:client-release"] ?? "";
 
-  if (!checkClientRelease.includes("check-client-release-surface.mjs")) {
+  if (!checkClientRelease.includes("check-client-release.mjs")) {
     addFinding(
       findings,
       packageJsonPath,
-      "check:client-release 必须包含客户端发布闭环 surface 检查",
+      "check:client-release 必须使用客户端发布闭环统一检查入口",
     );
   }
+
+  const orchestratorPath = "scripts/release/check-client-release.mjs";
+  const orchestratorContent = read(orchestratorPath);
+  assertIncludes(
+    findings,
+    orchestratorPath,
+    orchestratorContent,
+    [
+      "scripts/lib/release-facts.mjs",
+      "scripts/release/check-client-release-surface.mjs",
+      "tests/release-status-contract.test.mjs",
+      "tests/release-status.test.mjs",
+      "tests/live-state-pr.test.mjs",
+      "tests/release-status-ci.test.mjs",
+      "tests/live-state-pr-ci.test.mjs",
+      "tests/sync-live-state-workflow.test.mjs",
+    ],
+    "客户端发布统一检查入口必须覆盖 facts 库、surface gate、release status、CI 编排与 liveState PR 测试",
+  );
 }
 
 function main() {

@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
+import {
+  assertRuntimeBindingMatches,
+  collectRuntimeLiveStateChanges,
+  readRuntimeFacts,
+} from "../lib/release-facts.mjs";
 import {
   readProjectMetadata,
   validateBusinessProjectMetadata,
@@ -69,125 +74,6 @@ function parseArgs(argv) {
   return args;
 }
 
-function readRuntimeFacts(factsFile) {
-  const report = JSON.parse(readFileSync(factsFile, "utf8"));
-
-  if (report.schemaVersion !== "rtnn.deploy.runtime-facts.v1") {
-    throw new Error("runtime facts schemaVersion 不匹配");
-  }
-
-  if (!Array.isArray(report.environments)) {
-    throw new Error("runtime facts 缺少 environments 数组");
-  }
-
-  return report;
-}
-
-function assertBindingMatches(metadata, report) {
-  const errors = [];
-  const binding = report.binding ?? {};
-
-  if (metadata.project.repo !== binding.sourceRepository) {
-    errors.push(
-      `project.repo 与 runtime facts sourceRepository 不一致: ${metadata.project.repo} != ${binding.sourceRepository}`,
-    );
-  }
-
-  if (metadata.deployment.application !== binding.application) {
-    errors.push(
-      `deployment.application 与 runtime facts 不一致: ${metadata.deployment.application} != ${binding.application}`,
-    );
-  }
-
-  if (metadata.deployment.imageNamePrefix !== binding.imageNamePrefix) {
-    errors.push(
-      `deployment.imageNamePrefix 与 runtime facts 不一致: ${metadata.deployment.imageNamePrefix} != ${binding.imageNamePrefix}`,
-    );
-  }
-
-  if (metadata.deployment.dispatchEventType !== binding.dispatchEventType) {
-    errors.push(
-      `deployment.dispatchEventType 与 runtime facts 不一致: ${metadata.deployment.dispatchEventType} != ${binding.dispatchEventType}`,
-    );
-  }
-
-  if (errors.length > 0) {
-    throw new Error(errors.join("；"));
-  }
-}
-
-function buildDesiredState(environmentFact) {
-  const release = environmentFact.release ?? {};
-  const observedVersion = readObservedVersion(environmentFact);
-  const deployVersion =
-    observedVersion.deployVersion || String(release.deployVersion ?? "").trim();
-  const sourceSha =
-    observedVersion.sourceSha || String(release.sourceSha ?? "").trim();
-
-  if (!environmentFact.source?.exists && !observedVersion.deployVersion) {
-    throw new Error(`${environmentFact.environment} 缺少可用 runtime source`);
-  }
-
-  if (!deployVersion) {
-    throw new Error(`${environmentFact.environment} 缺少 DEPLOY_VERSION`);
-  }
-
-  return {
-    activeRelease: deployVersion,
-    ...(sourceSha ? { sourceSha } : {}),
-  };
-}
-
-function readObservedVersion(environmentFact) {
-  const versionResult = environmentFact.health?.results?.version;
-  const body = versionResult?.body;
-
-  if (!versionResult?.ok || !body || typeof body !== "object") {
-    return {
-      deployVersion: "",
-      sourceSha: "",
-    };
-  }
-
-  return {
-    deployVersion: String(body.version ?? "").trim(),
-    sourceSha: String(body.sourceSha ?? "").trim(),
-  };
-}
-
-function diffLiveState(current, desired) {
-  const changes = [];
-
-  for (const [key, value] of Object.entries(desired)) {
-    if (current?.[key] !== value) {
-      changes.push({ key, before: current?.[key] ?? "", after: value });
-    }
-  }
-
-  return changes;
-}
-
-function selectEnvironmentFacts(report, requestedEnvironments) {
-  const factsByEnvironment = new Map(
-    report.environments.map((environmentFact) => [
-      environmentFact.environment,
-      environmentFact,
-    ]),
-  );
-  const environments =
-    requestedEnvironments.length > 0
-      ? requestedEnvironments
-      : report.environments.map((environmentFact) => environmentFact.environment);
-
-  return environments.map((environment) => {
-    const environmentFact = factsByEnvironment.get(environment);
-    if (!environmentFact) {
-      throw new Error(`runtime facts 缺少环境: ${environment}`);
-    }
-    return environmentFact;
-  });
-}
-
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const rootDir = process.cwd();
@@ -196,26 +82,24 @@ function main() {
   });
   const report = readRuntimeFacts(path.resolve(rootDir, args.factsFile));
 
-  assertBindingMatches(metadata, report);
+  assertRuntimeBindingMatches(metadata, report);
 
   const nextMetadata = readProjectMetadata(rootDir);
-  const selectedFacts = selectEnvironmentFacts(report, args.environments);
-  const allChanges = [];
+  const environmentChanges = collectRuntimeLiveStateChanges(
+    nextMetadata,
+    report,
+    args.environments,
+  );
+  const allChanges = environmentChanges
+    .filter((item) => item.changes.length > 0)
+    .map(({ environment, changes }) => ({ environment, changes }));
 
-  for (const environmentFact of selectedFacts) {
-    const desired = buildDesiredState(environmentFact);
-    const current = nextMetadata.liveState?.[environmentFact.environment] ?? {};
-    const changes = diffLiveState(current, desired);
-
-    if (changes.length > 0) {
-      allChanges.push({ environment: environmentFact.environment, changes });
-    }
-
+  for (const item of environmentChanges) {
     if (args.mode === "write") {
       nextMetadata.liveState = nextMetadata.liveState ?? {};
-      nextMetadata.liveState[environmentFact.environment] = {
-        ...current,
-        ...desired,
+      nextMetadata.liveState[item.environment] = {
+        ...item.current,
+        ...item.desired,
       };
     }
   }

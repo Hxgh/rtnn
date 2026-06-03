@@ -26,6 +26,7 @@ function run(extraEnv = {}) {
 test("local Playwright UI smoke wrapper skips when browser is missing", () => {
   const result = run({
     CI: "",
+    RTNN_RUN_UI_SMOKE: "",
     RTNN_REQUIRE_PLAYWRIGHT_UI: "",
     RTNN_ALLOW_LOCAL_PLAYWRIGHT_UI: "",
   });

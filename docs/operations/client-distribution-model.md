@@ -51,8 +51,10 @@ The release center should reflect runtime facts rather than invent a parallel
 release truth. When a deploy executor syncs client release facts, the backend
 stores accepted package metadata and the business repository can mirror
 non-sensitive client state into `.rtnn/project.json liveState.<env>.clients`.
-Use `release:sync-client-live-state` for the write-back/check flow and
-`release:check-runtime-freshness` for environment freshness.
+Use `release:status` for the read-only operator answer, optionally passing
+`--client-artifacts-dir` to include client release facts. Use
+`release:sync-client-live-state` only for the explicit write-back/check flow, or
+`release:prepare-live-state-pr` when CI should prepare a liveState-only PR.
 
 ## Build Operations
 

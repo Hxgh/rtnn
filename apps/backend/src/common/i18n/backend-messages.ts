@@ -199,7 +199,7 @@ export function getBackendMessageFromCode(
   code: string,
   locale: SupportedLocale,
 ): string | undefined {
-  return codeMessages[locale][code as ApiErrorCode];
+  return codeMessages[locale][code];
 }
 
 export function getBackendMessageCode(message: string): string | undefined {

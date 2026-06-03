@@ -1,0 +1,117 @@
+export const RELEASE_STATUS_VALUES = Object.freeze({
+  FRESH: "fresh",
+  STALE: "stale",
+  BLOCKED: "blocked",
+  SKIPPED: "skipped",
+});
+
+export const RELEASE_STATUS_CODES = Object.freeze({
+  OK: "OK",
+  PROFILE_SKIPPED: "PROFILE_SKIPPED",
+  PROFILE_WARNING: "PROFILE_WARNING",
+  PROFILE_ERROR: "PROFILE_ERROR",
+  MISSING_PROJECT_METADATA: "MISSING_PROJECT_METADATA",
+  INVALID_PROJECT_METADATA: "INVALID_PROJECT_METADATA",
+  RUNTIME_FACTS_MISSING: "RUNTIME_FACTS_MISSING",
+  RUNTIME_FACTS_INVALID: "RUNTIME_FACTS_INVALID",
+  RUNTIME_FACTS_UNSAFE: "RUNTIME_FACTS_UNSAFE",
+  RUNTIME_BINDING_MISMATCH: "RUNTIME_BINDING_MISMATCH",
+  RUNTIME_FACTS_STALE: "RUNTIME_FACTS_STALE",
+  CLIENT_ARTIFACTS_MISSING: "CLIENT_ARTIFACTS_MISSING",
+  CLIENT_ARTIFACTS_INVALID: "CLIENT_ARTIFACTS_INVALID",
+  CLIENT_LIVE_STATE_STALE: "CLIENT_LIVE_STATE_STALE",
+  CLIENT_LIVE_STATE_SKIPPED: "CLIENT_LIVE_STATE_SKIPPED",
+});
+
+export const RELEASE_STATUS_CODE_DETAILS = Object.freeze([
+  {
+    code: RELEASE_STATUS_CODES.OK,
+    status: RELEASE_STATUS_VALUES.FRESH,
+    meaning: "所有启用检查均通过，线上事实与业务仓派生状态一致。",
+    nextAction: "无需写回 liveState。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.PROFILE_SKIPPED,
+    status: RELEASE_STATUS_VALUES.SKIPPED,
+    meaning: "调用方显式跳过 project profile 预检。",
+    nextAction: "仅在 CI 已有等价 profile gate 时使用。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.PROFILE_WARNING,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "project profile 存在 warning，且 strict profile 模式要求 warning 阻断。",
+    nextAction: "补齐业务仓 delivery/profile 配置后重跑。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.PROFILE_ERROR,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "project profile 无法解析。",
+    nextAction: "先修复 .rtnn/project.json 或模板环境。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.MISSING_PROJECT_METADATA,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "业务仓缺少 .rtnn/project.json。",
+    nextAction: "运行模板初始化或同步项目事实文件。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.INVALID_PROJECT_METADATA,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: ".rtnn/project.json 不满足业务仓事实契约。",
+    nextAction: "修复项目、部署仓、环境或 releaseExecution 配置。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.RUNTIME_FACTS_MISSING,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "调用方没有提供 runtime facts 文件。",
+    nextAction: "从 deploy 仓下载或传入 runtime facts artifact。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.RUNTIME_FACTS_INVALID,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "runtime facts schema、环境数据或 JSON 内容无法解析。",
+    nextAction: "修复 deploy 仓 facts 生成逻辑或传入正确环境。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.RUNTIME_FACTS_UNSAFE,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "runtime facts 包含疑似 secret/token/连接串等敏感字段。",
+    nextAction: "立即停止写回，清理 facts 产物并修复 deploy 仓输出边界。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.RUNTIME_BINDING_MISMATCH,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "runtime facts 声明的 source/application/image/event 与业务仓绑定不一致。",
+    nextAction: "确认 deploy 仓和业务仓是否配错仓库或应用。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.RUNTIME_FACTS_STALE,
+    status: RELEASE_STATUS_VALUES.STALE,
+    meaning: "线上 runtime facts 与业务仓 liveState 不一致。",
+    nextAction: "确认线上真实状态后准备 liveState-only PR，或排查部署未生效。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.CLIENT_ARTIFACTS_MISSING,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "调用方要求检查 client release，但缺少 artifacts。",
+    nextAction: "从 release-clients workflow 下载 client-release artifacts。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.CLIENT_ARTIFACTS_INVALID,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "client release artifacts 无法解析或缺少合法 manifest。",
+    nextAction: "修复客户端发布产物或重新运行 release-clients。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.CLIENT_LIVE_STATE_STALE,
+    status: RELEASE_STATUS_VALUES.STALE,
+    meaning: "客户端 release facts 与业务仓 liveState.<env>.clients 不一致。",
+    nextAction: "确认客户端 facts 后准备 liveState-only PR。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.CLIENT_LIVE_STATE_SKIPPED,
+    status: RELEASE_STATUS_VALUES.SKIPPED,
+    meaning: "未传入 client artifacts，客户端 liveState 检查已跳过。",
+    nextAction: "如果本次只关心 runtime，可以保持跳过。",
+  },
+]);
