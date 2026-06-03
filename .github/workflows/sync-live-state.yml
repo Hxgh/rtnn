@@ -1,0 +1,251 @@
+# 业务源码仓 liveState 同步入口。
+# deploy 仓完成部署并生成 runtime facts 后，可通过 workflow_dispatch 或
+# repository_dispatch 触发本 workflow。业务仓只消费非敏感 facts，不生成运行事实。
+
+name: sync-live-state
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repository:
+        description: Repository that uploaded runtime facts, for example owner/rtnn-deploy.
+        required: true
+        type: string
+      source_run_id:
+        description: Deploy workflow run id that uploaded runtime facts.
+        required: true
+        type: string
+      runtime_facts_artifact:
+        description: Runtime facts artifact name.
+        required: false
+        default: rtnn-runtime-facts
+        type: string
+      runtime_facts_file:
+        description: Runtime facts JSON path inside downloaded artifact.
+        required: false
+        default: runtime-facts.json
+        type: string
+      client_artifacts_artifact:
+        description: Optional client release artifacts name.
+        required: false
+        default: ""
+        type: string
+      environment:
+        description: Environment to check or sync. Empty means all environments in facts.
+        required: false
+        default: ""
+        type: string
+      mode:
+        description: Run read-only status or prepare a liveState-only PR.
+        required: false
+        default: status
+        type: choice
+        options:
+          - status
+          - prepare-pr
+      base_branch:
+        description: PR base branch.
+        required: false
+        default: main
+        type: string
+      create_pr:
+        description: Create PR when mode=prepare-pr and liveState changed.
+        required: false
+        default: true
+        type: boolean
+  repository_dispatch:
+    types:
+      - sync-rtnn-live-state
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-live-state-${{ github.event.client_payload.environment || inputs.environment || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync-live-state:
+    name: Sync Live State
+    if: ${{ vars.RTNN_BUSINESS_SOURCE_WORKFLOWS_ENABLED == 'true' }}
+    runs-on: ${{ vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted' && 'ubuntu-latest' || 'self-hosted' }}
+    timeout-minutes: 20
+
+    steps:
+      - name: Resolve inputs
+        id: input
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          INPUT_SOURCE_REPOSITORY: ${{ inputs.source_repository }}
+          INPUT_RUNTIME_ARTIFACT: ${{ inputs.runtime_facts_artifact }}
+          INPUT_RUNTIME_FILE: ${{ inputs.runtime_facts_file }}
+          INPUT_CLIENT_ARTIFACT: ${{ inputs.client_artifacts_artifact }}
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+          INPUT_CREATE_PR: ${{ inputs.create_pr }}
+          PAYLOAD_SOURCE_RUN_ID: ${{ github.event.client_payload.source_run_id }}
+          PAYLOAD_SOURCE_REPOSITORY: ${{ github.event.client_payload.source_repository }}
+          PAYLOAD_RUNTIME_ARTIFACT: ${{ github.event.client_payload.runtime_facts_artifact }}
+          PAYLOAD_RUNTIME_FILE: ${{ github.event.client_payload.runtime_facts_file }}
+          PAYLOAD_CLIENT_ARTIFACT: ${{ github.event.client_payload.client_artifacts_artifact }}
+          PAYLOAD_ENVIRONMENT: ${{ github.event.client_payload.environment }}
+          PAYLOAD_MODE: ${{ github.event.client_payload.mode }}
+          PAYLOAD_BASE_BRANCH: ${{ github.event.client_payload.base_branch }}
+          PAYLOAD_CREATE_PR: ${{ github.event.client_payload.create_pr }}
+        run: |
+          if [[ "${EVENT_NAME}" == "repository_dispatch" ]]; then
+            source_run_id="${PAYLOAD_SOURCE_RUN_ID}"
+            source_repository="${PAYLOAD_SOURCE_REPOSITORY}"
+            runtime_artifact="${PAYLOAD_RUNTIME_ARTIFACT:-rtnn-runtime-facts}"
+            runtime_file="${PAYLOAD_RUNTIME_FILE:-runtime-facts.json}"
+            client_artifact="${PAYLOAD_CLIENT_ARTIFACT}"
+            environment="${PAYLOAD_ENVIRONMENT}"
+            mode="${PAYLOAD_MODE:-status}"
+            base_branch="${PAYLOAD_BASE_BRANCH:-main}"
+            create_pr="${PAYLOAD_CREATE_PR:-true}"
+          else
+            source_run_id="${INPUT_SOURCE_RUN_ID}"
+            source_repository="${INPUT_SOURCE_REPOSITORY}"
+            runtime_artifact="${INPUT_RUNTIME_ARTIFACT:-rtnn-runtime-facts}"
+            runtime_file="${INPUT_RUNTIME_FILE:-runtime-facts.json}"
+            client_artifact="${INPUT_CLIENT_ARTIFACT}"
+            environment="${INPUT_ENVIRONMENT}"
+            mode="${INPUT_MODE:-status}"
+            base_branch="${INPUT_BASE_BRANCH:-main}"
+            create_pr="${INPUT_CREATE_PR:-true}"
+          fi
+
+          [[ -n "${source_run_id}" ]] || { echo "source_run_id is required"; exit 1; }
+          [[ -n "${source_repository}" ]] || { echo "source_repository is required"; exit 1; }
+
+          {
+            echo "source_run_id=${source_run_id}"
+            echo "source_repository=${source_repository}"
+            echo "runtime_artifact=${runtime_artifact}"
+            echo "runtime_file=${runtime_file}"
+            echo "client_artifact=${client_artifact}"
+            echo "environment=${environment}"
+            echo "mode=${mode}"
+            echo "base_branch=${base_branch}"
+            echo "create_pr=${create_pr}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.17.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: |
+            package.json
+            pnpm-workspace.yaml
+            apps/admin/package.json
+            apps/app/package.json
+            apps/backend/package.json
+            apps/weapp/package.json
+            clients/*/package.json
+            packages/*/package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Download runtime facts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.input.outputs.source_run_id }}
+          repository: ${{ steps.input.outputs.source_repository }}
+          github-token: ${{ secrets.DEPLOY_REPOSITORY_READ_TOKEN || secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN || secrets.GITHUB_TOKEN }}
+          name: ${{ steps.input.outputs.runtime_artifact }}
+          path: artifacts/runtime-facts
+
+      - name: Download client release artifacts
+        if: ${{ steps.input.outputs.client_artifact != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.input.outputs.source_run_id }}
+          repository: ${{ steps.input.outputs.source_repository }}
+          github-token: ${{ secrets.DEPLOY_REPOSITORY_READ_TOKEN || secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN || secrets.GITHUB_TOKEN }}
+          name: ${{ steps.input.outputs.client_artifact }}
+          path: artifacts/client-release
+
+      - name: Release status
+        id: status
+        continue-on-error: ${{ steps.input.outputs.mode == 'prepare-pr' }}
+        shell: bash
+        env:
+          RUNTIME_FILE: artifacts/runtime-facts/${{ steps.input.outputs.runtime_file }}
+          CLIENT_ARTIFACT: ${{ steps.input.outputs.client_artifact }}
+          ENVIRONMENT: ${{ steps.input.outputs.environment }}
+        run: |
+          args=(--facts-file "${RUNTIME_FILE}" --output-dir artifacts/release-status)
+          if [[ -n "${ENVIRONMENT}" ]]; then
+            args+=(--environment "${ENVIRONMENT}")
+          fi
+          if [[ -n "${CLIENT_ARTIFACT}" ]]; then
+            args+=(--client-artifacts-dir artifacts/client-release)
+          fi
+
+          node scripts/release/run-release-status-ci.mjs "${args[@]}"
+
+      - name: Block invalid release facts before PR
+        if: ${{ steps.input.outputs.mode == 'prepare-pr' && (steps.status.outputs.status == 'blocked' || steps.status.outputs.status == '') }}
+        shell: bash
+        run: |
+          echo "release status is blocked; refusing to prepare liveState PR"
+          echo "code=${{ steps.status.outputs.code }}"
+          exit 1
+
+      - name: Prepare liveState PR
+        id: live_state_pr
+        if: ${{ steps.input.outputs.mode == 'prepare-pr' && steps.status.outputs.status != 'blocked' && steps.status.outputs.status != '' }}
+        shell: bash
+        env:
+          RUNTIME_FILE: artifacts/runtime-facts/${{ steps.input.outputs.runtime_file }}
+          CLIENT_ARTIFACT: ${{ steps.input.outputs.client_artifact }}
+          ENVIRONMENT: ${{ steps.input.outputs.environment }}
+          BASE_BRANCH: ${{ steps.input.outputs.base_branch }}
+          CREATE_PR: ${{ steps.input.outputs.create_pr }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          args=(--facts-file "${RUNTIME_FILE}" --output-dir artifacts/live-state-pr --base-branch "${BASE_BRANCH}")
+          if [[ -n "${ENVIRONMENT}" ]]; then
+            args+=(--environment "${ENVIRONMENT}")
+          fi
+          if [[ -n "${CLIENT_ARTIFACT}" ]]; then
+            args+=(--client-artifacts-dir artifacts/client-release)
+          fi
+          if [[ "${CREATE_PR}" == "true" ]]; then
+            args+=(--create-pr)
+          else
+            args+=(--no-push)
+          fi
+
+          node scripts/release/run-live-state-pr-ci.mjs "${args[@]}"
+
+      - name: Upload release status
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtnn-release-status
+          path: artifacts/release-status
+
+      - name: Upload liveState PR summary
+        if: ${{ always() && steps.input.outputs.mode == 'prepare-pr' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtnn-live-state-pr
+          path: artifacts/live-state-pr

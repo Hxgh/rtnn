@@ -67,6 +67,11 @@ function main() {
   );
   run(
     "node",
+    ["--check", "scripts/lib/release-facts.mjs"],
+    "校验 release facts 脚本语法",
+  );
+  run(
+    "node",
     ["--check", "scripts/client/check-tauri-clients.mjs"],
     "校验 Tauri client 检查脚本语法",
   );
@@ -172,6 +177,11 @@ function main() {
   );
   run(
     "node",
+    ["--check", "scripts/release/check-client-release.mjs"],
+    "校验 client release 统一检查入口语法",
+  );
+  run(
+    "node",
     ["--check", "scripts/release/check-client-release-github-prereqs.mjs"],
     "校验 client release GitHub 前置条件脚本语法",
   );
@@ -189,6 +199,26 @@ function main() {
     "node",
     ["--check", "scripts/release/check-runtime-freshness.mjs"],
     "校验运行事实 freshness 脚本语法",
+  );
+  run(
+    "node",
+    ["--check", "scripts/release/check-release-status.mjs"],
+    "校验 release status 脚本语法",
+  );
+  run(
+    "node",
+    ["--check", "scripts/release/prepare-live-state-pr.mjs"],
+    "校验 liveState PR 准备脚本语法",
+  );
+  run(
+    "node",
+    ["--check", "scripts/release/run-release-status-ci.mjs"],
+    "校验 release status CI 脚本语法",
+  );
+  run(
+    "node",
+    ["--check", "scripts/release/run-live-state-pr-ci.mjs"],
+    "校验 liveState PR CI 脚本语法",
   );
   run(
     "node",
@@ -240,6 +270,36 @@ function main() {
     "node",
     ["--test", "tests/runtime-freshness.test.mjs"],
     "运行 runtime freshness 测试",
+  );
+  run(
+    "node",
+    ["--test", "tests/release-status-contract.test.mjs"],
+    "运行 release status 契约测试",
+  );
+  run(
+    "node",
+    ["--test", "tests/release-status.test.mjs"],
+    "运行 release status 测试",
+  );
+  run(
+    "node",
+    ["--test", "tests/live-state-pr.test.mjs"],
+    "运行 liveState PR 准备测试",
+  );
+  run(
+    "node",
+    ["--test", "tests/release-status-ci.test.mjs"],
+    "运行 release status CI 测试",
+  );
+  run(
+    "node",
+    ["--test", "tests/live-state-pr-ci.test.mjs"],
+    "运行 liveState PR CI 测试",
+  );
+  run(
+    "node",
+    ["--test", "tests/sync-live-state-workflow.test.mjs"],
+    "运行 liveState 同步 workflow 测试",
   );
   run(
     "node",

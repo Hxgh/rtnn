@@ -34,25 +34,88 @@ Business project metadata may include a `liveState` section, but it should be tr
 
 Do not maintain live state manually in README files, chat notes, or ad hoc documents.
 
-Use the read-only freshness gate when answering whether an environment is
-actually on the expected release:
+Use the read-only status gate when answering whether an environment is actually
+on the expected release:
 
 ```bash
-pnpm run release:check-runtime-freshness -- --facts-file /tmp/rtnn-runtime-facts.json
-pnpm run release:check-runtime-freshness -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --client-artifacts-dir /tmp/client-release
+pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md --output /tmp/rtnn-release-status.json
+pnpm run release:status:ci -- --facts-file /tmp/rtnn-runtime-facts.json --output-dir /tmp/rtnn-release-status
 ```
 
-If the freshness gate reports stale state, either the environment is not running
-the expected release or `liveState` has not been refreshed from the deploy
-executor. After verifying the deploy facts, update the derived snapshot with:
+`release:status` combines the project profile preflight, runtime freshness, and
+optional client release liveState checks. It never writes project metadata. Its
+JSON output uses stable top-level `status`, `code`, `summary`, `checks`, and
+`findings` fields. Valid status values are `fresh`, `stale`, `blocked`, and
+`skipped`; CI should make decisions from `status` / `code`, not from human text.
+
+If the status gate reports stale runtime state, either the environment is not
+running the expected release or `liveState` has not been refreshed from the
+deploy executor. After verifying the deploy facts, update the derived snapshot
+with:
 
 ```bash
 pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --write
 ```
 
-`release:check-runtime-freshness` never writes project metadata. It is intended
-for CI gates, operator checks, and quick answers to "is production/testing
-latest?".
+If the status gate reports stale client liveState, verify the client release
+artifacts and then update the derived snapshot with:
+
+```bash
+pnpm run release:sync-client-live-state -- --artifacts-dir /tmp/client-release --environment testing --write
+```
+
+For CI-driven write-back, prepare a liveState-only PR working tree instead of
+silently writing to the main branch:
+
+```bash
+pnpm run release:prepare-live-state-pr -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --client-artifacts-dir /tmp/client-release --summary-md /tmp/live-state-pr.md --json
+```
+
+`release:prepare-live-state-pr` only writes `.rtnn/project.json liveState`. It
+does not commit, push, or create a PR. The caller is responsible for running a
+liveState-only change check before opening a PR.
+
+`release:check-runtime-freshness` remains the lower-level runtime-only gate for
+CI jobs that do not need the profile or client release checks.
+
+## CI Artifact Flow
+
+Deploy repositories should upload runtime facts as workflow artifacts and then
+trigger the business repository `sync-live-state` workflow. The business
+repository never invents runtime facts. It only downloads the deploy artifact and
+runs the same local release status contracts.
+
+Manual workflow dispatch and repository dispatch both support:
+
+- `source_run_id`: deploy workflow run id that uploaded facts;
+- `source_repository`: repository that uploaded facts, for example
+  `owner/rtnn-deploy`;
+- `runtime_facts_artifact`: runtime facts artifact name, default
+  `rtnn-runtime-facts`;
+- `runtime_facts_file`: JSON file inside the artifact, default
+  `runtime-facts.json`;
+- `client_artifacts_artifact`: optional client release artifact name;
+- `environment`: optional environment filter;
+- `mode`: `status` or `prepare-pr`.
+
+`mode=status` runs `release:status:ci` and uploads `rtnn-release-status`
+containing:
+
+- `release-status.json`;
+- `release-status.md`.
+
+`mode=prepare-pr` first runs the same status check, then runs
+`release:prepare-live-state-pr:ci`. If liveState changed, the CI helper creates a
+branch, commits only `.rtnn/project.json`, optionally pushes it, and can create a
+PR with the generated summary. If nothing changed, it emits `changed=false` and
+does not commit.
+
+The generated PR must remain liveState-only. CI should still run
+`detect-live-state-only-change` or equivalent branch policy before merging. Code
+semantics are documented in `docs/operations/release-status-codes.md`.
 
 ## Verification Layers
 
@@ -65,6 +128,10 @@ Local and CI verification are intentionally separated:
 - `profile:doctor` is the business-repository entry point for checking which
   services, client targets, and release modes are actually enabled before any
   deploy or smoke work starts.
+- `release:status` is the operator entry point for answering whether the live
+  environment and optional client release facts are fresh.
+- `check:client-release` is a JS orchestrator so release checks keep labeled
+  steps rather than a long package-script command chain.
 
 The local Playwright wrapper fails in CI or when `RTNN_RUN_UI_SMOKE=true` and
 Chromium is missing. Ordinary local smoke commands skip early with a message that
