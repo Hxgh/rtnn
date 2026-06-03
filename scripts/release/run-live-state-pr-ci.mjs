@@ -306,6 +306,24 @@ async function createPullRequest(args, branch, bodyPath) {
   );
 }
 
+async function tryCreatePullRequest(args, branch, bodyPath) {
+  try {
+    return { prUrl: await createPullRequest(args, branch, bodyPath) };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("GitHub Actions is not permitted to create or approve pull requests")) {
+      return {
+        prBlocked: true,
+        prBlockedReason:
+          "github-actions-pull-request-creation-disabled",
+        prBlockedMessage: message,
+      };
+    }
+
+    throw error;
+  }
+}
+
 function writeGithubOutput(result) {
   if (!process.env.GITHUB_OUTPUT) {
     return;
@@ -318,6 +336,8 @@ function writeGithubOutput(result) {
       `branch=${result.branch}`,
       `commit=${result.commit ?? ""}`,
       `pr_url=${result.prUrl ?? ""}`,
+      `pr_blocked=${result.prBlocked ? "true" : "false"}`,
+      `pr_blocked_reason=${result.prBlockedReason ?? ""}`,
       `output_dir=${result.outputDir}`,
       "",
     ].join("\n"),
@@ -365,7 +385,7 @@ async function main() {
     }
 
     if (args.createPr) {
-      result.prUrl = await createPullRequest(args, branch, summaryPath);
+      Object.assign(result, await tryCreatePullRequest(args, branch, summaryPath));
     }
   }
 
