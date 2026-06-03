@@ -158,6 +158,13 @@ test("liveState PR CI allows release status artifacts from prior CI steps", () =
   }
 });
 
+test("liveState PR CI accepts GH_TOKEN as the workflow token alias", () => {
+  const source = readFileSync(SCRIPT_PATH, "utf8");
+
+  assert.match(source, /process\.env\.GITHUB_TOKEN \|\| process\.env\.GH_TOKEN/);
+  assert.match(source, /GITHUB_TOKEN 或 GH_TOKEN/);
+});
+
 test("liveState PR CI reports no-op when liveState is already fresh", () => {
   const cwd = setupRepository();
   try {

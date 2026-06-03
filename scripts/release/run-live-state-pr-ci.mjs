@@ -247,9 +247,9 @@ function pushBranch(branch) {
 }
 
 async function githubRequest(apiPath, options = {}) {
-  const token = process.env.GITHUB_TOKEN;
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   if (!token) {
-    throw new Error("--create-pr 需要 GITHUB_TOKEN");
+    throw new Error("--create-pr 需要 GITHUB_TOKEN 或 GH_TOKEN");
   }
 
   const response = await fetch(`https://api.github.com${apiPath}`, {
