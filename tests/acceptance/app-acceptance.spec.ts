@@ -7,6 +7,8 @@ import {
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const either = (...values: string[]) =>
   new RegExp(`^(?:${values.map(escapeRegExp).join("|")})$`);
+const containsEither = (...values: string[]) =>
+  new RegExp(`(?:${values.map(escapeRegExp).join("|")})`);
 
 const templateEnv = resolveTemplateEnv(process.cwd());
 const cookieKeys = getTemplateCookieKeys(templateEnv);
@@ -36,11 +38,11 @@ const confirmPasswordLabel = either("确认新密码", "Confirm new password");
 const logoutButton = either("退出登录", "Sign out");
 const forbiddenTitle = either("无权限访问", "Access denied");
 const nativeCapabilitiesTitle = either("设备服务", "Device Services");
-const nativeScannerTitle = either("扫码", "Scan");
-const nativeMapTitle = either("地图导航", "Map navigation");
-const nativeMediaTitle = either("相机相册", "Camera and photos");
-const nativeNotificationTitle = either("通知", "Notifications");
-const nativeSafeAreaTitle = either("键盘与安全区", "Keyboard and safe area");
+const nativeScannerTitle = containsEither("扫码", "Scan");
+const nativeMapTitle = containsEither("地图导航", "Map navigation");
+const nativeMediaTitle = containsEither("相机相册", "Camera and photos");
+const nativeNotificationTitle = containsEither("通知", "Notifications");
+const nativeSafeAreaTitle = containsEither("键盘与安全区", "Keyboard and safe area");
 
 const refreshTokenCookieName = cookieKeys.customerRefreshToken;
 
