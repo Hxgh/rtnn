@@ -20,6 +20,10 @@ test("sync-live-state workflow wires runtime facts status and liveState PR", () 
     "source_run_id",
     "runtime_facts_artifact",
     "runtime_facts_file",
+    "runtime-facts-${environment}",
+    "${environment}.json",
+    "runtime_facts_artifact is required when environment is empty",
+    "runtime_facts_file is required when environment is empty",
     "mode:",
     "prepare-pr",
     "actions/download-artifact@v4",
@@ -43,6 +47,8 @@ test("sync-live-state workflow wires runtime facts status and liveState PR", () 
     content,
     /sync-live-state:[\s\S]*?name: Sync Live State[\s\S]*?runs-on: ubuntu-latest/,
   );
+  assert.doesNotMatch(content, /default: rtnn-runtime-facts/);
+  assert.doesNotMatch(content, /default: runtime-facts\.json/);
   assert.doesNotMatch(content, /pnpm run release:sync-live-state -- --write/);
 });
 

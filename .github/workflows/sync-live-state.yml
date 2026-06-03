@@ -16,14 +16,14 @@ on:
         required: true
         type: string
       runtime_facts_artifact:
-        description: Runtime facts artifact name.
+        description: Runtime facts artifact name. Empty infers runtime-facts-<environment>.
         required: false
-        default: rtnn-runtime-facts
+        default: ""
         type: string
       runtime_facts_file:
-        description: Runtime facts JSON path inside downloaded artifact.
+        description: Runtime facts JSON path inside downloaded artifact. Empty infers <environment>.json.
         required: false
-        default: runtime-facts.json
+        default: ""
         type: string
       client_artifacts_artifact:
         description: Optional client release artifacts name.
@@ -101,8 +101,8 @@ jobs:
           if [[ "${EVENT_NAME}" == "repository_dispatch" ]]; then
             source_run_id="${PAYLOAD_SOURCE_RUN_ID}"
             source_repository="${PAYLOAD_SOURCE_REPOSITORY}"
-            runtime_artifact="${PAYLOAD_RUNTIME_ARTIFACT:-rtnn-runtime-facts}"
-            runtime_file="${PAYLOAD_RUNTIME_FILE:-runtime-facts.json}"
+            runtime_artifact="${PAYLOAD_RUNTIME_ARTIFACT}"
+            runtime_file="${PAYLOAD_RUNTIME_FILE}"
             client_artifact="${PAYLOAD_CLIENT_ARTIFACT}"
             environment="${PAYLOAD_ENVIRONMENT}"
             mode="${PAYLOAD_MODE:-status}"
@@ -111,8 +111,8 @@ jobs:
           else
             source_run_id="${INPUT_SOURCE_RUN_ID}"
             source_repository="${INPUT_SOURCE_REPOSITORY}"
-            runtime_artifact="${INPUT_RUNTIME_ARTIFACT:-rtnn-runtime-facts}"
-            runtime_file="${INPUT_RUNTIME_FILE:-runtime-facts.json}"
+            runtime_artifact="${INPUT_RUNTIME_ARTIFACT}"
+            runtime_file="${INPUT_RUNTIME_FILE}"
             client_artifact="${INPUT_CLIENT_ARTIFACT}"
             environment="${INPUT_ENVIRONMENT}"
             mode="${INPUT_MODE:-status}"
@@ -122,6 +122,14 @@ jobs:
 
           [[ -n "${source_run_id}" ]] || { echo "source_run_id is required"; exit 1; }
           [[ -n "${source_repository}" ]] || { echo "source_repository is required"; exit 1; }
+          if [[ -z "${runtime_artifact}" && -n "${environment}" ]]; then
+            runtime_artifact="runtime-facts-${environment}"
+          fi
+          if [[ -z "${runtime_file}" && -n "${environment}" ]]; then
+            runtime_file="${environment}.json"
+          fi
+          [[ -n "${runtime_artifact}" ]] || { echo "runtime_facts_artifact is required when environment is empty"; exit 1; }
+          [[ -n "${runtime_file}" ]] || { echo "runtime_facts_file is required when environment is empty"; exit 1; }
 
           {
             echo "source_run_id=${source_run_id}"
