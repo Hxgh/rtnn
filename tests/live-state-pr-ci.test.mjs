@@ -34,7 +34,7 @@ function run(command, args, cwd) {
 
 function setupRepository(options = {}) {
   const cwd = mkdtempSync(path.join(tmpdir(), "rtnn-live-state-pr-ci-"));
-  run("git", ["init"], cwd);
+  run("git", ["init", "--initial-branch=main"], cwd);
   run("git", ["config", "user.email", "agent@example.com"], cwd);
   run("git", ["config", "user.name", "Agent"], cwd);
   writeReleaseProject(cwd, options);
