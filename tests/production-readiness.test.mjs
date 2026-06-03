@@ -102,6 +102,20 @@ test("production readiness can skip optional testing facts", () => {
   }
 });
 
+test("production readiness ignores leading argument separator", () => {
+  const { cwd } = setupProject();
+  try {
+    const result = runReadiness(cwd, ["--"]);
+
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.deployVersion, "v1.2.3");
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
 test("production readiness rejects source sha that does not match tag", () => {
   const { cwd } = setupProject();
   try {

@@ -51,6 +51,8 @@ function parseArgs(argv) {
     const item = argv[index];
 
     switch (item) {
+      case "--":
+        break;
       case "--deploy-version":
         args.deployVersion = String(argv[++index] ?? "").trim();
         break;
