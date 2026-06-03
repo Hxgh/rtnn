@@ -273,7 +273,7 @@ test("admin 首发边界界面验收", async ({ page }, testInfo) => {
     "管理员",
   );
   await page.getByRole("button", { name: "搜索" }).click();
-  await expect(page.locator("tbody tr").first()).toContainText("admin.customer.password.reset");
+  await expect(page.locator("tbody tr").first()).toContainText("重置客户密码");
   await expect(page.locator("tbody tr").first()).toContainText("管理员");
 
   await page.getByRole("button", { name: new RegExp(adminDisplayName) }).click();
