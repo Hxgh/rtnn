@@ -17,6 +17,8 @@ parsing human-readable messages.
 | `RUNTIME_FACTS_UNSAFE` | `blocked` | Runtime facts contain suspected secrets, tokens, or connection strings. | Stop write-back, clean artifacts, and fix deploy output boundaries. |
 | `RUNTIME_BINDING_MISMATCH` | `blocked` | Runtime facts binding does not match the business repository. | Check source repository, application, image prefix, and event configuration. |
 | `RUNTIME_FACTS_STALE` | `stale` | Runtime facts and `.rtnn/project.json liveState` differ. | Confirm the live runtime, then prepare a liveState-only PR or debug deployment. |
+| `PRODUCTION_READINESS_SKIPPED` | `skipped` | The optional testing freshness check was skipped during production readiness. | Pass deploy runtime facts when promotion should require fresh testing state. |
+| `PRODUCTION_READINESS_INVALID` | `blocked` | Production promote prerequisites are not satisfied. | Fix tag, source SHA, production policy, or testing freshness and rerun. |
 | `CLIENT_ARTIFACTS_MISSING` | `blocked` | Client release checking was requested without artifacts. | Download release-clients artifacts. |
 | `CLIENT_ARTIFACTS_INVALID` | `blocked` | Client release artifacts cannot be parsed or have no valid manifest. | Regenerate client release artifacts. |
 | `CLIENT_LIVE_STATE_STALE` | `stale` | Client release facts and `liveState.<env>.clients` differ. | Confirm client facts, then prepare a liveState-only PR. |

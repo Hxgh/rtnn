@@ -22,6 +22,13 @@ export type ClientDownloadRow = Awaited<
   ReturnType<typeof listClientDownloads>
 >[number];
 export type DiagnosticTone = "success" | "warning" | "danger" | "neutral";
+export type ReleaseStatusSummary = {
+  status: "fresh" | "stale" | "blocked" | "skipped" | "unknown";
+  code: string;
+  findingCount: number;
+  errorCount: number;
+  warningCount: number;
+};
 
 export type PageSearchParams = Promise<{
   page?: string;

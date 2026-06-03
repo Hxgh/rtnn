@@ -81,6 +81,34 @@ liveState-only change check before opening a PR.
 `release:check-runtime-freshness` remains the lower-level runtime-only gate for
 CI jobs that do not need the profile or client release checks.
 
+## Production Readiness
+
+Production promote is a business repository decision. Before dispatching the
+deploy executor, run the read-only readiness gate:
+
+```bash
+pnpm run release:production-readiness -- --deploy-version v1.0.0 --source-sha <sha>
+pnpm run release:production-readiness -- --deploy-version v1.0.0 --source-sha <sha> --facts-file /tmp/rtnn-runtime-facts.json --summary-md --output /tmp/rtnn-production-readiness.json
+```
+
+The gate validates business metadata, the project profile, the `v*` release tag,
+the optional source SHA, and the production trigger policy. When a testing
+runtime facts file is provided, it also requires testing `liveState` to be fresh.
+The script does not write project metadata and does not trigger deployment.
+
+## Admin Runtime View
+
+The admin release center can surface the latest release status JSON without
+calling GitHub or deploy APIs. Configure one of:
+
+```bash
+RTNN_RELEASE_STATUS_FILE=/path/to/release-status.json
+RELEASE_STATUS_FILE=/path/to/release-status.json
+```
+
+Only the stable `status`, `code`, and finding counts are shown. Admin UI should
+map status/code to its local dictionary instead of matching human messages.
+
 ## CI Artifact Flow
 
 Deploy repositories should upload runtime facts as workflow artifacts and then

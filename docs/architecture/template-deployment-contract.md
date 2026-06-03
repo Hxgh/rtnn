@@ -107,12 +107,18 @@ pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --
 pnpm run release:prepare-live-state-pr -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md /tmp/live-state-pr.md --json
 pnpm run release:status:ci -- --facts-file /tmp/rtnn-runtime-facts.json --output-dir /tmp/rtnn-release-status
 pnpm run release:prepare-live-state-pr:ci -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --no-push
+pnpm run release:production-readiness -- --deploy-version v1.0.0 --source-sha <sha>
 ```
 
 `liveState` 是业务仓的非敏感事实，不是 deploy 仓的发布决策来源。
 `release:status` 是只读入口，用来回答线上 runtime facts 是否与业务仓
 `liveState` 一致；写回必须显式使用 sync 命令，或由 CI 使用
 `release:prepare-live-state-pr` 准备 liveState-only PR。
+
+production promote 在 dispatch deploy 仓前必须通过
+`release:production-readiness`。该脚本只读校验业务仓项目事实、`v*` tag、
+source sha、production 手动触发策略，并可选读取 testing runtime facts 确认
+testing 状态 fresh。
 
 业务源码仓还提供 `.github/workflows/sync-live-state.yml`。部署仓可在完成
 deploy/smoke 后上传 `rtnn-runtime-facts` artifact，并以

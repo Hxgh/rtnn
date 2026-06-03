@@ -41,3 +41,27 @@ test("sync-live-state workflow wires runtime facts status and liveState PR", () 
 
   assert.doesNotMatch(content, /pnpm run release:sync-live-state -- --write/);
 });
+
+test("promote-production workflow gates dispatch with production readiness", () => {
+  const content = readFileSync(
+    path.join(ROOT_DIR, ".github/workflows/promote-production.yml"),
+    "utf8",
+  );
+
+  for (const expected of [
+    "Check production readiness",
+    "scripts/release/check-production-readiness.mjs",
+    "--deploy-version",
+    "--source-sha",
+    "artifacts/production-readiness.json",
+    "Dispatch deploy event",
+  ]) {
+    assert.match(content, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+
+  assert.equal(
+    content.indexOf("Check production readiness") <
+      content.indexOf("Dispatch deploy event"),
+    true,
+  );
+});

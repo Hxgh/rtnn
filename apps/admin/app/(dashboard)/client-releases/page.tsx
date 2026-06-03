@@ -75,6 +75,7 @@ export default async function ClientReleasesPage({
         dictionary={dictionary}
         locale={locale}
         runtime={overview.runtime}
+        releaseStatus={overview.releaseStatus}
         testingDownloads={overview.testingDownloads}
         productionDownloads={overview.productionDownloads}
         releases={result.data}

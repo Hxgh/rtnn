@@ -17,6 +17,8 @@ export const RELEASE_STATUS_CODES = Object.freeze({
   RUNTIME_FACTS_UNSAFE: "RUNTIME_FACTS_UNSAFE",
   RUNTIME_BINDING_MISMATCH: "RUNTIME_BINDING_MISMATCH",
   RUNTIME_FACTS_STALE: "RUNTIME_FACTS_STALE",
+  PRODUCTION_READINESS_SKIPPED: "PRODUCTION_READINESS_SKIPPED",
+  PRODUCTION_READINESS_INVALID: "PRODUCTION_READINESS_INVALID",
   CLIENT_ARTIFACTS_MISSING: "CLIENT_ARTIFACTS_MISSING",
   CLIENT_ARTIFACTS_INVALID: "CLIENT_ARTIFACTS_INVALID",
   CLIENT_LIVE_STATE_STALE: "CLIENT_LIVE_STATE_STALE",
@@ -89,6 +91,18 @@ export const RELEASE_STATUS_CODE_DETAILS = Object.freeze([
     status: RELEASE_STATUS_VALUES.STALE,
     meaning: "线上 runtime facts 与业务仓 liveState 不一致。",
     nextAction: "确认线上真实状态后准备 liveState-only PR，或排查部署未生效。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.PRODUCTION_READINESS_SKIPPED,
+    status: RELEASE_STATUS_VALUES.SKIPPED,
+    meaning: "production readiness 的可选 testing freshness 检查被跳过。",
+    nextAction: "如需强校验 testing 线上状态，传入 deploy runtime facts。",
+  },
+  {
+    code: RELEASE_STATUS_CODES.PRODUCTION_READINESS_INVALID,
+    status: RELEASE_STATUS_VALUES.BLOCKED,
+    meaning: "production promote 前置条件不满足。",
+    nextAction: "修复 tag、sourceSha、发布策略或 testing freshness 后重跑。",
   },
   {
     code: RELEASE_STATUS_CODES.CLIENT_ARTIFACTS_MISSING,

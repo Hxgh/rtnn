@@ -118,6 +118,7 @@ pnpm run check:release-candidate
 pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json
 pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md --output /tmp/rtnn-release-status.json
 pnpm run release:status:ci -- --facts-file /tmp/rtnn-runtime-facts.json --output-dir /tmp/rtnn-release-status
+pnpm run release:production-readiness -- --deploy-version v1.0.0 --source-sha <sha>
 pnpm run release:prepare-live-state-pr:ci -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --no-push
 pnpm run release:check-runtime-freshness -- --facts-file /tmp/rtnn-runtime-facts.json
 pnpm run smoke:admin
@@ -130,11 +131,13 @@ pnpm run check
 - `check:client-release`：客户端发布链路统一检查入口，覆盖 release facts 解析、client liveState、release status、liveState PR 准备、surface gate 与相关脚本测试。
 - `profile:doctor`：读取 `.rtnn/project.json` 和 project profile，输出启用服务、客户端构建目标、警告与接入风险，适合业务仓初次接入或配置回归检查。
 - `release:status`：回答“线上是否最新”的只读统一入口，输出稳定 `status/code/findings`，支持 `--summary-md` 和 `--output` 供 CI/PR comment 消费；不写回 `.rtnn/project.json`。
+- `release:production-readiness`：production promote 前置只读门禁，校验 `v*` tag、source sha、业务仓 metadata、production 手动发布策略，并可选用 testing runtime facts 确认 testing 为 fresh。
 - `release:check-runtime-freshness`：底层 runtime freshness gate，读取部署仓 runtime facts，判断 `.rtnn/project.json liveState` 是否代表线上实际版本；只读不写，写回仍使用 `release:sync-live-state`。
 - `release:prepare-live-state-pr`：CI 用 liveState-only PR 准备入口，只允许改写 `.rtnn/project.json liveState`，不提交、不推送、不创建 PR。
 - `release:status:ci`：GitHub Actions / deploy 回调入口，运行 `release:status` 并写出 JSON、Markdown、GitHub outputs 和 step summary。
 - `release:prepare-live-state-pr:ci`：liveState-only PR 编排入口，负责 branch/commit/push/可选 PR；写回逻辑仍由 `release:prepare-live-state-pr` 控制。
 - `.github/workflows/sync-live-state.yml`：从 deploy 仓 workflow artifact 下载 runtime facts，并选择只读检查或准备 liveState-only PR；状态判断必须使用机器字段 `status/code`，code 语义见 `docs/operations/release-status-codes.md`。
+- Admin 发布中心可通过 `RTNN_RELEASE_STATUS_FILE` 或 `RELEASE_STATUS_FILE` 读取 `release:status` JSON 摘要，只展示 `status/code/findings` 派生状态，不解析英文 message。
 - `smoke:*:ui`：CI 中使用 Playwright Chromium；Codex App 普通本地页面核验优先使用内置 Browser，不为普通本地验收安装 Chromium；显式设置 `RTNN_RUN_UI_SMOKE=true` 时缺浏览器会失败。
 - `check`：本地完整质量门禁，覆盖静态检查、模板派生、契约、backend 发布门禁与多端构建。
 

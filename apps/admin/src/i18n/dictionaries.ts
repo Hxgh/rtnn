@@ -175,6 +175,7 @@ type ClientReleasesDictionary = {
   unavailableDownloads: string;
   diagnosticsTitle: string;
   diagnosticRuntime: string;
+  diagnosticReleaseStatus: string;
   diagnosticSourceMatch: string;
   diagnosticTestingDownloads: string;
   diagnosticProductionDownloads: string;
@@ -182,8 +183,16 @@ type ClientReleasesDictionary = {
   diagnosticNeedsAttention: string;
   diagnosticInformational: string;
   diagnosticRuntimeUnavailable: string;
+  diagnosticReleaseStatusUnavailable: string;
   diagnosticSourceMismatch: string;
   diagnosticNoReleaseRecords: string;
+  releaseStatusFresh: string;
+  releaseStatusStale: string;
+  releaseStatusBlocked: string;
+  releaseStatusSkipped: string;
+  releaseStatusUnknown: string;
+  releaseStatusErrors: string;
+  releaseStatusWarnings: string;
   releases: string;
   viewPackages: string;
   viewReleases: string;
@@ -463,6 +472,7 @@ const zhCN: AdminDictionary = {
     unavailableDownloads: "暂无可下载包",
     diagnosticsTitle: "发布诊断",
     diagnosticRuntime: "运行事实",
+    diagnosticReleaseStatus: "线上状态",
     diagnosticSourceMatch: "源码一致性",
     diagnosticTestingDownloads: "Testing 下载",
     diagnosticProductionDownloads: "Production 下载",
@@ -470,8 +480,16 @@ const zhCN: AdminDictionary = {
     diagnosticNeedsAttention: "需关注",
     diagnosticInformational: "信息",
     diagnosticRuntimeUnavailable: "当前后端未返回可用的运行版本。",
+    diagnosticReleaseStatusUnavailable: "未配置 release status 文件。",
     diagnosticSourceMismatch: "当前运行源码未出现在可见发布记录中。",
     diagnosticNoReleaseRecords: "暂无发布记录可用于对比。",
+    releaseStatusFresh: "最新",
+    releaseStatusStale: "不一致",
+    releaseStatusBlocked: "阻断",
+    releaseStatusSkipped: "已跳过",
+    releaseStatusUnknown: "未知",
+    releaseStatusErrors: "错误",
+    releaseStatusWarnings: "警告",
     releases: "发布记录",
     viewPackages: "查看平台包",
     viewReleases: "返回发布记录",
@@ -749,6 +767,7 @@ const enUS: AdminDictionary = {
     unavailableDownloads: "No downloadable packages",
     diagnosticsTitle: "Release diagnostics",
     diagnosticRuntime: "Runtime fact",
+    diagnosticReleaseStatus: "Live status",
     diagnosticSourceMatch: "Source consistency",
     diagnosticTestingDownloads: "Testing download",
     diagnosticProductionDownloads: "Production download",
@@ -756,8 +775,16 @@ const enUS: AdminDictionary = {
     diagnosticNeedsAttention: "Needs attention",
     diagnosticInformational: "Informational",
     diagnosticRuntimeUnavailable: "Runtime version is unavailable from the current backend.",
+    diagnosticReleaseStatusUnavailable: "No release status file is configured.",
     diagnosticSourceMismatch: "The current runtime source was not found in the visible release records.",
     diagnosticNoReleaseRecords: "No release records are available for comparison.",
+    releaseStatusFresh: "Fresh",
+    releaseStatusStale: "Stale",
+    releaseStatusBlocked: "Blocked",
+    releaseStatusSkipped: "Skipped",
+    releaseStatusUnknown: "Unknown",
+    releaseStatusErrors: "errors",
+    releaseStatusWarnings: "warnings",
     releases: "Releases",
     viewPackages: "View packages",
     viewReleases: "Back to releases",

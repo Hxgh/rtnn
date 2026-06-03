@@ -33,6 +33,7 @@
     "release:sync-live-state": "node scripts/release/sync-live-state.mjs",
     "release:check-runtime-freshness": "node scripts/release/check-runtime-freshness.mjs",
     "release:status": "node scripts/release/check-release-status.mjs",
+    "release:production-readiness": "node scripts/release/check-production-readiness.mjs",
     "release:prepare-live-state-pr": "node scripts/release/prepare-live-state-pr.mjs",
     "release:status:ci": "node scripts/release/run-release-status-ci.mjs",
     "release:prepare-live-state-pr:ci": "node scripts/release/run-live-state-pr-ci.mjs",

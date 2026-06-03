@@ -10,6 +10,7 @@ import type {
   ClientReleaseRow,
   ClientReleasesDictionary,
   DiagnosticTone,
+  ReleaseStatusSummary,
 } from "./types";
 import type { RuntimeVersionInfo } from "@/src/lib/api-client";
 
@@ -17,6 +18,7 @@ export function ReleaseOverview({
   dictionary,
   locale,
   runtime,
+  releaseStatus,
   testingDownloads,
   productionDownloads,
   releases,
@@ -24,6 +26,7 @@ export function ReleaseOverview({
   dictionary: ClientReleasesDictionary;
   locale: string;
   runtime: RuntimeVersionInfo | null;
+  releaseStatus: ReleaseStatusSummary | null;
   testingDownloads: ClientDownloadRow[];
   productionDownloads: ClientDownloadRow[];
   releases: ClientReleaseRow[];
@@ -33,6 +36,7 @@ export function ReleaseOverview({
     dictionary,
     locale,
     runtime,
+    releaseStatus,
     testingDownloads,
     productionDownloads,
     releases,
@@ -144,6 +148,7 @@ function buildReleaseDiagnostics({
   dictionary,
   locale,
   runtime,
+  releaseStatus,
   testingDownloads,
   productionDownloads,
   releases,
@@ -151,6 +156,7 @@ function buildReleaseDiagnostics({
   dictionary: ClientReleasesDictionary;
   locale: string;
   runtime: RuntimeVersionInfo | null;
+  releaseStatus: ReleaseStatusSummary | null;
   testingDownloads: ClientDownloadRow[];
   productionDownloads: ClientDownloadRow[];
   releases: ClientReleaseRow[];
@@ -172,6 +178,18 @@ function buildReleaseDiagnostics({
     status: string;
     tone: DiagnosticTone;
   }> = [
+    {
+      label: labels.diagnosticReleaseStatus,
+      detail: releaseStatus
+        ? formatReleaseStatusDetail(labels, releaseStatus)
+        : labels.diagnosticReleaseStatusUnavailable,
+      status: releaseStatus
+        ? formatReleaseStatusLabel(labels, releaseStatus.status)
+        : labels.diagnosticInformational,
+      tone: releaseStatus
+        ? resolveReleaseStatusTone(releaseStatus.status)
+        : "neutral",
+    },
     {
       label: labels.diagnosticRuntime,
       detail: runtimeKnown
@@ -233,6 +251,50 @@ function buildReleaseDiagnostics({
       : labels.diagnosticPassed,
     tone: hasWarning ? ("warning" as const) : ("success" as const),
   };
+}
+
+function formatReleaseStatusLabel(
+  labels: ClientReleasesDictionary["clientReleases"],
+  status: ReleaseStatusSummary["status"],
+) {
+  switch (status) {
+    case "fresh":
+      return labels.releaseStatusFresh;
+    case "stale":
+      return labels.releaseStatusStale;
+    case "blocked":
+      return labels.releaseStatusBlocked;
+    case "skipped":
+      return labels.releaseStatusSkipped;
+    default:
+      return labels.releaseStatusUnknown;
+  }
+}
+
+function formatReleaseStatusDetail(
+  labels: ClientReleasesDictionary["clientReleases"],
+  releaseStatus: ReleaseStatusSummary,
+) {
+  if (releaseStatus.findingCount === 0) {
+    return releaseStatus.code;
+  }
+
+  return `${releaseStatus.code} · ${releaseStatus.errorCount} ${labels.releaseStatusErrors} · ${releaseStatus.warningCount} ${labels.releaseStatusWarnings}`;
+}
+
+function resolveReleaseStatusTone(
+  status: ReleaseStatusSummary["status"],
+): DiagnosticTone {
+  switch (status) {
+    case "fresh":
+      return "success";
+    case "stale":
+    case "blocked":
+      return "danger";
+    case "skipped":
+    case "unknown":
+      return "neutral";
+  }
 }
 
 function ReleaseOverviewItem({

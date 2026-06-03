@@ -171,6 +171,15 @@ jobs:
             echo "images_json=${images_json}"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: Check production readiness
+        shell: bash
+        run: |
+          node scripts/release/check-production-readiness.mjs \
+            --deploy-version "${{ steps.payload.outputs.version }}" \
+            --source-sha "${{ steps.payload.outputs.source_sha }}" \
+            --json \
+            --output artifacts/production-readiness.json
+
       - name: Dispatch deploy event
         shell: bash
         env:
