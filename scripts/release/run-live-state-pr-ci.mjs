@@ -20,6 +20,7 @@ function usage() {
   --output-dir <dir>             输出目录，默认 artifacts/live-state-pr
   --branch <name>                liveState-only 分支名，默认自动生成
   --base-branch <name>           PR base，默认 main
+  --allow-dirty-path <path>      允许 CI 前置步骤留下的未跟踪路径，可重复或逗号分隔
   --create-pr                    使用 gh 创建 PR
   --no-push                      不 push 分支
 
@@ -37,6 +38,7 @@ function parseArgs(argv) {
     outputDir: DEFAULT_OUTPUT_DIR,
     branch: "",
     baseBranch: "main",
+    allowedDirtyPaths: [],
     createPr: false,
     push: true,
   };
@@ -63,6 +65,9 @@ function parseArgs(argv) {
       case "--base-branch":
         args.baseBranch = String(argv[++index] ?? "").trim();
         break;
+      case "--allow-dirty-path":
+        args.allowedDirtyPaths.push(...String(argv[++index] ?? "").split(","));
+        break;
       case "--create-pr":
         args.createPr = true;
         break;
@@ -80,6 +85,9 @@ function parseArgs(argv) {
 
   args.environments = args.environments
     .map((environment) => environment.trim())
+    .filter(Boolean);
+  args.allowedDirtyPaths = args.allowedDirtyPaths
+    .map((filePath) => filePath.trim())
     .filter(Boolean);
 
   if (!args.factsFile) {
@@ -193,6 +201,10 @@ function runPrepare(args, summaryPath) {
 
   if (args.clientArtifactsDir) {
     commandArgs.push("--client-artifacts-dir", args.clientArtifactsDir);
+  }
+
+  for (const allowedPath of args.allowedDirtyPaths) {
+    commandArgs.push("--allow-dirty-path", allowedPath);
   }
 
   const stdout = run(process.execPath, commandArgs);
@@ -323,6 +335,7 @@ async function main() {
     normalizeRelativePath(args.factsFile),
     normalizeRelativePath(args.clientArtifactsDir),
     normalizeRelativePath(args.outputDir),
+    ...args.allowedDirtyPaths.map((filePath) => normalizeRelativePath(filePath)),
   ];
 
   assertCleanWorkspace(allowedWorkspacePaths);

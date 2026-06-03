@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -98,6 +99,60 @@ test("liveState PR CI creates a liveState-only commit in no-push mode", () => {
     );
     assert.match(summary, /Sync RTNN liveState/);
     assert.match(readFileSync(outputPath, "utf8"), /changed=true/);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("liveState PR CI allows release status artifacts from prior CI steps", () => {
+  const cwd = setupRepository({
+    activeRelease: "main-old",
+    sourceSha: "",
+    includeClientState: false,
+  });
+  try {
+    mkdirSync(path.join(cwd, "artifacts/release-status"), { recursive: true });
+    writeFileSync(
+      path.join(cwd, "artifacts/release-status/release-status.json"),
+      '{"status":"stale"}\n',
+    );
+    writeFileSync(
+      path.join(cwd, "artifacts/release-status/release-status.md"),
+      "status\n",
+    );
+
+    const result = spawnSync(
+      process.execPath,
+      [
+        SCRIPT_PATH,
+        "--facts-file",
+        "runtime-facts.json",
+        "--environment",
+        "testing",
+        "--client-artifacts-dir",
+        "artifacts/client-release",
+        "--branch",
+        "automation/rtnn-live-state/testing-artifacts",
+        "--output-dir",
+        "artifacts/live-state-pr",
+        "--allow-dirty-path",
+        "artifacts/release-status",
+        "--no-push",
+      ],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.changed, true);
+    assert.equal(
+      run("git", ["diff", "HEAD^", "HEAD", "--name-only"], cwd),
+      ".rtnn/project.json",
+    );
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

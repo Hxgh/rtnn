@@ -408,6 +408,10 @@ test("resolve-release-context supports explicit GitHub-hosted mode", () => {
 
 test("release workflows keep server-local outside GHCR image build path", () => {
   const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+  const ciCheck = readFileSync(
+    path.join(repoRoot, ".github/workflows/ci-check.yml"),
+    "utf8",
+  );
   const releaseImages = readFileSync(
     path.join(repoRoot, ".github/workflows/release-images.yml"),
     "utf8",
@@ -421,6 +425,12 @@ test("release workflows keep server-local outside GHCR image build path", () => 
     releaseImages,
     /release_execution_mode == 'github-hosted'[\s\S]*Build And Push/,
   );
+  for (const jobName of ["detect-live-state-only", "skip-live-state-only"]) {
+    assert.match(
+      ciCheck,
+      new RegExp(`${jobName}:[\\s\\S]*?runs-on: ubuntu-latest`),
+    );
+  }
   for (const jobName of [
     "detect-live-state-only",
     "skip-live-state-only",

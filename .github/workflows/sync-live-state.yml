@@ -221,7 +221,7 @@ jobs:
           CREATE_PR: ${{ steps.input.outputs.create_pr }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          args=(--facts-file "${RUNTIME_FILE}" --output-dir artifacts/live-state-pr --base-branch "${BASE_BRANCH}")
+          args=(--facts-file "${RUNTIME_FILE}" --output-dir artifacts/live-state-pr --base-branch "${BASE_BRANCH}" --allow-dirty-path artifacts/release-status)
           if [[ -n "${ENVIRONMENT}" ]]; then
             args+=(--environment "${ENVIRONMENT}")
           fi

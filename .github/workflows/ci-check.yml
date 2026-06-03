@@ -24,7 +24,7 @@ concurrency:
 jobs:
   detect-live-state-only:
     name: Detect Live State Only Change
-    runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ubuntu-latest
     outputs:
       live_state_only: ${{ steps.detect.outputs.live_state_only }}
       reason: ${{ steps.detect.outputs.reason }}
@@ -59,7 +59,7 @@ jobs:
 
   skip-live-state-only:
     name: Skip Live State Only Change
-    runs-on: ${{ (github.event_name == 'pull_request' || vars.RTNN_RELEASE_EXECUTION_MODE == 'github-hosted') && 'ubuntu-latest' || 'self-hosted' }}
+    runs-on: ubuntu-latest
     needs: detect-live-state-only
     if: ${{ needs.detect-live-state-only.outputs.live_state_only == 'true' }}
 

@@ -25,6 +25,7 @@ function usage() {
   --environment <name>           只处理某个环境，可重复或用逗号分隔
   --client-artifacts-dir <dir>   release-clients workflow 产出的 artifacts/client-release 目录
   --summary-md <file>            写入 PR body Markdown，默认不写
+  --allow-dirty-path <path>      允许 CI 前置步骤留下的未跟踪路径，可重复或逗号分隔
   --json                         输出机器可读 JSON
 
 说明:
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     environments: [],
     clientArtifactsDir: "",
     summaryMdFile: "",
+    allowedDirtyPaths: [],
     json: false,
   };
 
@@ -58,6 +60,9 @@ function parseArgs(argv) {
       case "--summary-md":
         args.summaryMdFile = String(argv[++index] ?? "").trim();
         break;
+      case "--allow-dirty-path":
+        args.allowedDirtyPaths.push(...String(argv[++index] ?? "").split(","));
+        break;
       case "--json":
         args.json = true;
         break;
@@ -72,6 +77,9 @@ function parseArgs(argv) {
 
   args.environments = args.environments
     .map((environment) => environment.trim())
+    .filter(Boolean);
+  args.allowedDirtyPaths = args.allowedDirtyPaths
+    .map((filePath) => filePath.trim())
     .filter(Boolean);
 
   if (!args.factsFile) {
@@ -308,6 +316,7 @@ function main() {
     normalizeRelativePath(rootDir, args.factsFile),
     normalizeRelativePath(rootDir, args.clientArtifactsDir),
     normalizeRelativePath(rootDir, args.summaryMdFile),
+    ...args.allowedDirtyPaths.map((filePath) => normalizeRelativePath(rootDir, filePath)),
   ];
 
   assertSummaryPathAllowed(rootDir, args.summaryMdFile);
