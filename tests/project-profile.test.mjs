@@ -425,6 +425,11 @@ test("release workflows keep server-local outside GHCR image build path", () => 
     releaseImages,
     /release_execution_mode == 'github-hosted'[\s\S]*Build And Push/,
   );
+  assert.match(ciCheck, /PR_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
+  assert.match(ciCheck, /PR_HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(ciCheck, /EVENT_NAME}" == "pull_request"[\s\S]*base_sha="\$\{PR_BASE_SHA\}"/);
+  assert.match(ciCheck, /head_sha="\$\{PR_HEAD_SHA\}"/);
+  assert.doesNotMatch(ciCheck, /reason=not-main-push/);
   for (const jobName of ["detect-live-state-only", "skip-live-state-only"]) {
     assert.match(
       ciCheck,
