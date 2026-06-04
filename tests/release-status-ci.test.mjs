@@ -124,3 +124,52 @@ test("release status CI preserves stale result artifacts and outputs", () => {
     rmSync(cwd, { recursive: true, force: true });
   }
 });
+
+test("release status CI supports deploy client facts without runtime facts", () => {
+  const cwd = mkdtempSync(path.join(tmpdir(), "rtnn-release-status-ci-"));
+  try {
+    writeReleaseProject(cwd, {
+      includeClientState: false,
+    });
+    const result = spawnSync(
+      process.execPath,
+      [
+        SCRIPT_PATH,
+        "--skip-runtime",
+        "--client-facts-file",
+        "client-facts.json",
+        "--environment",
+        "testing",
+        "--output-dir",
+        "artifacts/release-status",
+      ],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+
+    assert.notEqual(result.status, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.status, "stale");
+    assert.equal(payload.code, "CLIENT_LIVE_STATE_STALE");
+
+    const json = JSON.parse(
+      readFileSync(
+        path.join(cwd, "artifacts/release-status/release-status.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(json.checks.runtime.status, "skipped");
+    assert.equal(json.checks.clientLiveState.factsFile, "client-facts.json");
+
+    const markdown = readFileSync(
+      path.join(cwd, "artifacts/release-status/release-status.md"),
+      "utf8",
+    );
+    assert.match(markdown, /CLIENT_LIVE_STATE_STALE/);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});

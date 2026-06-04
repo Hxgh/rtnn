@@ -1,5 +1,5 @@
 # 业务源码仓 liveState 同步入口。
-# deploy 仓完成部署并生成 runtime facts 后，可通过 workflow_dispatch 或
+# deploy 仓完成部署并生成 runtime/client facts 后，可通过 workflow_dispatch 或
 # repository_dispatch 触发本 workflow。业务仓只消费非敏感 facts，不生成运行事实。
 
 name: sync-live-state
@@ -27,6 +27,16 @@ on:
         type: string
       client_artifacts_artifact:
         description: Optional client release artifacts name.
+        required: false
+        default: ""
+        type: string
+      client_facts_artifact:
+        description: Optional deploy client release facts artifact name.
+        required: false
+        default: ""
+        type: string
+      client_facts_file:
+        description: Optional deploy client release facts JSON path inside downloaded artifact.
         required: false
         default: ""
         type: string
@@ -84,6 +94,8 @@ jobs:
           INPUT_RUNTIME_ARTIFACT: ${{ inputs.runtime_facts_artifact }}
           INPUT_RUNTIME_FILE: ${{ inputs.runtime_facts_file }}
           INPUT_CLIENT_ARTIFACT: ${{ inputs.client_artifacts_artifact }}
+          INPUT_CLIENT_FACTS_ARTIFACT: ${{ inputs.client_facts_artifact }}
+          INPUT_CLIENT_FACTS_FILE: ${{ inputs.client_facts_file }}
           INPUT_ENVIRONMENT: ${{ inputs.environment }}
           INPUT_MODE: ${{ inputs.mode }}
           INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
@@ -93,6 +105,8 @@ jobs:
           PAYLOAD_RUNTIME_ARTIFACT: ${{ github.event.client_payload.runtime_facts_artifact }}
           PAYLOAD_RUNTIME_FILE: ${{ github.event.client_payload.runtime_facts_file }}
           PAYLOAD_CLIENT_ARTIFACT: ${{ github.event.client_payload.client_artifacts_artifact }}
+          PAYLOAD_CLIENT_FACTS_ARTIFACT: ${{ github.event.client_payload.client_facts_artifact }}
+          PAYLOAD_CLIENT_FACTS_FILE: ${{ github.event.client_payload.client_facts_file }}
           PAYLOAD_ENVIRONMENT: ${{ github.event.client_payload.environment }}
           PAYLOAD_MODE: ${{ github.event.client_payload.mode }}
           PAYLOAD_BASE_BRANCH: ${{ github.event.client_payload.base_branch }}
@@ -104,6 +118,8 @@ jobs:
             runtime_artifact="${PAYLOAD_RUNTIME_ARTIFACT}"
             runtime_file="${PAYLOAD_RUNTIME_FILE}"
             client_artifact="${PAYLOAD_CLIENT_ARTIFACT}"
+            client_facts_artifact="${PAYLOAD_CLIENT_FACTS_ARTIFACT}"
+            client_facts_file="${PAYLOAD_CLIENT_FACTS_FILE}"
             environment="${PAYLOAD_ENVIRONMENT}"
             mode="${PAYLOAD_MODE:-status}"
             base_branch="${PAYLOAD_BASE_BRANCH:-main}"
@@ -114,6 +130,8 @@ jobs:
             runtime_artifact="${INPUT_RUNTIME_ARTIFACT}"
             runtime_file="${INPUT_RUNTIME_FILE}"
             client_artifact="${INPUT_CLIENT_ARTIFACT}"
+            client_facts_artifact="${INPUT_CLIENT_FACTS_ARTIFACT}"
+            client_facts_file="${INPUT_CLIENT_FACTS_FILE}"
             environment="${INPUT_ENVIRONMENT}"
             mode="${INPUT_MODE:-status}"
             base_branch="${INPUT_BASE_BRANCH:-main}"
@@ -122,14 +140,35 @@ jobs:
 
           [[ -n "${source_run_id}" ]] || { echo "source_run_id is required"; exit 1; }
           [[ -n "${source_repository}" ]] || { echo "source_repository is required"; exit 1; }
-          if [[ -z "${runtime_artifact}" && -n "${environment}" ]]; then
+          if [[ -z "${runtime_artifact}" && -z "${client_facts_artifact}" && -n "${environment}" ]]; then
             runtime_artifact="runtime-facts-${environment}"
           fi
           if [[ -z "${runtime_file}" && -n "${environment}" ]]; then
             runtime_file="${environment}.json"
           fi
-          [[ -n "${runtime_artifact}" ]] || { echo "runtime_facts_artifact is required when environment is empty"; exit 1; }
-          [[ -n "${runtime_file}" ]] || { echo "runtime_facts_file is required when environment is empty"; exit 1; }
+          if [[ -z "${client_facts_file}" && -n "${client_facts_artifact}" && -n "${environment}" ]]; then
+            client_facts_file="${environment}.json"
+          fi
+          if [[ -z "${runtime_artifact}" && -z "${client_facts_artifact}" ]]; then
+            echo "runtime_facts_artifact or client_facts_artifact is required"
+            exit 1
+          fi
+          if [[ -z "${runtime_artifact}" && -z "${environment}" ]]; then
+            echo "environment is required when runtime facts are omitted"
+            exit 1
+          fi
+          if [[ -n "${runtime_artifact}" && -z "${runtime_file}" ]]; then
+            echo "runtime_facts_file is required when runtime_facts_artifact is provided"
+            exit 1
+          fi
+          if [[ -n "${client_facts_artifact}" && -z "${client_facts_file}" ]]; then
+            echo "client_facts_file is required when client_facts_artifact is provided"
+            exit 1
+          fi
+          if [[ -n "${client_artifact}" && -n "${client_facts_artifact}" ]]; then
+            echo "client_artifacts_artifact and client_facts_artifact cannot both be provided"
+            exit 1
+          fi
 
           {
             echo "source_run_id=${source_run_id}"
@@ -137,6 +176,8 @@ jobs:
             echo "runtime_artifact=${runtime_artifact}"
             echo "runtime_file=${runtime_file}"
             echo "client_artifact=${client_artifact}"
+            echo "client_facts_artifact=${client_facts_artifact}"
+            echo "client_facts_file=${client_facts_file}"
             echo "environment=${environment}"
             echo "mode=${mode}"
             echo "base_branch=${base_branch}"
@@ -172,6 +213,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Download runtime facts
+        if: ${{ steps.input.outputs.runtime_artifact != '' }}
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ steps.input.outputs.source_run_id }}
@@ -190,6 +232,16 @@ jobs:
           name: ${{ steps.input.outputs.client_artifact }}
           path: artifacts/client-release
 
+      - name: Download client release facts
+        if: ${{ steps.input.outputs.client_facts_artifact != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.input.outputs.source_run_id }}
+          repository: ${{ steps.input.outputs.source_repository }}
+          github-token: ${{ secrets.DEPLOY_REPOSITORY_READ_TOKEN || secrets.DEPLOY_REPOSITORY_DISPATCH_TOKEN || secrets.GITHUB_TOKEN }}
+          name: ${{ steps.input.outputs.client_facts_artifact }}
+          path: artifacts/client-release-facts
+
       - name: Release status
         id: status
         continue-on-error: ${{ steps.input.outputs.mode == 'prepare-pr' }}
@@ -197,14 +249,25 @@ jobs:
         env:
           RUNTIME_FILE: artifacts/runtime-facts/${{ steps.input.outputs.runtime_file }}
           CLIENT_ARTIFACT: ${{ steps.input.outputs.client_artifact }}
+          CLIENT_FACTS_FILE: artifacts/client-release-facts/${{ steps.input.outputs.client_facts_file }}
+          HAS_RUNTIME_FACTS: ${{ steps.input.outputs.runtime_artifact != '' }}
+          HAS_CLIENT_FACTS: ${{ steps.input.outputs.client_facts_artifact != '' }}
           ENVIRONMENT: ${{ steps.input.outputs.environment }}
         run: |
-          args=(--facts-file "${RUNTIME_FILE}" --output-dir artifacts/release-status)
+          args=(--output-dir artifacts/release-status)
+          if [[ "${HAS_RUNTIME_FACTS}" == "true" ]]; then
+            args+=(--facts-file "${RUNTIME_FILE}")
+          else
+            args+=(--skip-runtime)
+          fi
           if [[ -n "${ENVIRONMENT}" ]]; then
             args+=(--environment "${ENVIRONMENT}")
           fi
           if [[ -n "${CLIENT_ARTIFACT}" ]]; then
             args+=(--client-artifacts-dir artifacts/client-release)
+          fi
+          if [[ "${HAS_CLIENT_FACTS}" == "true" ]]; then
+            args+=(--client-facts-file "${CLIENT_FACTS_FILE}")
           fi
 
           node scripts/release/run-release-status-ci.mjs "${args[@]}"
@@ -224,17 +287,28 @@ jobs:
         env:
           RUNTIME_FILE: artifacts/runtime-facts/${{ steps.input.outputs.runtime_file }}
           CLIENT_ARTIFACT: ${{ steps.input.outputs.client_artifact }}
+          CLIENT_FACTS_FILE: artifacts/client-release-facts/${{ steps.input.outputs.client_facts_file }}
+          HAS_RUNTIME_FACTS: ${{ steps.input.outputs.runtime_artifact != '' }}
+          HAS_CLIENT_FACTS: ${{ steps.input.outputs.client_facts_artifact != '' }}
           ENVIRONMENT: ${{ steps.input.outputs.environment }}
           BASE_BRANCH: ${{ steps.input.outputs.base_branch }}
           CREATE_PR: ${{ steps.input.outputs.create_pr }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          args=(--facts-file "${RUNTIME_FILE}" --output-dir artifacts/live-state-pr --base-branch "${BASE_BRANCH}" --allow-dirty-path artifacts/release-status)
+          args=(--output-dir artifacts/live-state-pr --base-branch "${BASE_BRANCH}" --allow-dirty-path artifacts/release-status)
+          if [[ "${HAS_RUNTIME_FACTS}" == "true" ]]; then
+            args+=(--facts-file "${RUNTIME_FILE}")
+          else
+            args+=(--skip-runtime)
+          fi
           if [[ -n "${ENVIRONMENT}" ]]; then
             args+=(--environment "${ENVIRONMENT}")
           fi
           if [[ -n "${CLIENT_ARTIFACT}" ]]; then
             args+=(--client-artifacts-dir artifacts/client-release)
+          fi
+          if [[ "${HAS_CLIENT_FACTS}" == "true" ]]; then
+            args+=(--client-facts-file "${CLIENT_FACTS_FILE}")
           fi
           if [[ "${CREATE_PR}" == "true" ]]; then
             args+=(--create-pr)

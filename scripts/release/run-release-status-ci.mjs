@@ -10,11 +10,14 @@ const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 function usage() {
   return `用法:
   node scripts/release/run-release-status-ci.mjs --facts-file <runtime-facts.json> [options]
+  node scripts/release/run-release-status-ci.mjs --skip-runtime --client-facts-file <client-facts.json> --environment <name> [options]
 
 选项:
   --facts-file <file>            deploy 仓生成的 runtime facts JSON
+  --skip-runtime                 跳过 runtime 检查，仅检查客户端 facts/liveState
   --environment <name>           只检查某个环境，可重复或用逗号分隔
   --client-artifacts-dir <dir>   可选 client release artifacts 目录
+  --client-facts-file <file>     deploy 仓生成的 rtnn.deploy.client-release-facts.v1 JSON
   --output-dir <dir>             输出目录，默认 artifacts/release-status
   --strict-profile               profile warning 也按失败处理
   --skip-profile                 跳过 profile 预检
@@ -28,8 +31,10 @@ function usage() {
 function parseArgs(argv) {
   const args = {
     factsFile: "",
+    skipRuntime: false,
     environments: [],
     clientArtifactsDir: "",
+    clientFactsFile: "",
     outputDir: "artifacts/release-status",
     strictProfile: false,
     skipProfile: false,
@@ -42,11 +47,17 @@ function parseArgs(argv) {
       case "--facts-file":
         args.factsFile = String(argv[++index] ?? "").trim();
         break;
+      case "--skip-runtime":
+        args.skipRuntime = true;
+        break;
       case "--environment":
         args.environments.push(...String(argv[++index] ?? "").split(","));
         break;
       case "--client-artifacts-dir":
         args.clientArtifactsDir = String(argv[++index] ?? "").trim();
+        break;
+      case "--client-facts-file":
+        args.clientFactsFile = String(argv[++index] ?? "").trim();
         break;
       case "--output-dir":
         args.outputDir = String(argv[++index] ?? "").trim();
@@ -70,16 +81,36 @@ function parseArgs(argv) {
     .map((environment) => environment.trim())
     .filter(Boolean);
 
-  if (!args.factsFile) {
+  if (!args.skipRuntime && !args.factsFile) {
     throw new Error("必须传入 --facts-file");
   }
 
-  if (!existsSync(args.factsFile)) {
+  if (args.skipRuntime && args.factsFile) {
+    throw new Error("--skip-runtime 不能与 --facts-file 同时使用");
+  }
+
+  if (args.factsFile && !existsSync(args.factsFile)) {
     throw new Error(`runtime facts 文件不存在: ${args.factsFile}`);
   }
 
   if (args.clientArtifactsDir && !existsSync(args.clientArtifactsDir)) {
     throw new Error(`客户端 release artifacts 目录不存在: ${args.clientArtifactsDir}`);
+  }
+
+  if (args.clientFactsFile && !existsSync(args.clientFactsFile)) {
+    throw new Error(`客户端 facts 文件不存在: ${args.clientFactsFile}`);
+  }
+
+  if (args.clientArtifactsDir && args.clientFactsFile) {
+    throw new Error("--client-artifacts-dir 不能与 --client-facts-file 同时使用");
+  }
+
+  if (args.skipRuntime && !args.clientArtifactsDir && !args.clientFactsFile) {
+    throw new Error("--skip-runtime 必须搭配客户端 facts 输入");
+  }
+
+  if (args.skipRuntime && args.environments.length === 0) {
+    throw new Error("--skip-runtime 必须传入 --environment");
   }
 
   return args;
@@ -88,12 +119,16 @@ function parseArgs(argv) {
 function runStatus(args, jsonPath) {
   const commandArgs = [
     path.join(ROOT_DIR, "scripts/release/check-release-status.mjs"),
-    "--facts-file",
-    args.factsFile,
     "--json",
     "--output",
     jsonPath,
   ];
+
+  if (args.skipRuntime) {
+    commandArgs.push("--skip-runtime");
+  } else {
+    commandArgs.push("--facts-file", args.factsFile);
+  }
 
   for (const environment of args.environments) {
     commandArgs.push("--environment", environment);
@@ -101,6 +136,10 @@ function runStatus(args, jsonPath) {
 
   if (args.clientArtifactsDir) {
     commandArgs.push("--client-artifacts-dir", args.clientArtifactsDir);
+  }
+
+  if (args.clientFactsFile) {
+    commandArgs.push("--client-facts-file", args.clientFactsFile);
   }
 
   if (args.strictProfile) {

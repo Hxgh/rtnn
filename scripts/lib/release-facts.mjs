@@ -9,6 +9,8 @@ export const RUNTIME_FACTS_SCHEMA_VERSION =
   "rtnn.deploy.runtime-facts.v1";
 export const CLIENT_RELEASE_MANIFEST_SCHEMA_VERSION =
   "rtnn.client-release.v1";
+export const DEPLOY_CLIENT_RELEASE_FACTS_SCHEMA_VERSION =
+  "rtnn.deploy.client-release-facts.v1";
 
 const SENSITIVE_KEY_PATTERN =
   /token|secret|password|authorization|cookie|database_?url|connection_?string|ssh/i;
@@ -485,6 +487,93 @@ export function readClientReleaseFacts(artifactsDir) {
     appStoreConnectReports,
     updaterByShell,
     desiredClients,
+  };
+}
+
+export function readDeployClientReleaseFacts(factsFile) {
+  const report = readJsonFile(factsFile);
+
+  if (report.schemaVersion !== DEPLOY_CLIENT_RELEASE_FACTS_SCHEMA_VERSION) {
+    throw new Error(
+      `客户端 facts schemaVersion 不匹配: ${report.schemaVersion || "-"}`,
+    );
+  }
+
+  if (!isPlainObject(report.clients)) {
+    throw new Error("客户端 facts 缺少 clients 对象");
+  }
+
+  return report;
+}
+
+export function assertDeployClientFactsBindingMatches(
+  metadata,
+  report,
+  environment,
+) {
+  const errors = [];
+  const binding = isPlainObject(report.binding) ? report.binding : {};
+
+  if (String(report.environment ?? "").trim() !== environment) {
+    errors.push(
+      `environment: ${environment} != ${report.environment ?? "(missing)"}`,
+    );
+  }
+
+  const expected = {
+    sourceRepository: metadata.project.repo,
+    application: metadata.deployment.application,
+    imageNamePrefix: metadata.deployment.imageNamePrefix,
+  };
+
+  for (const [key, value] of Object.entries(expected)) {
+    if (binding[key] !== value) {
+      errors.push(`${key}: ${value} != ${binding[key] ?? "(missing)"}`);
+    }
+  }
+
+  const expectedEventType = String(
+    metadata.deployment?.clientReleaseFactsEventType ?? "",
+  ).trim();
+  const observedEventType = String(
+    binding.clientReleaseFactsEventType ?? "",
+  ).trim();
+  if (
+    expectedEventType &&
+    observedEventType &&
+    expectedEventType !== observedEventType
+  ) {
+    errors.push(
+      `clientReleaseFactsEventType: ${expectedEventType} != ${observedEventType}`,
+    );
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`客户端 facts 绑定关系不匹配: ${errors.join("；")}`);
+  }
+}
+
+export function compareDeployClientLiveState(
+  metadata,
+  report,
+  environment,
+) {
+  assertDeployClientFactsBindingMatches(metadata, report, environment);
+
+  const currentEnvironment = metadata.liveState?.[environment] ?? {};
+  const currentClients = currentEnvironment.clients ?? {};
+  const changes = diffClientLiveState(currentClients, report.clients);
+
+  return {
+    ok: changes.length === 0,
+    environment,
+    sourceRepository: report.source?.repository ?? "",
+    sourceRunId: report.source?.runId ?? "",
+    changeCount: changes.length,
+    changes,
+    desiredClients: report.clients,
+    currentEnvironment,
+    currentClients,
   };
 }
 

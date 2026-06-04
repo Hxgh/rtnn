@@ -65,6 +65,8 @@ test("prepare-live-state-pr writes only project liveState and PR summary", () =>
         "artifacts/client-release",
         "--summary-md",
         "tmp/live-state-pr.md",
+        "--allow-dirty-path",
+        "client-facts.json",
         "--json",
       ],
       {
@@ -97,6 +99,61 @@ test("prepare-live-state-pr writes only project liveState and PR summary", () =>
     assert.match(
       readFileSync(path.join(cwd, "tmp/live-state-pr.md"), "utf8"),
       /Sync RTNN liveState/,
+    );
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("prepare-live-state-pr accepts deploy client facts without runtime facts", () => {
+  const cwd = setupRepository();
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        SCRIPT_PATH,
+        "--skip-runtime",
+        "--client-facts-file",
+        "client-facts.json",
+        "--environment",
+        "testing",
+        "--summary-md",
+        "tmp/client-live-state-pr.md",
+        "--allow-dirty-path",
+        "runtime-facts.json",
+        "--allow-dirty-path",
+        "artifacts/client-release",
+        "--json",
+      ],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.changed, true);
+    assert.deepEqual(payload.runtimeChanges, []);
+    assert.equal(payload.clientChanges[0].environment, "testing");
+
+    const changedFiles = run("git", ["diff", "--name-only"], cwd)
+      .split(/\r?\n/)
+      .filter(Boolean);
+    assert.deepEqual(changedFiles, [".rtnn/project.json"]);
+
+    const metadata = JSON.parse(
+      readFileSync(path.join(cwd, ".rtnn/project.json"), "utf8"),
+    );
+    assert.equal(metadata.liveState.testing.activeRelease, "main-old");
+    assert.equal(
+      metadata.liveState.testing.clients.adminDesktop.macos.releaseVersion,
+      "1.2.3",
+    );
+    assert.match(
+      readFileSync(path.join(cwd, "tmp/client-live-state-pr.md"), "utf8"),
+      /No runtime liveState changes/,
     );
   } finally {
     rmSync(cwd, { recursive: true, force: true });

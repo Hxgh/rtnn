@@ -3,11 +3,13 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {
+  compareDeployClientLiveState,
   assertRuntimeBindingMatches,
   assertRuntimeFactsSafe,
   compareClientLiveState,
   compareRuntimeLiveState,
   readRuntimeFacts,
+  readDeployClientReleaseFacts,
 } from "../lib/release-facts.mjs";
 import {
   PROJECT_METADATA_FILE,
@@ -23,11 +25,14 @@ import {
 function usage() {
   return `用法:
   node scripts/release/check-release-status.mjs --facts-file <runtime-facts.json> [options]
+  node scripts/release/check-release-status.mjs --skip-runtime --client-facts-file <client-facts.json> --environment <name> [options]
 
 选项:
   --facts-file <file>            独立部署执行仓生成的 runtime facts JSON
+  --skip-runtime                 跳过 runtime 检查，仅检查客户端 facts/liveState
   --environment <name>           只检查某个环境，可重复或用逗号分隔
   --client-artifacts-dir <dir>   release-clients workflow 产出的 artifacts/client-release 目录
+  --client-facts-file <file>     deploy 仓生成的 rtnn.deploy.client-release-facts.v1 JSON
   --skip-profile                 跳过 profile doctor 预检
   --strict-profile               profile doctor warnings 也按失败处理
   --json                         输出机器可读 JSON
@@ -45,8 +50,10 @@ function usage() {
 function parseArgs(argv) {
   const args = {
     factsFile: "",
+    skipRuntime: false,
     environments: [],
     clientArtifactsDir: "",
+    clientFactsFile: "",
     skipProfile: false,
     strictProfile: false,
     json: false,
@@ -63,11 +70,17 @@ function parseArgs(argv) {
       case "--facts-file":
         args.factsFile = String(argv[++index] ?? "").trim();
         break;
+      case "--skip-runtime":
+        args.skipRuntime = true;
+        break;
       case "--environment":
         args.environments.push(...String(argv[++index] ?? "").split(","));
         break;
       case "--client-artifacts-dir":
         args.clientArtifactsDir = String(argv[++index] ?? "").trim();
+        break;
+      case "--client-facts-file":
+        args.clientFactsFile = String(argv[++index] ?? "").trim();
         break;
       case "--skip-profile":
         args.skipProfile = true;
@@ -97,16 +110,36 @@ function parseArgs(argv) {
     .map((environment) => environment.trim())
     .filter(Boolean);
 
-  if (!args.factsFile) {
+  if (!args.skipRuntime && !args.factsFile) {
     throw new Error("必须传入 --facts-file；线上状态只能从 deploy runtime facts 判断");
   }
 
-  if (!existsSync(args.factsFile)) {
+  if (args.skipRuntime && args.factsFile) {
+    throw new Error("--skip-runtime 不能与 --facts-file 同时使用");
+  }
+
+  if (args.factsFile && !existsSync(args.factsFile)) {
     throw new Error(`runtime facts 文件不存在: ${args.factsFile}`);
   }
 
   if (args.clientArtifactsDir && !existsSync(args.clientArtifactsDir)) {
     throw new Error(`客户端 release artifacts 目录不存在: ${args.clientArtifactsDir}`);
+  }
+
+  if (args.clientFactsFile && !existsSync(args.clientFactsFile)) {
+    throw new Error(`客户端 facts 文件不存在: ${args.clientFactsFile}`);
+  }
+
+  if (args.clientArtifactsDir && args.clientFactsFile) {
+    throw new Error("--client-artifacts-dir 不能与 --client-facts-file 同时使用");
+  }
+
+  if (args.skipRuntime && !args.clientArtifactsDir && !args.clientFactsFile) {
+    throw new Error("--skip-runtime 必须搭配客户端 facts 输入");
+  }
+
+  if (args.skipRuntime && args.environments.length === 0) {
+    throw new Error("--skip-runtime 必须传入 --environment");
   }
 
   return args;
@@ -234,6 +267,24 @@ function readValidatedMetadata(rootDir) {
 }
 
 function runRuntimeCheck(rootDir, args, metadataResult) {
+  if (args.skipRuntime) {
+    return {
+      ok: true,
+      status: STATUS.SKIPPED,
+      code: CODES.OK,
+      skipped: true,
+      reason: "skip-runtime",
+      environments: args.environments.map((environment) => ({ environment })),
+      findings: [
+        finding(
+          "info",
+          CODES.RUNTIME_FACTS_MISSING,
+          "runtime 检查已按参数跳过",
+        ),
+      ],
+    };
+  }
+
   if (!metadataResult.ok) {
     return {
       ok: false,
@@ -378,7 +429,7 @@ function resolveClientEnvironments(args, runtimeCheck) {
 }
 
 function runClientLiveStateCheck(rootDir, args, metadataResult, runtimeCheck) {
-  if (!args.clientArtifactsDir) {
+  if (!args.clientArtifactsDir && !args.clientFactsFile) {
     return {
       ok: true,
       status: STATUS.SKIPPED,
@@ -389,7 +440,7 @@ function runClientLiveStateCheck(rootDir, args, metadataResult, runtimeCheck) {
         finding(
           "info",
           CODES.CLIENT_LIVE_STATE_SKIPPED,
-          "未传入 --client-artifacts-dir，已跳过客户端 release liveState 检查",
+          "未传入客户端 facts 输入，已跳过客户端 release liveState 检查",
         ),
       ],
     };
@@ -429,13 +480,44 @@ function runClientLiveStateCheck(rootDir, args, metadataResult, runtimeCheck) {
     };
   }
 
+  let deployClientFacts = null;
+  if (args.clientFactsFile) {
+    try {
+      deployClientFacts = readDeployClientReleaseFacts(
+        path.resolve(rootDir, args.clientFactsFile),
+      );
+    } catch (error) {
+      return {
+        ok: false,
+        status: STATUS.BLOCKED,
+        code: CODES.CLIENT_ARTIFACTS_INVALID,
+        factsFile: args.clientFactsFile,
+        error: errorMessage(error),
+        findings: [
+          finding(
+            "error",
+            CODES.CLIENT_ARTIFACTS_INVALID,
+            "客户端 facts 无法解析",
+            { error: errorMessage(error) },
+          ),
+        ],
+      };
+    }
+  }
+
   const results = environments.map((environment) => {
     try {
-      const comparison = compareClientLiveState(
-        metadataResult.metadata,
-        path.resolve(rootDir, args.clientArtifactsDir),
-        environment,
-      );
+      const comparison = deployClientFacts
+        ? compareDeployClientLiveState(
+            metadataResult.metadata,
+            deployClientFacts,
+            environment,
+          )
+        : compareClientLiveState(
+            metadataResult.metadata,
+            path.resolve(rootDir, args.clientArtifactsDir),
+            environment,
+          );
       return {
         ok: comparison.ok,
         status: comparison.ok ? STATUS.FRESH : STATUS.STALE,
@@ -493,6 +575,7 @@ function runClientLiveStateCheck(rootDir, args, metadataResult, runtimeCheck) {
         ? CODES.CLIENT_ARTIFACTS_INVALID
         : CODES.CLIENT_LIVE_STATE_STALE,
     artifactsDir: args.clientArtifactsDir,
+    factsFile: args.clientFactsFile,
     environments: results,
     findings,
   };

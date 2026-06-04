@@ -41,6 +41,7 @@ on the expected release:
 pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json
 pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing
 pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --client-artifacts-dir /tmp/client-release
+pnpm run release:status -- --skip-runtime --environment testing --client-facts-file /tmp/client-release-facts.json
 pnpm run release:status -- --facts-file /tmp/rtnn-runtime-facts.json --summary-md --output /tmp/rtnn-release-status.json
 pnpm run release:status:ci -- --facts-file /tmp/rtnn-runtime-facts.json --output-dir /tmp/rtnn-release-status
 ```
@@ -61,7 +62,7 @@ pnpm run release:sync-live-state -- --facts-file /tmp/rtnn-runtime-facts.json --
 ```
 
 If the status gate reports stale client liveState, verify the client release
-artifacts and then update the derived snapshot with:
+artifacts or deploy client facts and then update the derived snapshot with:
 
 ```bash
 pnpm run release:sync-client-live-state -- --artifacts-dir /tmp/client-release --environment testing --write
@@ -72,6 +73,7 @@ silently writing to the main branch:
 
 ```bash
 pnpm run release:prepare-live-state-pr -- --facts-file /tmp/rtnn-runtime-facts.json --environment testing --client-artifacts-dir /tmp/client-release --summary-md /tmp/live-state-pr.md --json
+pnpm run release:prepare-live-state-pr -- --skip-runtime --environment testing --client-facts-file /tmp/client-release-facts.json --summary-md /tmp/live-state-pr.md --json
 ```
 
 `release:prepare-live-state-pr` only writes `.rtnn/project.json liveState`. It
@@ -126,6 +128,9 @@ Manual workflow dispatch and repository dispatch both support:
 - `runtime_facts_file`: JSON file inside the artifact, default
   `runtime-facts.json`;
 - `client_artifacts_artifact`: optional client release artifact name;
+- `client_facts_artifact`: optional deploy-generated
+  `rtnn.deploy.client-release-facts.v1` artifact name;
+- `client_facts_file`: JSON file inside the client facts artifact;
 - `environment`: optional environment filter;
 - `mode`: `status` or `prepare-pr`.
 
@@ -140,6 +145,11 @@ containing:
 branch, commits only `.rtnn/project.json`, optionally pushes it, and can create a
 PR with the generated summary. If nothing changed, it emits `changed=false` and
 does not commit.
+
+Runtime facts and deploy client facts may arrive together or separately. When a
+deploy executor only dispatches `client_facts_artifact`, the business workflow
+runs the status and PR helpers with `--skip-runtime`, so client package state can
+be refreshed without fabricating runtime facts.
 
 The generated PR must remain liveState-only. CI should still run
 `detect-live-state-only-change` or equivalent branch policy before merging. Code

@@ -12,11 +12,14 @@ const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 function usage() {
   return `用法:
   node scripts/release/run-live-state-pr-ci.mjs --facts-file <runtime-facts.json> [options]
+  node scripts/release/run-live-state-pr-ci.mjs --skip-runtime --client-facts-file <client-facts.json> --environment <name> [options]
 
 选项:
   --facts-file <file>            deploy 仓生成的 runtime facts JSON
+  --skip-runtime                 跳过 runtime liveState 更新，仅处理客户端 facts
   --environment <name>           只处理某个环境，可重复或用逗号分隔
   --client-artifacts-dir <dir>   可选 client release artifacts 目录
+  --client-facts-file <file>     deploy 仓生成的 rtnn.deploy.client-release-facts.v1 JSON
   --output-dir <dir>             输出目录，默认 artifacts/live-state-pr
   --branch <name>                liveState-only 分支名，默认自动生成
   --base-branch <name>           PR base，默认 main
@@ -33,8 +36,10 @@ function usage() {
 function parseArgs(argv) {
   const args = {
     factsFile: "",
+    skipRuntime: false,
     environments: [],
     clientArtifactsDir: "",
+    clientFactsFile: "",
     outputDir: DEFAULT_OUTPUT_DIR,
     branch: "",
     baseBranch: "main",
@@ -50,11 +55,17 @@ function parseArgs(argv) {
       case "--facts-file":
         args.factsFile = String(argv[++index] ?? "").trim();
         break;
+      case "--skip-runtime":
+        args.skipRuntime = true;
+        break;
       case "--environment":
         args.environments.push(...String(argv[++index] ?? "").split(","));
         break;
       case "--client-artifacts-dir":
         args.clientArtifactsDir = String(argv[++index] ?? "").trim();
+        break;
+      case "--client-facts-file":
+        args.clientFactsFile = String(argv[++index] ?? "").trim();
         break;
       case "--output-dir":
         args.outputDir = String(argv[++index] ?? "").trim();
@@ -90,20 +101,40 @@ function parseArgs(argv) {
     .map((filePath) => filePath.trim())
     .filter(Boolean);
 
-  if (!args.factsFile) {
+  if (!args.skipRuntime && !args.factsFile) {
     throw new Error("必须传入 --facts-file");
+  }
+
+  if (args.skipRuntime && args.factsFile) {
+    throw new Error("--skip-runtime 不能与 --facts-file 同时使用");
   }
 
   if (args.createPr && !args.push) {
     throw new Error("--create-pr 不能与 --no-push 同时使用");
   }
 
-  if (!existsSync(args.factsFile)) {
+  if (args.factsFile && !existsSync(args.factsFile)) {
     throw new Error(`runtime facts 文件不存在: ${args.factsFile}`);
   }
 
   if (args.clientArtifactsDir && !existsSync(args.clientArtifactsDir)) {
     throw new Error(`客户端 release artifacts 目录不存在: ${args.clientArtifactsDir}`);
+  }
+
+  if (args.clientFactsFile && !existsSync(args.clientFactsFile)) {
+    throw new Error(`客户端 facts 文件不存在: ${args.clientFactsFile}`);
+  }
+
+  if (args.clientArtifactsDir && args.clientFactsFile) {
+    throw new Error("--client-artifacts-dir 不能与 --client-facts-file 同时使用");
+  }
+
+  if (args.skipRuntime && !args.clientArtifactsDir && !args.clientFactsFile) {
+    throw new Error("--skip-runtime 必须搭配客户端 facts 输入");
+  }
+
+  if (args.skipRuntime && args.environments.length === 0) {
+    throw new Error("--skip-runtime 必须传入 --environment");
   }
 
   return args;
@@ -188,12 +219,16 @@ function checkoutBranch(branch) {
 function runPrepare(args, summaryPath) {
   const commandArgs = [
     path.join(ROOT_DIR, "scripts/release/prepare-live-state-pr.mjs"),
-    "--facts-file",
-    args.factsFile,
     "--summary-md",
     summaryPath,
     "--json",
   ];
+
+  if (args.skipRuntime) {
+    commandArgs.push("--skip-runtime");
+  } else {
+    commandArgs.push("--facts-file", args.factsFile);
+  }
 
   for (const environment of args.environments) {
     commandArgs.push("--environment", environment);
@@ -201,6 +236,10 @@ function runPrepare(args, summaryPath) {
 
   if (args.clientArtifactsDir) {
     commandArgs.push("--client-artifacts-dir", args.clientArtifactsDir);
+  }
+
+  if (args.clientFactsFile) {
+    commandArgs.push("--client-facts-file", args.clientFactsFile);
   }
 
   for (const allowedPath of args.allowedDirtyPaths) {
@@ -354,6 +393,7 @@ async function main() {
   const allowedWorkspacePaths = [
     normalizeRelativePath(args.factsFile),
     normalizeRelativePath(args.clientArtifactsDir),
+    normalizeRelativePath(args.clientFactsFile),
     normalizeRelativePath(args.outputDir),
     ...args.allowedDirtyPaths.map((filePath) => normalizeRelativePath(filePath)),
   ];

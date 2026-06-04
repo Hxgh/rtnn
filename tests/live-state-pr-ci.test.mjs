@@ -66,6 +66,8 @@ test("liveState PR CI creates a liveState-only commit in no-push mode", () => {
         "automation/rtnn-live-state/testing-test",
         "--output-dir",
         "artifacts/live-state-pr",
+        "--allow-dirty-path",
+        "client-facts.json",
         "--no-push",
       ],
       {
@@ -104,6 +106,64 @@ test("liveState PR CI creates a liveState-only commit in no-push mode", () => {
   }
 });
 
+test("liveState PR CI creates a client liveState-only commit from deploy facts", () => {
+  const cwd = setupRepository({
+    activeRelease: "main-runtime",
+    sourceSha: "runtime-sha",
+    includeClientState: false,
+  });
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        SCRIPT_PATH,
+        "--skip-runtime",
+        "--client-facts-file",
+        "client-facts.json",
+        "--environment",
+        "testing",
+        "--branch",
+        "automation/rtnn-live-state/testing-client-facts",
+        "--output-dir",
+        "artifacts/live-state-pr",
+        "--allow-dirty-path",
+        "runtime-facts.json",
+        "--allow-dirty-path",
+        "artifacts/client-release",
+        "--no-push",
+      ],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.changed, true);
+    assert.deepEqual(payload.runtimeChanges, []);
+    assert.equal(payload.clientChanges[0].environment, "testing");
+    assert.match(payload.commit, /^[0-9a-f]{40}$/);
+    assert.equal(
+      run("git", ["diff", "HEAD^", "HEAD", "--name-only"], cwd),
+      ".rtnn/project.json",
+    );
+
+    const metadata = JSON.parse(
+      readFileSync(path.join(cwd, ".rtnn/project.json"), "utf8"),
+    );
+    assert.equal(metadata.liveState.testing.activeRelease, "main-runtime");
+    assert.equal(metadata.liveState.testing.sourceSha, "runtime-sha");
+    assert.equal(
+      metadata.liveState.testing.clients.adminDesktop.macos.releaseVersion,
+      "1.2.3",
+    );
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
 test("liveState PR CI allows release status artifacts from prior CI steps", () => {
   const cwd = setupRepository({
     activeRelease: "main-old",
@@ -137,6 +197,8 @@ test("liveState PR CI allows release status artifacts from prior CI steps", () =
         "artifacts/live-state-pr",
         "--allow-dirty-path",
         "artifacts/release-status",
+        "--allow-dirty-path",
+        "client-facts.json",
         "--no-push",
       ],
       {
@@ -190,6 +252,8 @@ test("liveState PR CI reports no-op when liveState is already fresh", () => {
         "testing",
         "--client-artifacts-dir",
         "artifacts/client-release",
+        "--allow-dirty-path",
+        "client-facts.json",
         "--branch",
         "automation/rtnn-live-state/testing-noop",
         "--no-push",

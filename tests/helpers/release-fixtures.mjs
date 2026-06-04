@@ -224,9 +224,51 @@ export function writeClientArtifacts(cwd) {
   return artifactsDir;
 }
 
+export function writeDeployClientFacts(cwd, overrides = {}) {
+  writeJson(path.join(cwd, "client-facts.json"), {
+    schemaVersion: "rtnn.deploy.client-release-facts.v1",
+    generatedAt: "2026-04-29T00:00:00.000Z",
+    environment: "testing",
+    mode: "write",
+    project: {
+      repo: "acme/rtnn-deploy",
+      role: "deploy-executor",
+      projectId: "acme",
+    },
+    binding: {
+      sourceRepository: "acme/business-source",
+      application: "acme",
+      imageNamePrefix: "acme",
+      clientReleaseFactsEventType: "sync-acme-client-release-facts",
+    },
+    source: {
+      repository: "acme/business-source",
+      runId: "12345",
+      sourceSha: "1234567890abcdef",
+      sourceRefs: ["refs/tags/v1.2.3"],
+    },
+    release: {
+      versions: ["1.2.3"],
+      dryRun: false,
+    },
+    artifacts: {
+      downloadedDir: "artifacts/downloaded",
+      manifestCount: 1,
+    },
+    clients: {
+      adminDesktop: {
+        macos: buildClientTarget(),
+      },
+    },
+    ...overrides,
+  });
+}
+
 export function writeReleaseProject(cwd, options = {}) {
   writeTemplateEnv(cwd);
   writeProjectMetadata(cwd, options);
   writeRuntimeFacts(cwd);
-  return writeClientArtifacts(cwd);
+  const artifactsDir = writeClientArtifacts(cwd);
+  writeDeployClientFacts(cwd);
+  return artifactsDir;
 }

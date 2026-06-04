@@ -136,6 +136,46 @@ test("release status fails when client liveState differs from artifacts", () => 
   }
 });
 
+test("release status checks deploy client facts without runtime facts", () => {
+  const cwd = setupProject({
+    includeClientState: false,
+  });
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        SCRIPT_PATH,
+        "--skip-runtime",
+        "--client-facts-file",
+        "client-facts.json",
+        "--environment",
+        "testing",
+        "--json",
+      ],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+
+    assert.notEqual(result.status, 0);
+
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.status, "stale");
+    assert.equal(payload.checks.runtime.status, "skipped");
+    assert.equal(payload.checks.clientLiveState.ok, false);
+    assert.equal(payload.checks.clientLiveState.code, "CLIENT_LIVE_STATE_STALE");
+    assert.equal(
+      payload.checks.clientLiveState.environments[0].changeCount,
+      1,
+    );
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
 test("release status reports missing project metadata clearly", () => {
   const cwd = setupProject({
     includeMetadata: false,
