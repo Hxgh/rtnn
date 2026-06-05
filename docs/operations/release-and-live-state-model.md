@@ -33,6 +33,10 @@ authorization headers.
 Business project metadata may include a `liveState` section, but it should be treated as a derived non-sensitive snapshot. It should be validated or refreshed from deploy executor facts.
 
 Do not maintain live state manually in README files, chat notes, or ad hoc documents.
+Project-specific closure ledgers should live in the business repository and only
+record non-sensitive evidence such as commit IDs, workflow runs, health check
+results, and the final `release:status` conclusion. They must not become a
+parallel source of runtime version truth.
 
 Use the read-only status gate when answering whether an environment is actually
 on the expected release:
