@@ -266,7 +266,11 @@ test("admin 首发边界界面验收", async ({ page }, testInfo) => {
   await page.getByRole("link", { name: "审计日志" }).click();
   await page.waitForURL("**/audit-logs");
   await expect(page.getByRole("heading", { name: "审计日志" })).toBeVisible();
-  await page.locator('input[name="action"]').fill("admin.customer.password.reset");
+  await selectComboboxOption(
+    page,
+    page.getByRole("combobox", { name: "动作" }),
+    "重置客户密码",
+  );
   await selectComboboxOption(
     page,
     page.getByRole("combobox", { name: "操作者类型" }),
