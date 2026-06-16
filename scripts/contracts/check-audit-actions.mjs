@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,10 +16,11 @@ const registeredActionNames = new Set(
 );
 const issues = [];
 
-const rgOutput = runRg(["auditWriter\\.write", backendSrc, "--glob", "!*.spec.ts"]);
-
-for (const filePath of rgOutput) {
+for (const filePath of listBackendSourceFiles(backendSrc)) {
   const source = readFileSync(filePath, "utf8");
+  if (!source.includes("auditWriter.write")) {
+    continue;
+  }
   const calls = source.matchAll(/auditWriter\.write\(\s*\{[\s\S]*?action\s*:\s*([^,\n}]+)/g);
   for (const match of calls) {
     const expression = match[1].trim();
@@ -64,22 +64,24 @@ if (issues.length > 0) {
 
 console.log("[contracts] audit action registry OK");
 
-function runRg(args) {
-  const result = spawnSync("rg", ["-l", ...args], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  });
-  if (result.status === 1) {
-    return [];
+function listBackendSourceFiles(dir) {
+  const files = [];
+  for (const entry of readdirSync(dir)) {
+    const filePath = resolve(dir, entry);
+    const stats = statSync(filePath);
+    if (stats.isDirectory()) {
+      files.push(...listBackendSourceFiles(filePath));
+      continue;
+    }
+    if (
+      stats.isFile() &&
+      filePath.endsWith(".ts") &&
+      !filePath.endsWith(".spec.ts")
+    ) {
+      files.push(filePath);
+    }
   }
-  if (result.status !== 0) {
-    throw new Error(result.stderr || "rg failed");
-  }
-  return result.stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => resolve(repoRoot, line));
+  return files;
 }
 
 function readConstObjectBlock(source, exportName) {
