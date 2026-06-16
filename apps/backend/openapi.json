@@ -484,6 +484,83 @@
               "example": "account.password.change",
               "type": "string"
             }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "iam",
+              "type": "string",
+              "enum": [
+                "system",
+                "auth",
+                "iam",
+                "customers",
+                "client-releases"
+              ]
+            }
+          },
+          {
+            "name": "outcome",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "success",
+              "type": "string",
+              "enum": [
+                "success",
+                "failure",
+                "denied",
+                "rate_limited"
+              ]
+            }
+          },
+          {
+            "name": "resourceType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "customer",
+              "type": "string",
+              "enum": [
+                "system",
+                "account",
+                "admin-user",
+                "role",
+                "customer",
+                "customer-group",
+                "customer-tag",
+                "client-release-policy"
+              ]
+            }
+          },
+          {
+            "name": "resourceId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "cus_01JABCD123",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-01-31T23:59:59.999Z",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2513,6 +2590,27 @@
             "type": "string",
             "example": "admin.user.update"
           },
+          "category": {
+            "type": "string",
+            "enum": [
+              "system",
+              "auth",
+              "iam",
+              "customers",
+              "client-releases"
+            ],
+            "example": "iam"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "denied",
+              "rate_limited"
+            ],
+            "example": "success"
+          },
           "actorType": {
             "type": "string",
             "enum": [
@@ -2533,6 +2631,16 @@
           },
           "resourceType": {
             "type": "string",
+            "enum": [
+              "system",
+              "account",
+              "admin-user",
+              "role",
+              "customer",
+              "customer-group",
+              "customer-tag",
+              "client-release-policy"
+            ],
             "example": "admin-user"
           },
           "resourceId": {
@@ -2540,10 +2648,24 @@
             "example": "acc_01JABCD123",
             "nullable": true
           },
+          "resourceName": {
+            "type": "object",
+            "example": "admin@rtnn.local",
+            "nullable": true
+          },
+          "requestId": {
+            "type": "object",
+            "example": "req_01JABCD123",
+            "nullable": true
+          },
           "detail": {
             "type": "object",
             "additionalProperties": true,
             "nullable": true
+          },
+          "schemaVersion": {
+            "type": "number",
+            "example": 1
           },
           "createdAt": {
             "type": "string",
@@ -2553,9 +2675,12 @@
         "required": [
           "id",
           "action",
+          "category",
+          "outcome",
           "actorType",
           "actorName",
           "resourceType",
+          "schemaVersion",
           "createdAt"
         ]
       },

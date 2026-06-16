@@ -1,4 +1,9 @@
 import { AuthAudience, Prisma } from '@prisma/client';
+import type {
+  AuditAction,
+  AuditOutcome,
+  AuditResourceType,
+} from '@rtnn/shared-types';
 import { AuthSessionUser } from '../../common/guards/auth-session-user';
 
 export interface AuditActor {
@@ -9,14 +14,23 @@ export interface AuditActor {
 }
 
 export interface AuditResource {
-  type: string;
+  type: AuditResourceType;
   id?: string | null;
+  name?: string | null;
+}
+
+export interface AuditRequestContext {
+  requestId?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
 }
 
 export interface AuditWriteInput {
   actor: AuditActor;
-  action: string;
+  action: AuditAction;
   resource: AuditResource;
+  outcome?: AuditOutcome;
+  context?: AuditRequestContext;
   detail?: Prisma.InputJsonValue;
 }
 

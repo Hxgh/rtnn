@@ -17,6 +17,7 @@ import { formatAdminDateTime } from "@/src/lib/utils";
 export default async function DashboardPage() {
   const { me, accessToken } = await requireUserSession();
   const { dictionary, locale } = await getAdminI18n();
+  const auditLabels = dictionary.auditLogs.labels;
   assertPermission(me, API_PERMISSIONS.adminDashboardView);
   const canViewAuditLogs = hasPermission(me, API_PERMISSIONS.adminAuditLogsView);
 
@@ -106,12 +107,12 @@ export default async function DashboardPage() {
                   <div className="min-w-0 space-y-1">
                     <div className="font-medium text-foreground">
                       <AdminTextValue maxWidthClassName="max-w-96">
-                        {formatAuditActionLabel(item.action, locale)}
+                        {formatAuditActionLabel(item.action, auditLabels)}
                       </AdminTextValue>
                     </div>
                     <div className="text-muted-foreground">
                       <AdminTextValue maxWidthClassName="max-w-96">
-                        {`${item.actorName} · ${formatAuditResourceLabel(item.resourceType, locale)}`}
+                        {`${item.actorName} · ${formatAuditResourceLabel(item.resourceType, auditLabels)}`}
                       </AdminTextValue>
                     </div>
                     {item.detail ? (

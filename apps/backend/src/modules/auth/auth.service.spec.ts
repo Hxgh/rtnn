@@ -51,6 +51,7 @@ describe('AuthService', () => {
       token: 'refresh-token',
       rid: 'rid_01',
     });
+    loginRateLimitService.assertAllowed.mockImplementation(() => undefined);
     passwordService.hash.mockResolvedValue('hashed-next-password');
     prisma.$transaction.mockImplementation(
       async (callback: (tx: unknown) => unknown) =>
@@ -153,6 +154,60 @@ describe('AuthService', () => {
     ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
 
     expect(loginRateLimitService.onFailure).toHaveBeenCalled();
+    expect(auditWriter.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'auth.login.failed',
+        outcome: 'failure',
+        resource: expect.objectContaining({
+          type: 'account',
+          id: 'acc_admin',
+          name: 'admin@rtnn.local',
+        }),
+        detail: expect.objectContaining({
+          audience: 'admin',
+          email: 'admin@rtnn.local',
+          reason: 'INVALID_PASSWORD',
+        }),
+      }),
+    );
+  });
+
+  it('writes audit when login is rate limited', async () => {
+    loginRateLimitService.assertAllowed.mockImplementation(() => {
+      throw new ForbiddenException({
+        code: 'LOGIN_RATE_LIMITED',
+        message: 'Too many login attempts',
+      });
+    });
+
+    await expect(
+      service.login(
+        {
+          email: 'admin@rtnn.local',
+          password: 'Admin123!@#',
+        },
+        'admin',
+        {
+          ip: '127.0.0.1',
+          userAgent: 'Jest',
+        },
+      ),
+    ).rejects.toThrow();
+
+    expect(auditWriter.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'auth.login.rate_limited',
+        outcome: 'rate_limited',
+        context: {
+          ip: '127.0.0.1',
+          userAgent: 'Jest',
+        },
+        detail: expect.objectContaining({
+          reason: 'LOGIN_RATE_LIMITED',
+        }),
+      }),
+    );
+    expect(prisma.account.findUnique).not.toHaveBeenCalled();
   });
 
   it('rejects inactive accounts', async () => {
@@ -314,6 +369,10 @@ describe('AuthService', () => {
     expect(auditWriter.write).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'account.password.change',
+        detail: {
+          audience: 'admin',
+          passwordChanged: true,
+        },
       }),
       expect.any(Object),
     );

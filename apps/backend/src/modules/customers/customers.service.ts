@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { AUDIT_ACTIONS } from '@rtnn/shared-types';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { apiBadRequest, apiNotFound } from '../../common/errors/api-error';
 import { PrismaService } from '../../core/prisma/prisma.service';
@@ -135,16 +136,18 @@ export class CustomersService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.customer.create',
+          action: AUDIT_ACTIONS.adminCustomerCreate,
           resource: {
             type: 'customer',
             id: customerProfile.id,
+            name: customerProfile.name,
           },
           detail: {
             email: created.email,
             status: customerProfile.status,
             groupCount: dto.groupIds?.length ?? 0,
             tagCount: dto.tagIds?.length ?? 0,
+            passwordChanged: true,
           },
         },
         tx,
@@ -197,10 +200,11 @@ export class CustomersService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.customer.update',
+          action: AUDIT_ACTIONS.adminCustomerUpdate,
           resource: {
             type: 'customer',
             id,
+            name: dto.name ?? existing.name,
           },
           detail: {
             changedFields: [
@@ -210,6 +214,7 @@ export class CustomersService {
               ...(dto.groupIds !== undefined ? ['groups'] : []),
               ...(dto.tagIds !== undefined ? ['tags'] : []),
             ],
+            passwordChanged: Boolean(dto.password),
           },
         },
         tx,
@@ -251,12 +256,14 @@ export class CustomersService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.customer.status.update',
+          action: AUDIT_ACTIONS.adminCustomerStatusUpdate,
           resource: {
             type: 'customer',
             id,
+            name: existing.name,
           },
           detail: {
+            previousStatus: existing.status,
             status: profileStatus,
           },
         },
@@ -286,10 +293,14 @@ export class CustomersService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.customer.password.reset',
+          action: AUDIT_ACTIONS.adminCustomerPasswordReset,
           resource: {
             type: 'customer',
             id,
+            name: existing.name,
+          },
+          detail: {
+            passwordChanged: true,
           },
         },
         tx,
@@ -348,28 +359,36 @@ export class CustomersService {
   }
 
   async createGroup(actor: AuditActor, dto: CreateCustomerGroupDto) {
-    const row = await this.prisma.customerGroup.create({
-      data: {
-        name: dto.name,
-        slug: dto.slug ?? slugify(dto.name),
-        description: dto.description,
-      },
-      include: {
-        _count: {
-          select: { members: true },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.customerGroup.create({
+        data: {
+          name: dto.name,
+          slug: dto.slug ?? slugify(dto.name),
+          description: dto.description,
         },
-      },
-    });
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.customer-group.create',
-      resource: {
-        type: 'customer-group',
-        id: row.id,
-      },
-      detail: {
-        name: row.name,
-      },
+        include: {
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+      await this.auditWriter.write(
+        {
+          actor,
+          action: AUDIT_ACTIONS.adminCustomerGroupCreate,
+          resource: {
+            type: 'customer-group',
+            id: created.id,
+            name: created.name,
+          },
+          detail: {
+            name: created.name,
+            slug: created.slug,
+          },
+        },
+        tx,
+      );
+      return created;
     });
     return {
       id: row.id,
@@ -387,33 +406,40 @@ export class CustomersService {
     id: string,
     dto: UpdateCustomerGroupDto,
   ) {
-    const row = await this.prisma.customerGroup.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        slug: dto.slug ?? (dto.name ? slugify(dto.name) : undefined),
-        description: dto.description,
-      },
-      include: {
-        _count: {
-          select: { members: true },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.customerGroup.update({
+        where: { id },
+        data: {
+          name: dto.name,
+          slug: dto.slug ?? (dto.name ? slugify(dto.name) : undefined),
+          description: dto.description,
         },
-      },
-    });
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.customer-group.update',
-      resource: {
-        type: 'customer-group',
-        id,
-      },
-      detail: {
-        changedFields: [
-          ...(dto.name ? ['name'] : []),
-          ...(dto.slug ? ['slug'] : []),
-          ...(dto.description !== undefined ? ['description'] : []),
-        ],
-      },
+        include: {
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+      await this.auditWriter.write(
+        {
+          actor,
+          action: AUDIT_ACTIONS.adminCustomerGroupUpdate,
+          resource: {
+            type: 'customer-group',
+            id,
+            name: updated.name,
+          },
+          detail: {
+            changedFields: [
+              ...(dto.name ? ['name'] : []),
+              ...(dto.slug ? ['slug'] : []),
+              ...(dto.description !== undefined ? ['description'] : []),
+            ],
+          },
+        },
+        tx,
+      );
+      return updated;
     });
     return {
       id: row.id,
@@ -476,29 +502,38 @@ export class CustomersService {
   }
 
   async createTag(actor: AuditActor, dto: CreateCustomerTagDto) {
-    const row = await this.prisma.customerTag.create({
-      data: {
-        name: dto.name,
-        slug: dto.slug ?? slugify(dto.name),
-        color: dto.color,
-        description: dto.description,
-      },
-      include: {
-        _count: {
-          select: { members: true },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.customerTag.create({
+        data: {
+          name: dto.name,
+          slug: dto.slug ?? slugify(dto.name),
+          color: dto.color,
+          description: dto.description,
         },
-      },
-    });
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.customer-tag.create',
-      resource: {
-        type: 'customer-tag',
-        id: row.id,
-      },
-      detail: {
-        name: row.name,
-      },
+        include: {
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+      await this.auditWriter.write(
+        {
+          actor,
+          action: AUDIT_ACTIONS.adminCustomerTagCreate,
+          resource: {
+            type: 'customer-tag',
+            id: created.id,
+            name: created.name,
+          },
+          detail: {
+            name: created.name,
+            slug: created.slug,
+            color: created.color,
+          },
+        },
+        tx,
+      );
+      return created;
     });
     return {
       id: row.id,
@@ -512,35 +547,42 @@ export class CustomersService {
   }
 
   async updateTag(actor: AuditActor, id: string, dto: UpdateCustomerTagDto) {
-    const row = await this.prisma.customerTag.update({
-      where: { id },
-      data: {
-        name: dto.name,
-        slug: dto.slug ?? (dto.name ? slugify(dto.name) : undefined),
-        color: dto.color,
-        description: dto.description,
-      },
-      include: {
-        _count: {
-          select: { members: true },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.customerTag.update({
+        where: { id },
+        data: {
+          name: dto.name,
+          slug: dto.slug ?? (dto.name ? slugify(dto.name) : undefined),
+          color: dto.color,
+          description: dto.description,
         },
-      },
-    });
-    await this.auditWriter.write({
-      actor,
-      action: 'admin.customer-tag.update',
-      resource: {
-        type: 'customer-tag',
-        id,
-      },
-      detail: {
-        changedFields: [
-          ...(dto.name ? ['name'] : []),
-          ...(dto.slug ? ['slug'] : []),
-          ...(dto.color !== undefined ? ['color'] : []),
-          ...(dto.description !== undefined ? ['description'] : []),
-        ],
-      },
+        include: {
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+      await this.auditWriter.write(
+        {
+          actor,
+          action: AUDIT_ACTIONS.adminCustomerTagUpdate,
+          resource: {
+            type: 'customer-tag',
+            id,
+            name: updated.name,
+          },
+          detail: {
+            changedFields: [
+              ...(dto.name ? ['name'] : []),
+              ...(dto.slug ? ['slug'] : []),
+              ...(dto.color !== undefined ? ['color'] : []),
+              ...(dto.description !== undefined ? ['description'] : []),
+            ],
+          },
+        },
+        tx,
+      );
+      return updated;
     });
     return {
       id: row.id,

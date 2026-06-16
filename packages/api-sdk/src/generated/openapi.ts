@@ -852,6 +852,16 @@ export interface components {
             /** @example admin.user.update */
             action: string;
             /**
+             * @example iam
+             * @enum {string}
+             */
+            category: "system" | "auth" | "iam" | "customers" | "client-releases";
+            /**
+             * @example success
+             * @enum {string}
+             */
+            outcome: "success" | "failure" | "denied" | "rate_limited";
+            /**
              * @example admin
              * @enum {string}
              */
@@ -860,13 +870,22 @@ export interface components {
             actorId?: Record<string, never> | null;
             /** @example Operations Admin */
             actorName: string;
-            /** @example admin-user */
-            resourceType: string;
+            /**
+             * @example admin-user
+             * @enum {string}
+             */
+            resourceType: "system" | "account" | "admin-user" | "role" | "customer" | "customer-group" | "customer-tag" | "client-release-policy";
             /** @example acc_01JABCD123 */
             resourceId?: Record<string, never> | null;
+            /** @example admin@rtnn.local */
+            resourceName?: Record<string, never> | null;
+            /** @example req_01JABCD123 */
+            requestId?: Record<string, never> | null;
             detail?: {
                 [key: string]: unknown;
             } | null;
+            /** @example 1 */
+            schemaVersion: number;
             /** @example 2026-01-01T00:00:00.000Z */
             createdAt: string;
         };
@@ -2017,6 +2036,12 @@ export interface operations {
                 search?: string;
                 actorType?: "admin" | "customer" | "system";
                 action?: string;
+                category?: "system" | "auth" | "iam" | "customers" | "client-releases";
+                outcome?: "success" | "failure" | "denied" | "rate_limited";
+                resourceType?: "system" | "account" | "admin-user" | "role" | "customer" | "customer-group" | "customer-tag" | "client-release-policy";
+                resourceId?: string;
+                from?: string;
+                to?: string;
             };
             header?: never;
             path?: never;

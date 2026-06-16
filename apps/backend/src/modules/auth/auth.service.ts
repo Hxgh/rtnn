@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AccountStatus, AuthAudience, Prisma } from '@prisma/client';
+import { AUDIT_ACTIONS } from '@rtnn/shared-types';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
@@ -118,7 +119,17 @@ export class AuthService {
     context: LoginRequestContext,
   ): Promise<SessionResponse> {
     const key = this.buildRateLimitKey(dto.email, audience, context.ip);
-    this.loginRateLimitService.assertAllowed(key);
+    try {
+      this.loginRateLimitService.assertAllowed(key);
+    } catch (error) {
+      await this.writeLoginRateLimitedAudit(
+        dto.email,
+        audience,
+        context,
+        'LOGIN_RATE_LIMITED',
+      );
+      throw error;
+    }
 
     const account = await this.prisma.account.findUnique({
       where: { email: dto.email },
@@ -133,6 +144,13 @@ export class AuthService {
         context,
         'NOT_FOUND',
       );
+      await this.writeLoginFailureAudit(
+        dto.email,
+        audience,
+        'failure',
+        context,
+        'NOT_FOUND',
+      );
       throw apiUnauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
     }
     if (account.status !== AccountStatus.active) {
@@ -144,9 +162,38 @@ export class AuthService {
         context,
         'ACCOUNT_DISABLED',
       );
+      await this.writeLoginFailureAudit(
+        dto.email,
+        audience,
+        'denied',
+        context,
+        'ACCOUNT_DISABLED',
+        account.id,
+      );
       throw apiForbidden('ACCOUNT_NOT_ACTIVE', 'Account is not active');
     }
-    this.assertProfileForAudience(account, audience);
+    try {
+      this.assertProfileForAudience(account, audience);
+    } catch (error) {
+      this.loginRateLimitService.onFailure(key);
+      await this.logLoginEvent(
+        dto.email,
+        audience,
+        false,
+        context,
+        'PROFILE_DENIED',
+        account.id,
+      );
+      await this.writeLoginFailureAudit(
+        dto.email,
+        audience,
+        'denied',
+        context,
+        this.resolveLoginProfileDeniedReason(error),
+        account.id,
+      );
+      throw error;
+    }
 
     const passwordValid = await this.passwordService.verify(
       dto.password,
@@ -160,6 +207,14 @@ export class AuthService {
         false,
         context,
         'INVALID_PASSWORD',
+      );
+      await this.writeLoginFailureAudit(
+        dto.email,
+        audience,
+        'failure',
+        context,
+        'INVALID_PASSWORD',
+        account.id,
       );
       throw apiUnauthorized('INVALID_CREDENTIALS', 'Invalid credentials');
     }
@@ -409,13 +464,15 @@ export class AuthService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'account.password.change',
+          action: AUDIT_ACTIONS.accountPasswordChange,
           resource: {
             type: 'account',
             id: account.id,
+            name: account.email,
           },
           detail: {
             audience,
+            passwordChanged: true,
           },
         },
         tx,
@@ -618,6 +675,80 @@ export class AuthService {
         userAgent: context.userAgent,
       },
     });
+  }
+
+  private async writeLoginFailureAudit(
+    email: string,
+    audience: AuthAudience,
+    outcome: 'failure' | 'denied',
+    context: LoginRequestContext,
+    reason: string,
+    accountId?: string,
+  ): Promise<void> {
+    try {
+      await this.auditWriter.write({
+        actor: {
+          type: 'system',
+          name: 'system',
+        },
+        action: AUDIT_ACTIONS.authLoginFailed,
+        outcome,
+        resource: {
+          type: 'account',
+          id: accountId,
+          name: email.toLowerCase(),
+        },
+        context,
+        detail: {
+          audience,
+          email: email.toLowerCase(),
+          reason,
+        },
+      });
+    } catch {
+      // Login failures must keep their original auth error semantics.
+    }
+  }
+
+  private async writeLoginRateLimitedAudit(
+    email: string,
+    audience: AuthAudience,
+    context: LoginRequestContext,
+    reason: string,
+  ): Promise<void> {
+    try {
+      await this.auditWriter.write({
+        actor: {
+          type: 'system',
+          name: 'system',
+        },
+        action: AUDIT_ACTIONS.authLoginRateLimited,
+        outcome: 'rate_limited',
+        resource: {
+          type: 'account',
+          name: email.toLowerCase(),
+        },
+        context,
+        detail: {
+          audience,
+          email: email.toLowerCase(),
+          reason,
+        },
+      });
+    } catch {
+      // Login failures must keep their original auth error semantics.
+    }
+  }
+
+  private resolveLoginProfileDeniedReason(error: unknown): string {
+    const response =
+      typeof error === 'object' && error && 'getResponse' in error
+        ? (error as { getResponse: () => unknown }).getResponse()
+        : undefined;
+    if (typeof response === 'object' && response && 'code' in response) {
+      return String((response as { code: unknown }).code);
+    }
+    return 'PROFILE_DENIED';
   }
 
   private resolveDurationToSeconds(raw: string): number {

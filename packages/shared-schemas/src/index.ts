@@ -1,4 +1,10 @@
-import { DEFAULT_PERMISSION_KEYS, type PermissionKey } from "@rtnn/shared-types";
+import {
+  AUDIT_CATEGORIES,
+  AUDIT_OUTCOMES,
+  AUDIT_RESOURCE_TYPES,
+  DEFAULT_PERMISSION_KEYS,
+  type PermissionKey,
+} from "@rtnn/shared-types";
 import { z } from "zod";
 
 const permissionKeyValues = [...DEFAULT_PERMISSION_KEYS] as [
@@ -135,4 +141,10 @@ export const auditLogListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().min(1).max(120).optional(),
   actorType: auditActorTypeSchema.optional(),
   action: z.string().trim().min(1).max(80).optional(),
+  category: z.enum(AUDIT_CATEGORIES).optional(),
+  outcome: z.enum(AUDIT_OUTCOMES).optional(),
+  resourceType: z.enum(AUDIT_RESOURCE_TYPES).optional(),
+  resourceId: z.string().trim().min(1).max(120).optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
 });

@@ -147,15 +147,29 @@ type AuditDictionary = {
   actor: string;
   actorType: string;
   action: string;
+  category: string;
+  outcome: string;
   resourceType: string;
   resourceId: string;
+  from: string;
+  to: string;
   createdAt: string;
   detail: string;
+  allActions: string;
+  allCategories: string;
+  allOutcomes: string;
+  allResourceTypes: string;
   allActorTypes: string;
   adminActor: string;
   customerActor: string;
   systemActor: string;
   empty: string;
+  labels: {
+    actions: Record<string, string>;
+    categories: Record<string, string>;
+    outcomes: Record<string, string>;
+    resourceTypes: Record<string, string>;
+  };
 };
 
 type ClientReleasesDictionary = {
@@ -545,15 +559,69 @@ const zhCN: AdminDictionary = {
     actor: "操作者",
     actorType: "操作者类型",
     action: "动作",
+    category: "分类",
+    outcome: "结果",
     resourceType: "资源类型",
     resourceId: "资源 ID",
+    from: "开始日期",
+    to: "结束日期",
     createdAt: "时间",
     detail: "详情",
+    allActions: "全部动作",
+    allCategories: "全部分类",
+    allOutcomes: "全部结果",
+    allResourceTypes: "全部资源",
     allActorTypes: "全部操作者",
     adminActor: "管理员",
     customerActor: "客户",
     systemActor: "系统",
     empty: "暂无审计数据",
+    labels: {
+      actions: {
+        "audit.action.auth.login.failed": "登录失败",
+        "audit.action.auth.login.rateLimited": "登录限流",
+        "audit.action.auth.permission.denied": "权限拒绝",
+        "audit.action.account.password.change": "修改密码",
+        "audit.action.admin.user.create": "新建管理员",
+        "audit.action.admin.user.update": "更新管理员",
+        "audit.action.admin.user.roles.update": "更新管理员角色",
+        "audit.action.admin.role.create": "新建角色",
+        "audit.action.admin.role.update": "更新角色",
+        "audit.action.admin.role.permissions.update": "更新角色权限",
+        "audit.action.admin.customer.create": "新建客户",
+        "audit.action.admin.customer.update": "更新客户",
+        "audit.action.admin.customer.status.update": "更新客户状态",
+        "audit.action.admin.customer.password.reset": "重置客户密码",
+        "audit.action.admin.customerGroup.create": "新建客户分组",
+        "audit.action.admin.customerGroup.update": "更新客户分组",
+        "audit.action.admin.customerTag.create": "新建客户标签",
+        "audit.action.admin.customerTag.update": "更新客户标签",
+        "audit.action.admin.clientReleasePolicy.update": "更新客户端发布策略",
+      },
+      categories: {
+        system: "系统",
+        auth: "认证安全",
+        iam: "权限",
+        customers: "客户",
+        "client-releases": "客户端发布",
+      },
+      outcomes: {
+        success: "成功",
+        failure: "失败",
+        denied: "拒绝",
+        rate_limited: "限流",
+      },
+      resourceTypes: {
+        system: "系统",
+        account: "账号",
+        "admin-user": "管理员",
+        role: "角色",
+        customer: "客户",
+        "customer-group": "客户分组",
+        "customer-tag": "客户标签",
+        "client-release-policy": "客户端发布策略",
+      },
+    },
   },
   account: {
     title: "个人中心",
@@ -840,15 +908,70 @@ const enUS: AdminDictionary = {
     actor: "Actor",
     actorType: "Actor type",
     action: "Action",
+    category: "Category",
+    outcome: "Outcome",
     resourceType: "Resource type",
     resourceId: "Resource ID",
+    from: "From",
+    to: "To",
     createdAt: "Time",
     detail: "Detail",
+    allActions: "All actions",
+    allCategories: "All categories",
+    allOutcomes: "All outcomes",
+    allResourceTypes: "All resources",
     allActorTypes: "All actors",
     adminActor: "Admin",
     customerActor: "Customer",
     systemActor: "System",
     empty: "No audit logs yet.",
+    labels: {
+      actions: {
+        "audit.action.auth.login.failed": "Login failed",
+        "audit.action.auth.login.rateLimited": "Login rate limited",
+        "audit.action.auth.permission.denied": "Permission denied",
+        "audit.action.account.password.change": "Change password",
+        "audit.action.admin.user.create": "Create admin user",
+        "audit.action.admin.user.update": "Update admin user",
+        "audit.action.admin.user.roles.update": "Update admin user roles",
+        "audit.action.admin.role.create": "Create role",
+        "audit.action.admin.role.update": "Update role",
+        "audit.action.admin.role.permissions.update": "Update role permissions",
+        "audit.action.admin.customer.create": "Create customer",
+        "audit.action.admin.customer.update": "Update customer",
+        "audit.action.admin.customer.status.update": "Update customer status",
+        "audit.action.admin.customer.password.reset": "Reset customer password",
+        "audit.action.admin.customerGroup.create": "Create customer group",
+        "audit.action.admin.customerGroup.update": "Update customer group",
+        "audit.action.admin.customerTag.create": "Create customer tag",
+        "audit.action.admin.customerTag.update": "Update customer tag",
+        "audit.action.admin.clientReleasePolicy.update":
+          "Update client release policy",
+      },
+      categories: {
+        system: "System",
+        auth: "Auth",
+        iam: "IAM",
+        customers: "Customers",
+        "client-releases": "Client releases",
+      },
+      outcomes: {
+        success: "Success",
+        failure: "Failure",
+        denied: "Denied",
+        rate_limited: "Rate limited",
+      },
+      resourceTypes: {
+        system: "System",
+        account: "Account",
+        "admin-user": "Admin user",
+        role: "Role",
+        customer: "Customer",
+        "customer-group": "Customer group",
+        "customer-tag": "Customer tag",
+        "client-release-policy": "Client release policy",
+      },
+    },
   },
   account: {
     title: "Account Center",

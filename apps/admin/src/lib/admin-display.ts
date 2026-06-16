@@ -1,8 +1,28 @@
-import { PERMISSION_DEFINITIONS, type PermissionKey } from "@rtnn/shared-types";
+import {
+  AUDIT_ACTION_DEFINITIONS,
+  AUDIT_CATEGORIES,
+  AUDIT_OUTCOMES,
+  AUDIT_RESOURCE_TYPES,
+  PERMISSION_DEFINITIONS,
+  type AuditCategory,
+  type AuditAction,
+  type AuditOutcome,
+  type AuditResourceType,
+  type PermissionKey,
+} from "@rtnn/shared-types";
 
 const permissionLabelByKey = new Map(
   PERMISSION_DEFINITIONS.map((permission) => [permission.key, permission.name]),
 );
+const auditActionDefinitionByAction = new Map(
+  AUDIT_ACTION_DEFINITIONS.map((definition) => [definition.action, definition]),
+);
+export type AuditLabelDictionary = {
+  actions: Record<string, string>;
+  categories: Record<string, string>;
+  outcomes: Record<string, string>;
+  resourceTypes: Record<string, string>;
+};
 
 export function formatAdminPermissionLabel(key: string) {
   return permissionLabelByKey.get(key as PermissionKey) ?? key;
@@ -20,56 +40,80 @@ export function formatClientReleaseChannel(channel: string, locale?: string) {
   }
 }
 
-export function formatAuditActionLabel(action: string, locale?: string) {
-  const isEnglish = locale?.startsWith("en");
-  switch (action) {
-    case "admin.customer.create":
-      return isEnglish ? "Create customer" : "新建客户";
-    case "admin.customer.update":
-      return isEnglish ? "Update customer" : "更新客户";
-    case "admin.customer.status.update":
-      return isEnglish ? "Update customer status" : "更新客户状态";
-    case "admin.customer.password.reset":
-      return isEnglish ? "Reset customer password" : "重置客户密码";
-    case "admin.customer-group.create":
-      return isEnglish ? "Create customer group" : "新建客户分组";
-    case "admin.customer-group.update":
-      return isEnglish ? "Update customer group" : "更新客户分组";
-    case "admin.customer-tag.create":
-      return isEnglish ? "Create customer tag" : "新建客户标签";
-    case "admin.customer-tag.update":
-      return isEnglish ? "Update customer tag" : "更新客户标签";
-    case "admin.role.create":
-      return isEnglish ? "Create role" : "新建角色";
-    case "admin.role.update":
-      return isEnglish ? "Update role" : "更新角色";
-    case "admin.role.permissions.update":
-      return isEnglish ? "Update role permissions" : "更新角色权限";
-    case "admin.user.create":
-      return isEnglish ? "Create admin user" : "新建管理员";
-    case "admin.user.update":
-      return isEnglish ? "Update admin user" : "更新管理员";
+export function formatAuditActionLabel(
+  action: string,
+  labels: AuditLabelDictionary,
+) {
+  const definition = auditActionDefinitionByAction.get(action as never);
+  if (!definition) {
+    return action;
+  }
+  return labels.actions[definition.labelKey] ?? action;
+}
+
+export function formatAuditResourceLabel(
+  resourceType: string,
+  labels: AuditLabelDictionary,
+) {
+  return labels.resourceTypes[resourceType] ?? resourceType;
+}
+
+export function formatAuditCategoryLabel(
+  category: string,
+  labels: AuditLabelDictionary,
+) {
+  return labels.categories[category] ?? category;
+}
+
+export function formatAuditOutcomeLabel(
+  outcome: string,
+  labels: AuditLabelDictionary,
+) {
+  return labels.outcomes[outcome] ?? outcome;
+}
+
+export function getAuditOutcomeTone(
+  outcome: string,
+): "success" | "warning" | "danger" | "neutral" {
+  switch (outcome) {
+    case "success":
+      return "success";
+    case "failure":
+      return "danger";
+    case "denied":
+    case "rate_limited":
+      return "warning";
     default:
-      return action;
+      return "neutral";
   }
 }
 
-export function formatAuditResourceLabel(resourceType: string, locale?: string) {
-  const isEnglish = locale?.startsWith("en");
-  switch (resourceType) {
-    case "customer":
-      return isEnglish ? "Customer" : "客户";
-    case "customer-group":
-      return isEnglish ? "Customer group" : "客户分组";
-    case "customer-tag":
-      return isEnglish ? "Customer tag" : "客户标签";
-    case "role":
-      return isEnglish ? "Role" : "角色";
-    case "user":
-      return isEnglish ? "Admin user" : "管理员";
-    default:
-      return resourceType;
-  }
+export function getAuditCategoryOptions(labels: AuditLabelDictionary) {
+  return AUDIT_CATEGORIES.map((category) => ({
+    label: formatAuditCategoryLabel(category, labels),
+    value: category satisfies AuditCategory,
+  }));
+}
+
+export function getAuditActionOptions(labels: AuditLabelDictionary) {
+  return AUDIT_ACTION_DEFINITIONS.map((definition) => ({
+    label: formatAuditActionLabel(definition.action, labels),
+    value: definition.action satisfies AuditAction,
+  }));
+}
+
+export function getAuditOutcomeOptions(labels: AuditLabelDictionary) {
+  return AUDIT_OUTCOMES.map((outcome) => ({
+    label: formatAuditOutcomeLabel(outcome, labels),
+    value: outcome satisfies AuditOutcome,
+  }));
+}
+
+export function getAuditResourceTypeOptions(labels: AuditLabelDictionary) {
+  return AUDIT_RESOURCE_TYPES.map((resourceType) => ({
+    label: formatAuditResourceLabel(resourceType, labels),
+    value: resourceType satisfies AuditResourceType,
+  }));
 }
 
 export function formatAuditDetailSummary(

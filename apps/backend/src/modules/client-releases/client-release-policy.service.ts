@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { ClientUpdatePolicySummary } from '@rtnn/shared-types';
+import {
+  AUDIT_ACTIONS,
+  type ClientUpdatePolicySummary,
+} from '@rtnn/shared-types';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditWriter } from '../audit/audit-writer.service';
 import { AuditActor } from '../audit/audit.types';
@@ -109,15 +112,21 @@ export class ClientReleasePolicyService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.client-release-policy.update',
+          action: AUDIT_ACTIONS.adminClientReleasePolicyUpdate,
           resource: {
             type: 'client-release-policy',
             id: policyId,
+            name: policyKey(updated),
           },
           detail: {
             client: updated.client,
             target: updated.target,
             channel: updated.channel,
+            enabled: updated.enabled,
+            forceUpdate: updated.forceUpdate,
+            allowGithubFallback: updated.allowGithubFallback,
+            recommendedReleaseId: updated.recommendedReleaseId,
+            minimumSupportedVersion: updated.minimumSupportedVersion,
           },
         },
         tx,

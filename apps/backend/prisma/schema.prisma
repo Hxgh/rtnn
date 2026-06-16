@@ -204,13 +204,23 @@ model AuditLog {
   actorAudience AuthAudience?
   actorName     String?
   action        String
+  category      String?
+  outcome       String?
   resource      String
   resourceId    String?
+  resourceName  String?
+  requestId     String?
+  ipHash        String?
+  userAgent     String?
   detail        Json?
+  schemaVersion Int          @default(1)
   createdAt     DateTime     @default(now())
 
   @@index([createdAt])
   @@index([resource, resourceId])
+  @@index([category, createdAt])
+  @@index([outcome, createdAt])
+  @@index([requestId])
 }
 
 model ClientRelease {

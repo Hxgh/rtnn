@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AccountStatus, Prisma } from '@prisma/client';
+import { AUDIT_ACTIONS } from '@rtnn/shared-types';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { apiBadRequest, apiNotFound } from '../../common/errors/api-error';
@@ -144,14 +145,16 @@ export class IamService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.user.create',
+          action: AUDIT_ACTIONS.adminUserCreate,
           resource: {
             type: 'admin-user',
             id: account.id,
+            name: account.email,
           },
           detail: {
             email: account.email,
             roleIds,
+            passwordChanged: true,
           },
         },
         tx,
@@ -215,13 +218,15 @@ export class IamService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.user.update',
+          action: AUDIT_ACTIONS.adminUserUpdate,
           resource: {
             type: 'admin-user',
             id,
+            name: existing.email,
           },
           detail: {
             changedFields,
+            passwordChanged: Boolean(passwordHash),
           },
         },
         tx,
@@ -306,10 +311,11 @@ export class IamService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.role.create',
+          action: AUDIT_ACTIONS.adminRoleCreate,
           resource: {
             type: 'role',
             id: created.id,
+            name: created.name,
           },
           detail: {
             slug: created.slug,
@@ -358,10 +364,11 @@ export class IamService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.role.update',
+          action: AUDIT_ACTIONS.adminRoleUpdate,
           resource: {
             type: 'role',
             id,
+            name: dto.name ?? existing.name,
           },
           detail: {
             changedFields: [
@@ -396,10 +403,11 @@ export class IamService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.role.permissions.update',
+          action: AUDIT_ACTIONS.adminRolePermissionsUpdate,
           resource: {
             type: 'role',
             id: roleId,
+            name: role.name,
           },
           detail: {
             permissionKeys,
@@ -430,10 +438,11 @@ export class IamService {
       await this.auditWriter.write(
         {
           actor,
-          action: 'admin.user.roles.update',
+          action: AUDIT_ACTIONS.adminUserRolesUpdate,
           resource: {
             type: 'admin-user',
             id: userId,
+            name: account.email,
           },
           detail: {
             roleIds,

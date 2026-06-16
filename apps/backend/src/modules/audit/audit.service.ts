@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { AuditLogItem, PaginatedResult } from '@rtnn/shared-types';
+import type {
+  AuditCategory,
+  AuditLogItem,
+  AuditOutcome,
+  PaginatedResult,
+} from '@rtnn/shared-types';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 
@@ -16,11 +22,23 @@ export class AuditService {
         : query.actorType
           ? query.actorType
           : undefined;
-    const where = {
+    const where: Prisma.AuditLogWhereInput = {
       ...(actorAudienceFilter !== undefined
         ? { actorAudience: actorAudienceFilter }
         : {}),
       ...(query.action ? { action: query.action } : {}),
+      ...(query.category ? { category: query.category } : {}),
+      ...(query.outcome ? { outcome: query.outcome } : {}),
+      ...(query.resourceType ? { resource: query.resourceType } : {}),
+      ...(query.resourceId ? { resourceId: query.resourceId } : {}),
+      ...(query.from || query.to
+        ? {
+            createdAt: {
+              ...(query.from ? { gte: new Date(query.from) } : {}),
+              ...(query.to ? { lte: new Date(query.to) } : {}),
+            },
+          }
+        : {}),
       ...(query.search
         ? {
             OR: [
@@ -32,6 +50,24 @@ export class AuditService {
               },
               {
                 resource: {
+                  contains: query.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                resourceId: {
+                  contains: query.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                resourceName: {
+                  contains: query.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                requestId: {
                   contains: query.search,
                   mode: 'insensitive' as const,
                 },
@@ -90,12 +126,17 @@ export class AuditService {
       data: rows.map((row) => ({
         id: row.id,
         action: row.action,
+        category: (row.category ?? 'system') as AuditCategory,
+        outcome: (row.outcome ?? 'success') as AuditOutcome,
         actorType: row.actorAudience ?? 'system',
         actorId: row.actorAccountId,
         actorName: this.resolveActorName(row, actorAccountMap),
         resourceType: row.resource,
         resourceId: row.resourceId,
+        resourceName: row.resourceName,
+        requestId: row.requestId,
         detail: this.normalizeDetail(row.detail),
+        schemaVersion: row.schemaVersion ?? 1,
         createdAt: row.createdAt.toISOString(),
       })),
       meta: {
