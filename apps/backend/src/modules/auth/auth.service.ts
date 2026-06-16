@@ -741,12 +741,11 @@ export class AuthService {
   }
 
   private resolveLoginProfileDeniedReason(error: unknown): string {
-    const response =
-      typeof error === 'object' && error && 'getResponse' in error
-        ? (error as { getResponse: () => unknown }).getResponse()
-        : undefined;
+    const response = hasHttpExceptionResponse(error)
+      ? error.getResponse()
+      : undefined;
     if (typeof response === 'object' && response && 'code' in response) {
-      return String((response as { code: unknown }).code);
+      return String(response.code);
     }
     return 'PROFILE_DENIED';
   }
@@ -771,6 +770,17 @@ export class AuthService {
     }
     return 900;
   }
+}
+
+function hasHttpExceptionResponse(
+  error: unknown,
+): error is { getResponse: () => unknown } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'getResponse' in error &&
+    typeof error.getResponse === 'function'
+  );
 }
 
 function cryptoRandomId(): string {
