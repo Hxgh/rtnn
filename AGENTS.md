@@ -77,42 +77,6 @@
 - 禁止在 `app`、`admin`、`clients`、脚本中手写分散的品牌名、安装名、图标 SVG 或默认框架图标
 - 更新品牌、名称或图标时，必须先改统一配置，再运行客户端品牌同步脚本和客户端检查脚本，确保各端一次性一致
 
-## 前端 Skills 编排（统一入口）
-
-前端任务按需使用以下 skill 组合：
-
-1. `admin-shadcn-workflow`（统一 admin 后台 UI 体系与落地约束，仅用于后台 UI 组件任务）
-2. `vercel-composition-patterns`（React 组件架构与组合模式，仅用于相关架构场景）
-3. `vercel-react-best-practices`（React 性能与数据获取）
-4. `web-design-guidelines`（UI/可访问性审查，仅在评审类任务启用）
-
-### 目录范围与互斥
-
-- `backend/` 禁止套用前端 skill
-- `admin-shadcn-workflow` 仅适用于 `admin/`，涉及后台 UI 组件选型与实现时默认启用
-- `admin` 与 `app` 的 UI 落地规则分开定义：后台看《Admin 前端规则》，移动端前台看《App 前端规则》
-
-### 协同顺序（按需）
-
-1. 先做组件选型与 UI 设计（`admin-shadcn-workflow`）
-2. 再做组件分层与 API 设计（`vercel-composition-patterns`）
-3. 再做性能优化（`vercel-react-best-practices`）
-4. 最后做 UI/可访问性检查（`web-design-guidelines`）
-
-### 启用判定原则
-
-- 是否启用以需求类型判定：凡属于 `admin` UI 组件选型与实现任务，默认进入 `admin-shadcn-workflow`
-- `shadcn/ui` 当前是 `admin` 专属，不默认用于 `app`
-- 关键词仅用于辅助识别，不是触发前提：`shadcn`、`ui.shadcn.com`、`components.json`、`npx shadcn`、`registry`
-
-### 前端技能路由补充
-
-- 涉及 `admin` UI 组件开发或改造时，默认先检查并优先复用 `shadcn/ui` 官方组件或官方 block
-- 涉及 `app` UI 组件开发或改造时，默认使用移动端前台方案与 Tailwind CSS，不引入 `shadcn/ui`
-- React/Next 常规开发默认使用 `vercel-react-best-practices`（组件、页面、数据获取、性能优化）
-- 仅当涉及组件架构设计、可复用组件 API、compound components、context/provider、boolean props 泛滥治理时，启用 `vercel-composition-patterns`
-- 仅当用户要求 UI 评审、可访问性审查、UX 审计时，追加 `web-design-guidelines`
-- 当前仓库无 React Native / Expo 工程，默认不启用 `vercel-react-native-skills`
 
 ## Admin 前端规则（仅适用于 `admin/`）
 
@@ -192,27 +156,6 @@
 - `backend` 核心基础能力必须带自动化测试，尤其是鉴权、权限、错误语义、契约生成链路、关键脚本与基础设施封装
 - `backend` 的模板边界默认做减法：没有稳定职责、稳定契约或稳定消费面的模块，不进入首发主线
 
-## 后端 Skills 编排（统一入口）
-
-后端任务按以下 skill 组合执行：
-
-1. `nestjs-best-practices`（NestJS 架构与最佳实践）
-
-### 目录范围
-
-- `backend/` 使用 `nestjs-best-practices`
-- `admin/app` 禁止套用后端 skill
-
-### 推荐触发顺序
-
-1. 架构设计（模块划分、依赖注入）
-2. 安全与验证（DTO、Guards、异常处理）
-3. 性能优化（缓存、数据库优化）
-4. 测试与部署
-
-### 触发关键词（显式）
-
-- `nestjs-best-practices`：`backend`、`NestJS`、`Controller`、`Service`、`Module`、`DTO`、`Prisma`、`权限`
 
 # 架构要点
 
